@@ -1,0 +1,317 @@
+// use prisma-8
+
+enum UserRole {
+  @@type("pg/text@1")
+
+  ADMIN   = "ADMIN"
+  STUDENT = "STUDENT"
+  TRAINER = "TRAINER"
+}
+
+enum CourseMode {
+  @@type("pg/text@1")
+
+  ONLINE  = "ONLINE"
+  OFFLINE = "OFFLINE"
+  HYBRID  = "HYBRID"
+}
+
+enum EnrollmentStatus {
+  @@type("pg/text@1")
+
+  ACTIVE    = "ACTIVE"
+  COMPLETED = "COMPLETED"
+  CANCELLED = "CANCELLED"
+  PENDING   = "PENDING"
+}
+
+enum PaymentStatus {
+  @@type("pg/text@1")
+
+  CREATED   = "CREATED"
+  PENDING   = "PENDING"
+  SUCCESS   = "SUCCESS"
+  FAILED    = "FAILED"
+  REFUNDED  = "REFUNDED"
+}
+
+enum PaymentMethod {
+  @@type("pg/text@1")
+
+  RAZORPAY = "RAZORPAY"
+  STRIPE   = "STRIPE"
+  UPI      = "UPI"
+  OTHER    = "OTHER"
+}
+
+enum RegistrationIntentStatus {
+  @@type("pg/text@1")
+
+  CREATED = "CREATED"
+  PAID    = "PAID"
+  EXPIRED = "EXPIRED"
+  FAILED  = "FAILED"
+}
+
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String?
+  name         String
+  phone        String?
+  role         UserRole @default(STUDENT)
+  isActive     Boolean  @default(true)
+
+  studentProfile StudentProfile?
+  trainerProfile TrainerProfile?
+
+  enrollments Enrollment[]
+  payments    Payment[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+
+model StudentProfile {
+  id        Int    @id @default(autoincrement())
+  studentId String @unique
+  userId    Int    @unique
+
+  state      String?
+  referralId String?
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  enrollments Enrollment[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+
+model TrainerProfile {
+  id     Int @id @default(autoincrement())
+  userId Int @unique
+
+  qualification  String?
+  specialization String?
+  bio            String?
+  experience     Int?
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+
+model Course {
+  id          Int        @id @default(autoincrement())
+  slug        String     @unique
+  title       String
+  description String?
+  mode        CourseMode @default(ONLINE)
+
+  duration String?
+  modules  Int?
+
+  price    Int?
+  isActive Boolean @default(true)
+
+  enrollments  Enrollment[]
+  packageItems PackageCourse[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+
+model CoursePackage {
+  id          Int    @id @default(autoincrement())
+  slug        String @unique
+  title       String
+  description String?
+  price       Int
+
+  isActive Boolean @default(true)
+
+  courses     PackageCourse[]
+  enrollments Enrollment[]
+
+  registrationIntents RegistrationIntent[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+
+model PackageCourse {
+  id        Int @id @default(autoincrement())
+  packageId Int
+  courseId  Int
+
+  package CoursePackage @relation(
+    fields: [packageId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@unique([packageId, courseId])
+}
+
+
+model RegistrationIntent {
+  id Int @id @default(autoincrement())
+
+  name         String
+  email        String
+  phone        String
+  passwordHash String
+
+  state      String?
+  referralId String?
+
+  packageId Int
+  courseId  Int?
+
+  status RegistrationIntentStatus @default(CREATED)
+
+  razorpayOrderId String?
+
+  package CoursePackage @relation(
+    fields: [packageId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course? @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  payment Payment?
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([email])
+  @@index([packageId])
+  @@index([courseId])
+  @@index([razorpayOrderId])
+  @@index([status])
+}
+
+
+model Enrollment {
+  id Int @id @default(autoincrement())
+
+  userId    Int
+  studentId Int
+
+  courseId  Int?
+  packageId Int?
+
+  status EnrollmentStatus @default(PENDING)
+
+  enrolledAt TimestamptzString @default(now())
+  completedAt TimestamptzString?
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  student StudentProfile @relation(
+    fields: [studentId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course? @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  package CoursePackage? @relation(
+    fields: [packageId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  payments Payment[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([userId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([packageId])
+}
+
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  userId       Int?
+  enrollmentId Int?
+
+  registrationIntentId Int? @unique
+
+  amount   Int
+  currency String @default("INR")
+
+  method PaymentMethod @default(RAZORPAY)
+  status PaymentStatus @default(CREATED)
+
+  providerOrderId   String?
+  providerPaymentId String?
+  providerSignature String?
+
+  user User? @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  enrollment Enrollment? @relation(
+    fields: [enrollmentId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  registrationIntent RegistrationIntent? @relation(
+    fields: [registrationIntentId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  paidAt TimestamptzString?
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([userId])
+  @@index([enrollmentId])
+  @@index([providerOrderId])
+  @@index([providerPaymentId])
+}

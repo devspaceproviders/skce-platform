@@ -664,7 +664,7 @@ function ActionButton({
 }: {
   children: ReactNode;
   title: string;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button

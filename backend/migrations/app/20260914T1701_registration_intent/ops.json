@@ -1,0 +1,489 @@
+[
+  {
+    "id": "table.registrationIntent",
+    "label": "Create table \"registrationIntent\"",
+    "summary": "Creates table \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"registrationIntent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"registrationIntent\"",
+        "sql": "CREATE TABLE \"public\".\"registrationIntent\" (\n  \"courseId\" int4,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"name\" text NOT NULL,\n  \"packageId\" int4 NOT NULL,\n  \"passwordHash\" text NOT NULL,\n  \"phone\" text NOT NULL,\n  \"razorpayOrderId\" text,\n  \"referralId\" text,\n  \"state\" text,\n  \"status\" text DEFAULT 'CREATED' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"registrationIntent_status_check_0feaa862\" CHECK (\"status\" IN ('CREATED', 'PAID', 'EXPIRED', 'FAILED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"registrationIntent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment.registrationIntentId",
+    "label": "Add column \"registrationIntentId\" to \"payment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "registrationIntentId",
+        "table": "payment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"registrationIntentId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "registrationIntentId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"registrationIntentId\"",
+        "sql": "ALTER TABLE \"public\".\"payment\" ADD COLUMN \"registrationIntentId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"registrationIntentId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "registrationIntentId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.payment.userId",
+    "label": "Drop NOT NULL on \"payment\".\"userId\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "userId",
+        "table": "payment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"userId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "userId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"userId\"",
+        "sql": "ALTER TABLE \"public\".\"payment\" ALTER COLUMN \"userId\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"userId\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "payment",
+          "userId",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.payment.payment_registrationIntentId_key",
+    "label": "Add unique constraint on \"payment\" (registrationIntentId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "payment_registrationIntentId_key",
+        "table": "payment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_registrationIntentId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_registrationIntentId_key",
+          "public",
+          "\"public\".\"payment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"payment_registrationIntentId_key\"",
+        "sql": "ALTER TABLE \"public\".\"payment\" ADD CONSTRAINT \"payment_registrationIntentId_key\" UNIQUE (\"registrationIntentId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_registrationIntentId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_registrationIntentId_key",
+          "public",
+          "\"public\".\"payment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.registrationIntent.registrationIntent_courseId_idx_12f72d2a",
+    "label": "Create index \"registrationIntent_courseId_idx_12f72d2a\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "registrationIntent_courseId_idx_12f72d2a",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"registrationIntent_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"registrationIntent_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"registrationIntent_courseId_idx_12f72d2a\" ON \"public\".\"registrationIntent\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"registrationIntent_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.registrationIntent.registrationIntent_email_idx_46df9cad",
+    "label": "Create index \"registrationIntent_email_idx_46df9cad\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "registrationIntent_email_idx_46df9cad",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"registrationIntent_email_idx_46df9cad\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_email_idx_46df9cad\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"registrationIntent_email_idx_46df9cad\"",
+        "sql": "CREATE INDEX \"registrationIntent_email_idx_46df9cad\" ON \"public\".\"registrationIntent\" (\"email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"registrationIntent_email_idx_46df9cad\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_email_idx_46df9cad\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.registrationIntent.registrationIntent_packageId_idx_51f866f4",
+    "label": "Create index \"registrationIntent_packageId_idx_51f866f4\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "registrationIntent_packageId_idx_51f866f4",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"registrationIntent_packageId_idx_51f866f4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_packageId_idx_51f866f4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"registrationIntent_packageId_idx_51f866f4\"",
+        "sql": "CREATE INDEX \"registrationIntent_packageId_idx_51f866f4\" ON \"public\".\"registrationIntent\" (\"packageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"registrationIntent_packageId_idx_51f866f4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_packageId_idx_51f866f4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.registrationIntent.registrationIntent_razorpayOrderId_idx_8bcabcd5",
+    "label": "Create index \"registrationIntent_razorpayOrderId_idx_8bcabcd5\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "registrationIntent_razorpayOrderId_idx_8bcabcd5",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"registrationIntent_razorpayOrderId_idx_8bcabcd5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_razorpayOrderId_idx_8bcabcd5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"registrationIntent_razorpayOrderId_idx_8bcabcd5\"",
+        "sql": "CREATE INDEX \"registrationIntent_razorpayOrderId_idx_8bcabcd5\" ON \"public\".\"registrationIntent\" (\"razorpayOrderId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"registrationIntent_razorpayOrderId_idx_8bcabcd5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_razorpayOrderId_idx_8bcabcd5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.registrationIntent.registrationIntent_status_idx_e98638ab",
+    "label": "Create index \"registrationIntent_status_idx_e98638ab\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "registrationIntent_status_idx_e98638ab",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"registrationIntent_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"registrationIntent_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"registrationIntent_status_idx_e98638ab\" ON \"public\".\"registrationIntent\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"registrationIntent_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"registrationIntent_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.registrationIntent.registrationIntent_packageId_fkey",
+    "label": "Add foreign key \"registrationIntent_packageId_fkey\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "registrationIntent_packageId_fkey",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"registrationIntent_packageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "registrationIntent_packageId_fkey",
+          "public",
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"registrationIntent_packageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\"\nADD CONSTRAINT \"registrationIntent_packageId_fkey\"\nFOREIGN KEY (\"packageId\")\nREFERENCES \"public\".\"coursePackage\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"registrationIntent_packageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "registrationIntent_packageId_fkey",
+          "public",
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.registrationIntent.registrationIntent_courseId_fkey",
+    "label": "Add foreign key \"registrationIntent_courseId_fkey\" on \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "registrationIntent_courseId_fkey",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"registrationIntent_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "registrationIntent_courseId_fkey",
+          "public",
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"registrationIntent_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\"\nADD CONSTRAINT \"registrationIntent_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"registrationIntent_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "registrationIntent_courseId_fkey",
+          "public",
+          "\"public\".\"registrationIntent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.payment.payment_registrationIntentId_fkey",
+    "label": "Add foreign key \"payment_registrationIntentId_fkey\" on \"payment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "payment_registrationIntentId_fkey",
+        "table": "payment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"payment_registrationIntentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_registrationIntentId_fkey",
+          "public",
+          "\"public\".\"payment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"payment_registrationIntentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"payment\"\nADD CONSTRAINT \"payment_registrationIntentId_fkey\"\nFOREIGN KEY (\"registrationIntentId\")\nREFERENCES \"public\".\"registrationIntent\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"payment_registrationIntentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_registrationIntentId_fkey",
+          "public",
+          "\"public\".\"payment\""
+        ]
+      }
+    ]
+  }
+]

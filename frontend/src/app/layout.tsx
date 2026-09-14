@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "SK Computer Education — Learn. Grow. Succeed.",
@@ -16,14 +14,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col">
-        <Navbar />
-
-        <main className="min-w-0 flex-1">
-          {children}
-        </main>
-
-        <Footer />
+      <body className="min-h-screen">
+        {children}
       </body>
     </html>
   );

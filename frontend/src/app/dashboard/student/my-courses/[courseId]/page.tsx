@@ -1,384 +1,722 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  PlayCircle,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Download,
-  Clock3,
   BookOpen,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  PlayCircle,
+  Package,
+  RefreshCw,
 } from "lucide-react";
-import { useState } from "react";
 
-/*
- * FRONTEND DEVELOPMENT DATA
- *
- * The lessons and completion status are currently mock data.
- *
- * Final system:
- *
- * Logged-in Student
- *       ↓
- * Student Enrollment
- *       ↓
- * Course
- *       ↓
- * Lessons
- *       ↓
- * Completed Lessons
- *       ↓
- * System calculates Progress
- *
- * The backend/database will become the source of truth later.
- */
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
 
-const COURSE_DATA = {
-  "COURSE-001": {
-    title: "Computer Basics",
-    batch: "SKCE-CB-001",
-    currentModule: "Module 2 - Operating System Basics",
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
-    lessons: [
-      {
-        id: "lesson-1",
-        module: "Module 1 - Computer Fundamentals",
-        title: "Introduction to Computers",
-        duration: "18 min",
-        completed: true,
-      },
-      {
-        id: "lesson-2",
-        module: "Module 1 - Computer Fundamentals",
-        title: "Types of Computers",
-        duration: "22 min",
-        completed: true,
-      },
-      {
-        id: "lesson-3",
-        module: "Module 1 - Computer Fundamentals",
-        title: "Computer Hardware",
-        duration: "25 min",
-        completed: true,
-      },
-      {
-        id: "lesson-4",
-        module: "Module 1 - Computer Fundamentals",
-        title: "Computer Software",
-        duration: "20 min",
-        completed: true,
-      },
-      {
-        id: "lesson-5",
-        module: "Module 2 - Operating System Basics",
-        title: "Introduction to Operating Systems",
-        duration: "24 min",
-        completed: false,
-      },
-      {
-        id: "lesson-6",
-        module: "Module 2 - Operating System Basics",
-        title: "Windows Desktop",
-        duration: "28 min",
-        completed: false,
-      },
-      {
-        id: "lesson-7",
-        module: "Module 2 - Operating System Basics",
-        title: "Files and Folders",
-        duration: "26 min",
-        completed: false,
-      },
-      {
-        id: "lesson-8",
-        module: "Module 2 - Operating System Basics",
-        title: "Windows Settings",
-        duration: "21 min",
-        completed: false,
-      },
-      {
-        id: "lesson-9",
-        module: "Module 3 - Internet Basics",
-        title: "Introduction to Internet",
-        duration: "20 min",
-        completed: false,
-      },
-    ],
-  },
-
-  "COURSE-002": {
-    title: "MS Office",
-    batch: "SKCE-MSO-004",
-    currentModule: "Module 2 - Microsoft Excel",
-
-    lessons: [
-      {
-        id: "lesson-1",
-        module: "Module 1 - Microsoft Word",
-        title: "Word Interface",
-        duration: "20 min",
-        completed: true,
-      },
-      {
-        id: "lesson-2",
-        module: "Module 1 - Microsoft Word",
-        title: "Creating Documents",
-        duration: "24 min",
-        completed: true,
-      },
-      {
-        id: "lesson-3",
-        module: "Module 1 - Microsoft Word",
-        title: "Formatting Documents",
-        duration: "25 min",
-        completed: true,
-      },
-      {
-        id: "lesson-4",
-        module: "Module 1 - Microsoft Word",
-        title: "Tables and Images",
-        duration: "22 min",
-        completed: false,
-      },
-      {
-        id: "lesson-5",
-        module: "Module 2 - Microsoft Excel",
-        title: "Excel Interface",
-        duration: "20 min",
-        completed: true,
-      },
-      {
-        id: "lesson-6",
-        module: "Module 2 - Microsoft Excel",
-        title: "Working with Worksheets",
-        duration: "26 min",
-        completed: true,
-      },
-      {
-        id: "lesson-7",
-        module: "Module 2 - Microsoft Excel",
-        title: "Excel Formulas",
-        duration: "30 min",
-        completed: false,
-      },
-      {
-        id: "lesson-8",
-        module: "Module 2 - Microsoft Excel",
-        title: "Charts and Graphs",
-        duration: "25 min",
-        completed: false,
-      },
-    ],
-  },
-
-  "COURSE-003": {
-    title: "Python",
-    batch: "SKCE-PY-002",
-    currentModule: "Module 1 - Python Fundamentals",
-
-    lessons: [
-      {
-        id: "lesson-1",
-        module: "Module 1 - Python Fundamentals",
-        title: "Introduction to Python",
-        duration: "20 min",
-        completed: true,
-      },
-      {
-        id: "lesson-2",
-        module: "Module 1 - Python Fundamentals",
-        title: "Installing Python",
-        duration: "18 min",
-        completed: true,
-      },
-      {
-        id: "lesson-3",
-        module: "Module 1 - Python Fundamentals",
-        title: "Python Syntax",
-        duration: "24 min",
-        completed: true,
-      },
-      {
-        id: "lesson-4",
-        module: "Module 1 - Python Fundamentals",
-        title: "Variables and Data Types",
-        duration: "28 min",
-        completed: false,
-      },
-      {
-        id: "lesson-5",
-        module: "Module 2 - Control Flow",
-        title: "Conditional Statements",
-        duration: "25 min",
-        completed: false,
-      },
-      {
-        id: "lesson-6",
-        module: "Module 2 - Control Flow",
-        title: "Loops",
-        duration: "30 min",
-        completed: false,
-      },
-    ],
-  },
+type Course = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  mode: "ONLINE" | "OFFLINE" | "HYBRID";
+  duration: string | null;
+  modules: number | null;
+  price: number | null;
+  isActive: boolean;
 };
+
+type PackageCourseItem = {
+  id: number;
+  packageId: number;
+  courseId: number;
+  course: Course;
+};
+
+type CoursePackage = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  price: number;
+  isActive: boolean;
+  courses: PackageCourseItem[];
+};
+
+type Enrollment = {
+  id: number;
+  userId: number;
+  studentId: number;
+  courseId: number | null;
+  packageId: number | null;
+  status:
+    | "ACTIVE"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "PENDING";
+  enrolledAt: string;
+  completedAt: string | null;
+  course: Course | null;
+  package: CoursePackage | null;
+};
+
+type StudentDashboard = {
+  student: {
+    id: number;
+    studentId: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    state: string | null;
+    referralId: string | null;
+    isActive: boolean;
+  };
+  stats: {
+    enrolledCourses: number;
+    activeEnrollments: number;
+    successfulPayments: number;
+    totalPaid: number;
+  };
+  enrollments: Enrollment[];
+};
+
+type DashboardResponse = {
+  success: boolean;
+  message: string;
+  data?: StudentDashboard;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Page                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export default function CourseLearningPage() {
   const params = useParams();
   const router = useRouter();
 
-  const courseId = String(params.courseId);
+  const courseId = Number(params.courseId);
 
-  const course =
-    COURSE_DATA[courseId as keyof typeof COURSE_DATA] ||
-    COURSE_DATA["COURSE-001"];
+  const [dashboard, setDashboard] =
+    useState<StudentDashboard | null>(null);
 
-  /*
-   * Find the first lesson that is not completed.
-   * The student will automatically start from there.
-   */
-  const firstIncompleteIndex = course.lessons.findIndex(
-    (lesson) => !lesson.completed
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  /* ------------------------------------------------------------------------ */
+  /* Load student dashboard                                                    */
+  /* ------------------------------------------------------------------------ */
+
+  const loadDashboard = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        setError("");
+
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("token")
+            : null;
+
+        if (!token) {
+          setError(
+            "Your session has expired. Please log in again."
+          );
+          return;
+        }
+
+        const response = await fetch(
+          `${API_URL}/students/me/dashboard`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            cache: "no-store",
+          }
+        );
+
+        const result =
+          (await response.json()) as DashboardResponse;
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message ||
+              "Failed to load course information."
+          );
+        }
+
+        setDashboard(result.data ?? null);
+      } catch (err) {
+        console.error(
+          "Failed to load course:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load course information."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    []
   );
 
-  const [currentIndex, setCurrentIndex] = useState(
-    firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0
-  );
+  /* ------------------------------------------------------------------------ */
+  /* Initial load                                                              */
+  /* ------------------------------------------------------------------------ */
 
-  /*
-   * Local frontend state for lesson completion.
-   *
-   * Later this will be saved to the backend/database.
-   */
-  const [completedLessons, setCompletedLessons] = useState(
-    course.lessons.map((lesson) => lesson.completed)
-  );
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
-  const currentLesson = course.lessons[currentIndex];
+  /* ------------------------------------------------------------------------ */
+  /* Find selected course                                                      */
+  /* ------------------------------------------------------------------------ */
 
-  /*
-   * Calculate progress from the actual completed lessons.
-   *
-   * This prevents the page from having two different
-   * progress values.
-   */
-  const completedCount = completedLessons.filter(Boolean).length;
-
-  const calculatedProgress =
-    course.lessons.length === 0
-      ? 0
-      : Math.round((completedCount / course.lessons.length) * 100);
-
-  const handleMarkComplete = () => {
-    setCompletedLessons((previous) => {
-      const updated = [...previous];
-      updated[currentIndex] = true;
-      return updated;
-    });
-  };
-
-  const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+  const selectedCourse = useMemo(() => {
+    if (!dashboard || !Number.isFinite(courseId)) {
+      return null;
     }
-  };
 
-  const handleNext = () => {
-    if (currentIndex < course.lessons.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    for (const enrollment of dashboard.enrollments) {
+      /* Direct enrollment */
+
+      if (
+        enrollment.course &&
+        enrollment.course.id === courseId
+      ) {
+        return {
+          course: enrollment.course,
+          enrollment,
+          packageTitle:
+            enrollment.package?.title ?? null,
+        };
+      }
+
+      /* Package enrollment */
+
+      if (enrollment.package) {
+        const packageCourse =
+          enrollment.package.courses.find(
+            (item) =>
+              item.course &&
+              item.course.id === courseId
+          );
+
+        if (packageCourse) {
+          return {
+            course: packageCourse.course,
+            enrollment,
+            packageTitle:
+              enrollment.package.title,
+          };
+        }
+      }
     }
-  };
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#F4F6FA",
-        padding: "24px 30px 40px",
-      }}
-    >
-      {/* Top Navigation */}
-      <div
+    return null;
+  }, [dashboard, courseId]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                   */
+  /* ------------------------------------------------------------------------ */
+
+  if (loading) {
+    return (
+      <main
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "15px",
-          marginBottom: "22px",
-          flexWrap: "wrap",
+          flex: 1,
+          minWidth: 0,
+          padding: "28px 32px",
+        }}
+      >
+        <div
+          style={{
+            width: "130px",
+            height: "16px",
+            background: "#E5E7EB",
+            borderRadius: "6px",
+            marginBottom: "20px",
+          }}
+        />
+
+        <div
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #E5E7EB",
+            borderRadius: "14px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "180px",
+              background: "#EEF2F7",
+            }}
+          />
+
+          <div
+            style={{
+              padding: "24px",
+            }}
+          >
+            <div
+              style={{
+                width: "260px",
+                height: "25px",
+                background: "#E5E7EB",
+                borderRadius: "6px",
+                marginBottom: "12px",
+              }}
+            />
+
+            <div
+              style={{
+                width: "80%",
+                height: "16px",
+                background: "#E5E7EB",
+                borderRadius: "6px",
+                marginBottom: "25px",
+              }}
+            />
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, 1fr)",
+                gap: "12px",
+              }}
+            >
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  style={{
+                    height: "75px",
+                    background: "#F3F4F6",
+                    borderRadius: "9px",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Error                                                                     */
+  /* ------------------------------------------------------------------------ */
+
+  if (error) {
+    return (
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: "28px 32px",
         }}
       >
         <button
-          onClick={() => router.push("/dashboard/student/my-courses")}
+          onClick={() =>
+            router.push(
+              "/dashboard/student/my-courses"
+            )
+          }
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
             border: "none",
             background: "transparent",
             color: "#374151",
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
             fontSize: "13px",
             fontWeight: 600,
             cursor: "pointer",
-            padding: "6px 0",
+            marginBottom: "22px",
           }}
         >
-          <ArrowLeft size={17} />
+          <ArrowLeft size={16} />
           Back to My Courses
         </button>
 
         <div
           style={{
-            fontSize: "12px",
-            color: "#6B7280",
-          }}
-        >
-          {course.title} · {course.batch}
-        </div>
-      </div>
-
-      {/* Course Header */}
-      <div
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: "13px",
-          padding: "20px",
-          marginBottom: "18px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "15px",
+            background: "#FFFFFF",
+            border: "1px solid #FECACA",
+            borderRadius: "14px",
+            padding: "55px 25px",
+            textAlign: "center",
           }}
         >
           <div
             style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "10px",
-              background: "#EAF0FE",
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
+              background: "#FEF2F2",
+              color: "#DC2626",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              margin: "0 auto 14px",
             }}
           >
-            <BookOpen size={20} color="#2F6BFF" />
+            <Clock3 size={24} />
           </div>
 
-          <div>
+          <h2
+            style={{
+              margin: "0 0 7px",
+              fontSize: "18px",
+              color: "#111827",
+            }}
+          >
+            Unable to load course
+          </h2>
+
+          <p
+            style={{
+              margin: "0 auto 18px",
+              maxWidth: "500px",
+              color: "#6B7280",
+              fontSize: "13px",
+            }}
+          >
+            {error}
+          </p>
+
+          <button
+            onClick={() =>
+              loadDashboard()
+            }
+            style={{
+              border: "none",
+              background: "#2F6BFF",
+              color: "#FFFFFF",
+              borderRadius: "8px",
+              padding: "10px 18px",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Course not enrolled                                                       */
+  /* ------------------------------------------------------------------------ */
+
+  if (!selectedCourse) {
+    return (
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          padding: "28px 32px",
+        }}
+      >
+        <button
+          onClick={() =>
+            router.push(
+              "/dashboard/student/my-courses"
+            )
+          }
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "#374151",
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+            marginBottom: "22px",
+          }}
+        >
+          <ArrowLeft size={16} />
+          Back to My Courses
+        </button>
+
+        <div
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #E5E7EB",
+            borderRadius: "14px",
+            padding: "60px 25px",
+            textAlign: "center",
+          }}
+        >
+          <BookOpen
+            size={44}
+            color="#9CA3AF"
+            style={{
+              marginBottom: "14px",
+            }}
+          />
+
+          <h2
+            style={{
+              margin: "0 0 7px",
+              fontSize: "19px",
+              color: "#111827",
+            }}
+          >
+            Course Not Available
+          </h2>
+
+          <p
+            style={{
+              margin: "0 auto 20px",
+              maxWidth: "500px",
+              color: "#6B7280",
+              fontSize: "13px",
+              lineHeight: 1.6,
+            }}
+          >
+            This course is not part of your current
+            enrollment or is no longer available.
+          </p>
+
+          <button
+            onClick={() =>
+              router.push(
+                "/dashboard/student/my-courses"
+              )
+            }
+            style={{
+              border: "none",
+              background: "#2F6BFF",
+              color: "#FFFFFF",
+              borderRadius: "8px",
+              padding: "10px 18px",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            View My Courses
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const {
+    course,
+    enrollment,
+    packageTitle,
+  } = selectedCourse;
+
+  /* ------------------------------------------------------------------------ */
+  /* Main course learning area                                                */
+  /* ------------------------------------------------------------------------ */
+
+  return (
+    <main
+      style={{
+        flex: 1,
+        minWidth: 0,
+        padding: "24px 32px 40px",
+      }}
+    >
+      {/* ------------------------------------------------------------------ */}
+      {/* Top controls                                                        */}
+      {/* ------------------------------------------------------------------ */}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "15px",
+          marginBottom: "20px",
+        }}
+      >
+        <button
+          onClick={() =>
+            router.push(
+              "/dashboard/student/my-courses"
+            )
+          }
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "#374151",
+            padding: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <ArrowLeft size={16} />
+          Back to My Courses
+        </button>
+
+        <button
+          onClick={() =>
+            loadDashboard(true)
+          }
+          disabled={refreshing}
+          title="Refresh course"
+          style={{
+            width: "40px",
+            height: "40px",
+            border: "1px solid #E5E7EB",
+            background: "#FFFFFF",
+            color: "#374151",
+            borderRadius: "9px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: refreshing
+              ? "default"
+              : "pointer",
+            opacity: refreshing ? 0.65 : 1,
+          }}
+        >
+          <RefreshCw
+            size={17}
+            style={{
+              animation: refreshing
+                ? "spin 1s linear infinite"
+                : undefined,
+            }}
+          />
+        </button>
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Course Header                                                       */}
+      {/* ------------------------------------------------------------------ */}
+
+      <section
+        style={{
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          borderRadius: "14px",
+          overflow: "hidden",
+          marginBottom: "20px",
+        }}
+      >
+        {/* Course banner */}
+
+        <div
+          style={{
+            minHeight: "175px",
+            background:
+              "linear-gradient(135deg, #12172B 0%, #1D315D 55%, #2F6BFF 100%)",
+            padding: "30px",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "850px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              <span
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: "999px",
+                  background:
+                    "rgba(255,255,255,0.14)",
+                  color: "#FFFFFF",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                }}
+              >
+                {formatMode(course.mode)}
+              </span>
+
+              <span
+                style={{
+                  padding: "5px 10px",
+                  borderRadius: "999px",
+                  background:
+                    enrollment.status ===
+                    "ACTIVE"
+                      ? "rgba(34,197,94,0.18)"
+                      : "rgba(255,255,255,0.14)",
+                  color: "#FFFFFF",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                }}
+              >
+                {formatStatus(
+                  enrollment.status
+                )}
+              </span>
+
+              {packageTitle && (
+                <span
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "999px",
+                    background:
+                      "rgba(255,255,255,0.14)",
+                    color: "#FFFFFF",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {packageTitle}
+                </span>
+              )}
+            </div>
+
             <h1
               style={{
-                margin: 0,
-                fontSize: "21px",
+                margin: "0 0 8px",
+                color: "#FFFFFF",
+                fontSize: "28px",
                 fontWeight: 700,
-                color: "#111827",
+                lineHeight: 1.25,
               }}
             >
               {course.title}
@@ -386,544 +724,408 @@ export default function CourseLearningPage() {
 
             <p
               style={{
-                margin: "4px 0 0",
-                fontSize: "12.5px",
-                color: "#6B7280",
+                margin: 0,
+                color: "rgba(255,255,255,0.78)",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                maxWidth: "760px",
               }}
             >
-              {currentLesson.module}
+              {course.description ||
+                "Course information will be available soon."}
             </p>
           </div>
         </div>
 
-        {/* Progress */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "6px",
-              fontSize: "12px",
-            }}
-          >
-            <span style={{ color: "#6B7280" }}>
-              Course Progress
-            </span>
+        {/* Course information */}
 
-            <strong style={{ color: "#111827" }}>
-              {calculatedProgress}%
-            </strong>
-          </div>
+        <div
+          style={{
+            padding: "20px",
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(4, minmax(0, 1fr))",
+            gap: "10px",
+          }}
+        >
+          <CourseInfo
+            icon={<BookOpen size={17} />}
+            label="Modules"
+            value={
+              course.modules !== null
+                ? String(course.modules)
+                : "Not available"
+            }
+          />
 
-          <div
-            style={{
-              height: "7px",
-              background: "#E5E7EB",
-              borderRadius: "999px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                width: `${calculatedProgress}%`,
-                height: "100%",
-                background: "#2F6BFF",
-                borderRadius: "999px",
-                transition: "width 0.2s ease",
-              }}
-            />
-          </div>
+          <CourseInfo
+            icon={<Clock3 size={17} />}
+            label="Duration"
+            value={
+              course.duration ||
+              "Not specified"
+            }
+          />
+
+          <CourseInfo
+            icon={<CheckCircle2 size={17} />}
+            label="Enrollment"
+            value={formatStatus(
+              enrollment.status
+            )}
+          />
+
+          <CourseInfo
+            icon={<FileText size={17} />}
+            label="Enrolled On"
+            value={formatDate(
+              enrollment.enrolledAt
+            )}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Main Learning Layout */}
-      <div
+      {/* ------------------------------------------------------------------ */}
+      {/* Learning Area                                                       */}
+      {/* ------------------------------------------------------------------ */}
+
+      <section
         style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) 330px",
-          gap: "18px",
-          alignItems: "start",
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          borderRadius: "14px",
+          overflow: "hidden",
+          marginBottom: "20px",
         }}
       >
-        {/* Main Lesson Area */}
-        <div>
-          {/* Video */}
-          <div
+        <div
+          style={{
+            padding: "18px 20px",
+            borderBottom:
+              "1px solid #E5E7EB",
+            display: "flex",
+            alignItems: "center",
+            gap: "9px",
+          }}
+        >
+          <PlayCircle
+            size={18}
+            color="#2F6BFF"
+          />
+
+          <h2
             style={{
-              background: "#111827",
-              borderRadius: "13px",
-              overflow: "hidden",
-              aspectRatio: "16 / 9",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
+              margin: 0,
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "#111827",
             }}
           >
-            <div
-              style={{
-                textAlign: "center",
-                color: "#FFFFFF",
-              }}
-            >
-              <div
-                style={{
-                  width: "66px",
-                  height: "66px",
-                  borderRadius: "50%",
-                  background: "#2F6BFF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px",
-                }}
-              >
-                <PlayCircle size={34} />
-              </div>
-
-              <div
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                }}
-              >
-                Video Lesson
-              </div>
-
-              <div
-                style={{
-                  marginTop: "5px",
-                  fontSize: "11px",
-                  color: "#D1D5DB",
-                }}
-              >
-                Video content will be connected later
-              </div>
-            </div>
-
-            <div
-              style={{
-                position: "absolute",
-                bottom: "14px",
-                left: "16px",
-                right: "16px",
-                height: "4px",
-                background: "rgba(255,255,255,0.25)",
-                borderRadius: "5px",
-              }}
-            >
-              <div
-                style={{
-                  width: "0%",
-                  height: "100%",
-                  background: "#2F6BFF",
-                  borderRadius: "5px",
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Lesson Information */}
-          <div
-            style={{
-              background: "#FFFFFF",
-              border: "1px solid #E5E7EB",
-              borderRadius: "13px",
-              marginTop: "16px",
-              padding: "22px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: "15px",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "#6B7280",
-                    marginBottom: "6px",
-                  }}
-                >
-                  {currentLesson.module}
-                </div>
-
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "19px",
-                    color: "#111827",
-                    fontWeight: 700,
-                  }}
-                >
-                  {currentLesson.title}
-                </h2>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    marginTop: "8px",
-                    color: "#6B7280",
-                    fontSize: "12px",
-                  }}
-                >
-                  <Clock3 size={14} />
-                  {currentLesson.duration}
-                </div>
-              </div>
-
-              {completedLessons[currentIndex] && (
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    padding: "6px 9px",
-                    borderRadius: "999px",
-                    background: "#ECFDF3",
-                    color: "#15803D",
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  <CheckCircle2 size={13} />
-                  Completed
-                </span>
-              )}
-            </div>
-
-            <p
-              style={{
-                margin: "18px 0 0",
-                color: "#6B7280",
-                fontSize: "13px",
-                lineHeight: 1.7,
-              }}
-            >
-              This lesson introduces the concepts covered in this
-              section of the course. The actual lesson video and
-              learning resources will be connected when the backend
-              and cloud storage are implemented.
-            </p>
-
-            {/* Resources */}
-            <div
-              style={{
-                marginTop: "20px",
-                paddingTop: "18px",
-                borderTop: "1px solid #E5E7EB",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: "#111827",
-                  marginBottom: "10px",
-                }}
-              >
-                Lesson Resources
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                  padding: "11px 12px",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "9px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "9px",
-                  }}
-                >
-                  <FileText size={18} color="#2F6BFF" />
-
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "#374151",
-                      }}
-                    >
-                      Lesson Notes
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "#9CA3AF",
-                        marginTop: "2px",
-                      }}
-                    >
-                      PDF resource
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    border: "none",
-                    background: "transparent",
-                    color: "#2F6BFF",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Download size={14} />
-                  Download
-                </button>
-              </div>
-            </div>
-
-            {/* Lesson Actions */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "10px",
-                marginTop: "22px",
-                paddingTop: "18px",
-                borderTop: "1px solid #E5E7EB",
-              }}
-            >
-              <button
-                onClick={handlePrevious}
-                disabled={currentIndex === 0}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "9px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #D1D5DB",
-                  background:
-                    currentIndex === 0 ? "#F3F4F6" : "#FFFFFF",
-                  color:
-                    currentIndex === 0 ? "#9CA3AF" : "#374151",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor:
-                    currentIndex === 0
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                <ChevronLeft size={15} />
-                Previous
-              </button>
-
-              <button
-                onClick={handleMarkComplete}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "9px 16px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: completedLessons[currentIndex]
-                    ? "#16A34A"
-                    : "#2F6BFF",
-                  color: "#FFFFFF",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                <CheckCircle2 size={15} />
-
-                {completedLessons[currentIndex]
-                  ? "Completed"
-                  : "Mark as Complete"}
-              </button>
-
-              <button
-                onClick={handleNext}
-                disabled={
-                  currentIndex === course.lessons.length - 1
-                }
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "9px 14px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background:
-                    currentIndex === course.lessons.length - 1
-                      ? "#E5E7EB"
-                      : "#2F6BFF",
-                  color:
-                    currentIndex === course.lessons.length - 1
-                      ? "#9CA3AF"
-                      : "#FFFFFF",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor:
-                    currentIndex === course.lessons.length - 1
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                Next
-                <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
+            Course Learning Area
+          </h2>
         </div>
 
-        {/* Course Content */}
-        <aside
+        <div
           style={{
-            background: "#FFFFFF",
-            border: "1px solid #E5E7EB",
-            borderRadius: "13px",
-            overflow: "hidden",
+            padding: "55px 25px",
+            textAlign: "center",
+            background: "#FAFBFC",
           }}
         >
           <div
             style={{
-              padding: "17px",
-              borderBottom: "1px solid #E5E7EB",
+              width: "62px",
+              height: "62px",
+              borderRadius: "14px",
+              background: "#EAF0FE",
+              color: "#2F6BFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
             }}
           >
+            <PlayCircle size={30} />
+          </div>
+
+          <h3
+            style={{
+              margin: "0 0 8px",
+              fontSize: "18px",
+              color: "#111827",
+            }}
+          >
+            Learning Content Coming Soon
+          </h3>
+
+          <p
+            style={{
+              margin: "0 auto",
+              maxWidth: "580px",
+              color: "#6B7280",
+              fontSize: "13px",
+              lineHeight: 1.7,
+            }}
+          >
+            Lessons, videos, documents and other
+            learning materials will appear here once
+            course content is added to the learning
+            system.
+          </p>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Course status                                                       */}
+      {/* ------------------------------------------------------------------ */}
+
+      <section
+        style={{
+          background: "#FFFFFF",
+          border: "1px solid #E5E7EB",
+          borderRadius: "14px",
+          padding: "20px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "12px",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              background: "#F0FDF4",
+              color: "#16A34A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <CheckCircle2 size={20} />
+          </div>
+
+          <div>
             <h3
               style={{
-                margin: 0,
-                fontSize: "15px",
+                margin: "0 0 5px",
+                fontSize: "14px",
                 fontWeight: 700,
                 color: "#111827",
               }}
             >
-              Course Content
+              Enrollment Status
             </h3>
 
             <p
               style={{
-                margin: "5px 0 0",
-                fontSize: "11px",
+                margin: 0,
+                fontSize: "12.5px",
                 color: "#6B7280",
+                lineHeight: 1.6,
               }}
             >
-              {completedCount} of {course.lessons.length} lessons
-              completed
+              You are currently enrolled in{" "}
+              <strong
+                style={{
+                  color: "#374151",
+                }}
+              >
+                {course.title}
+              </strong>
+              .
+              {packageTitle
+                ? ` This course is included in your ${packageTitle} package.`
+                : ""}
             </p>
           </div>
+        </div>
+      </section>
 
-          <div
-            style={{
-              maxHeight: "620px",
-              overflowY: "auto",
-            }}
-          >
-            {course.lessons.map((lesson, index) => {
-              const isCurrent = index === currentIndex;
-              const isCompleted = completedLessons[index];
+      {/* ------------------------------------------------------------------ */}
+      {/* Responsive styles                                                   */}
+      {/* ------------------------------------------------------------------ */}
 
-              return (
-                <button
-                  key={lesson.id}
-                  onClick={() => setCurrentIndex(index)}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "9px",
-                    padding: "12px 14px",
-                    border: "none",
-                    borderBottom: "1px solid #F0F1F3",
-                    background: isCurrent
-                      ? "#F0F5FF"
-                      : "#FFFFFF",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2
-                      size={17}
-                      color="#16A34A"
-                      style={{
-                        marginTop: "1px",
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <PlayCircle
-                      size={17}
-                      color={
-                        isCurrent ? "#2F6BFF" : "#9CA3AF"
-                      }
-                      style={{
-                        marginTop: "1px",
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
+      <style jsx>{`
+        @media (max-width: 900px) {
+          main {
+            padding-left: 22px !important;
+            padding-right: 22px !important;
+          }
 
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "#9CA3AF",
-                        marginBottom: "3px",
-                      }}
-                    >
-                      {lesson.module}
-                    </div>
+          section > div:last-child {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
 
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        lineHeight: 1.4,
-                        color: isCurrent
-                          ? "#1D4ED8"
-                          : "#374151",
-                        fontWeight: isCurrent ? 700 : 500,
-                      }}
-                    >
-                      {index + 1}. {lesson.title}
-                    </div>
+        @media (max-width: 600px) {
+          main {
+            padding: 20px 16px 30px !important;
+          }
 
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginTop: "4px",
-                        fontSize: "10px",
-                        color: "#9CA3AF",
-                      }}
-                    >
-                      <Clock3 size={11} />
-                      {lesson.duration}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-      </div>
+          section > div:last-child {
+            grid-template-columns: 1fr !important;
+          }
+
+          h1 {
+            font-size: 23px !important;
+          }
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Course Info                                                                */
+/* -------------------------------------------------------------------------- */
+
+function CourseInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        padding: "12px",
+        background: "#F9FAFB",
+        border: "1px solid #F0F1F3",
+        borderRadius: "9px",
+        display: "flex",
+        alignItems: "center",
+        gap: "9px",
+      }}
+    >
+      <div
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "8px",
+          background: "#EAF0FE",
+          color: "#2F6BFF",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+
+      <div
+        style={{
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "10px",
+            color: "#9CA3AF",
+            marginBottom: "3px",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontSize: "12px",
+            color: "#374151",
+            fontWeight: 600,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function formatMode(
+  mode: Course["mode"]
+) {
+  switch (mode) {
+    case "ONLINE":
+      return "Online";
+
+    case "OFFLINE":
+      return "Offline";
+
+    case "HYBRID":
+      return "Hybrid";
+
+    default:
+      return "Not specified";
+  }
+}
+
+function formatStatus(
+  status: Enrollment["status"]
+) {
+  switch (status) {
+    case "ACTIVE":
+      return "Active";
+
+    case "COMPLETED":
+      return "Completed";
+
+    case "PENDING":
+      return "Pending";
+
+    case "CANCELLED":
+      return "Cancelled";
+
+    default:
+      return status;
+  }
+}
+
+function formatDate(
+  value: string
+) {
+  if (!value) {
+    return "Not available";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
   );
 }

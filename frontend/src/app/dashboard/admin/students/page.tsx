@@ -1165,7 +1165,7 @@ function SummaryCard({
   value: number;
   description: string;
   icon: React.ComponentType<{
-    size?: number;
+    size?: number | string;
     className?: string;
   }>;
 }) {
@@ -1236,7 +1236,7 @@ function ActionButton({
 }: {
   children: React.ReactNode;
   title: string;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
@@ -1276,7 +1276,7 @@ function UserCheckIcon({
   size = 20,
   className = "",
 }: {
-  size?: number;
+  size?: number | string;
   className?: string;
 }) {
   return <Users size={size} className={className} />;

@@ -13,6 +13,10 @@ import {
 
 type Role = "student" | "trainer";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
 const ROLES: {
   key: Role;
   label: string;
@@ -34,31 +38,30 @@ const ROLES: {
 ];
 
 const ROLE_REDIRECTS: Record<Role, string> = {
-  trainer: "/dashboard/trainer",
   student: "/dashboard/student",
+  trainer: "/dashboard/trainer",
 };
 
-// -------------------------------------------------------------
-// DEV MODE
-// Keep this enabled until the real backend authentication
-// API is connected.
-// -------------------------------------------------------------
-const DEV_MODE = true;
-
-const DUMMY_USERS: Record<
-  Role,
-  { email: string; password: string }
-> = {
-  student: {
-    email: "student@skce.in",
-    password: "student123",
-  },
-  trainer: {
-    email: "trainer@skce.in",
-    password: "trainer123",
-  },
+type LoginResponse = {
+  success: boolean;
+  message: string;
+  data?: {
+    token: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      phone: string | null;
+      role: "ADMIN" | "STUDENT" | "TRAINER";
+    };
+    student: {
+      id: number;
+      studentId: string;
+      state: string | null;
+      referralId: string | null;
+    } | null;
+  };
 };
-// -------------------------------------------------------------
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,83 +80,100 @@ export default function LoginPage() {
   ) => {
     e.preventDefault();
 
-    if (!selectedRole) return;
+    if (!selectedRole) {
+      setError("Please select how you want to sign in.");
+      return;
+    }
 
     setError("");
     setLoading(true);
 
     try {
-      // -------------------------------------------------------
-      // DEV MODE
-      // -------------------------------------------------------
-      if (DEV_MODE) {
-        const dummy = DUMMY_USERS[selectedRole];
+      /*
+       * =========================================================
+       * REAL BACKEND LOGIN
+       * =========================================================
+       */
 
-        await new Promise((resolve) =>
-          setTimeout(resolve, 400)
-        );
-
-        if (
-          email.trim().toLowerCase() !== dummy.email ||
-          password !== dummy.password
-        ) {
-          throw new Error(
-            `Invalid email or password.`
-          );
-        }
-
-        localStorage.setItem(
-          "token",
-          "dev-dummy-token"
-        );
-
-        localStorage.setItem(
-          "role",
-          selectedRole
-        );
-
-        router.push(
-          ROLE_REDIRECTS[selectedRole]
-        );
-
-        return;
-      }
-
-      // -------------------------------------------------------
-      // REAL BACKEND AUTH
-      // -------------------------------------------------------
       const res = await fetch(
-        "/api/auth/login",
+        `${API_URL}/auth/login`,
         {
           method: "POST",
+
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
-            email,
+            email: email.trim(),
             password,
-            role: selectedRole,
           }),
         }
       );
 
-      if (!res.ok) {
-        const data =
-          await res.json().catch(() => null);
+      const json: LoginResponse =
+        await res.json();
 
+      if (
+        !res.ok ||
+        !json.success ||
+        !json.data
+      ) {
         throw new Error(
-          data?.message ||
+          json.message ||
             "Invalid email or password"
         );
       }
 
-      const data = await res.json();
+      const {
+        token,
+        user,
+        student,
+      } = json.data;
 
-      const { token, user } = data;
+      /*
+       * =========================================================
+       * VERIFY ROLE
+       * =========================================================
+       *
+       * Frontend uses lowercase role names.
+       * Backend returns uppercase role names.
+       */
 
-      const confirmedRole: Role =
+      const backendRole =
         user.role;
+
+      const frontendRole: Role | null =
+        backendRole === "STUDENT"
+          ? "student"
+          : backendRole === "TRAINER"
+          ? "trainer"
+          : null;
+
+      if (!frontendRole) {
+        throw new Error(
+          "This account type cannot sign in here."
+        );
+      }
+
+      /*
+       * Prevent a student from selecting Trainer
+       * and entering a student account.
+       */
+
+      if (
+        frontendRole !== selectedRole
+      ) {
+        throw new Error(
+          `This account is registered as a ${frontendRole}, not a ${selectedRole}.`
+        );
+      }
+
+      /*
+       * =========================================================
+       * STORE AUTHENTICATION DATA
+       * =========================================================
+       */
 
       localStorage.setItem(
         "token",
@@ -162,18 +182,63 @@ export default function LoginPage() {
 
       localStorage.setItem(
         "role",
-        confirmedRole
+        frontendRole
       );
 
+      localStorage.setItem(
+        "user",
+        JSON.stringify(user)
+      );
+
+      /*
+       * Store student information when
+       * the logged-in account is a student.
+       */
+
+      if (
+        frontendRole === "student" &&
+        student
+      ) {
+        localStorage.setItem(
+          "student",
+          JSON.stringify(student)
+        );
+
+        localStorage.setItem(
+          "studentId",
+          student.studentId
+        );
+      } else {
+        localStorage.removeItem(
+          "student"
+        );
+
+        localStorage.removeItem(
+          "studentId"
+        );
+      }
+
+      /*
+       * =========================================================
+       * REDIRECT
+       * =========================================================
+       */
+
       router.push(
-        ROLE_REDIRECTS[confirmedRole] ||
-          "/dashboard"
+        ROLE_REDIRECTS[frontendRole]
       );
-    } catch (err: any) {
-      setError(
-        err.message ||
-          "Something went wrong. Please try again."
+    } catch (err) {
+      console.error(
+        "Login error:",
+        err
       );
+
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -188,6 +253,7 @@ export default function LoginPage() {
           {/* ===================================================
               HEADER
           =================================================== */}
+
           <div className="bg-[#173B67] px-6 py-9 text-center text-white sm:px-8">
 
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500 shadow-lg shadow-orange-900/20">
@@ -208,11 +274,13 @@ export default function LoginPage() {
           {/* ===================================================
               CONTENT
           =================================================== */}
+
           <div className="p-6 sm:p-8">
 
             {/* =================================================
                 STEP 1 — ROLE SELECTION
             ================================================= */}
+
             {!selectedRole && (
               <div className="space-y-3">
 
@@ -260,6 +328,7 @@ export default function LoginPage() {
             {/* =================================================
                 STEP 2 — LOGIN FORM
             ================================================= */}
+
             {selectedRole && (
               <form
                 onSubmit={handleSubmit}
@@ -267,6 +336,7 @@ export default function LoginPage() {
               >
 
                 {/* Change role */}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -278,12 +348,13 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-orange-500"
                 >
                   <ArrowLeft size={14} />
-
                   Change role
                 </button>
 
                 {/* Selected role */}
+
                 <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
+
                   {(() => {
                     const role =
                       ROLES.find(
@@ -292,9 +363,12 @@ export default function LoginPage() {
                           selectedRole
                       );
 
-                    if (!role) return null;
+                    if (!role) {
+                      return null;
+                    }
 
-                    const Icon = role.icon;
+                    const Icon =
+                      role.icon;
 
                     return (
                       <>
@@ -314,39 +388,11 @@ export default function LoginPage() {
                       </>
                     );
                   })()}
+
                 </div>
 
-                {/* DEV MODE INFO */}
-                {DEV_MODE && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-xs font-bold text-amber-800">
-                      Development Mode
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-amber-700">
-                      Use the demo credentials below while
-                      backend authentication is being developed.
-                    </p>
-
-                    <div className="mt-3 rounded-lg bg-white/70 p-3 font-mono text-xs text-amber-900">
-                      <div>
-                        Email:{" "}
-                        <strong>
-                          {DUMMY_USERS[selectedRole].email}
-                        </strong>
-                      </div>
-
-                      <div className="mt-1">
-                        Password:{" "}
-                        <strong>
-                          {DUMMY_USERS[selectedRole].password}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Email */}
+
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#102A43]">
                     Email
@@ -357,16 +403,21 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) =>
-                      setEmail(e.target.value)
+                      setEmail(
+                        e.target.value
+                      )
                     }
                     placeholder="Enter your email"
+                    autoComplete="email"
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                   />
                 </div>
 
                 {/* Password */}
+
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
+
                     <label className="text-sm font-semibold text-[#102A43]">
                       Password
                     </label>
@@ -377,6 +428,7 @@ export default function LoginPage() {
                     >
                       Forgot password?
                     </Link>
+
                   </div>
 
                   <input
@@ -384,14 +436,18 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) =>
-                      setPassword(e.target.value)
+                      setPassword(
+                        e.target.value
+                      )
                     }
                     placeholder="Enter your password"
+                    autoComplete="current-password"
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                   />
                 </div>
 
                 {/* Error */}
+
                 {error && (
                   <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-5 text-red-600">
                     {error}
@@ -399,6 +455,7 @@ export default function LoginPage() {
                 )}
 
                 {/* Sign in */}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -409,16 +466,22 @@ export default function LoginPage() {
                     : "Sign In"}
 
                   {!loading && (
-                    <ArrowRight size={17} />
+                    <ArrowRight
+                      size={17}
+                    />
                   )}
                 </button>
+
               </form>
             )}
 
             {/* Register */}
+
             <div className="mt-7 border-t border-slate-100 pt-6 text-center">
+
               <p className="text-sm text-slate-500">
                 Don&apos;t have an account?{" "}
+
                 <Link
                   href="/register"
                   className="font-bold text-orange-500 transition hover:text-orange-600 hover:underline"
@@ -426,10 +489,12 @@ export default function LoginPage() {
                   Register Now
                 </Link>
               </p>
+
             </div>
 
           </div>
         </div>
+
       </div>
     </section>
   );

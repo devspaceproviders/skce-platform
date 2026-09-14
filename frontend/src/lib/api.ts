@@ -39,3 +39,75 @@ export async function submitContactForm(payload: {
   if (!res.ok) throw new Error("Failed to submit form");
   return res.json();
 }
+
+// ============================================================
+// PACKAGES
+// ============================================================
+
+export type CoursePackage = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  price: number;
+  isActive: boolean;
+  courses?: string[];
+};
+
+type PackagesResponse = {
+  success: boolean;
+  data: CoursePackage[];
+};
+
+type PackageResponse = {
+  success: boolean;
+  data: CoursePackage;
+};
+
+export async function getPackages(): Promise<CoursePackage[]> {
+  try {
+    const res = await fetch(`${API_URL}/packages`, {
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Request failed: ${res.status}`);
+    }
+
+    const json: PackagesResponse = await res.json();
+
+    if (!json.success || !Array.isArray(json.data)) {
+      throw new Error("Invalid packages response");
+    }
+
+    return json.data;
+  } catch (error) {
+    console.error("Failed to load packages:", error);
+    return [];
+  }
+}
+
+export async function getPackageBySlug(
+  slug: string
+): Promise<CoursePackage | null> {
+  try {
+    const res = await fetch(`${API_URL}/packages/${slug}`, {
+      next: { revalidate: 60 },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Request failed: ${res.status}`);
+    }
+
+    const json: PackageResponse = await res.json();
+
+    if (!json.success || !json.data) {
+      return null;
+    }
+
+    return json.data;
+  } catch (error) {
+    console.error("Failed to load package:", error);
+    return null;
+  }
+}
