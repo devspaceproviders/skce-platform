@@ -3,13 +3,23 @@
 @tailwind utilities;
 
 html {
-  scroll-behavior: smooth;
+  width: 100%;
+  max-width: 100%;
+  scroll-behavior: auto;
 }
 
 body {
   @apply bg-white text-slate-900 antialiased;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 ::selection {
-  @apply bg-brand/30;
+  background-color: rgb(249 115 22 / 0.25);
 }

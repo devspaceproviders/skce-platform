@@ -12,7 +12,7 @@ async function safeFetch<T>(path: string, fallback: T): Promise<T> {
   } catch {
     // Backend not reachable yet during local frontend-only development.
     return fallback;
-  }
+  } 
 }
 
 export const getCourses = () => safeFetch<Course[]>("/courses", MOCK_COURSES);

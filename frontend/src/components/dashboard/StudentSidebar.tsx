@@ -10,17 +10,69 @@ import {
   TrendingUp,
   Award,
   User,
+  Users,
+  Megaphone,
+  Wallet,
+  MessageCircle,
   ChevronDown,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
-  { href: "/dashboard/student", label: "Dashboard", icon: LayoutGrid },
-  { href: "/dashboard/student/my-courses", label: "My Courses", icon: BookOpen },
-  { href: "/dashboard/student/assignments", label: "Assignments & Quizzes", icon: ClipboardList },
-  { href: "/dashboard/student/live-sessions", label: "Live Sessions", icon: Video },
-  { href: "/dashboard/student/progress", label: "My Progress", icon: TrendingUp },
-  { href: "/dashboard/student/certificates", label: "Certificates", icon: Award },
-  { href: "/dashboard/student/profile", label: "Profile", icon: User },
+  {
+    href: "/dashboard/student",
+    label: "Dashboard",
+    icon: LayoutGrid,
+  },
+  {
+    href: "/dashboard/student/my-courses",
+    label: "My Courses",
+    icon: BookOpen,
+  },
+  {
+    href: "/dashboard/student/associate",
+    label: "Associate Panel",
+    icon: Users,
+  },
+  {
+    href: "/dashboard/student/affiliate-marketing",
+    label: "Affiliate Marketing",
+    icon: Megaphone,
+  },
+  {
+    href: "/dashboard/student/wallet",
+    label: "Wallet",
+    icon: Wallet,
+  },
+  {
+    href: "/dashboard/student/assignments",
+    label: "Assignments & Quizzes",
+    icon: ClipboardList,
+  },
+  {
+    href: "/dashboard/student/live-sessions",
+    label: "Live Sessions",
+    icon: Video,
+  },
+  {
+    href: "/dashboard/student/community",
+    label: "Community",
+    icon: MessageCircle,
+  },
+  {
+    href: "/dashboard/student/progress",
+    label: "My Progress",
+    icon: TrendingUp,
+  },
+  {
+    href: "/dashboard/student/certificates",
+    label: "Certificates",
+    icon: Award,
+  },
+  {
+    href: "/dashboard/student/profile",
+    label: "Profile",
+    icon: User,
+  },
 ];
 
 export default function StudentSidebar() {
@@ -38,7 +90,15 @@ export default function StudentSidebar() {
         minHeight: "100vh",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px 20px" }}>
+      {/* Logo / Institute Name */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "0 6px 20px",
+        }}
+      >
         <div
           style={{
             width: 30,
@@ -52,9 +112,18 @@ export default function StudentSidebar() {
         >
           <BookOpen size={16} color="#fff" />
         </div>
-        <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>SKCE</span>
+
+        <span
+          style={{
+            fontWeight: 700,
+            letterSpacing: 0.5,
+          }}
+        >
+          SK Computer Education
+        </span>
       </div>
 
+      {/* Portal Selector */}
       <button
         style={{
           display: "flex",
@@ -70,7 +139,13 @@ export default function StudentSidebar() {
           cursor: "pointer",
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <span
             style={{
               width: 7,
@@ -80,14 +155,28 @@ export default function StudentSidebar() {
               display: "inline-block",
             }}
           />
+
           Student Portal
         </span>
+
         <ChevronDown size={14} />
       </button>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+      {/* Navigation */}
+      <nav
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          flex: 1,
+        }}
+      >
         {SIDEBAR_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
+          const isActive =
+            pathname === href ||
+            (href !== "/dashboard/student" &&
+              pathname.startsWith(`${href}/`));
+
           return (
             <Link
               key={href}
@@ -100,25 +189,35 @@ export default function StudentSidebar() {
                 borderRadius: 8,
                 fontSize: 13.5,
                 textDecoration: "none",
-                background: isActive ? "#2F6BFF" : "transparent",
-                color: isActive ? "#fff" : "#AEB6CC",
+                background: isActive
+                  ? "#2F6BFF"
+                  : "transparent",
+                color: isActive
+                  ? "#fff"
+                  : "#AEB6CC",
                 fontWeight: isActive ? 600 : 500,
               }}
             >
-              <Icon size={17} strokeWidth={1.8} />
+              <Icon
+                size={17}
+                strokeWidth={1.8}
+              />
+
               {label}
             </Link>
           );
         })}
       </nav>
 
+      {/* Student Profile */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 10,
           paddingTop: 14,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderTop:
+            "1px solid rgba(255,255,255,0.08)",
         }}
       >
         <div
@@ -136,9 +235,29 @@ export default function StudentSidebar() {
         >
           ST
         </div>
-        <div style={{ lineHeight: 1.3 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Student Name</div>
-          <div style={{ fontSize: 11.5, color: "#8992AC" }}>student@skce.in</div>
+
+        <div
+          style={{
+            lineHeight: 1.3,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            Student Name
+          </div>
+
+          <div
+            style={{
+              fontSize: 11.5,
+              color: "#8992AC",
+            }}
+          >
+            student@skce.in
+          </div>
         </div>
       </div>
     </aside>

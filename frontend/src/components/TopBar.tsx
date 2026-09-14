@@ -6,14 +6,14 @@ export default function TopBar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1.5">
-            <Phone size={13} /> +91 98765 00000
+            <Phone size={13} /> +91 98854 22483
           </span>
           <span className="flex items-center gap-1.5">
             <Mail size={13} /> admissions@skce.in
           </span>
         </div>
         <span className="flex items-center gap-1.5">
-          <MapPin size={13} /> Hyderabad, Telangana
+          <MapPin size={13} /> Tirupati, Andhra Pradesh
         </span>
       </div>
     </div>

@@ -7,10 +7,23 @@ export default function TrainerLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F4F6FA" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#F4F6FA",
+      }}
+    >
       <TrainerSidebar />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <header
           style={{
             background: "#12172B",
@@ -22,34 +35,16 @@ export default function TrainerLayout({
             fontSize: 14,
           }}
         >
-          <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
-            Application Development <ChevronDown size={14} />
-          </span>
           <span
             style={{
-              position: "absolute",
-              right: 24,
-              top: "50%",
-              transform: "translateY(-50%)",
               display: "flex",
               alignItems: "center",
-              gap: 14,
+              gap: 6,
+              fontWeight: 500,
             }}
           >
-            <button
-              style={{
-                background: "#4B5EF5",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                padding: "5px 14px",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Share
-            </button>
+            Application Development
+            <ChevronDown size={14} />
           </span>
         </header>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import {
   ArrowLeft,
   Plus,
@@ -10,6 +11,13 @@ import {
   Check,
   X,
   Users,
+  Layers,
+  Mail,
+  Phone,
+  Hash,
+  Save,
+  GraduationCap,
+  Clock3,
 } from "lucide-react";
 
 type Student = {
@@ -44,7 +52,6 @@ const SEED_STUDENTS: Record<string, Student[]> = {
       phone: "+91 98765 10003",
     },
   ],
-
   "BATCH-JAVA-06": [
     {
       id: "4",
@@ -61,7 +68,6 @@ const SEED_STUDENTS: Record<string, Student[]> = {
       phone: "+91 98765 10005",
     },
   ],
-
   "BATCH-FS-09": [
     {
       id: "6",
@@ -78,7 +84,6 @@ const SEED_STUDENTS: Record<string, Student[]> = {
       phone: "+91 98765 10007",
     },
   ],
-
   "BATCH-FS-05": [
     {
       id: "8",
@@ -104,60 +109,32 @@ export default function BatchDetailPage() {
   const router = useRouter();
   const params = useParams();
 
-  const batchId = decodeURIComponent(
-    params.batchId as string
-  );
+  const batchId = decodeURIComponent(params.batchId as string);
+  const storageKey = `skce_batch_students_${batchId}`;
 
-  const storageKey =
-    `skce_batch_students_${batchId}`;
-
-  const [students, setStudents] =
-    useState<Student[]>([]);
-
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
-
-  const [draft, setDraft] =
-    useState<Student | null>(null);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [saved, setSaved] =
-    useState(false);
-
-  /* =========================
-     LOAD STUDENTS
-  ========================= */
+  const [students, setStudents] = useState<Student[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Student | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const stored =
-      localStorage.getItem(storageKey);
+    const stored = localStorage.getItem(storageKey);
 
     if (stored) {
       try {
         setStudents(JSON.parse(stored));
       } catch {
-        setStudents(
-          SEED_STUDENTS[batchId] || []
-        );
+        setStudents(SEED_STUDENTS[batchId] || []);
       }
     } else {
-      setStudents(
-        SEED_STUDENTS[batchId] || []
-      );
+      setStudents(SEED_STUDENTS[batchId] || []);
     }
   }, [batchId, storageKey]);
 
-  /* =========================
-     EDIT STUDENT
-  ========================= */
-
   const startEdit = (student: Student) => {
     if (editingId) {
-      alert(
-        "Please finish editing the current student first."
-      );
+      alert("Please finish editing the current student first.");
       return;
     }
 
@@ -166,37 +143,21 @@ export default function BatchDetailPage() {
     setSaved(false);
   };
 
-  /* =========================
-     ADD STUDENT
-  ========================= */
-
   const addStudent = () => {
     if (editingId) {
-      alert(
-        "Please finish editing the current student first."
-      );
+      alert("Please finish editing the current student first.");
       return;
     }
 
     const newStudent = createStudent();
 
-    setStudents((previous) => [
-      ...previous,
-      newStudent,
-    ]);
-
+    setStudents((previous) => [...previous, newStudent]);
     setEditingId(newStudent.id);
     setDraft(newStudent);
     setSaved(false);
   };
 
-  /* =========================
-     CANCEL EDIT
-  ========================= */
-
   const cancelEdit = () => {
-    // If the student is newly created
-    // and empty, remove that temporary row.
     if (
       draft &&
       !draft.name.trim() &&
@@ -205,20 +166,13 @@ export default function BatchDetailPage() {
       !draft.phone.trim()
     ) {
       setStudents((previous) =>
-        previous.filter(
-          (student) =>
-            student.id !== draft.id
-        )
+        previous.filter((student) => student.id !== draft.id)
       );
     }
 
     setEditingId(null);
     setDraft(null);
   };
-
-  /* =========================
-     SAVE STUDENT
-  ========================= */
 
   const confirmEdit = () => {
     if (!draft) return;
@@ -252,41 +206,28 @@ export default function BatchDetailPage() {
     setSaved(false);
   };
 
-  /* =========================
-     REMOVE STUDENT
-  ========================= */
-
   const removeStudent = (student: Student) => {
     const confirmed = window.confirm(
       `Are you sure you want to remove "${student.name}" from this batch?`
     );
 
-    // IMPORTANT:
-    // If user clicks Cancel/No,
-    // nothing happens.
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
-    // Only after YES:
     setStudents((previous) =>
-      previous.filter(
-        (item) => item.id !== student.id
-      )
+      previous.filter((item) => item.id !== student.id)
     );
+
+    if (editingId === student.id) {
+      setEditingId(null);
+      setDraft(null);
+    }
 
     setSaved(false);
   };
 
-  /* =========================
-     SAVE ALL CHANGES
-  ========================= */
-
   const handleSave = async () => {
     if (editingId) {
-      alert(
-        "Please finish editing the student first."
-      );
+      alert("Please finish editing the student first.");
       return;
     }
 
@@ -294,15 +235,8 @@ export default function BatchDetailPage() {
     setSaved(false);
 
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify(students)
-      );
-
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      localStorage.setItem(storageKey, JSON.stringify(students));
       setSaved(true);
     } catch (error) {
       console.error(error);
@@ -313,474 +247,397 @@ export default function BatchDetailPage() {
   };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "28px 32px",
-        background: "#F8FAFC",
-      }}
-    >
-      {/* =========================
-          BACK
-      ========================= */}
-
-      <button
-        onClick={() =>
-          router.push(
-            "/dashboard/trainer/my-batches"
-          )
-        }
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          border: "none",
-          background: "transparent",
-          padding: 0,
-          marginBottom: 20,
-          color: "#6B7280",
-          fontSize: 13,
-          cursor: "pointer",
-        }}
-      >
-        <ArrowLeft size={15} />
-        Back to My Batches
-      </button>
-
-      {/* =========================
-          HEADER
-      ========================= */}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <Users
-              size={22}
-              color="#3B6BF0"
-            />
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 24,
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              {batchId}
-            </h1>
-          </div>
-
-          <p
-            style={{
-              margin: "7px 0 0 32px",
-              color: "#6B7280",
-              fontSize: 14,
-            }}
-          >
-            {students.length} student
-            {students.length !== 1
-              ? "s"
-              : ""}{" "}
-            enrolled
-          </p>
-        </div>
-
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
+        {/* Back */}
         <button
-          onClick={addStudent}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            border: "none",
-            background: "#2F6BFF",
-            color: "#FFFFFF",
-            borderRadius: 8,
-            padding: "10px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          onClick={() => router.push("/dashboard/trainer/my-batches")}
+          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-[#173B67]"
         >
-          <Plus size={16} />
-          Add Student
+          <ArrowLeft size={16} />
+          Back to My Batches
         </button>
-      </div>
 
-      {/* =========================
-          STUDENT TABLE
-      ========================= */}
-
-      <div
-        style={{
-          background: "#FFFFFF",
-          borderRadius: 12,
-          border: "1px solid #EEF0F4",
-          boxShadow:
-            "0 1px 3px rgba(0,0,0,0.04)",
-          overflow: "hidden",
-        }}
-      >
-        {/* HEADER */}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "1.5fr 1fr 1.8fr 1.4fr 1fr",
-            gap: 12,
-            padding: "13px 20px",
-            background: "#FAFBFC",
-            borderBottom:
-              "1px solid #EEF0F4",
-            color: "#6B7280",
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          <span>Name</span>
-          <span>Roll No.</span>
-          <span>Email</span>
-          <span>Phone</span>
-          <span style={{ textAlign: "right" }}>
-            Actions
-          </span>
-        </div>
-
-        {/* EMPTY */}
-
-        {students.length === 0 && (
-          <div
-            style={{
-              padding: 45,
-              textAlign: "center",
-              color: "#9CA3AF",
-              fontSize: 14,
-            }}
-          >
-            No students in this batch.
-
-            <br />
-
-            <span
-              style={{
-                fontSize: 13,
-              }}
-            >
-              Click "Add Student" to add one.
-            </span>
-          </div>
-        )}
-
-        {/* STUDENTS */}
-
-        {students.map((student, index) => {
-          const isEditing =
-            editingId === student.id;
-
-          const row =
-            isEditing && draft
-              ? draft
-              : student;
-
-          return (
-            <div
-              key={student.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "1.5fr 1fr 1.8fr 1.4fr 1fr",
-                gap: 12,
-                alignItems: "center",
-                padding: "12px 20px",
-                borderBottom:
-                  index !==
-                  students.length - 1
-                    ? "1px solid #F1F2F5"
-                    : "none",
-              }}
-            >
-              {/* NAME */}
-
-              {isEditing ? (
-                <input
-                  value={row.name}
-                  onChange={(e) =>
-                    setDraft({
-                      ...row,
-                      name: e.target.value,
-                    })
-                  }
-                  placeholder="Full name"
-                  style={inputStyle}
-                />
-              ) : (
-                <span
-                  style={{
-                    color: "#111827",
-                    fontWeight: 600,
-                    fontSize: 13.5,
-                  }}
-                >
-                  {student.name || "—"}
-                </span>
-              )}
-
-              {/* ROLL */}
-
-              {isEditing ? (
-                <input
-                  value={row.roll}
-                  onChange={(e) =>
-                    setDraft({
-                      ...row,
-                      roll: e.target.value,
-                    })
-                  }
-                  placeholder="Roll number"
-                  style={inputStyle}
-                />
-              ) : (
-                <span
-                  style={{
-                    color: "#6B7280",
-                    fontSize: 13.5,
-                  }}
-                >
-                  {student.roll || "—"}
-                </span>
-              )}
-
-              {/* EMAIL */}
-
-              {isEditing ? (
-                <input
-                  value={row.email}
-                  onChange={(e) =>
-                    setDraft({
-                      ...row,
-                      email: e.target.value,
-                    })
-                  }
-                  placeholder="Email"
-                  type="email"
-                  style={inputStyle}
-                />
-              ) : (
-                <span
-                  style={{
-                    color: "#6B7280",
-                    fontSize: 13.5,
-                    overflow: "hidden",
-                    textOverflow:
-                      "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {student.email || "—"}
-                </span>
-              )}
-
-              {/* PHONE */}
-
-              {isEditing ? (
-                <input
-                  value={row.phone}
-                  onChange={(e) =>
-                    setDraft({
-                      ...row,
-                      phone: e.target.value,
-                    })
-                  }
-                  placeholder="Phone"
-                  style={inputStyle}
-                />
-              ) : (
-                <span
-                  style={{
-                    color: "#6B7280",
-                    fontSize: 13.5,
-                  }}
-                >
-                  {student.phone || "—"}
-                </span>
-              )}
-
-              {/* ACTIONS */}
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "flex-end",
-                  gap: 7,
-                }}
-              >
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={confirmEdit}
-                      title="Save student"
-                      style={iconButton(
-                        "#16A34A"
-                      )}
-                    >
-                      <Check size={15} />
-                    </button>
-
-                    <button
-                      onClick={cancelEdit}
-                      title="Cancel"
-                      style={iconButton(
-                        "#6B7280"
-                      )}
-                    >
-                      <X size={15} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() =>
-                        startEdit(student)
-                      }
-                      title="Edit student"
-                      style={iconButton(
-                        "#3B6BF0"
-                      )}
-                    >
-                      <Pencil size={14} />
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        removeStudent(student)
-                      }
-                      title="Remove student"
-                      style={iconButton(
-                        "#DC2626"
-                      )}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
+        {/* Header */}
+        <div className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
+                <GraduationCap size={17} />
+                Trainer Portal
               </div>
+
+              <div className="flex items-center gap-2">
+                <Layers size={21} className="text-orange-300" />
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  {batchId}
+                </h1>
+              </div>
+
+              <p className="mt-2 text-sm text-blue-100">
+                {students.length}{" "}
+                {students.length === 1 ? "student" : "students"} enrolled in
+                this batch.
+              </p>
             </div>
-          );
-        })}
-      </div>
 
-      {/* =========================
-          SAVE
-      ========================= */}
+            <button
+              onClick={addStudent}
+              className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
+            >
+              <Plus size={17} />
+              Add Student
+            </button>
+          </div>
+        </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          marginTop: 20,
-        }}
-      >
-        <button
-          onClick={handleSave}
-          disabled={
-            saving || !!editingId
-          }
-          style={{
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 22px",
-            background:
+        {/* Development note */}
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
+          <Clock3 className="mt-0.5 shrink-0 text-orange-500" size={18} />
+          <div>
+            <p className="font-semibold text-slate-900">Development Mode</p>
+            <p className="mt-0.5 leading-6">
+              Student assignments are currently stored in browser local
+              storage. They will be linked to the real student and batch
+              records after backend integration.
+            </p>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SummaryCard
+            icon={<Users size={20} />}
+            value={students.length}
+            label="Enrolled Students"
+          />
+          <SummaryCard
+            icon={<Layers size={20} />}
+            value={editingId ? 1 : 0}
+            label="Currently Editing"
+          />
+          <SummaryCard
+            icon={<Save size={20} />}
+            value={saved ? 1 : 0}
+            label="Saved Changes"
+          />
+        </div>
+
+        {/* Students */}
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Batch Students
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Add, edit or remove students from this batch.
+              </p>
+            </div>
+
+            {editingId && (
+              <span className="inline-flex w-fit items-center rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-600">
+                Finish the current edit before making another change
+              </span>
+            )}
+          </div>
+
+          {/* Desktop header */}
+          <div className="hidden grid-cols-[1.4fr_0.8fr_1.5fr_1.2fr_1fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 lg:grid lg:px-6">
+            <span>Name</span>
+            <span>Roll No.</span>
+            <span>Email</span>
+            <span>Phone</span>
+            <span className="text-right">Actions</span>
+          </div>
+
+          {students.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                <Users size={29} />
+              </div>
+
+              <h3 className="mt-4 text-lg font-bold text-slate-800">
+                No students in this batch
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Click “Add Student” to add the first student.
+              </p>
+
+              <button
+                onClick={addStudent}
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-600"
+              >
+                <Plus size={16} />
+                Add Student
+              </button>
+            </div>
+          ) : (
+            <div>
+              {students.map((student, index) => {
+                const isEditing = editingId === student.id;
+                const row = isEditing && draft ? draft : student;
+
+                return (
+                  <div
+                    key={student.id}
+                    className={`border-b border-slate-100 px-4 py-4 last:border-b-0 sm:px-5 lg:grid lg:grid-cols-[1.4fr_0.8fr_1.5fr_1.2fr_1fr] lg:items-center lg:gap-4 lg:px-6 ${
+                      isEditing ? "bg-orange-50/50" : "hover:bg-slate-50/60"
+                    }`}
+                  >
+                    {/* Name */}
+                    <div className="mb-4 lg:mb-0">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400 lg:hidden">
+                        Name
+                      </label>
+
+                      {isEditing ? (
+                        <input
+                          value={row.name}
+                          onChange={(e) =>
+                            setDraft({
+                              ...row,
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="Full name"
+                          className={inputClass}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#173B67] text-xs font-bold text-white">
+                            {student.name
+                              ? student.name.charAt(0).toUpperCase()
+                              : "?"}
+                          </div>
+                          <span className="truncate text-sm font-semibold text-slate-800">
+                            {student.name || "—"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Roll */}
+                    <div className="mb-4 lg:mb-0">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400 lg:hidden">
+                        Roll No.
+                      </label>
+
+                      {isEditing ? (
+                        <input
+                          value={row.roll}
+                          onChange={(e) =>
+                            setDraft({
+                              ...row,
+                              roll: e.target.value,
+                            })
+                          }
+                          placeholder="Roll number"
+                          className={inputClass}
+                        />
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-slate-600">
+                          <Hash size={14} className="text-orange-500" />
+                          {student.roll || "—"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="mb-4 min-w-0 lg:mb-0">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400 lg:hidden">
+                        Email
+                      </label>
+
+                      {isEditing ? (
+                        <input
+                          value={row.email}
+                          onChange={(e) =>
+                            setDraft({
+                              ...row,
+                              email: e.target.value,
+                            })
+                          }
+                          placeholder="Email"
+                          type="email"
+                          className={inputClass}
+                        />
+                      ) : (
+                        <span className="inline-flex max-w-full items-center gap-1.5 truncate text-sm text-slate-600">
+                          <Mail size={14} className="shrink-0 text-slate-400" />
+                          <span className="truncate">
+                            {student.email || "—"}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Phone */}
+                    <div className="mb-4 lg:mb-0">
+                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400 lg:hidden">
+                        Phone
+                      </label>
+
+                      {isEditing ? (
+                        <input
+                          value={row.phone}
+                          onChange={(e) =>
+                            setDraft({
+                              ...row,
+                              phone: e.target.value,
+                            })
+                          }
+                          placeholder="Phone"
+                          className={inputClass}
+                        />
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-slate-600">
+                          <Phone size={14} className="text-slate-400" />
+                          {student.phone || "—"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex justify-start gap-2 lg:justify-end">
+                      {isEditing ? (
+                        <>
+                          <ActionButton
+                            title="Save student"
+                            onClick={confirmEdit}
+                            variant="success"
+                          >
+                            <Check size={15} />
+                          </ActionButton>
+
+                          <ActionButton
+                            title="Cancel"
+                            onClick={cancelEdit}
+                            variant="neutral"
+                          >
+                            <X size={15} />
+                          </ActionButton>
+                        </>
+                      ) : (
+                        <>
+                          <ActionButton
+                            title="Edit student"
+                            onClick={() => startEdit(student)}
+                            variant="edit"
+                          >
+                            <Pencil size={15} />
+                          </ActionButton>
+
+                          <ActionButton
+                            title="Remove student"
+                            onClick={() => removeStudent(student)}
+                            variant="danger"
+                          >
+                            <Trash2 size={15} />
+                          </ActionButton>
+                        </>
+                      )}
+                    </div>
+
+                    {index === students.length - 1 && <div />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Save */}
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            onClick={handleSave}
+            disabled={saving || !!editingId}
+            className={`inline-flex w-fit items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition ${
               saving || editingId
-                ? "#A5B4FC"
-                : "#16A34A",
-            color: "#FFFFFF",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor:
-              saving || editingId
-                ? "not-allowed"
-                : "pointer",
-          }}
-        >
-          {saving
-            ? "Saving..."
-            : "Save Changes"}
-        </button>
-
-        {editingId && (
-          <span
-            style={{
-              color: "#6B7280",
-              fontSize: 13,
-            }}
+                ? "cursor-not-allowed bg-slate-300"
+                : "bg-[#173B67] hover:bg-[#123052]"
+            }`}
           >
-            Finish editing before saving.
-          </span>
-        )}
+            <Save size={16} />
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
 
-        {saved && !editingId && (
-          <span
-            style={{
-              color: "#16A34A",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            ✓ Changes saved successfully
-          </span>
-        )}
+          {editingId && (
+            <span className="text-sm text-slate-500">
+              Finish editing before saving all changes.
+            </span>
+          )}
+
+          {saved && !editingId && (
+            <span className="text-sm font-semibold text-green-600">
+              ✓ Changes saved successfully
+            </span>
+          )}
+        </div>
       </div>
     </main>
   );
 }
 
-/* =========================
-   INPUT
-========================= */
+const inputClass =
+  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100";
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "8px 9px",
-  border: "1px solid #DDE2EA",
-  borderRadius: 6,
-  outline: "none",
-  fontSize: 13,
-  color: "#111827",
-};
+function SummaryCard({
+  icon,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+          {icon}
+        </div>
 
-/* =========================
-   ICON BUTTON
-========================= */
+        <div>
+          <p className="text-2xl font-bold text-[#173B67]">{value}</p>
+          <p className="mt-0.5 text-sm text-slate-500">{label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const iconButton = (
-  color: string
-): React.CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 30,
-  height: 30,
-  padding: 0,
-  borderRadius: 6,
-  border: "1px solid #E2E5EC",
-  background: "#FFFFFF",
-  color,
-  cursor: "pointer",
-});
+function ActionButton({
+  children,
+  title,
+  onClick,
+  variant,
+}: {
+  children: ReactNode;
+  title: string;
+  onClick: () => void;
+  variant: "success" | "neutral" | "edit" | "danger";
+}) {
+  const variants = {
+    success:
+      "border-green-200 bg-green-50 text-green-600 hover:bg-green-100",
+    neutral:
+      "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
+    edit:
+      "border-slate-200 bg-white text-[#173B67] hover:border-blue-200 hover:bg-blue-50",
+    danger:
+      "border-red-100 bg-white text-red-600 hover:bg-red-50",
+  };
+
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`flex h-9 w-9 items-center justify-center rounded-lg border transition ${variants[variant]}`}
+    >
+      {children}
+    </button>
+  );
+}

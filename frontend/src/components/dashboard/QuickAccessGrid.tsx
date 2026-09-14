@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { BookOpen, LayoutGrid, Wallet, User, MonitorPlay, Megaphone } from "lucide-react";
+import {
+  BookOpen,
+  LayoutGrid,
+  Wallet,
+  User,
+  MonitorPlay,
+  Megaphone,
+  Users,
+} from "lucide-react";
 
 const TILES = [
   {
@@ -9,10 +17,16 @@ const TILES = [
     bg: "#0F2A44",
   },
   {
-    href: "/dashboard/student/associate-panel",
+    href: "/dashboard/student/associate",
     label: "Access Your Associate Panel",
     icon: LayoutGrid,
     bg: "#6D9E1F",
+  },
+  {
+    href: "/dashboard/student/affiliate-marketing",
+    label: "Affiliate Marketing",
+    icon: Users,
+    bg: "#7C3AED",
   },
   {
     href: "/dashboard/student/wallet",
@@ -78,9 +92,22 @@ export default function QuickAccessGrid() {
               flexShrink: 0,
             }}
           >
-            <Icon size={24} color={bg} strokeWidth={2} />
+            <Icon
+              size={24}
+              color={bg}
+              strokeWidth={2}
+            />
           </div>
-          <span style={{ fontSize: 19, fontWeight: 700, color: "#fff" }}>{label}</span>
+
+          <span
+            style={{
+              fontSize: 19,
+              fontWeight: 700,
+              color: "#fff",
+            }}
+          >
+            {label}
+          </span>
         </Link>
       ))}
     </div>

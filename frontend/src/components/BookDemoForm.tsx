@@ -73,7 +73,7 @@ export default function BookDemoForm() {
             <input
               required
               type="tel"
-              placeholder="+91 98765 00000"
+              placeholder="+91 98854 22483"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className="w-full rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-white placeholder-blue-200 outline-none focus:border-white/50"

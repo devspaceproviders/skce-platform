@@ -16,7 +16,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand text-white">
           <GraduationCap size={18} />
         </span>
-        <span className="text-lg font-bold text-white">SKCE</span>
+        <span className="text-lg font-bold text-white">SK Computer Education</span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">

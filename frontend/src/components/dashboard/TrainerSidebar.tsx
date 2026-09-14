@@ -81,7 +81,7 @@ export default function TrainerSidebar() {
         >
           <BookOpen size={16} color="#fff" />
         </div>
-        <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>SKCE</span>
+        <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>SK Computer Education</span>
       </div>
 
       <button
