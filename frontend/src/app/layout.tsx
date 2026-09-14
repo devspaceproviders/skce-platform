@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import PublicShell from "@/components/PublicShell";
 
 export const metadata: Metadata = {
   title: "SK Computer Education — Learn. Grow. Succeed.",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen">
-        {children}
+        <PublicShell>
+          {children}
+        </PublicShell>
       </body>
     </html>
   );
