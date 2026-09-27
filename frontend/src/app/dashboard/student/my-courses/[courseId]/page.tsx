@@ -6,6 +6,24 @@ import { useParams } from "next/navigation";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+function getMediaUrl(url?: string | null) {
+  if (!url) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `${API_ORIGIN}${url}`;
+  }
+
+  return `${API_ORIGIN}/${url}`;
+}
+
 type Lesson = {
   id: number;
   title: string;
@@ -1060,17 +1078,20 @@ export default function StudentCoursePage() {
                     <div className="mb-6 overflow-hidden rounded-xl bg-black">
                       <div className="aspect-video">
 
-                        <iframe
-                          src={
+                        <video
+                          src={getMediaUrl(
                             selectedLesson.videoUrl
-                          }
+                          )}
                           title={
                             selectedLesson.title
                           }
                           className="h-full w-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+                          controls
+                          playsInline
+                          preload="metadata"
+                        >
+                          Your browser does not support video playback.
+                        </video>
 
                       </div>
                     </div>
@@ -1122,9 +1143,9 @@ export default function StudentCoursePage() {
                         </div>
 
                         <a
-                          href={
+                          href={getMediaUrl(
                             selectedLesson.documentUrl
-                          }
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center rounded-lg border border-[#A01441] px-4 py-2 text-sm font-medium text-[#A01441] hover:bg-[#A01441] hover:text-white"

@@ -10,7 +10,14 @@ import {
   deleteLessonController,
   reorderModuleController,
   reorderLessonController,
+  uploadLessonVideoController,
+  uploadLessonDocumentController,
 } from "../controllers/course-content-admin.controller";
+
+import {
+  courseVideoUpload,
+  courseDocumentUpload,
+} from "../middleware/course-content-upload";
 
 import {
   authenticate,
@@ -20,12 +27,12 @@ import {
 const router = Router();
 
 /* =========================================================
-   ADMIN AUTHENTICATION
+   ADMIN / TRAINER AUTHENTICATION
 ========================================================= */
 
 router.use(
   authenticate,
-  requireRole("ADMIN")
+  requireRole("ADMIN", "TRAINER")
 );
 
 /* =========================================================
@@ -129,6 +136,40 @@ router.delete(
 router.patch(
   "/lessons/:lessonId/reorder",
   reorderLessonController
+);
+
+/* =========================================================
+   LESSON VIDEO UPLOAD
+========================================================= */
+
+/*
+ * Multipart field:
+ * video
+ *
+ * POST
+ * /api/admin/course-content/lessons/:lessonId/video
+ */
+router.post(
+  "/lessons/:lessonId/video",
+  courseVideoUpload.single("video"),
+  uploadLessonVideoController
+);
+
+/* =========================================================
+   LESSON DOCUMENT UPLOAD
+========================================================= */
+
+/*
+ * Multipart field:
+ * document
+ *
+ * POST
+ * /api/admin/course-content/lessons/:lessonId/document
+ */
+router.post(
+  "/lessons/:lessonId/document",
+  courseDocumentUpload.single("document"),
+  uploadLessonDocumentController
 );
 
 export default router;

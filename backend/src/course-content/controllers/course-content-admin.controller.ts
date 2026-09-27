@@ -1,5 +1,10 @@
 import type { Request, Response } from "express";
 
+import { db } from "../../prisma/db";
+import {
+  hasTrainerCoursePermission,
+} from "../../auth/services/trainer-course-permission.service";
+
 import {
   getAdminCourseContent,
   createModule,
@@ -11,6 +16,107 @@ import {
   reorderModule,
   reorderLesson,
 } from "../services/course-content-admin.service";
+
+/* =========================================================
+   TRAINER COURSE CONTENT PERMISSION
+========================================================= */
+
+async function checkCourseContentPermission(
+  req: Request,
+  res: Response,
+  courseId: number
+): Promise<boolean> {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+
+    return false;
+  }
+
+  /*
+   * ADMIN has unrestricted access.
+   */
+  if (req.user.role === "ADMIN") {
+    return true;
+  }
+
+  /*
+   * Only TRAINER can use these APIs besides ADMIN.
+   */
+  if (req.user.role !== "TRAINER") {
+    res.status(403).json({
+      success: false,
+      message: "Access denied",
+    });
+
+    return false;
+  }
+
+  const allowed =
+    await hasTrainerCoursePermission(
+      req.user.userId,
+      courseId,
+      "canManageContent"
+    );
+
+  if (!allowed) {
+    res.status(403).json({
+      success: false,
+      message:
+        "You do not have permission to manage content for this course",
+    });
+
+    return false;
+  }
+
+  return true;
+}
+
+/* =========================================================
+   GET COURSE ID FROM MODULE
+========================================================= */
+
+async function getCourseIdFromModule(
+  moduleId: number
+): Promise<number | null> {
+  const module =
+    await db.orm.public.CourseModule
+      .where({
+        id: moduleId,
+      })
+      .first();
+
+  if (!module) {
+    return null;
+  }
+
+  return module.courseId;
+}
+
+/* =========================================================
+   GET COURSE ID FROM LESSON
+========================================================= */
+
+async function getCourseIdFromLesson(
+  lessonId: number
+): Promise<number | null> {
+  const lesson =
+    await db.orm.public.Lesson
+      .where({
+        id: lessonId,
+      })
+      .first();
+
+  if (!lesson) {
+    return null;
+  }
+
+  return getCourseIdFromModule(
+    lesson.moduleId
+  );
+}
 
 /* =========================================================
    GET COURSE CONTENT
@@ -31,6 +137,17 @@ export async function getAdminCourseContentController(
       });
     }
 
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
     const data =
       await getAdminCourseContent(
         courseId
@@ -42,7 +159,7 @@ export async function getAdminCourseContentController(
     });
   } catch (error) {
     console.error(
-      "Get admin course content error:",
+      "Get course content error:",
       error
     );
 
@@ -82,6 +199,17 @@ export async function createModuleController(
         message:
           "Course ID and module title are required",
       });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
     }
 
     const module =
@@ -141,6 +269,29 @@ export async function updateModuleController(
       });
     }
 
+    const courseId =
+      await getCourseIdFromModule(
+        moduleId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Module not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
     const module =
       await updateModule(
         moduleId,
@@ -189,8 +340,33 @@ export async function deleteModuleController(
       });
     }
 
+    const courseId =
+      await getCourseIdFromModule(
+        moduleId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Module not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
     const result =
-      await deleteModule(moduleId);
+      await deleteModule(
+        moduleId
+      );
 
     return res.status(200).json(result);
   } catch (error) {
@@ -238,6 +414,29 @@ export async function createLessonController(
         message:
           "Module ID and lesson title are required",
       });
+    }
+
+    const courseId =
+      await getCourseIdFromModule(
+        moduleId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Module not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
     }
 
     const lesson =
@@ -303,6 +502,29 @@ export async function updateLessonController(
       });
     }
 
+    const courseId =
+      await getCourseIdFromLesson(
+        lessonId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
     const lesson =
       await updateLesson(
         lessonId,
@@ -354,8 +576,33 @@ export async function deleteLessonController(
       });
     }
 
+    const courseId =
+      await getCourseIdFromLesson(
+        lessonId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
     const result =
-      await deleteLesson(lessonId);
+      await deleteLesson(
+        lessonId
+      );
 
     return res.status(200).json(result);
   } catch (error) {
@@ -370,6 +617,176 @@ export async function deleteLessonController(
         error instanceof Error
           ? error.message
           : "Failed to delete lesson",
+    });
+  }
+}
+
+/* =========================================================
+   UPLOAD LESSON VIDEO
+========================================================= */
+
+export async function uploadLessonVideoController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const lessonId =
+      Number(req.params.lessonId);
+
+    if (Number.isNaN(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Video file is required",
+      });
+    }
+
+    const courseId =
+      await getCourseIdFromLesson(
+        lessonId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
+    const videoUrl =
+      `/uploads/course-content/videos/${file.filename}`;
+
+    const lesson =
+      await db.orm.public.Lesson
+        .where({
+          id: lessonId,
+        })
+        .update({
+          videoUrl,
+        });
+
+    return res.status(200).json({
+      success: true,
+      data: lesson,
+      message:
+        "Lesson video uploaded successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Upload lesson video error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to upload lesson video",
+    });
+  }
+}
+
+/* =========================================================
+   UPLOAD LESSON DOCUMENT
+========================================================= */
+
+export async function uploadLessonDocumentController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const lessonId =
+      Number(req.params.lessonId);
+
+    if (Number.isNaN(lessonId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid lesson ID",
+      });
+    }
+
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Document file is required",
+      });
+    }
+
+    const courseId =
+      await getCourseIdFromLesson(
+        lessonId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
+    }
+
+    const documentUrl =
+      `/uploads/course-content/documents/${file.filename}`;
+
+    const lesson =
+      await db.orm.public.Lesson
+        .where({
+          id: lessonId,
+        })
+        .update({
+          documentUrl,
+        });
+
+    return res.status(200).json({
+      success: true,
+      data: lesson,
+      message:
+        "Lesson document uploaded successfully",
+    });
+  } catch (error) {
+    console.error(
+      "Upload lesson document error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to upload lesson document",
     });
   }
 }
@@ -407,6 +824,29 @@ export async function reorderModuleController(
         message:
           "Direction must be UP or DOWN",
       });
+    }
+
+    const courseId =
+      await getCourseIdFromModule(
+        moduleId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Module not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
     }
 
     const result =
@@ -471,6 +911,29 @@ export async function reorderLessonController(
         message:
           "Direction must be UP or DOWN",
       });
+    }
+
+    const courseId =
+      await getCourseIdFromLesson(
+        lessonId
+      );
+
+    if (courseId === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    const allowed =
+      await checkCourseContentPermission(
+        req,
+        res,
+        courseId
+      );
+
+    if (!allowed) {
+      return;
     }
 
     const result =

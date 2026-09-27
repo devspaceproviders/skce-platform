@@ -22,6 +22,7 @@ import {
   Link2,
   FileVideo,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 
 const API_URL =
@@ -69,6 +70,28 @@ type Participant = {
   participated: boolean;
 };
 
+type TrainerCoursePermission = {
+  courseId: number;
+  canCreateLiveSessions: boolean;
+};
+
+type CourseOption = {
+  id: number;
+  slug: string;
+  title: string;
+  isActive: boolean;
+};
+
+type CreateForm = {
+  courseId: string;
+  title: string;
+  description: string;
+  startAt: string;
+  endAt: string;
+  meetingUrl: string;
+  isPublished: boolean;
+};
+
 type EditForm = {
   title: string;
   description: string;
@@ -92,6 +115,16 @@ const EMPTY_FORM: EditForm = {
   meetingUrl: "",
   recordingUrl: "",
   status: "SCHEDULED",
+  isPublished: false,
+};
+
+const EMPTY_CREATE_FORM: CreateForm = {
+  courseId: "",
+  title: "",
+  description: "",
+  startAt: "",
+  endAt: "",
+  meetingUrl: "",
   isPublished: false,
 };
 
@@ -231,6 +264,21 @@ export default function TrainerLiveSessionsPage() {
   const [form, setForm] =
     useState<EditForm>(EMPTY_FORM);
 
+  const [permissions, setPermissions] =
+    useState<TrainerCoursePermission[]>([]);
+
+  const [courses, setCourses] =
+    useState<CourseOption[]>([]);
+
+  const [createSessionOpen, setCreateSessionOpen] =
+    useState(false);
+
+  const [createSaving, setCreateSaving] =
+    useState(false);
+
+  const [createForm, setCreateForm] =
+    useState<CreateForm>(EMPTY_CREATE_FORM);
+
   async function authenticatedFetch(
     url: string,
     options: RequestInit = {}
@@ -258,10 +306,7 @@ export default function TrainerLiveSessionsPage() {
       },
     });
 
-    if (
-      response.status === 401 ||
-      response.status === 403
-    ) {
+    if (response.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("user");
@@ -351,9 +396,116 @@ export default function TrainerLiveSessionsPage() {
     }
   }
 
+  async function loadCreateOptions() {
+    try {
+      const [permissionsResponse, coursesResponse] =
+        await Promise.all([
+          authenticatedFetch(
+            `${API_URL}/trainer/course-permissions`
+          ),
+          authenticatedFetch(
+            `${API_URL}/courses`
+          ),
+        ]);
+
+      const permissionsJson =
+        await permissionsResponse.json();
+
+      const coursesJson =
+        await coursesResponse.json();
+
+      if (
+        !permissionsResponse.ok ||
+        !permissionsJson?.success
+      ) {
+        throw new Error(
+          permissionsJson?.message ||
+            "Unable to load trainer course permissions."
+        );
+      }
+
+      if (
+        !coursesResponse.ok ||
+        !coursesJson?.success
+      ) {
+        throw new Error(
+          coursesJson?.message ||
+            "Unable to load courses."
+        );
+      }
+
+      const permissionData = Array.isArray(
+        permissionsJson.data
+      )
+        ? permissionsJson.data
+        : [];
+
+      const courseData = Array.isArray(
+        coursesJson.data
+      )
+        ? coursesJson.data
+        : [];
+
+      setPermissions(
+        permissionData.map(
+          (permission: any) => ({
+            courseId: Number(
+              permission.courseId
+            ),
+            canCreateLiveSessions:
+              Boolean(
+                permission.canCreateLiveSessions
+              ),
+          })
+        )
+      );
+
+      setCourses(
+        courseData.map(
+          (course: any) => ({
+            id: Number(course.id),
+            slug: course.slug,
+            title: course.title,
+            isActive: Boolean(
+              course.isActive
+            ),
+          })
+        )
+      );
+    } catch (err) {
+      console.error(
+        "Trainer live session create options load error:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load live session creation options."
+      );
+    }
+  }
+
   useEffect(() => {
     void loadSessions();
+    void loadCreateOptions();
   }, []);
+
+  const allowedCreateCourses =
+    useMemo(
+      () =>
+        courses.filter(
+          (course) =>
+            course.isActive &&
+            permissions.some(
+              (permission) =>
+                permission.courseId ===
+                  course.id &&
+                permission.canCreateLiveSessions
+            )
+        ),
+      [courses, permissions]
+    );
 
   const filteredSessions =
     useMemo(() => {
@@ -529,6 +681,138 @@ export default function TrainerLiveSessionsPage() {
       setParticipantsLoading(
         false
       );
+    }
+  }
+
+  function openCreate() {
+    const firstCourse =
+      allowedCreateCourses[0];
+
+    setError("");
+
+    setCreateForm({
+      ...EMPTY_CREATE_FORM,
+      courseId: firstCourse
+        ? String(firstCourse.id)
+        : "",
+    });
+
+    setCreateSessionOpen(true);
+  }
+
+  async function createSession(
+    event: React.FormEvent
+  ) {
+    event.preventDefault();
+
+    if (
+      !createForm.courseId
+    ) {
+      setError(
+        "Please select a course."
+      );
+      return;
+    }
+
+    if (!createForm.title.trim()) {
+      setError(
+        "Session title is required."
+      );
+      return;
+    }
+
+    if (
+      !createForm.startAt ||
+      !createForm.endAt
+    ) {
+      setError(
+        "Start and end time are required."
+      );
+      return;
+    }
+
+    if (
+      new Date(
+        createForm.endAt
+      ).getTime() <=
+      new Date(
+        createForm.startAt
+      ).getTime()
+    ) {
+      setError(
+        "End time must be later than start time."
+      );
+      return;
+    }
+
+    setCreateSaving(true);
+    setError("");
+
+    try {
+      const response =
+        await authenticatedFetch(
+          `${API_URL}/trainer/live-sessions`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              courseId: Number(
+                createForm.courseId
+              ),
+              title:
+                createForm.title.trim(),
+              description:
+                createForm.description.trim() ||
+                null,
+              startAt:
+                new Date(
+                  createForm.startAt
+                ).toISOString(),
+              endAt:
+                new Date(
+                  createForm.endAt
+                ).toISOString(),
+              meetingUrl:
+                createForm.meetingUrl.trim() ||
+                null,
+              status: "SCHEDULED",
+              isPublished:
+                createForm.isPublished,
+            }),
+          }
+        );
+
+      const json =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !json?.success
+      ) {
+        throw new Error(
+          json?.message ||
+            "Unable to create live session."
+        );
+      }
+
+      setCreateSessionOpen(false);
+      setCreateForm(
+        EMPTY_CREATE_FORM
+      );
+
+      await loadSessions(true);
+    } catch (err) {
+      console.error(
+        "Create live session error:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to create live session."
+      );
+    } finally {
+      setCreateSaving(false);
     }
   }
 
@@ -748,29 +1032,42 @@ export default function TrainerLiveSessionsPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() =>
-              void loadSessions(
-                true
-              )
-            }
-            disabled={
-              loading ||
-              refreshing
-            }
-            className="inline-flex w-fit items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw
-              size={17}
-              className={
-                refreshing
-                  ? "animate-spin"
-                  : ""
+          <div className="flex flex-wrap items-center gap-2">
+            {allowedCreateCourses.length > 0 && (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                <Plus size={17} />
+                Create Live Session
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                void loadSessions(
+                  true
+                )
               }
-            />
-            Refresh
-          </button>
+              disabled={
+                loading ||
+                refreshing
+              }
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                size={17}
+                className={
+                  refreshing
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* ERROR */}
@@ -1135,6 +1432,219 @@ export default function TrainerLiveSessionsPage() {
           </p>
         </div>
       </div>
+
+      {/* CREATE MODAL */}
+      {createSessionOpen && (
+        <ModalOverlay
+          onClose={() => {
+            if (!createSaving) {
+              setCreateSessionOpen(false);
+            }
+          }}
+        >
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <ModalHeader
+              title="Create Live Session"
+              subtitle="Create a live session for a course you are permitted to manage."
+              onClose={() => {
+                if (!createSaving) {
+                  setCreateSessionOpen(false);
+                }
+              }}
+            />
+
+            <form onSubmit={createSession}>
+              <div className="grid gap-5 p-6 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Course
+                    <span className="ml-1 text-red-500">
+                      *
+                    </span>
+                  </label>
+
+                  <select
+                    value={createForm.courseId}
+                    onChange={(event) =>
+                      setCreateForm(
+                        (current) => ({
+                          ...current,
+                          courseId:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                  >
+                    <option value="">
+                      Select course
+                    </option>
+
+                    {allowedCreateCourses.map(
+                      (course) => (
+                        <option
+                          key={course.id}
+                          value={course.id}
+                        >
+                          {course.title}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Only courses with Create Live Sessions permission are available.
+                  </p>
+                </div>
+
+                <FormField
+                  label="Session Title"
+                  value={createForm.title}
+                  onChange={(value) =>
+                    setCreateForm(
+                      (current) => ({
+                        ...current,
+                        title: value,
+                      })
+                    )
+                  }
+                  required
+                  placeholder="Enter session title"
+                />
+
+                <FormField
+                  label="Start Time"
+                  type="datetime-local"
+                  value={createForm.startAt}
+                  onChange={(value) =>
+                    setCreateForm(
+                      (current) => ({
+                        ...current,
+                        startAt: value,
+                      })
+                    )
+                  }
+                  required
+                />
+
+                <FormField
+                  label="End Time"
+                  type="datetime-local"
+                  value={createForm.endAt}
+                  onChange={(value) =>
+                    setCreateForm(
+                      (current) => ({
+                        ...current,
+                        endAt: value,
+                      })
+                    )
+                  }
+                  required
+                />
+
+                <FormField
+                  label="Meeting URL"
+                  type="url"
+                  value={createForm.meetingUrl}
+                  onChange={(value) =>
+                    setCreateForm(
+                      (current) => ({
+                        ...current,
+                        meetingUrl: value,
+                      })
+                    )
+                  }
+                  placeholder="https://meet.google.com/..."
+                />
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Description
+                  </label>
+
+                  <textarea
+                    value={createForm.description}
+                    onChange={(event) =>
+                      setCreateForm(
+                        (current) => ({
+                          ...current,
+                          description:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    rows={3}
+                    placeholder="Describe this live session"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={createForm.isPublished}
+                      onChange={(event) =>
+                        setCreateForm(
+                          (current) => ({
+                            ...current,
+                            isPublished:
+                              event.target.checked,
+                          })
+                        )
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-400"
+                    />
+
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-700">
+                        Publish session
+                      </span>
+
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Published sessions can be made available to students according to their course access.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCreateSessionOpen(false)
+                  }
+                  disabled={createSaving}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={createSaving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {createSaving ? (
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <Save size={17} />
+                  )}
+
+                  {createSaving
+                    ? "Creating..."
+                    : "Create Session"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </ModalOverlay>
+      )}
 
       {/* DETAILS MODAL */}
       {selectedSession && (

@@ -76,6 +76,18 @@ type PendingAssessment = Assessment & {
   pendingCount: number;
 };
 
+type TrainerCoursePermission = {
+  id: number;
+  trainerId: number;
+  courseId: number;
+  canTeach: boolean;
+  canManageContent: boolean;
+  canCreateAssessments: boolean;
+  canCreateLiveSessions: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type DashboardUser = {
   id?: number;
   name?: string;
@@ -171,6 +183,9 @@ export default function TrainerDashboardPage() {
   const [pendingAssessments, setPendingAssessments] =
     useState<PendingAssessment[]>([]);
 
+  const [coursePermissions, setCoursePermissions] =
+    useState<TrainerCoursePermission[]>([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -240,12 +255,16 @@ export default function TrainerDashboardPage() {
       const [
         sessionsResponse,
         assessmentsResponse,
+        permissionsResponse,
       ] = await Promise.all([
         authenticatedFetch(
           `${API_URL}/trainer/live-sessions`
         ),
         authenticatedFetch(
           `${API_URL}/assessments`
+        ),
+        authenticatedFetch(
+          `${API_URL}/trainer/course-permissions`
         ),
       ]);
 
@@ -254,6 +273,9 @@ export default function TrainerDashboardPage() {
 
       const assessmentsJson =
         await assessmentsResponse.json();
+
+      const permissionsJson =
+        await permissionsResponse.json();
 
       if (
         !sessionsResponse.ok ||
@@ -275,6 +297,16 @@ export default function TrainerDashboardPage() {
         );
       }
 
+      if (
+        !permissionsResponse.ok ||
+        !permissionsJson?.success
+      ) {
+        throw new Error(
+          permissionsJson?.message ||
+            "Unable to load course permissions."
+        );
+      }
+
       const sessionData =
         Array.isArray(sessionsJson.data)
           ? sessionsJson.data
@@ -287,8 +319,14 @@ export default function TrainerDashboardPage() {
           ? assessmentsJson.data
           : [];
 
+      const permissionData =
+        Array.isArray(permissionsJson.data)
+          ? permissionsJson.data
+          : [];
+
       setSessions(sessionData);
       setAssessments(assessmentData);
+      setCoursePermissions(permissionData);
 
       /*
        * Determine actual pending grading
@@ -946,6 +984,76 @@ export default function TrainerDashboardPage() {
               </div>
             </div>
 
+            {/* COURSE PERMISSIONS */}
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                  <BookOpen size={19} />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[#173B67]">
+                    My Course Permissions
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Your assigned courses and the actions available to you.
+                  </p>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="mt-4 rounded-xl bg-slate-50 px-4 py-5 text-center text-xs text-slate-500">
+                  Loading permissions...
+                </div>
+              ) : coursePermissions.length === 0 ? (
+                <div className="mt-4 rounded-xl bg-slate-50 px-4 py-5 text-center text-xs text-slate-500">
+                  No course permissions have been assigned to you yet.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {coursePermissions.map((permission) => (
+                    <div
+                      key={permission.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-slate-900">
+                          Course {permission.courseId}
+                        </p>
+
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                          Assigned
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <PermissionBadge
+                          label="Can Teach"
+                          enabled={permission.canTeach}
+                        />
+
+                        <PermissionBadge
+                          label="Manage Content"
+                          enabled={permission.canManageContent}
+                        />
+
+                        <PermissionBadge
+                          label="Create Assessments"
+                          enabled={permission.canCreateAssessments}
+                        />
+
+                        <PermissionBadge
+                          label="Create Live Sessions"
+                          enabled={permission.canCreateLiveSessions}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* ASSESSMENT OVERVIEW */}
             <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
 
@@ -1185,6 +1293,32 @@ function EmptyCard({
         {description}
       </p>
 
+    </div>
+  );
+}
+
+function PermissionBadge({
+  label,
+  enabled,
+}: {
+  label: string;
+  enabled: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs">
+      <span className="font-medium text-slate-600">
+        {label}
+      </span>
+
+      <span
+        className={
+          enabled
+            ? "font-bold text-emerald-600"
+            : "font-bold text-slate-400"
+        }
+      >
+        {enabled ? "Allowed" : "Not allowed"}
+      </span>
     </div>
   );
 }

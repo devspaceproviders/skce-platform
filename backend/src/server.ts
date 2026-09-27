@@ -40,6 +40,10 @@ import trainerAdminRouter, {
 
 import trainerProfileRouter from "./trainers/routes/trainer-profile.routes";
 
+import trainerCoursePermissionRouter from "./trainers/routes/trainer-course-permission.routes";
+
+import trainerCoursePermissionTrainerRouter from "./trainers/routes/trainer-course-permission-trainer.routes";
+
 import profilePhotoRouter from "./profile/profile-photo.routes";
 
 import ceoRouter from "./ceo/routes/ceo.routes";
@@ -313,6 +317,41 @@ app.use(
 app.use(
   "/api/admin/trainers",
   trainerAdminRouter
+);
+
+/*
+ * ============================================================
+ * ADMIN TRAINER COURSE PERMISSIONS
+ * ============================================================
+ *
+ * GET    /api/admin/trainer-course-permissions
+ * GET    /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * POST   /api/admin/trainer-course-permissions
+ * PATCH  /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * DELETE /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * ============================================================
+ */
+
+app.use(
+  "/api/admin/trainer-course-permissions",
+  trainerCoursePermissionRouter
+);
+
+/*
+ * ============================================================
+ * TRAINER COURSE PERMISSIONS
+ * ============================================================
+ *
+ * GET /api/trainer/course-permissions
+ *
+ * Returns only the permissions belonging to the
+ * currently authenticated TRAINER.
+ * ============================================================
+ */
+
+app.use(
+  "/api/trainer/course-permissions",
+  trainerCoursePermissionTrainerRouter
 );
 
 /*

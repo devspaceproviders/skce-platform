@@ -51,6 +51,11 @@ type Course = {
   isActive: boolean;
 };
 
+type TrainerCoursePermission = {
+  courseId: number;
+  canCreateAssessments: boolean;
+};
+
 type Question = {
   id?: number;
   question: string;
@@ -262,6 +267,9 @@ export default function TrainerAssignmentsPage() {
   const [courses, setCourses] =
     useState<Course[]>([]);
 
+  const [permissions, setPermissions] =
+    useState<TrainerCoursePermission[]>([]);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -342,10 +350,7 @@ export default function TrainerAssignmentsPage() {
       },
     });
 
-    if (
-      response.status === 401 ||
-      response.status === 403
-    ) {
+    if (response.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
@@ -360,6 +365,42 @@ export default function TrainerAssignmentsPage() {
     }
 
     return response;
+  }
+
+  async function loadPermissions() {
+    const response =
+      await authenticatedFetch(
+        `${API_URL}/trainer/course-permissions`
+      );
+
+    const json = await response.json();
+
+    if (!response.ok || !json?.success) {
+      throw new Error(
+        json?.message ||
+          "Unable to load trainer course permissions."
+      );
+    }
+
+    const data = Array.isArray(
+      json.data
+    )
+      ? json.data
+      : [];
+
+    setPermissions(
+      data.map(
+        (permission: any) => ({
+          courseId: Number(
+            permission.courseId
+          ),
+          canCreateAssessments:
+            Boolean(
+              permission.canCreateAssessments
+            ),
+        })
+      )
+    );
   }
 
   async function loadCourses() {
@@ -497,6 +538,7 @@ export default function TrainerAssignmentsPage() {
       setError("");
 
       await Promise.all([
+        loadPermissions(),
         loadCourses(),
         loadAssessments(
           isRefresh
@@ -593,9 +635,44 @@ export default function TrainerAssignmentsPage() {
     setGradeFeedback("");
   }
 
+  const allowedCreateCourses =
+    useMemo(
+      () =>
+        courses.filter(
+          (course) =>
+            course.isActive &&
+            permissions.some(
+              (permission) =>
+                permission.courseId ===
+                  course.id &&
+                permission.canCreateAssessments
+            )
+        ),
+      [courses, permissions]
+    );
+
+  function canManageAssessment(
+    courseId: number
+  ) {
+    return permissions.some(
+      (permission) =>
+        permission.courseId ===
+          courseId &&
+        permission.canCreateAssessments
+    );
+  }
+
   function openCreate(
     type: AssessmentType
   ) {
+    if (allowedCreateCourses.length === 0) {
+      setShowCreateChoice(false);
+      setError(
+        "You do not have permission to create assessments for any assigned course."
+      );
+      return;
+    }
+
     setError("");
     setCreateType(type);
     setSelectedAssessment(null);
@@ -1108,7 +1185,11 @@ export default function TrainerAssignmentsPage() {
           assessmentDetails?.type ||
           "ASSIGNMENT"
         }
-        courses={courses}
+        courses={
+          view === "create"
+            ? allowedCreateCourses
+            : courses
+        }
         assessment={
           assessmentDetails
         }
@@ -1234,18 +1315,20 @@ export default function TrainerAssignmentsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setShowCreateChoice(
-                  true
-                )
-              }
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
-            >
-              <Plus size={17} />
-              Create New
-            </button>
+            {allowedCreateCourses.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setShowCreateChoice(
+                    true
+                  )
+                }
+                className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
+              >
+                <Plus size={17} />
+                Create New
+              </button>
+            )}
           </div>
         </header>
 
@@ -1433,6 +1516,11 @@ export default function TrainerAssignmentsPage() {
                   assessment={
                     assessment
                   }
+                  canManage={
+                    canManageAssessment(
+                      assessment.courseId
+                    )
+                  }
                   deleting={
                     deletingId ===
                     assessment.id
@@ -1508,12 +1596,14 @@ function SummaryCard({
 
 function AssessmentCard({
   assessment,
+  canManage,
   deleting,
   onView,
   onEdit,
   onDelete,
 }: {
   assessment: Assessment;
+  canManage: boolean;
   deleting: boolean;
   onView: () => void;
   onEdit: () => void;
@@ -1634,44 +1724,52 @@ function AssessmentCard({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
-          <button
-            type="button"
-            onClick={onView}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#123052]"
-          >
-            <Eye size={15} />
-            {isAssignment
-              ? "Submissions"
-              : "View Results"}
-          </button>
+          {canManage ? (
+            <>
+              <button
+                type="button"
+                onClick={onView}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#123052]"
+              >
+                <Eye size={15} />
+                {isAssignment
+                  ? "Submissions"
+                  : "View Results"}
+              </button>
 
-          <button
-            type="button"
-            onClick={onEdit}
-            title="Edit"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-          >
-            <Pencil size={15} />
-          </button>
+              <button
+                type="button"
+                onClick={onEdit}
+                title="Edit"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              >
+                <Pencil size={15} />
+              </button>
 
-          <button
-            type="button"
-            onClick={onDelete}
-            title="Delete"
-            disabled={deleting}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {deleting ? (
-              <Loader2
-                size={15}
-                className="animate-spin"
-              />
-            ) : (
-              <Trash2
-                size={15}
-              />
-            )}
-          </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                title="Delete"
+                disabled={deleting}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2
+                    size={15}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Trash2
+                    size={15}
+                  />
+                )}
+              </button>
+            </>
+          ) : (
+            <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
+              No assessment management permission
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -2127,12 +2225,7 @@ function AssessmentFormPage({
           }
         );
 
-      if (
-        response.status ===
-          401 ||
-        response.status ===
-          403
-      ) {
+      if (response.status === 401) {
         localStorage.removeItem(
           "token"
         );

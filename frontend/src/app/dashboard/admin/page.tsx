@@ -9,6 +9,7 @@ import {
   UserPlus,
   PlusCircle,
   CalendarDays,
+  ShieldCheck,
   TrendingUp,
   ArrowRight,
   CreditCard,
@@ -68,6 +69,12 @@ const QUICK_ACTIONS = [
     href: "/dashboard/admin/batches",
     icon: CalendarDays,
   },
+  {
+    title: "Trainer Permissions",
+    description: "Assign course permissions to trainers",
+    href: "/dashboard/admin/trainer-permissions",
+    icon: ShieldCheck,
+  },
 ];
 
 const MANAGEMENT_ITEMS = [
@@ -106,6 +113,12 @@ const MANAGEMENT_ITEMS = [
     description: "View platform reports and insights",
     href: "/dashboard/admin/reports",
     icon: TrendingUp,
+  },
+  {
+    title: "Trainer Permissions",
+    description: "Assign course-specific trainer permissions",
+    href: "/dashboard/admin/trainer-permissions",
+    icon: ShieldCheck,
   },
 ];
 

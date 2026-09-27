@@ -1,4 +1,5 @@
 import { db } from "../../prisma/db";
+import { hasTrainerCoursePermission } from "../../auth/services/trainer-course-permission.service";
 
 type BatchMode =
   | "ONLINE"
@@ -985,6 +986,28 @@ export async function getBatchOptions() {
   };
 }
 
+async function canTrainerTeachCourse(
+  trainerProfileId: number,
+  courseId: number
+) {
+  const trainer =
+    await db.orm.public.TrainerProfile
+      .where({
+        id: trainerProfileId,
+      })
+      .first();
+
+  if (!trainer) {
+    throw new Error("Trainer profile not found");
+  }
+
+  return hasTrainerCoursePermission(
+    trainer.userId,
+    courseId,
+    "canTeach"
+  );
+}
+
 export async function listTrainerBatches(
   trainerProfileId: number
 ) {
@@ -998,12 +1021,28 @@ export async function listTrainerBatches(
     db.orm.public.BatchStudent.all(),
   ]);
 
-  return batches
-    .filter(
-      (batch) =>
-        batch.trainerId ===
-        trainerProfileId
-    )
+  const teachableBatches = [];
+
+  for (const batch of batches) {
+    if (
+      batch.trainerId !==
+      trainerProfileId
+    ) {
+      continue;
+    }
+
+    const canTeach =
+      await canTrainerTeachCourse(
+        trainerProfileId,
+        batch.courseId
+      );
+
+    if (canTeach) {
+      teachableBatches.push(batch);
+    }
+  }
+
+  return teachableBatches
     .sort(
       (a, b) =>
         new Date(
@@ -1065,6 +1104,18 @@ export async function getTrainerBatchById(
     batch.trainerId !==
     trainerProfileId
   ) {
+    throw new Error(
+      "Access denied"
+    );
+  }
+
+  const canTeach =
+    await canTrainerTeachCourse(
+      trainerProfileId,
+      batch.courseId
+    );
+
+  if (!canTeach) {
     throw new Error(
       "Access denied"
     );

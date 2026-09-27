@@ -49,6 +49,11 @@ const MENU_ITEMS = [
     icon: UserCheck,
   },
   {
+    href: "/dashboard/admin/trainer-permissions",
+    label: "Trainer Permissions",
+    icon: UserCircle,
+  },
+  {
     href: "/dashboard/admin/batches",
     label: "Batches",
     icon: Layers,

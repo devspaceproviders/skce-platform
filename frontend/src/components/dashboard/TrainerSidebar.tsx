@@ -30,6 +30,11 @@ const SIDEBAR_ITEMS = [
     icon: Video,
   },
   {
+    href: "/dashboard/trainer/course-content",
+    label: "Course Content",
+    icon: BookOpen,
+  },
+  {
     href: "/dashboard/trainer/assignments",
     label: "Assignments & Quizzes",
     icon: ClipboardList,

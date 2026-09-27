@@ -142,7 +142,9 @@ function sendError(
 
   if (
     message === "Access denied for this assessment" ||
-    message === "Access denied"
+    message === "Access denied" ||
+    message ===
+      "You do not have permission to manage assessments for this course"
   ) {
     return res.status(403).json({
       success: false,

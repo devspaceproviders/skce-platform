@@ -1,6 +1,10 @@
 import { db } from "../../prisma/db";
 
 import {
+  hasTrainerCoursePermission,
+} from "../../auth/services/trainer-course-permission.service";
+
+import {
   deleteAssignmentSubmissionFile,
   resolveAssignmentSubmissionFile,
   saveAssignmentSubmissionFile,
@@ -108,6 +112,32 @@ async function assertAssessmentAccess(
 
   if (!courseIds.has(courseId)) {
     throw new Error("Access denied for this assessment");
+  }
+}
+
+async function assertAssessmentManagementAccess(
+  userId: number,
+  role: AssessmentUserRole,
+  courseId: number
+) {
+  if (role === "ADMIN") {
+    return;
+  }
+
+  if (role !== "TRAINER") {
+    throw new Error("Access denied for this assessment");
+  }
+
+  const allowed = await hasTrainerCoursePermission(
+    userId,
+    courseId,
+    "canCreateAssessments"
+  );
+
+  if (!allowed) {
+    throw new Error(
+      "You do not have permission to manage assessments for this course"
+    );
   }
 }
 
@@ -742,7 +772,11 @@ export async function createAssessment(
   input: CreateAssessmentInput
 ) {
   await getCourse(input.courseId);
-  await assertAssessmentAccess(userId, role, input.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    input.courseId
+  );
 
   const title = normalizeText(input.title);
 
@@ -804,7 +838,11 @@ export async function updateAssessment(
   input: UpdateAssessmentInput
 ) {
   const assessment = await getAssessment(assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
   const updateData: Record<string, unknown> = {};
 
   if (input.title !== undefined) {
@@ -887,7 +925,11 @@ export async function deleteAssessment(
   assessmentId: number
 ) {
   const assessment = await getAssessment(assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   return db.orm.public.Assessment
     .where({ id: assessmentId })
@@ -901,7 +943,11 @@ export async function createAssessmentQuestion(
   input: AssessmentQuestionInput
 ) {
   const assessment = await getAssessment(assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   if (assessment.type !== "QUIZ") {
     throw new Error(
@@ -970,7 +1016,11 @@ export async function updateAssessmentQuestion(
   }
 
   const assessment = await getAssessment(question.assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   const updateData: Record<string, unknown> = {};
 
@@ -1089,7 +1139,11 @@ export async function deleteAssessmentQuestion(
   }
 
   const assessment = await getAssessment(question.assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   return db.orm.public.AssessmentQuestion
     .where({ id: questionId })
@@ -1102,7 +1156,11 @@ export async function getAssessmentSubmissions(
   assessmentId: number
 ) {
   const assessment = await getAssessment(assessmentId);
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   const submissions =
     await db.orm.public.AssessmentSubmission.all();
@@ -1228,7 +1286,11 @@ export async function gradeAssessmentSubmission(
   const assessment = await getAssessment(
     submission.assessmentId
   );
-  await assertAssessmentAccess(userId, role, assessment.courseId);
+  await assertAssessmentManagementAccess(
+    userId,
+    role,
+    assessment.courseId
+  );
 
   const normalizedScore = Math.trunc(score);
 
