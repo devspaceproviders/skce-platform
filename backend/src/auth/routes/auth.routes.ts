@@ -4,16 +4,48 @@ import {
   getMe,
   login,
   register,
+  forgotPassword,
+  resetPasswordController,
 } from "../controllers/auth.controller";
 
-import { authenticate } from "../middleware/auth.middleware";
+import {
+  authenticate,
+} from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/register", register);
+/* ==========================================================
+   PUBLIC AUTH ROUTES
+========================================================== */
 
-router.post("/login", login);
+router.post(
+  "/register",
+  register
+);
 
-router.get("/me", authenticate, getMe);
+router.post(
+  "/login",
+  login
+);
+
+router.post(
+  "/forgot-password",
+  forgotPassword
+);
+
+router.post(
+  "/reset-password",
+  resetPasswordController
+);
+
+/* ==========================================================
+   AUTHENTICATED USER
+========================================================== */
+
+router.get(
+  "/me",
+  authenticate,
+  getMe
+);
 
 export default router;

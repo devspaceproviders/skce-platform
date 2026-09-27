@@ -1,0 +1,167 @@
+[
+  {
+    "id": "table.ceoProfile",
+    "label": "Create table \"ceoProfile\"",
+    "summary": "Creates table \"ceoProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ceoProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ceoProfile\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ceoProfile\"",
+        "sql": "CREATE TABLE \"public\".\"ceoProfile\" (\n  \"bioParagraph1\" text NOT NULL,\n  \"bioParagraph2\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"designation\" text DEFAULT 'Founder & CEO' NOT NULL,\n  \"highlight1\" text NOT NULL,\n  \"highlight2\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ceoProfile\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.user.profilePhotoUrl",
+    "label": "Add column \"profilePhotoUrl\" to \"user\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "profilePhotoUrl",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"profilePhotoUrl\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "profilePhotoUrl"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"profilePhotoUrl\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ADD COLUMN \"profilePhotoUrl\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"profilePhotoUrl\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "profilePhotoUrl"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ceoProfile.ceoProfile_userId_key",
+    "label": "Add unique constraint on \"ceoProfile\" (userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ceoProfile_userId_key",
+        "table": "ceoProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ceoProfile_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ceoProfile_userId_key",
+          "public",
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ceoProfile_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"ceoProfile\" ADD CONSTRAINT \"ceoProfile_userId_key\" UNIQUE (\"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ceoProfile_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ceoProfile_userId_key",
+          "public",
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ceoProfile.ceoProfile_userId_fkey",
+    "label": "Add foreign key \"ceoProfile_userId_fkey\" on \"ceoProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ceoProfile_userId_fkey",
+        "table": "ceoProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ceoProfile_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ceoProfile_userId_fkey",
+          "public",
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ceoProfile_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ceoProfile\"\nADD CONSTRAINT \"ceoProfile_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ceoProfile_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ceoProfile_userId_fkey",
+          "public",
+          "\"public\".\"ceoProfile\""
+        ]
+      }
+    ]
+  }
+]

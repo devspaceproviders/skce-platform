@@ -80,16 +80,104 @@ export async function completeDevPayment(
        * ==========================================================
        * 3. CREATE STUDENT PROFILE
        * ==========================================================
+       *
+       * Copy all registration information from
+       * RegistrationIntent into StudentProfile.
        */
 
       const studentProfile =
         await tx.orm.public.StudentProfile.create({
-          userId: user.id,
+          // ------------------------------------------------------
+          // Basic student information
+          // ------------------------------------------------------
+
+          userId:
+            user.id,
+
           studentId,
+
+          dateOfBirth:
+            registrationIntent.dateOfBirth ?? null,
+
+          gender:
+            registrationIntent.gender ?? null,
+
+          qualification:
+            registrationIntent.qualification ?? null,
+
+          organization:
+            registrationIntent.organization ?? null,
+
+          // ------------------------------------------------------
+          // Address
+          // ------------------------------------------------------
+
+          address:
+            registrationIntent.address ?? null,
+
+          city:
+            registrationIntent.city ?? null,
+
+          pin:
+            registrationIntent.pin ?? null,
+
           state:
             registrationIntent.state ?? null,
+
+          // ------------------------------------------------------
+          // Parent / Guardian details
+          // ------------------------------------------------------
+
+          guardianName:
+            registrationIntent.guardianName ?? null,
+
+          guardianRelationship:
+            registrationIntent.guardianRelationship ?? null,
+
+          guardianMobile:
+            registrationIntent.guardianMobile ?? null,
+
+          guardianWhatsapp:
+            registrationIntent.guardianWhatsapp ?? null,
+
+          guardianEmail:
+            registrationIntent.guardianEmail ?? null,
+
+          // ------------------------------------------------------
+          // Online learning facilities
+          // ------------------------------------------------------
+
+          deviceTypes:
+            registrationIntent.deviceTypes ?? null,
+
+          internetFacility:
+            registrationIntent.internetFacility ?? null,
+
+          preferredClassApp:
+            registrationIntent.preferredClassApp ?? null,
+
+          // ------------------------------------------------------
+          // Referral / source
+          // ------------------------------------------------------
+
           referralId:
             registrationIntent.referralId ?? null,
+
+          referralSource:
+            registrationIntent.referralSource ?? null,
+
+          referralName:
+            registrationIntent.referralName ?? null,
+
+          referralMobile:
+            registrationIntent.referralMobile ?? null,
+
+          // ------------------------------------------------------
+          // Declaration
+          // ------------------------------------------------------
+
+          declarationAccepted:
+            registrationIntent.declarationAccepted ?? false,
         });
 
       /*
@@ -100,13 +188,21 @@ export async function completeDevPayment(
 
       const enrollment =
         await tx.orm.public.Enrollment.create({
-          userId: user.id,
-          studentId: studentProfile.id,
+          userId:
+            user.id,
+
+          studentId:
+            studentProfile.id,
+
           courseId:
             registrationIntent.courseId ?? null,
+
           packageId:
             registrationIntent.packageId,
-          status: "ACTIVE",
+
+          status:
+            "ACTIVE",
+
           enrolledAt:
             new Date().toISOString(),
         });
@@ -124,20 +220,36 @@ export async function completeDevPayment(
 
       const payment =
         await tx.orm.public.Payment.create({
-          userId: user.id,
-          enrollmentId: enrollment.id,
+          userId:
+            user.id,
+
+          enrollmentId:
+            enrollment.id,
+
           registrationIntentId:
             registrationIntent.id,
-          amount: coursePackage.price,
-          currency: "INR",
-          method: "OTHER",
-          status: "SUCCESS",
+
+          amount:
+            coursePackage.price,
+
+          currency:
+            "INR",
+
+          method:
+            "OTHER",
+
+          status:
+            "SUCCESS",
+
           providerOrderId:
             `DEV-ORDER-${registrationIntent.id}`,
+
           providerPaymentId:
             `DEV-PAYMENT-${Date.now()}`,
+
           providerSignature:
             "DEV-SIMULATED",
+
           paidAt:
             new Date().toISOString(),
         });
@@ -154,7 +266,8 @@ export async function completeDevPayment(
             id: registrationIntent.id,
           })
           .update({
-            status: "PAID",
+            status:
+              "PAID",
           });
 
       if (!updatedIntent) {
@@ -170,9 +283,13 @@ export async function completeDevPayment(
 
       return {
         user,
+
         studentProfile,
+
         enrollment,
+
         payment,
+
         registrationIntent:
           updatedIntent,
       };
@@ -184,7 +301,6 @@ export async function completeDevPayment(
    * SEND STUDENT WELCOME EMAIL
    * ==========================================================
    *
-   * IMPORTANT:
    * This happens AFTER the database transaction.
    *
    * Therefore:
@@ -202,8 +318,7 @@ export async function completeDevPayment(
    * Welcome email
    *
    * If email fails, the successful registration remains
-   * successful. Email failure must NOT roll back the
-   * student's registration.
+   * successful.
    */
 
   try {
@@ -240,45 +355,126 @@ export async function completeDevPayment(
     success: true,
 
     user: {
-      id: result.user.id,
-      name: result.user.name,
-      email: result.user.email,
-      phone: result.user.phone,
-      role: result.user.role,
+      id:
+        result.user.id,
+
+      name:
+        result.user.name,
+
+      email:
+        result.user.email,
+
+      phone:
+        result.user.phone,
+
+      role:
+        result.user.role,
     },
 
     student: {
-      id: result.studentProfile.id,
+      id:
+        result.studentProfile.id,
+
       studentId:
         result.studentProfile.studentId,
+
+      dateOfBirth:
+        result.studentProfile.dateOfBirth,
+
+      gender:
+        result.studentProfile.gender,
+
+      qualification:
+        result.studentProfile.qualification,
+
+      organization:
+        result.studentProfile.organization,
+
+      guardianName:
+        result.studentProfile.guardianName,
+
+      guardianRelationship:
+        result.studentProfile.guardianRelationship,
+
+      guardianMobile:
+        result.studentProfile.guardianMobile,
+
+      guardianWhatsapp:
+        result.studentProfile.guardianWhatsapp,
+
+      guardianEmail:
+        result.studentProfile.guardianEmail,
+
+      deviceTypes:
+        result.studentProfile.deviceTypes,
+
+      internetFacility:
+        result.studentProfile.internetFacility,
+
+      preferredClassApp:
+        result.studentProfile.preferredClassApp,
+
+      address:
+        result.studentProfile.address,
+
+      city:
+        result.studentProfile.city,
+
+      pin:
+        result.studentProfile.pin,
+
       state:
         result.studentProfile.state,
+
       referralId:
         result.studentProfile.referralId,
+
+      referralSource:
+        result.studentProfile.referralSource,
+
+      referralName:
+        result.studentProfile.referralName,
+
+      referralMobile:
+        result.studentProfile.referralMobile,
+
+      declarationAccepted:
+        result.studentProfile.declarationAccepted,
     },
 
     enrollment: {
-      id: result.enrollment.id,
+      id:
+        result.enrollment.id,
+
       status:
         result.enrollment.status,
+
       courseId:
         result.enrollment.courseId,
+
       packageId:
         result.enrollment.packageId,
     },
 
     payment: {
-      id: result.payment.id,
+      id:
+        result.payment.id,
+
       amount:
         result.payment.amount,
+
       currency:
         result.payment.currency,
+
       status:
         result.payment.status,
+
       providerOrderId:
         result.payment.providerOrderId,
+
       providerPaymentId:
         result.payment.providerPaymentId,
+
       paidAt:
         result.payment.paidAt,
     },
@@ -286,6 +482,7 @@ export async function completeDevPayment(
     registrationIntent: {
       id:
         result.registrationIntent.id,
+
       status:
         result.registrationIntent.status,
     },

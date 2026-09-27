@@ -1,0 +1,641 @@
+[
+  {
+    "id": "table.batch",
+    "label": "Create table \"batch\"",
+    "summary": "Creates table \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"batch\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"batch\"",
+        "sql": "CREATE TABLE \"public\".\"batch\" (\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"endDate\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"maxStudents\" int4 DEFAULT 30 NOT NULL,\n  \"mode\" text DEFAULT 'OFFLINE' NOT NULL,\n  \"name\" text NOT NULL,\n  \"startDate\" timestamptz NOT NULL,\n  \"status\" text DEFAULT 'UPCOMING' NOT NULL,\n  \"trainerId\" int4,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"batch_mode_check_8ab134e1\" CHECK (\"mode\" IN ('ONLINE', 'OFFLINE', 'HYBRID')),\n  CONSTRAINT \"batch_status_check_30cd2ac0\" CHECK (\"status\" IN ('UPCOMING', 'ACTIVE', 'COMPLETED', 'INACTIVE'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"batch\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.batchStudent",
+    "label": "Create table \"batchStudent\"",
+    "summary": "Creates table \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"batchStudent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"batchStudent\"",
+        "sql": "CREATE TABLE \"public\".\"batchStudent\" (\n  \"assignedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"batchId\" int4 NOT NULL,\n  \"completedAt\" timestamptz,\n  \"id\" SERIAL NOT NULL,\n  \"studentId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"batchStudent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.batchStudent.batchStudent_batchId_studentId_key",
+    "label": "Add unique constraint on \"batchStudent\" (batchId, studentId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "batchStudent_batchId_studentId_key",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"batchStudent_batchId_studentId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_batchId_studentId_key",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"batchStudent_batchId_studentId_key\"",
+        "sql": "ALTER TABLE \"public\".\"batchStudent\" ADD CONSTRAINT \"batchStudent_batchId_studentId_key\" UNIQUE (\"batchId\", \"studentId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"batchStudent_batchId_studentId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_batchId_studentId_key",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_courseId_idx_12f72d2a",
+    "label": "Create index \"batch_courseId_idx_12f72d2a\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_courseId_idx_12f72d2a",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"batch_courseId_idx_12f72d2a\" ON \"public\".\"batch\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_courseId_status_idx_7c6c2bd8",
+    "label": "Create index \"batch_courseId_status_idx_7c6c2bd8\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_courseId_status_idx_7c6c2bd8",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_courseId_status_idx_7c6c2bd8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_courseId_status_idx_7c6c2bd8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_courseId_status_idx_7c6c2bd8\"",
+        "sql": "CREATE INDEX \"batch_courseId_status_idx_7c6c2bd8\" ON \"public\".\"batch\" (\"courseId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_courseId_status_idx_7c6c2bd8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_courseId_status_idx_7c6c2bd8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_endDate_idx_4a9a40fb",
+    "label": "Create index \"batch_endDate_idx_4a9a40fb\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_endDate_idx_4a9a40fb",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_endDate_idx_4a9a40fb\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_endDate_idx_4a9a40fb\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_endDate_idx_4a9a40fb\"",
+        "sql": "CREATE INDEX \"batch_endDate_idx_4a9a40fb\" ON \"public\".\"batch\" (\"endDate\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_endDate_idx_4a9a40fb\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_endDate_idx_4a9a40fb\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_startDate_idx_9ce08316",
+    "label": "Create index \"batch_startDate_idx_9ce08316\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_startDate_idx_9ce08316",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_startDate_idx_9ce08316\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_startDate_idx_9ce08316\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_startDate_idx_9ce08316\"",
+        "sql": "CREATE INDEX \"batch_startDate_idx_9ce08316\" ON \"public\".\"batch\" (\"startDate\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_startDate_idx_9ce08316\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_startDate_idx_9ce08316\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_status_idx_e98638ab",
+    "label": "Create index \"batch_status_idx_e98638ab\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_status_idx_e98638ab",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"batch_status_idx_e98638ab\" ON \"public\".\"batch\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batch.batch_trainerId_idx_3e70f981",
+    "label": "Create index \"batch_trainerId_idx_3e70f981\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batch_trainerId_idx_3e70f981",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batch_trainerId_idx_3e70f981\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_trainerId_idx_3e70f981\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batch_trainerId_idx_3e70f981\"",
+        "sql": "CREATE INDEX \"batch_trainerId_idx_3e70f981\" ON \"public\".\"batch\" (\"trainerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batch_trainerId_idx_3e70f981\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batch_trainerId_idx_3e70f981\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batchStudent.batchStudent_batchId_idx_84d4b0b9",
+    "label": "Create index \"batchStudent_batchId_idx_84d4b0b9\" on \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batchStudent_batchId_idx_84d4b0b9",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batchStudent_batchId_idx_84d4b0b9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_batchId_idx_84d4b0b9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batchStudent_batchId_idx_84d4b0b9\"",
+        "sql": "CREATE INDEX \"batchStudent_batchId_idx_84d4b0b9\" ON \"public\".\"batchStudent\" (\"batchId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batchStudent_batchId_idx_84d4b0b9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_batchId_idx_84d4b0b9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batchStudent.batchStudent_batchId_studentId_idx_ef7ac619",
+    "label": "Create index \"batchStudent_batchId_studentId_idx_ef7ac619\" on \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batchStudent_batchId_studentId_idx_ef7ac619",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batchStudent_batchId_studentId_idx_ef7ac619\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_batchId_studentId_idx_ef7ac619\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batchStudent_batchId_studentId_idx_ef7ac619\"",
+        "sql": "CREATE INDEX \"batchStudent_batchId_studentId_idx_ef7ac619\" ON \"public\".\"batchStudent\" (\"batchId\", \"studentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batchStudent_batchId_studentId_idx_ef7ac619\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_batchId_studentId_idx_ef7ac619\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.batchStudent.batchStudent_studentId_idx_bf255322",
+    "label": "Create index \"batchStudent_studentId_idx_bf255322\" on \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "batchStudent_studentId_idx_bf255322",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"batchStudent_studentId_idx_bf255322\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_studentId_idx_bf255322\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"batchStudent_studentId_idx_bf255322\"",
+        "sql": "CREATE INDEX \"batchStudent_studentId_idx_bf255322\" ON \"public\".\"batchStudent\" (\"studentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"batchStudent_studentId_idx_bf255322\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"batchStudent_studentId_idx_bf255322\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.batch.batch_courseId_fkey",
+    "label": "Add foreign key \"batch_courseId_fkey\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "batch_courseId_fkey",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"batch_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batch_courseId_fkey",
+          "public",
+          "\"public\".\"batch\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"batch_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"batch\"\nADD CONSTRAINT \"batch_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"batch_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batch_courseId_fkey",
+          "public",
+          "\"public\".\"batch\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.batch.batch_trainerId_fkey",
+    "label": "Add foreign key \"batch_trainerId_fkey\" on \"batch\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "batch_trainerId_fkey",
+        "table": "batch"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"batch_trainerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batch_trainerId_fkey",
+          "public",
+          "\"public\".\"batch\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"batch_trainerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"batch\"\nADD CONSTRAINT \"batch_trainerId_fkey\"\nFOREIGN KEY (\"trainerId\")\nREFERENCES \"public\".\"trainerProfile\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"batch_trainerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batch_trainerId_fkey",
+          "public",
+          "\"public\".\"batch\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.batchStudent.batchStudent_batchId_fkey",
+    "label": "Add foreign key \"batchStudent_batchId_fkey\" on \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "batchStudent_batchId_fkey",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"batchStudent_batchId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_batchId_fkey",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"batchStudent_batchId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"batchStudent\"\nADD CONSTRAINT \"batchStudent_batchId_fkey\"\nFOREIGN KEY (\"batchId\")\nREFERENCES \"public\".\"batch\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"batchStudent_batchId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_batchId_fkey",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.batchStudent.batchStudent_studentId_fkey",
+    "label": "Add foreign key \"batchStudent_studentId_fkey\" on \"batchStudent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "batchStudent_studentId_fkey",
+        "table": "batchStudent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"batchStudent_studentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_studentId_fkey",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"batchStudent_studentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"batchStudent\"\nADD CONSTRAINT \"batchStudent_studentId_fkey\"\nFOREIGN KEY (\"studentId\")\nREFERENCES \"public\".\"studentProfile\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"batchStudent_studentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "batchStudent_studentId_fkey",
+          "public",
+          "\"public\".\"batchStudent\""
+        ]
+      }
+    ]
+  }
+]

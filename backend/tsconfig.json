@@ -49,6 +49,7 @@
 
   "exclude": [
     "node_modules",
-    "migrations"
+    "migrations",
+    "20260914T1700_registration_intent_backup"
   ]
 }

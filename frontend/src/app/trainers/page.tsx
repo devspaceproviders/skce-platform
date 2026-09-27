@@ -2,7 +2,7 @@ import TrainerCard from "@/components/TrainerCard";
 import { getTrainers } from "@/lib/api";
 
 export const metadata = {
-  title: "Trainers — SKCE",
+  title: "Trainers — SK Computer Education",
 };
 
 export default async function TrainersPage() {

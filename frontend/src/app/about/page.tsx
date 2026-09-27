@@ -6,13 +6,106 @@ import {
   Target,
   Users,
 } from "lucide-react";
+
 import WhyChooseUs from "@/components/WhyChooseUs";
 
 export const metadata = {
   title: "About — SK Computer Education",
 };
 
-export default function AboutPage() {
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
+type CeoProfile = {
+  name: string;
+  designation: string;
+  profilePhotoUrl: string | null;
+  bioParagraph1: string | null;
+  bioParagraph2: string | null;
+  highlight1: string | null;
+  highlight2: string | null;
+};
+
+const DEFAULT_CEO: CeoProfile = {
+  name: "C. Neelima",
+  designation: "Founder & CEO",
+  profilePhotoUrl: null,
+  bioParagraph1:
+    "C. Neelima has been actively involved in education, training, and professional development since 2006, bringing over 20 years of experience to the field. With a strong passion for empowering learners through practical and industry-oriented education, she has been instrumental in shaping SK Computer Education and its vision for accessible, career-focused learning.",
+  bioParagraph2:
+    "Her leadership focuses on providing students with quality training, practical skills, and the confidence they need to build successful careers in a rapidly evolving digital world.",
+  highlight1:
+    "Empowering learners through practical, career-focused education",
+  highlight2:
+    "Building confidence through hands-on learning",
+};
+
+async function getCeoProfile(): Promise<CeoProfile> {
+  try {
+    const response = await fetch(
+      `${API_URL}/ceo`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to load CEO profile"
+      );
+    }
+
+    const json = await response.json();
+
+    if (json.success && json.data) {
+      return {
+        ...DEFAULT_CEO,
+        ...json.data,
+      };
+    }
+  } catch (error) {
+    console.error(
+      "Failed to load CEO profile:",
+      error
+    );
+  }
+
+  return DEFAULT_CEO;
+}
+
+function getPhotoUrl(
+  photoUrl: string | null
+): string {
+  if (!photoUrl) {
+    return "/images/ceo.png";
+  }
+
+  if (
+    photoUrl.startsWith("http://") ||
+    photoUrl.startsWith("https://")
+  ) {
+    return photoUrl;
+  }
+
+  const backendUrl =
+    API_URL.replace(/\/api\/?$/, "");
+
+  return `${backendUrl}${
+    photoUrl.startsWith("/")
+      ? ""
+      : "/"
+  }${photoUrl}`;
+}
+
+export default async function AboutPage() {
+  const ceo = await getCeoProfile();
+
+  const ceoPhoto =
+    getPhotoUrl(
+      ceo.profilePhotoUrl
+    );
+
   return (
     <>
       {/* ========================================================= */}
@@ -42,7 +135,7 @@ export default function AboutPage() {
       {/* ========================================================= */}
       <section className="w-full bg-white px-6 py-16">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-2">
-          
+
           {/* Left Content */}
           <div className="min-w-0">
             <p className="text-sm font-bold uppercase tracking-wider text-orange-500">
@@ -192,9 +285,10 @@ export default function AboutPage() {
 
                 {/* CEO Photo */}
                 <div className="absolute inset-[27px] overflow-hidden rounded-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/images/ceo.png"
-                    alt="C. Neelima - Founder and CEO of SK Computer Education"
+                    src={ceoPhoto}
+                    alt={`${ceo.name} - ${ceo.designation} of SK Computer Education`}
                     className="block h-full w-full object-cover object-center"
                   />
                 </div>
@@ -231,36 +325,28 @@ export default function AboutPage() {
 
               {/* CEO Name */}
               <h3 className="mt-8 text-2xl font-bold text-[#173B67]">
-                C. Neelima
+                {ceo.name}
               </h3>
 
               {/* CEO Designation */}
               <p className="mt-1 text-base font-semibold text-orange-500">
-                Founder & CEO
+                {ceo.designation}
               </p>
 
-              {/* CEO Description */}
+              {/* Dynamic CEO Description */}
               <div className="mt-8 space-y-5 text-base leading-8 text-slate-600">
 
-                <p>
-                  C. Neelima has been actively involved in education, training,
-                  and professional development since 2006, bringing over 20
-                  years of experience to the field. With a strong passion for
-                  empowering learners through practical and industry-oriented
-                  education, she has been instrumental in shaping SK Computer
-                  Education and its vision for accessible, career-focused
-                  learning.
+                <p className="whitespace-pre-line">
+                  {ceo.bioParagraph1}
                 </p>
 
-                <p>
-                  Her leadership focuses on providing students with quality
-                  training, practical skills, and the confidence they need to
-                  build successful careers in a rapidly evolving digital world.
+                <p className="whitespace-pre-line">
+                  {ceo.bioParagraph2}
                 </p>
 
               </div>
 
-              {/* Leadership Highlights */}
+              {/* Dynamic Leadership Highlights */}
               <div className="mt-8 space-y-4">
 
                 {/* Highlight 1 */}
@@ -273,8 +359,7 @@ export default function AboutPage() {
                   </div>
 
                   <p className="text-sm font-semibold text-[#173B67] sm:text-base">
-                    Empowering learners through practical, career-focused
-                    education
+                    {ceo.highlight1}
                   </p>
 
                 </div>
@@ -289,7 +374,7 @@ export default function AboutPage() {
                   </div>
 
                   <p className="text-sm font-semibold text-[#173B67] sm:text-base">
-                    Building confidence through hands-on learning
+                    {ceo.highlight2}
                   </p>
 
                 </div>

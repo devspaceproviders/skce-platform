@@ -28,11 +28,11 @@ enum EnrollmentStatus {
 enum PaymentStatus {
   @@type("pg/text@1")
 
-  CREATED   = "CREATED"
-  PENDING   = "PENDING"
-  SUCCESS   = "SUCCESS"
-  FAILED    = "FAILED"
-  REFUNDED  = "REFUNDED"
+  CREATED  = "CREATED"
+  PENDING  = "PENDING"
+  SUCCESS  = "SUCCESS"
+  FAILED   = "FAILED"
+  REFUNDED = "REFUNDED"
 }
 
 enum PaymentMethod {
@@ -53,34 +53,165 @@ enum RegistrationIntentStatus {
   FAILED  = "FAILED"
 }
 
+enum AssessmentType {
+  @@type("pg/text@1")
+
+  ASSIGNMENT = "ASSIGNMENT"
+  QUIZ       = "QUIZ"
+}
+
+enum ContentApprovalStatus {
+  @@type("pg/text@1")
+
+  DRAFT         = "DRAFT"
+  PENDING_REVIEW = "PENDING_REVIEW"
+  REJECTED      = "REJECTED"
+  PUBLISHED     = "PUBLISHED"
+  ARCHIVED      = "ARCHIVED"
+}
+
+enum AssessmentSubmissionStatus {
+  @@type("pg/text@1")
+
+  IN_PROGRESS = "IN_PROGRESS"
+  SUBMITTED   = "SUBMITTED"
+  GRADED      = "GRADED"
+}
+
+enum LiveSessionStatus {
+  @@type("pg/text@1")
+
+  SCHEDULED = "SCHEDULED"
+  LIVE      = "LIVE"
+  COMPLETED = "COMPLETED"
+  CANCELLED = "CANCELLED"
+}
+
+enum BatchMode {
+  @@type("pg/text@1")
+
+  ONLINE  = "ONLINE"
+  OFFLINE = "OFFLINE"
+  HYBRID  = "HYBRID"
+}
+
+enum BatchStatus {
+  @@type("pg/text@1")
+
+  UPCOMING  = "UPCOMING"
+  ACTIVE    = "ACTIVE"
+  COMPLETED = "COMPLETED"
+  INACTIVE  = "INACTIVE"
+}
+
+// ============================================================
+// USER
+// ============================================================
 
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
-  passwordHash String?
-  name         String
-  phone        String?
-  role         UserRole @default(STUDENT)
+  passwordHash   String?
+  name           String
+  phone          String?
+  profilePhotoUrl String?
+  role           UserRole @default(STUDENT)
   isActive     Boolean  @default(true)
 
   studentProfile StudentProfile?
   trainerProfile TrainerProfile?
+  ceoProfile     CeoProfile?
 
   enrollments Enrollment[]
   payments    Payment[]
+
+  assessmentSubmissions AssessmentSubmission[]
+  createdAssessments Assessment[] @relation("AssessmentCreatedBy")
+  reviewedAssessments Assessment[] @relation("AssessmentReviewedBy")
+
+  createdLiveSessions LiveSession[] @relation("LiveSessionCreatedBy")
+  reviewedLiveSessions LiveSession[] @relation("LiveSessionReviewedBy")
+
+  createdCourseModules CourseModule[] @relation("CourseModuleCreatedBy")
+  reviewedCourseModules CourseModule[] @relation("CourseModuleReviewedBy")
+
+  createdLessons Lesson[] @relation("LessonCreatedBy")
+  reviewedLessons Lesson[] @relation("LessonReviewedBy")
+
+  liveSessionParticipations LiveSessionParticipation[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 }
 
 
+// ============================================================
+// STUDENT PROFILE
+// ============================================================
+
 model StudentProfile {
   id        Int    @id @default(autoincrement())
   studentId String @unique
   userId    Int    @unique
 
+  // Existing
   state      String?
   referralId String?
+
+  // ----------------------------------------------------------
+  // STUDENT DETAILS
+  // ----------------------------------------------------------
+
+  dateOfBirth   String?
+  gender        String?
+  qualification String?
+  organization  String?
+
+  // ----------------------------------------------------------
+  // PARENT / GUARDIAN DETAILS
+  // ----------------------------------------------------------
+
+  guardianName         String?
+  guardianRelationship String?
+  guardianMobile       String?
+  guardianWhatsapp     String?
+  guardianEmail        String?
+
+  // ----------------------------------------------------------
+  // ONLINE LEARNING FACILITIES
+  // ----------------------------------------------------------
+
+  // Multiple values stored as comma-separated text
+  // Example: "Smartphone,Laptop"
+  deviceTypes       String?
+  internetFacility  String?
+  preferredClassApp String?
+
+  // ----------------------------------------------------------
+  // ADDRESS
+  // ----------------------------------------------------------
+
+  address String?
+  city    String?
+  pin     String?
+
+  // ----------------------------------------------------------
+  // REFERRAL / SOURCE
+  // ----------------------------------------------------------
+
+  referralSource String?
+  referralName   String?
+  referralMobile String?
+
+  // ----------------------------------------------------------
+  // DECLARATION
+  // ----------------------------------------------------------
+
+  declarationAccepted Boolean @default(false)
+
+  // ----------------------------------------------------------
+  // RELATIONS
+  // ----------------------------------------------------------
 
   user User @relation(
     fields: [userId],
@@ -88,12 +219,17 @@ model StudentProfile {
     onDelete: Cascade
   )
 
-  enrollments Enrollment[]
+  enrollments     Enrollment[]
+  batchAssignments BatchStudent[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 }
 
+
+// ============================================================
+// TRAINER PROFILE
+// ============================================================
 
 model TrainerProfile {
   id     Int @id @default(autoincrement())
@@ -110,10 +246,47 @@ model TrainerProfile {
     onDelete: Cascade
   )
 
+  liveSessions LiveSession[]
+  batches     Batch[]
+  coursePermissions TrainerCoursePermission[]
+
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 }
 
+
+// ============================================================
+// CEO PROFILE
+// ============================================================
+
+model CeoProfile {
+  id Int @id @default(autoincrement())
+
+  userId Int @unique
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  displayName String
+  designation String @default("Founder & CEO")
+
+  bioParagraph1 String
+  bioParagraph2 String
+
+  highlight1 String
+  highlight2 String
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAt()
+}
+
+
+// ============================================================
+// COURSE
+// ============================================================
 
 model Course {
   id          Int        @id @default(autoincrement())
@@ -124,17 +297,144 @@ model Course {
 
   duration String?
   modules  Int?
-
   price    Int?
+
   isActive Boolean @default(true)
 
-  enrollments  Enrollment[]
-  packageItems PackageCourse[]
+  enrollments   Enrollment[]
+  packageItems  PackageCourse[]
+  courseModules CourseModule[]
+
+  assessments Assessment[]
+  liveSessions LiveSession[]
+  batches     Batch[]
+  trainerPermissions TrainerCoursePermission[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 }
 
+
+// ============================================================
+// COURSE MODULE
+// ============================================================
+
+model CourseModule {
+  id       Int @id @default(autoincrement())
+  courseId Int
+
+  title       String
+  description String?
+
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  createdByUserId  Int?
+  reviewedByUserId Int?
+  approvalStatus   ContentApprovalStatus @default(PUBLISHED)
+  reviewedAt       TimestamptzString?
+  rejectionReason  String?
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdBy User? @relation("CourseModuleCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("CourseModuleReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  lessons Lesson[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([courseId])
+  @@index([courseId, sortOrder])
+  @@index([approvalStatus])
+  @@index([createdByUserId])
+}
+
+
+// ============================================================
+// LESSON
+// ============================================================
+
+model Lesson {
+  id       Int @id @default(autoincrement())
+  moduleId Int
+
+  title       String
+  description String?
+
+  content     String?
+  videoUrl    String?
+  documentUrl String?
+
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  createdByUserId  Int?
+  reviewedByUserId Int?
+  approvalStatus   ContentApprovalStatus @default(PUBLISHED)
+  reviewedAt       TimestamptzString?
+  rejectionReason  String?
+
+  module CourseModule @relation(
+    fields: [moduleId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdBy User? @relation("LessonCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("LessonReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  progress LessonProgress[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([moduleId])
+  @@index([moduleId, sortOrder])
+  @@index([approvalStatus])
+  @@index([createdByUserId])
+}
+
+
+// ============================================================
+// LESSON PROGRESS
+// ============================================================
+
+model LessonProgress {
+  id Int @id @default(autoincrement())
+
+  userId   Int
+  lessonId Int
+
+  status String @default("NOT_STARTED")
+
+  startedAt   TimestamptzString?
+  completedAt TimestamptzString?
+
+  lesson Lesson @relation(
+    fields: [lessonId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@index([userId, status])
+}
+
+
+// ============================================================
+// COURSE PACKAGE
+// ============================================================
 
 model CoursePackage {
   id          Int    @id @default(autoincrement())
@@ -154,6 +454,10 @@ model CoursePackage {
   updatedAt temporal.updatedAtString()
 }
 
+
+// ============================================================
+// PACKAGE COURSE
+// ============================================================
 
 model PackageCourse {
   id        Int @id @default(autoincrement())
@@ -176,23 +480,95 @@ model PackageCourse {
 }
 
 
+// ============================================================
+// REGISTRATION INTENT
+// ============================================================
+
 model RegistrationIntent {
   id Int @id @default(autoincrement())
+
+  // ----------------------------------------------------------
+  // ACCOUNT DETAILS
+  // ----------------------------------------------------------
 
   name         String
   email        String
   phone        String
   passwordHash String
 
-  state      String?
+  // ----------------------------------------------------------
+  // STUDENT DETAILS
+  // ----------------------------------------------------------
+
+  dateOfBirth   String?
+  gender        String?
+  qualification String?
+  organization  String?
+
+  // ----------------------------------------------------------
+  // PARENT / GUARDIAN DETAILS
+  // ----------------------------------------------------------
+
+  guardianName         String?
+  guardianRelationship String?
+  guardianMobile       String?
+  guardianWhatsapp     String?
+  guardianEmail        String?
+
+  // ----------------------------------------------------------
+  // ONLINE LEARNING FACILITIES
+  // ----------------------------------------------------------
+
+  // Multiple values stored as comma-separated text
+  // Example: "Smartphone,Laptop"
+  deviceTypes       String?
+  internetFacility  String?
+  preferredClassApp String?
+
+  // ----------------------------------------------------------
+  // ADDRESS
+  // ----------------------------------------------------------
+
+  address String?
+  city    String?
+  pin     String?
+  state  String?
+
+  // ----------------------------------------------------------
+  // REFERRAL / SOURCE
+  // ----------------------------------------------------------
+
+  // Existing technical referral ID retained for compatibility
   referralId String?
+
+  referralSource String?
+  referralName   String?
+  referralMobile String?
+
+  // ----------------------------------------------------------
+  // PACKAGE / COURSE
+  // ----------------------------------------------------------
 
   packageId Int
   courseId  Int?
 
+  // ----------------------------------------------------------
+  // DECLARATION
+  // ----------------------------------------------------------
+
+  declarationAccepted Boolean @default(false)
+
+  // ----------------------------------------------------------
+  // STATUS / PAYMENT
+  // ----------------------------------------------------------
+
   status RegistrationIntentStatus @default(CREATED)
 
   razorpayOrderId String?
+
+  // ----------------------------------------------------------
+  // RELATIONS
+  // ----------------------------------------------------------
 
   package CoursePackage @relation(
     fields: [packageId],
@@ -208,8 +584,16 @@ model RegistrationIntent {
 
   payment Payment?
 
+  // ----------------------------------------------------------
+  // TIMESTAMPS
+  // ----------------------------------------------------------
+
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
+
+  // ----------------------------------------------------------
+  // INDEXES
+  // ----------------------------------------------------------
 
   @@index([email])
   @@index([packageId])
@@ -218,6 +602,10 @@ model RegistrationIntent {
   @@index([status])
 }
 
+
+// ============================================================
+// ENROLLMENT
+// ============================================================
 
 model Enrollment {
   id Int @id @default(autoincrement())
@@ -230,7 +618,7 @@ model Enrollment {
 
   status EnrollmentStatus @default(PENDING)
 
-  enrolledAt TimestamptzString @default(now())
+  enrolledAt  TimestamptzString  @default(now())
   completedAt TimestamptzString?
 
   user User @relation(
@@ -268,6 +656,404 @@ model Enrollment {
   @@index([packageId])
 }
 
+
+
+// ============================================================
+// TRAINER COURSE PERMISSION
+// ============================================================
+//
+// Admin-controlled teaching/content rights. A trainer can have
+// permission for multiple courses.
+
+model TrainerCoursePermission {
+  id Int @id @default(autoincrement())
+
+  trainerId Int
+  courseId  Int
+
+  canTeach            Boolean @default(true)
+  canManageContent    Boolean @default(false)
+  canCreateAssessments Boolean @default(false)
+  canCreateLiveSessions Boolean @default(false)
+
+  trainer TrainerProfile @relation(
+    fields: [trainerId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@unique([trainerId, courseId])
+  @@index([trainerId])
+  @@index([courseId])
+  @@index([trainerId, canTeach])
+}
+
+
+// ============================================================
+// BATCH
+// ============================================================
+//
+// A training batch belongs to one course and can optionally
+// have one trainer assigned. Students are linked through
+// BatchStudent.
+//
+// Batch participation is separate from daily attendance.
+// Live learning participation remains tracked on LiveSession.
+
+model Batch {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  courseId  Int
+  trainerId Int?
+
+  startDate TimestamptzString
+  endDate   TimestamptzString
+
+  mode        BatchMode   @default(OFFLINE)
+  maxStudents Int         @default(30)
+  status      BatchStatus @default(UPCOMING)
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  trainer TrainerProfile? @relation(
+    fields: [trainerId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  students BatchStudent[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([courseId])
+  @@index([trainerId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([courseId, status])
+}
+
+
+// ============================================================
+// BATCH STUDENT
+// ============================================================
+//
+// Links a student profile to a training batch.
+
+model BatchStudent {
+  id Int @id @default(autoincrement())
+
+  batchId   Int
+  studentId Int
+
+  assignedAt  TimestamptzString  @default(now())
+  completedAt TimestamptzString?
+
+  batch Batch @relation(
+    fields: [batchId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  student StudentProfile @relation(
+    fields: [studentId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@unique([batchId, studentId])
+  @@index([batchId])
+  @@index([studentId])
+  @@index([batchId, studentId])
+}
+
+
+// ============================================================
+// ASSESSMENT
+// ============================================================
+// 
+// Course-based assessment.
+// 
+// A trainer creates an assessment for a course.
+// Students enrolled in that course can access it.
+
+model Assessment {
+  id       Int            @id @default(autoincrement())
+  courseId Int
+  title    String
+  type     AssessmentType
+
+  createdByUserId  Int?
+  reviewedByUserId Int?
+  approvalStatus   ContentApprovalStatus @default(PUBLISHED)
+  reviewedAt       TimestamptzString?
+  rejectionReason  String?
+
+  description String?
+  instructions String?
+
+  dueAt TimestamptzString?
+
+  totalMarks     Int  @default(100)
+  durationMinutes Int?
+
+  isActive Boolean @default(true)
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdBy User? @relation("AssessmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("AssessmentReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  questions AssessmentQuestion[]
+
+  submissions AssessmentSubmission[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([courseId])
+  @@index([courseId, isActive])
+  @@index([type])
+  @@index([dueAt])
+  @@index([approvalStatus])
+  @@index([createdByUserId])
+}
+
+
+// ============================================================
+// ASSESSMENT QUESTION
+// ============================================================
+// 
+// Currently designed for single-answer multiple-choice
+// questions.
+
+model AssessmentQuestion {
+  id           Int @id @default(autoincrement())
+  assessmentId Int
+
+  question String
+
+  optionA String?
+  optionB String?
+  optionC String?
+  optionD String?
+
+  correctAnswer String?
+  marks         Int @default(1)
+
+  sortOrder Int @default(0)
+
+  assessment Assessment @relation(
+    fields: [assessmentId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([assessmentId])
+  @@index([assessmentId, sortOrder])
+}
+
+
+// ============================================================
+// ASSESSMENT SUBMISSION
+// ============================================================
+// 
+// Handles both:
+// 
+// Assignment
+// - optional uploaded file
+// - optional comment
+// - trainer grading
+// 
+// Quiz
+// - answers stored as text containing JSON
+// - score generated after submission
+// 
+// attemptNumber allows future quiz re-attempts.
+
+model AssessmentSubmission {
+  id           Int @id @default(autoincrement())
+  assessmentId Int
+  userId       Int
+
+  attemptNumber Int @default(1)
+
+  // Quiz answers stored as serialized JSON text.
+  // Example:
+  // {"1":"optionA","2":"optionC"}
+  answers String?
+
+  // Assignment upload information.
+  // The actual storage provider will be connected later.
+  submissionFileName String?
+  submissionFileUrl  String?
+
+  submissionComment String?
+
+  score Int?
+
+  status AssessmentSubmissionStatus
+    @default(IN_PROGRESS)
+
+  feedback String?
+
+  startedAt   TimestamptzString?
+  submittedAt TimestamptzString?
+  gradedAt    TimestamptzString?
+
+  assessment Assessment @relation(
+    fields: [assessmentId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@unique([assessmentId, userId, attemptNumber])
+
+  @@index([assessmentId])
+  @@index([userId])
+  @@index([assessmentId, userId])
+  @@index([status])
+}
+
+
+// ============================================================
+// LIVE SESSION
+// ============================================================
+//
+// A scheduled live class for a specific course and trainer.
+// Student participation belongs to the individual session.
+// This replaces the old daily attendance concept for live
+// learning participation.
+
+model LiveSession {
+  id Int @id @default(autoincrement())
+
+  courseId  Int
+  trainerId Int
+
+  title       String
+  description String?
+
+  startAt TimestamptzString
+  endAt   TimestamptzString
+
+  meetingUrl   String?
+  recordingUrl String?
+
+  status LiveSessionStatus @default(SCHEDULED)
+  isPublished Boolean @default(false)
+
+  createdByUserId  Int?
+  reviewedByUserId Int?
+  approvalStatus   ContentApprovalStatus @default(PUBLISHED)
+  reviewedAt       TimestamptzString?
+  rejectionReason  String?
+
+  course Course @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  trainer TrainerProfile @relation(
+    fields: [trainerId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdBy User? @relation("LiveSessionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("LiveSessionReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  participations LiveSessionParticipation[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([courseId])
+  @@index([trainerId])
+  @@index([startAt])
+  @@index([status])
+  @@index([courseId, startAt])
+  @@index([approvalStatus])
+  @@index([createdByUserId])
+}
+
+
+// ============================================================
+// LIVE SESSION PARTICIPATION
+// ============================================================
+//
+// Participation is recorded per live session. There is no
+// daily Present / Absent / Late / Leave attendance record.
+
+model LiveSessionParticipation {
+  id Int @id @default(autoincrement())
+
+  sessionId Int
+  userId    Int
+
+  joinedAt TimestamptzString?
+  leftAt   TimestamptzString?
+
+  participated Boolean @default(false)
+
+  session LiveSession @relation(
+    fields: [sessionId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([sessionId, participated])
+}
+
+
+// ============================================================
+// PAYMENT
+// ============================================================
 
 model Payment {
   id Int @id @default(autoincrement())

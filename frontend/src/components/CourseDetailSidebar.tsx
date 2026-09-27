@@ -36,7 +36,10 @@ export default function CourseDetailSidebar({
     {
       icon: Users,
       label: "Enrolled",
-      value: `${course.enrolled.toLocaleString("en-IN")} students`,
+      value: 
+        typeof course.enrolled === "number"
+      ? `${course.enrolled.toLocaleString("en-IN")} students`
+      : "—",  
     },
     {
       icon: Globe,
@@ -85,19 +88,6 @@ export default function CourseDetailSidebar({
           COURSE INFORMATION
       ========================================================= */}
       <div className="p-6 sm:p-7">
-        {/* Price */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Course Fee
-          </p>
-
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[#173B67]">
-              ₹{course.price.toLocaleString("en-IN")}
-            </span>
-          </div>
-        </div>
-
         {/* Includes heading */}
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-base font-bold text-[#102A43]">

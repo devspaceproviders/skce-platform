@@ -46,7 +46,7 @@ export async function createRegistrationIntent(
   }
 
   // --------------------------------------------------
-  // 4. Find selected course, if supplied
+  // 4. Find selected course
   // --------------------------------------------------
 
   let course = null;
@@ -61,9 +61,9 @@ export async function createRegistrationIntent(
       throw new Error("Course not found");
     }
 
-    // ----------------------------------------------
+    // ------------------------------------------------
     // 5. Verify course belongs to selected package
-    // ----------------------------------------------
+    // ------------------------------------------------
 
     const packageCourse =
       await db.orm.public.PackageCourse.first({
@@ -94,17 +94,106 @@ export async function createRegistrationIntent(
 
   const registrationIntent =
     await db.orm.public.RegistrationIntent.create({
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
+      // ==================================================
+      // ACCOUNT DETAILS
+      // ==================================================
+
+      name:
+        input.name,
+
+      email:
+        input.email,
+
+      phone:
+        input.phone,
 
       passwordHash,
 
-      state:
-        input.state ?? null,
+      // ==================================================
+      // STUDENT DETAILS
+      // ==================================================
 
+      dateOfBirth:
+        input.dateOfBirth,
+
+      gender:
+        input.gender,
+
+      qualification:
+        input.qualification,
+
+      organization:
+        input.organization,
+
+      // ==================================================
+      // PARENT / GUARDIAN DETAILS
+      // ==================================================
+
+      guardianName:
+        input.guardianName,
+
+      guardianRelationship:
+        input.guardianRelationship,
+
+      guardianMobile:
+        input.guardianMobile,
+
+      guardianWhatsapp:
+        input.guardianWhatsapp || null,
+
+      guardianEmail:
+        input.guardianEmail || null,
+
+      // ==================================================
+      // ONLINE LEARNING FACILITIES
+      // ==================================================
+
+      deviceTypes:
+        input.deviceTypes,
+
+      internetFacility:
+        input.internetFacility,
+
+      preferredClassApp:
+        input.preferredClassApp,
+
+      // ==================================================
+      // ADDRESS
+      // ==================================================
+
+      address:
+        input.address,
+
+      city:
+        input.city,
+
+      pin:
+        input.pin,
+
+      state:
+        input.state,
+
+      // ==================================================
+      // REFERRAL / SOURCE
+      // ==================================================
+
+      // Existing technical referral ID
+      // retained for backward compatibility.
       referralId:
-        input.referralId ?? null,
+        input.referralId || null,
+
+      referralSource:
+        input.referralSource,
+
+      referralName:
+        input.referralName || null,
+
+      referralMobile:
+        input.referralMobile || null,
+
+      // ==================================================
+      // PACKAGE / COURSE
+      // ==================================================
 
       packageId:
         coursePackage.id,
@@ -112,7 +201,19 @@ export async function createRegistrationIntent(
       courseId:
         course?.id ?? null,
 
-      status: "CREATED",
+      // ==================================================
+      // DECLARATION
+      // ==================================================
+
+      declarationAccepted:
+        input.declarationAccepted,
+
+      // ==================================================
+      // STATUS
+      // ==================================================
+
+      status:
+        "CREATED",
     });
 
   // --------------------------------------------------
@@ -123,17 +224,29 @@ export async function createRegistrationIntent(
     registrationIntent,
 
     package: {
-      id: coursePackage.id,
-      slug: coursePackage.slug,
-      title: coursePackage.title,
-      price: coursePackage.price,
+      id:
+        coursePackage.id,
+
+      slug:
+        coursePackage.slug,
+
+      title:
+        coursePackage.title,
+
+      price:
+        coursePackage.price,
     },
 
     course: course
       ? {
-          id: course.id,
-          slug: course.slug,
-          title: course.title,
+          id:
+            course.id,
+
+          slug:
+            course.slug,
+
+          title:
+            course.title,
         }
       : null,
   };

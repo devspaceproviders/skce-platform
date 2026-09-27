@@ -1,0 +1,44 @@
+[
+  {
+    "id": "dropColumn.course.price",
+    "label": "Drop column \"price\" from \"course\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "price",
+        "table": "course"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"price\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"price\"",
+        "sql": "ALTER TABLE \"public\".\"course\" DROP COLUMN \"price\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"price\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,719 @@
+[
+  {
+    "id": "table.assessment",
+    "label": "Create table \"assessment\"",
+    "summary": "Creates table \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"assessment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"assessment\"",
+        "sql": "CREATE TABLE \"public\".\"assessment\" (\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"dueAt\" timestamptz,\n  \"durationMinutes\" int4,\n  \"id\" SERIAL NOT NULL,\n  \"instructions\" text,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"title\" text NOT NULL,\n  \"totalMarks\" int4 DEFAULT 100 NOT NULL,\n  \"type\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"assessment_type_check_65240a52\" CHECK (\"type\" IN ('ASSIGNMENT', 'QUIZ'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"assessment\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.assessmentQuestion",
+    "label": "Create table \"assessmentQuestion\"",
+    "summary": "Creates table \"assessmentQuestion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "assessmentQuestion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"assessmentQuestion\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"assessmentQuestion\"",
+        "sql": "CREATE TABLE \"public\".\"assessmentQuestion\" (\n  \"assessmentId\" int4 NOT NULL,\n  \"correctAnswer\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"marks\" int4 DEFAULT 1 NOT NULL,\n  \"optionA\" text,\n  \"optionB\" text,\n  \"optionC\" text,\n  \"optionD\" text,\n  \"question\" text NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"assessmentQuestion\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.assessmentSubmission",
+    "label": "Create table \"assessmentSubmission\"",
+    "summary": "Creates table \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"assessmentSubmission\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"assessmentSubmission\"",
+        "sql": "CREATE TABLE \"public\".\"assessmentSubmission\" (\n  \"answers\" text,\n  \"assessmentId\" int4 NOT NULL,\n  \"attemptNumber\" int4 DEFAULT 1 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"feedback\" text,\n  \"gradedAt\" timestamptz,\n  \"id\" SERIAL NOT NULL,\n  \"score\" int4,\n  \"startedAt\" timestamptz,\n  \"status\" text DEFAULT 'IN_PROGRESS' NOT NULL,\n  \"submissionComment\" text,\n  \"submissionFileName\" text,\n  \"submissionFileUrl\" text,\n  \"submittedAt\" timestamptz,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"assessmentSubmission_status_check_7aef1854\" CHECK (\"status\" IN ('IN_PROGRESS', 'SUBMITTED', 'GRADED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"assessmentSubmission\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.assessmentSubmission.assessmentSubmission_assessmentId_userId_attemptNumber_key",
+    "label": "Add unique constraint on \"assessmentSubmission\" (assessmentId, userId, attemptNumber)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "assessmentSubmission_assessmentId_userId_attemptNumber_key",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"assessmentSubmission_assessmentId_userId_attemptNumber_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_assessmentId_userId_attemptNumber_key",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"assessmentSubmission_assessmentId_userId_attemptNumber_key\"",
+        "sql": "ALTER TABLE \"public\".\"assessmentSubmission\" ADD CONSTRAINT \"assessmentSubmission_assessmentId_userId_attemptNumber_key\" UNIQUE (\"assessmentId\", \"userId\", \"attemptNumber\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"assessmentSubmission_assessmentId_userId_attemptNumber_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_assessmentId_userId_attemptNumber_key",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_courseId_idx_12f72d2a",
+    "label": "Create index \"assessment_courseId_idx_12f72d2a\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_courseId_idx_12f72d2a",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"assessment_courseId_idx_12f72d2a\" ON \"public\".\"assessment\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_courseId_isActive_idx_12201116",
+    "label": "Create index \"assessment_courseId_isActive_idx_12201116\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_courseId_isActive_idx_12201116",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_courseId_isActive_idx_12201116\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_courseId_isActive_idx_12201116\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_courseId_isActive_idx_12201116\"",
+        "sql": "CREATE INDEX \"assessment_courseId_isActive_idx_12201116\" ON \"public\".\"assessment\" (\"courseId\", \"isActive\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_courseId_isActive_idx_12201116\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_courseId_isActive_idx_12201116\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_dueAt_idx_08d8815e",
+    "label": "Create index \"assessment_dueAt_idx_08d8815e\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_dueAt_idx_08d8815e",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_dueAt_idx_08d8815e\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_dueAt_idx_08d8815e\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_dueAt_idx_08d8815e\"",
+        "sql": "CREATE INDEX \"assessment_dueAt_idx_08d8815e\" ON \"public\".\"assessment\" (\"dueAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_dueAt_idx_08d8815e\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_dueAt_idx_08d8815e\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_type_idx_b6b604ea",
+    "label": "Create index \"assessment_type_idx_b6b604ea\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_type_idx_b6b604ea",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_type_idx_b6b604ea\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_type_idx_b6b604ea\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_type_idx_b6b604ea\"",
+        "sql": "CREATE INDEX \"assessment_type_idx_b6b604ea\" ON \"public\".\"assessment\" (\"type\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_type_idx_b6b604ea\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_type_idx_b6b604ea\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentQuestion.assessmentQuestion_assessmentId_idx_1fe05216",
+    "label": "Create index \"assessmentQuestion_assessmentId_idx_1fe05216\" on \"assessmentQuestion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentQuestion_assessmentId_idx_1fe05216",
+        "table": "assessmentQuestion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentQuestion_assessmentId_idx_1fe05216\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion_assessmentId_idx_1fe05216\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentQuestion_assessmentId_idx_1fe05216\"",
+        "sql": "CREATE INDEX \"assessmentQuestion_assessmentId_idx_1fe05216\" ON \"public\".\"assessmentQuestion\" (\"assessmentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentQuestion_assessmentId_idx_1fe05216\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion_assessmentId_idx_1fe05216\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentQuestion.assessmentQuestion_assessmentId_sortOrder_idx_a3229062",
+    "label": "Create index \"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\" on \"assessmentQuestion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentQuestion_assessmentId_sortOrder_idx_a3229062",
+        "table": "assessmentQuestion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\"",
+        "sql": "CREATE INDEX \"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\" ON \"public\".\"assessmentQuestion\" (\"assessmentId\", \"sortOrder\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentQuestion_assessmentId_sortOrder_idx_a3229062\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentSubmission.assessmentSubmission_assessmentId_idx_1fe05216",
+    "label": "Create index \"assessmentSubmission_assessmentId_idx_1fe05216\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentSubmission_assessmentId_idx_1fe05216",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentSubmission_assessmentId_idx_1fe05216\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_assessmentId_idx_1fe05216\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentSubmission_assessmentId_idx_1fe05216\"",
+        "sql": "CREATE INDEX \"assessmentSubmission_assessmentId_idx_1fe05216\" ON \"public\".\"assessmentSubmission\" (\"assessmentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentSubmission_assessmentId_idx_1fe05216\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_assessmentId_idx_1fe05216\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentSubmission.assessmentSubmission_assessmentId_userId_idx_d0e6a56f",
+    "label": "Create index \"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentSubmission_assessmentId_userId_idx_d0e6a56f",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\"",
+        "sql": "CREATE INDEX \"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\" ON \"public\".\"assessmentSubmission\" (\"assessmentId\", \"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_assessmentId_userId_idx_d0e6a56f\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentSubmission.assessmentSubmission_status_idx_e98638ab",
+    "label": "Create index \"assessmentSubmission_status_idx_e98638ab\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentSubmission_status_idx_e98638ab",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentSubmission_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentSubmission_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"assessmentSubmission_status_idx_e98638ab\" ON \"public\".\"assessmentSubmission\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentSubmission_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessmentSubmission.assessmentSubmission_userId_idx_a489d58a",
+    "label": "Create index \"assessmentSubmission_userId_idx_a489d58a\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessmentSubmission_userId_idx_a489d58a",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessmentSubmission_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessmentSubmission_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"assessmentSubmission_userId_idx_a489d58a\" ON \"public\".\"assessmentSubmission\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessmentSubmission_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessmentSubmission_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessment.assessment_courseId_fkey",
+    "label": "Add foreign key \"assessment_courseId_fkey\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessment_courseId_fkey",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessment_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_courseId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessment_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\"\nADD CONSTRAINT \"assessment_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessment_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_courseId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessmentQuestion.assessmentQuestion_assessmentId_fkey",
+    "label": "Add foreign key \"assessmentQuestion_assessmentId_fkey\" on \"assessmentQuestion\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessmentQuestion_assessmentId_fkey",
+        "table": "assessmentQuestion"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessmentQuestion_assessmentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentQuestion_assessmentId_fkey",
+          "public",
+          "\"public\".\"assessmentQuestion\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessmentQuestion_assessmentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessmentQuestion\"\nADD CONSTRAINT \"assessmentQuestion_assessmentId_fkey\"\nFOREIGN KEY (\"assessmentId\")\nREFERENCES \"public\".\"assessment\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessmentQuestion_assessmentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentQuestion_assessmentId_fkey",
+          "public",
+          "\"public\".\"assessmentQuestion\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessmentSubmission.assessmentSubmission_assessmentId_fkey",
+    "label": "Add foreign key \"assessmentSubmission_assessmentId_fkey\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessmentSubmission_assessmentId_fkey",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessmentSubmission_assessmentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_assessmentId_fkey",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessmentSubmission_assessmentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessmentSubmission\"\nADD CONSTRAINT \"assessmentSubmission_assessmentId_fkey\"\nFOREIGN KEY (\"assessmentId\")\nREFERENCES \"public\".\"assessment\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessmentSubmission_assessmentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_assessmentId_fkey",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessmentSubmission.assessmentSubmission_userId_fkey",
+    "label": "Add foreign key \"assessmentSubmission_userId_fkey\" on \"assessmentSubmission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessmentSubmission_userId_fkey",
+        "table": "assessmentSubmission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessmentSubmission_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_userId_fkey",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessmentSubmission_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessmentSubmission\"\nADD CONSTRAINT \"assessmentSubmission_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessmentSubmission_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessmentSubmission_userId_fkey",
+          "public",
+          "\"public\".\"assessmentSubmission\""
+        ]
+      }
+    ]
+  }
+]

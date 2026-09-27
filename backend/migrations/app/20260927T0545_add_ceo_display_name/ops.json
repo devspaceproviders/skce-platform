@@ -1,0 +1,124 @@
+[
+  {
+    "id": "column.public.ceoProfile.displayName",
+    "label": "Add column \"displayName\" to \"ceoProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "displayName",
+        "table": "ceoProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"displayName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ceoProfile",
+          "displayName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"displayName\"",
+        "sql": "ALTER TABLE \"public\".\"ceoProfile\" ADD COLUMN \"displayName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"displayName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ceoProfile",
+          "displayName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data_migration.backfill-ceoProfile-displayName",
+    "label": "Data transform: backfill-ceoProfile-displayName",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "Check backfill-ceoProfile-displayName has work to do",
+        "sql": "SELECT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"ceoProfile\" WHERE \"displayName\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "Run backfill-ceoProfile-displayName",
+        "sql": "UPDATE \"public\".\"ceoProfile\" SET \"displayName\" = $1, \"updatedAt\" = $2 WHERE \"displayName\" IS NULL",
+        "params": [
+          "C. Neelima",
+          "2026-09-27T05:45:00.000Z"
+        ]
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "Verify backfill-ceoProfile-displayName resolved all violations",
+        "sql": "SELECT NOT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"ceoProfile\" WHERE \"displayName\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.setNotNull.ceoProfile.displayName",
+    "label": "Set NOT NULL on \"ceoProfile\".\"displayName\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "displayName",
+        "table": "ceoProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"displayName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "ceoProfile",
+          "displayName"
+        ]
+      },
+      {
+        "description": "ensure no NULL values in \"displayName\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"ceoProfile\" WHERE \"displayName\" IS NULL) AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "set NOT NULL on \"displayName\"",
+        "sql": "ALTER TABLE \"public\".\"ceoProfile\" ALTER COLUMN \"displayName\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"displayName\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "ceoProfile",
+          "displayName",
+          "NO"
+        ]
+      }
+    ]
+  }
+]

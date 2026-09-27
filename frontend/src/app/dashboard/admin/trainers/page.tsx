@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   UserPlus,
@@ -18,11 +19,15 @@ import {
   XCircle,
   Award,
   CalendarDays,
+  RefreshCw,
+  Loader2,
+  Camera,
 } from "lucide-react";
 
 type TrainerStatus = "Active" | "Inactive";
 
 type Trainer = {
+  profileId: number;
   id: string;
   name: string;
   email: string;
@@ -32,6 +37,7 @@ type Trainer = {
   batches: number;
   joinedDate: string;
   status: TrainerStatus;
+  profilePhotoUrl: string | null;
 };
 
 type TrainerForm = {
@@ -54,16 +60,31 @@ const EMPTY_FORM: TrainerForm = {
   status: "Active",
 };
 
-/*
- * Backend will replace this initial state later.
- * Until then, trainers created from this page exist
- * only in frontend state.
- */
-const INITIAL_TRAINERS: Trainer[] = [];
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
 
 export default function TrainersPage() {
+  const router = useRouter();
+
   const [trainers, setTrainers] =
-    useState<Trainer[]>(INITIAL_TRAINERS);
+    useState<Trainer[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [uploadingPhotoId, setUploadingPhotoId] =
+    useState<number | null>(null);
+
+  const [photoError, setPhotoError] = useState("");
+
+  const [photoTargetProfileId, setPhotoTargetProfileId] =
+    useState<number | null>(null);
+
+  const photoInputRef =
+    useRef<HTMLInputElement | null>(null);
 
   const [search, setSearch] = useState("");
 
@@ -92,6 +113,92 @@ export default function TrainersPage() {
 
   const [form, setForm] =
     useState<TrainerForm>(EMPTY_FORM);
+
+  const getToken = () => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return localStorage.getItem("token");
+  };
+
+  async function authenticatedFetch(
+    url: string,
+    options: RequestInit = {}
+  ) {
+    const token = getToken();
+
+    if (!token) {
+      router.push("/admin/login");
+      throw new Error("Authentication required");
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+        ...(options.body && !(options.body instanceof FormData)
+          ? { "Content-Type": "application/json" }
+          : {}),
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("student");
+      localStorage.removeItem("studentId");
+      router.push("/admin/login");
+      throw new Error("Authentication required");
+    }
+
+    return response;
+  }
+
+  const toTrainer = (value: any): Trainer => ({
+    profileId: Number(value.profileId ?? value.id),
+    id: value.displayId || `TR${String(value.profileId ?? value.id).padStart(3, "0")}`,
+    name: value.name || "",
+    email: value.email || "",
+    phone: value.phone || "",
+    specialization: value.specialization || "",
+    experience:
+      value.experience === null || value.experience === undefined || value.experience === ""
+        ? ""
+        : `${value.experience} Years`,
+    batches: Number(value.batches || 0),
+    joinedDate: value.joinedDate
+      ? new Date(value.joinedDate).toLocaleDateString("en-IN")
+      : "",
+    status: value.status === "Active" ? "Active" : "Inactive",
+    profilePhotoUrl: value.profilePhotoUrl || null,
+  });
+
+  const loadTrainers = async () => {
+    try {
+      setError("");
+      const response = await authenticatedFetch(`${API_URL}/admin/trainers`);
+      const json = await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || "Unable to load trainers.");
+      }
+
+      setTrainers((json.data || []).map(toTrainer));
+    } catch (err) {
+      console.error("Load trainers error:", err);
+      setError(err instanceof Error ? err.message : "Unable to load trainers.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTrainers();
+  }, []);
+
 
   /* ==========================================================
      FILTER
@@ -166,7 +273,7 @@ export default function TrainersPage() {
      CREATE TRAINER
   ========================================================== */
 
-  const createTrainer = (
+  const createTrainer = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
@@ -186,40 +293,46 @@ export default function TrainersPage() {
       return;
     }
 
-    const newTrainer: Trainer = {
-      id: `TR${String(
-        trainers.length + 1
-      ).padStart(3, "0")}`,
+    setSaving(true);
+    setError("");
 
-      name: form.name.trim(),
+    try {
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/trainers`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim() || null,
+            specialization: form.specialization.trim() || null,
+            experience: form.experience.trim()
+              ? Number.parseInt(form.experience.replace(/\D/g, ""), 10)
+              : null,
+            password: form.password,
+            isActive: form.status === "Active",
+          }),
+        }
+      );
 
-      email: form.email.trim(),
+      const json = await response.json();
 
-      phone: form.phone.trim(),
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || "Unable to create trainer.");
+      }
 
-      specialization:
-        form.specialization.trim(),
-
-      experience:
-        form.experience.trim(),
-
-      batches: 0,
-
-      joinedDate:
-        new Date().toLocaleDateString(
-          "en-IN"
-        ),
-
-      status: form.status,
-    };
-
-    setTrainers((current) => [
-      ...current,
-      newTrainer,
-    ]);
-
-    setForm(EMPTY_FORM);
-    setShowAddModal(false);
+      setForm(EMPTY_FORM);
+      setShowAddModal(false);
+      await loadTrainers();
+    } catch (err) {
+      console.error("Create trainer error:", err);
+      const message =
+        err instanceof Error ? err.message : "Unable to create trainer.";
+      setError(message);
+      alert(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* ==========================================================
@@ -247,7 +360,7 @@ export default function TrainersPage() {
     setShowEditModal(true);
   };
 
-  const updateTrainer = (
+  const updateTrainer = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
@@ -261,51 +374,89 @@ export default function TrainersPage() {
       return;
     }
 
-    setTrainers((current) =>
-      current.map((trainer) =>
-        trainer.id === selectedTrainer.id
-          ? {
-              ...trainer,
-              name: form.name.trim(),
-              email: form.email.trim(),
-              phone: form.phone.trim(),
-              specialization:
-                form.specialization.trim(),
-              experience:
-                form.experience.trim(),
-              status: form.status,
-            }
-          : trainer
-      )
-    );
+    setSaving(true);
+    setError("");
 
-    setShowEditModal(false);
-    setSelectedTrainer(null);
-    setForm(EMPTY_FORM);
+    try {
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/trainers/${selectedTrainer.profileId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim() || null,
+            specialization: form.specialization.trim() || null,
+            experience: form.experience.trim()
+              ? Number.parseInt(form.experience.replace(/\D/g, ""), 10)
+              : null,
+            password: form.password.trim() || undefined,
+            isActive: form.status === "Active",
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || "Unable to update trainer.");
+      }
+
+      setShowEditModal(false);
+      setSelectedTrainer(null);
+      setForm(EMPTY_FORM);
+      await loadTrainers();
+    } catch (err) {
+      console.error("Update trainer error:", err);
+      const message =
+        err instanceof Error ? err.message : "Unable to update trainer.";
+      setError(message);
+      alert(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* ==========================================================
      STATUS
   ========================================================== */
 
-  const toggleStatus = (
+  const toggleStatus = async (
     trainer: Trainer
   ) => {
     setOpenMenuId(null);
+    setSaving(true);
+    setError("");
 
-    setTrainers((current) =>
-      current.map((item) =>
-        item.id === trainer.id
-          ? {
-              ...item,
-              status:
-                item.status === "Active"
-                  ? "Inactive"
-                  : "Active",
-            }
-          : item
-      )
-    );
+    try {
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/trainers/${trainer.profileId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            isActive: trainer.status !== "Active",
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || "Unable to update trainer status.");
+      }
+
+      await loadTrainers();
+    } catch (err) {
+      console.error("Toggle trainer status error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unable to update trainer status.";
+      setError(message);
+      alert(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* ==========================================================
@@ -386,7 +537,7 @@ export default function TrainersPage() {
      MORE ACTIONS
   ========================================================== */
 
-  const handleMoreAction = (
+  const handleMoreAction = async (
     action:
       | "reset-password"
       | "activity",
@@ -394,18 +545,203 @@ export default function TrainersPage() {
   ) => {
     setOpenMenuId(null);
 
-    if (
-      action === "reset-password"
-    ) {
+    if (action === "activity") {
       alert(
-        `Password reset for ${trainer.name} will be connected to the backend later.`
+        `Trainer activity for ${trainer.name} is not available in the current data model.`
       );
       return;
     }
 
-    alert(
-      `Trainer activity for ${trainer.name} will be connected to the backend later.`
+    const newPassword = window.prompt(
+      `Enter a new password for ${trainer.name}:`
     );
+
+    if (newPassword === null) {
+      return;
+    }
+
+    if (newPassword.trim().length < 8) {
+      alert("Password must contain at least 8 characters.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/trainers/${trainer.profileId}/reset-password`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            password: newPassword,
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || "Unable to reset password.");
+      }
+
+      alert("Trainer password has been updated successfully.");
+    } catch (err) {
+      console.error("Reset trainer password error:", err);
+      const message =
+        err instanceof Error ? err.message : "Unable to reset password.";
+      setError(message);
+      alert(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ==========================================================
+     PROFILE PHOTO
+  ========================================================== */
+
+  const getPhotoUrl = (
+    photoUrl?: string | null
+  ): string | null => {
+    if (!photoUrl) {
+      return null;
+    }
+
+    if (
+      photoUrl.startsWith("http://") ||
+      photoUrl.startsWith("https://")
+    ) {
+      return photoUrl;
+    }
+
+    const backendUrl =
+      API_URL.replace(/\/api\/?$/, "");
+
+    return `${backendUrl}${
+      photoUrl.startsWith("/") ? "" : "/"
+    }${photoUrl}`;
+  };
+
+  const openPhotoPicker = (
+    trainer: Trainer
+  ) => {
+    setPhotoError("");
+    setPhotoTargetProfileId(
+      trainer.profileId
+    );
+    photoInputRef.current?.click();
+  };
+
+  const uploadTrainerPhoto = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    const profileId =
+      photoTargetProfileId;
+
+    if (!file || !profileId) {
+      event.target.value = "";
+      return;
+    }
+
+    setPhotoError("");
+
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ]);
+
+    if (!allowedTypes.has(file.type)) {
+      setPhotoError(
+        "Please select a JPG, PNG, WEBP, or GIF image."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError(
+        "Profile photo must be 5 MB or smaller."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingPhotoId(profileId);
+
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const response =
+        await authenticatedFetch(
+          `${API_URL}/admin/trainers/${profileId}/photo`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+      const json =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !json?.success
+      ) {
+        throw new Error(
+          json?.message ||
+            "Unable to update trainer profile photo."
+        );
+      }
+
+      const profilePhotoUrl =
+        json?.data?.profilePhotoUrl ||
+        null;
+
+      setTrainers((current) =>
+        current.map((trainer) =>
+          trainer.profileId === profileId
+            ? {
+                ...trainer,
+                profilePhotoUrl,
+              }
+            : trainer
+        )
+      );
+
+      setSelectedTrainer((current) =>
+        current &&
+        current.profileId === profileId
+          ? {
+              ...current,
+              profilePhotoUrl,
+            }
+          : current
+      );
+    } catch (err) {
+      console.error(
+        "Upload trainer profile photo error:",
+        err
+      );
+
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unable to update trainer profile photo.";
+
+      setPhotoError(message);
+      alert(message);
+    } finally {
+      setUploadingPhotoId(null);
+      setPhotoTargetProfileId(null);
+      event.target.value = "";
+    }
   };
 
   /* ==========================================================
@@ -423,7 +759,28 @@ export default function TrainersPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={uploadTrainerPhoto}
+      />
+
       <div className="mx-auto max-w-[1500px]">
+
+        {error && (
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="rounded-lg p-1 hover:bg-red-100"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* ====================================================
             HEADER
@@ -444,17 +801,32 @@ export default function TrainersPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setForm(EMPTY_FORM);
-              setShowAddModal(true);
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md"
-          >
-            <UserPlus size={18} />
-            Add Trainer
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void loadTrainers()}
+              disabled={loading || saving}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                size={17}
+                className={loading ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setForm(EMPTY_FORM);
+                setShowAddModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md"
+            >
+              <UserPlus size={18} />
+              Add Trainer
+            </button>
+          </div>
         </div>
 
         {/* ====================================================
@@ -550,7 +922,14 @@ export default function TrainersPage() {
 
           {/* TABLE */}
 
-          {filteredTrainers.length === 0 ? (
+          {loading ? (
+            <div className="flex min-h-[360px] items-center justify-center">
+              <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 size={18} className="animate-spin" />
+                Loading trainers...
+              </div>
+            </div>
+          ) : filteredTrainers.length === 0 ? (
             <div className="px-6 py-20 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
                 <Users
@@ -620,12 +999,26 @@ export default function TrainersPage() {
 
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                              <span className="text-sm font-bold">
-                                {trainer.name
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-500">
+                              {getPhotoUrl(
+                                trainer.profilePhotoUrl
+                              ) ? (
+                                <img
+                                  src={
+                                    getPhotoUrl(
+                                      trainer.profilePhotoUrl
+                                    ) || undefined
+                                  }
+                                  alt={`${trainer.name} profile`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-bold">
+                                  {trainer.name
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              )}
                             </div>
 
                             <div className="min-w-0">
@@ -754,6 +1147,25 @@ export default function TrainersPage() {
                             </ActionButton>
 
                             <ActionButton
+                              title="Change profile photo"
+                              onClick={() =>
+                                openPhotoPicker(
+                                  trainer
+                                )
+                              }
+                            >
+                              {uploadingPhotoId ===
+                              trainer.profileId ? (
+                                <Loader2
+                                  size={16}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <Camera size={16} />
+                              )}
+                            </ActionButton>
+
+                            <ActionButton
                               title="More actions"
                               onClick={(e) =>
                                 openMoreMenu(
@@ -781,16 +1193,15 @@ export default function TrainersPage() {
             DEVELOPMENT NOTICE
         ==================================================== */}
 
-        <div className="mt-6 rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-          <p className="text-xs font-semibold text-orange-800">
-            Development Mode
+        <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+          <p className="text-xs font-semibold text-blue-800">
+            Trainer Accounts
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-orange-700/80">
-            Trainer records are currently stored in frontend state.
-            Trainer authentication, permanent storage, batch
-            assignments and activity history will be connected
-            when the backend is implemented.
+          <p className="mt-1 text-xs leading-5 text-blue-700/80">
+            Trainer accounts are stored in PostgreSQL and use the same
+            authentication system as the rest of the application.
+            Batch assignment and activity history will be connected separately.
           </p>
         </div>
       </div>
@@ -888,6 +1299,7 @@ export default function TrainersPage() {
           onClose={closeAll}
           onSubmit={createTrainer}
           submitLabel="Create Trainer"
+          saving={saving}
         />
       )}
 
@@ -905,6 +1317,7 @@ export default function TrainersPage() {
           onSubmit={updateTrainer}
           submitLabel="Save Changes"
           isEdit
+          saving={saving}
         />
       )}
 
@@ -928,12 +1341,26 @@ export default function TrainersPage() {
                 {/* PROFILE HEADER */}
 
                 <div className="mb-6 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                    <span className="text-lg font-bold">
-                      {selectedTrainer.name
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-500">
+                    {getPhotoUrl(
+                      selectedTrainer.profilePhotoUrl
+                    ) ? (
+                      <img
+                        src={
+                          getPhotoUrl(
+                            selectedTrainer.profilePhotoUrl
+                          ) || undefined
+                        }
+                        alt={`${selectedTrainer.name} profile`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold">
+                        {selectedTrainer.name
+                          .charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    )}
                   </div>
 
                   <div className="min-w-0">
@@ -950,18 +1377,45 @@ export default function TrainersPage() {
                     </p>
                   </div>
 
-                  <span
-                    className={`ml-auto shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                      selectedTrainer.status ===
-                      "Active"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {
-                      selectedTrainer.status
-                    }
-                  </span>
+                  <div className="ml-auto flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        selectedTrainer.status ===
+                        "Active"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {
+                        selectedTrainer.status
+                      }
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openPhotoPicker(
+                          selectedTrainer
+                        )
+                      }
+                      disabled={
+                        uploadingPhotoId ===
+                        selectedTrainer.profileId
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {uploadingPhotoId ===
+                      selectedTrainer.profileId ? (
+                        <Loader2
+                          size={14}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Camera size={14} />
+                      )}
+                      Change Photo
+                    </button>
+                  </div>
                 </div>
 
                 {/* DETAILS */}
@@ -1025,6 +1479,15 @@ export default function TrainersPage() {
                       selectedTrainer.joinedDate
                     }
                   />
+
+                  <DetailBox
+                    label="Profile Photo"
+                    value={
+                      selectedTrainer.profilePhotoUrl
+                        ? "Uploaded"
+                        : "Not uploaded"
+                    }
+                  />
                 </div>
 
                 {/* ACCOUNT INFO */}
@@ -1042,9 +1505,8 @@ export default function TrainersPage() {
                   </div>
 
                   <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Login credentials and trainer activity
-                    will be connected to the backend when
-                    trainer authentication is implemented.
+                    This trainer has a real SKCE login account.
+                    The password is stored only as a secure bcrypt hash.
                   </p>
                 </div>
               </div>
@@ -1072,6 +1534,7 @@ function TrainerFormModal({
   onSubmit,
   submitLabel,
   isEdit = false,
+  saving,
 }: {
   title: string;
   subtitle: string;
@@ -1082,9 +1545,10 @@ function TrainerFormModal({
   onClose: () => void;
   onSubmit: (
     e: React.FormEvent<HTMLFormElement>
-  ) => void;
+  ) => void | Promise<void>;
   submitLabel: string;
   isEdit?: boolean;
+  saving: boolean;
 }) {
   const updateForm = (
     field: keyof TrainerForm,
@@ -1232,14 +1696,16 @@ function TrainerFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              disabled={saving}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isEdit ? (
                 <Save size={17} />

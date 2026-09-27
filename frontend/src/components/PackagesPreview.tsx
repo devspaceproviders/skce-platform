@@ -112,10 +112,35 @@ export default function PackagesPreview() {
         {!loading && !error && (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {packages.map((pkg) => {
-              const courses = pkg.courses ?? [];
-              const visibleCourses = courses.slice(0, 5);
+              /*
+               * The backend currently returns package courses as objects.
+               * Older data may still contain strings, so normalize both
+               * shapes before rendering.
+               */
+              const rawCourses = (pkg.courses ?? []) as unknown[];
+
+              const visibleCourses = rawCourses
+                .slice(0, 5)
+                .map((course) => {
+                  if (typeof course === "string") {
+                    return course;
+                  }
+
+                  if (
+                    course &&
+                    typeof course === "object" &&
+                    "title" in course &&
+                    typeof course.title === "string"
+                  ) {
+                    return course.title;
+                  }
+
+                  return "";
+                })
+                .filter(Boolean);
+
               const remainingCourses =
-                courses.length - visibleCourses.length;
+                rawCourses.length - visibleCourses.length;
 
               return (
                 <div
@@ -154,18 +179,18 @@ export default function PackagesPreview() {
                         PACKAGE INCLUDES
                       </p>
 
-                      {courses.length > 0 ? (
+                      {visibleCourses.length > 0 ? (
                         <div className="space-y-2">
-                          {visibleCourses.map((course) => (
+                          {visibleCourses.map((course, index) => (
                             <div
-                              key={course.id}
+                              key={`${pkg.id}-course-${index}`}
                               className="flex items-start gap-2 text-sm text-slate-600"
                             >
                               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
                                 <Check size={11} strokeWidth={3} />
                               </span>
 
-                              <span>{course.title}</span>
+                              <span>{course}</span>
                             </div>
                           ))}
 

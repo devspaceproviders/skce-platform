@@ -1,13 +1,41 @@
 import { Trainer } from "@/types";
 
-export default function TrainerCard({ trainer }: { trainer: Trainer }) {
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
+function getAvatarUrl(avatarUrl: string) {
+  if (
+    avatarUrl.startsWith("http://") ||
+    avatarUrl.startsWith("https://")
+  ) {
+    return avatarUrl;
+  }
+
+  // Uploaded profile photos are served by the backend.
+  if (avatarUrl.startsWith("/uploads/")) {
+    const backendUrl = API_URL.replace(/\/api\/?$/, "");
+    return `${backendUrl}${avatarUrl}`;
+  }
+
+  // Frontend static images such as /trainers/default.svg
+  return avatarUrl;
+}
+
+export default function TrainerCard({
+  trainer,
+}: {
+  trainer: Trainer;
+}) {
+  const avatarUrl = getAvatarUrl(trainer.avatarUrl);
+
   return (
     <div className="group flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
       {/* Trainer Photo */}
       <div className="mb-5 h-24 w-24 overflow-hidden rounded-full border-4 border-orange-50 bg-slate-100 ring-2 ring-orange-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={trainer.avatarUrl}
+          src={avatarUrl}
           alt={trainer.name}
           width={96}
           height={96}

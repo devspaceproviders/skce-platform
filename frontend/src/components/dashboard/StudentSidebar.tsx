@@ -10,9 +10,6 @@ import {
   TrendingUp,
   Award,
   User,
-  Users,
-  Megaphone,
-  Wallet,
   MessageCircle,
   ChevronDown,
 } from "lucide-react";
@@ -27,21 +24,6 @@ const SIDEBAR_ITEMS = [
     href: "/dashboard/student/my-courses",
     label: "My Courses",
     icon: BookOpen,
-  },
-  {
-    href: "/dashboard/student/associate",
-    label: "Associate Panel",
-    icon: Users,
-  },
-  {
-    href: "/dashboard/student/affiliate-marketing",
-    label: "Affiliate Marketing",
-    icon: Megaphone,
-  },
-  {
-    href: "/dashboard/student/wallet",
-    label: "Wallet",
-    icon: Wallet,
   },
   {
     href: "/dashboard/student/assignments",
@@ -189,20 +171,12 @@ export default function StudentSidebar() {
                 borderRadius: 8,
                 fontSize: 13.5,
                 textDecoration: "none",
-                background: isActive
-                  ? "#2F6BFF"
-                  : "transparent",
-                color: isActive
-                  ? "#fff"
-                  : "#AEB6CC",
+                background: isActive ? "#2F6BFF" : "transparent",
+                color: isActive ? "#fff" : "#AEB6CC",
                 fontWeight: isActive ? 600 : 500,
               }}
             >
-              <Icon
-                size={17}
-                strokeWidth={1.8}
-              />
-
+              <Icon size={17} strokeWidth={1.8} />
               {label}
             </Link>
           );
@@ -216,8 +190,7 @@ export default function StudentSidebar() {
           alignItems: "center",
           gap: 10,
           paddingTop: 14,
-          borderTop:
-            "1px solid rgba(255,255,255,0.08)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
         }}
       >
         <div

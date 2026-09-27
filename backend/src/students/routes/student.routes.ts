@@ -4,6 +4,7 @@ import {
   getStudents,
   getStudent,
   getMyDashboard,
+  updateMyPhoneNumber,
 } from "../controllers/student.controller";
 
 import { authenticate } from "../../auth/middleware/auth.middleware";
@@ -51,6 +52,22 @@ router.get(
   authenticate,
   requireRole("STUDENT"),
   getMyDashboard
+);
+
+/*
+ * ==========================================================
+ * LOGGED-IN STUDENT MOBILE UPDATE
+ * ==========================================================
+ *
+ * Only the authenticated student's mobile number
+ * can be updated.
+ */
+
+router.patch(
+  "/me/phone",
+  authenticate,
+  requireRole("STUDENT"),
+  updateMyPhoneNumber
 );
 
 export default router;

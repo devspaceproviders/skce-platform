@@ -1,327 +1,384 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   BookOpen,
-  CheckCircle2,
-  Clock3,
-  Package,
   PlayCircle,
+  CheckCircle2,
+  BarChart3,
+  ArrowRight,
   RefreshCw,
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
-
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 type Course = {
   id: number;
-  slug: string;
   title: string;
-  description: string | null;
-  mode: "ONLINE" | "OFFLINE" | "HYBRID";
-  duration: string | null;
-  modules: number | null;
-  price: number | null;
-  isActive: boolean;
+  slug?: string | null;
+  description?: string | null;
+  mode?: string | null;
+  isActive?: boolean;
 };
 
-type PackageCourseItem = {
+type PackageCourse = {
   id: number;
   packageId: number;
   courseId: number;
-  course: Course;
+  course: Course | null;
 };
 
-type CoursePackage = {
+type PackageData = {
   id: number;
-  slug: string;
+  slug?: string | null;
   title: string;
-  description: string | null;
-  price: number;
-  isActive: boolean;
-  courses: PackageCourseItem[];
+  description?: string | null;
+  price?: number | null;
+  isActive?: boolean;
+  courses: PackageCourse[];
 };
 
 type Enrollment = {
   id: number;
   userId: number;
-  studentId: number;
-  courseId: number | null;
-  packageId: number | null;
-  status:
-    | "ACTIVE"
-    | "COMPLETED"
-    | "CANCELLED"
-    | "PENDING";
-  enrolledAt: string;
-  completedAt: string | null;
+  studentId?: number | null;
+  courseId?: number | null;
+  packageId?: number | null;
+  status: string;
+  enrolledAt?: string | null;
+  completedAt?: string | null;
   course: Course | null;
-  package: CoursePackage | null;
-};
-
-type Student = {
-  id: number;
-  studentId: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  state: string | null;
-  referralId: string | null;
-  isActive: boolean;
-};
-
-type DashboardStats = {
-  enrolledCourses: number;
-  activeEnrollments: number;
-  successfulPayments: number;
-  totalPaid: number;
+  package: PackageData | null;
 };
 
 type DashboardData = {
-  student: Student;
-  stats: DashboardStats;
+  id: number;
+  name: string;
+  email: string;
+  studentId?: string | null;
   enrollments: Enrollment[];
 };
 
-type DashboardResponse = {
-  success: boolean;
-  message: string;
-  data?: DashboardData;
+type CourseProgress = {
+  courseId: number;
+  totalLessons: number;
+  completedLessons: number;
+  startedLessons: number;
+  remainingLessons: number;
+  progressPercentage: number;
+  lessons: {
+    lessonId: number;
+    status: string;
+    startedAt: string | null;
+    completedAt: string | null;
+  }[];
 };
 
-/* -------------------------------------------------------------------------- */
-/* Page                                                                       */
-/* -------------------------------------------------------------------------- */
+type StudentCourse = {
+  course: Course;
+  enrollmentStatus: string;
+  packageName: string | null;
+  enrolledAt: string | null;
+};
 
 export default function MyCoursesPage() {
   const router = useRouter();
 
-  const [data, setData] =
-    useState<DashboardData | null>(null);
+  const [courses, setCourses] = useState<StudentCourse[]>([]);
+  const [progressMap, setProgressMap] = useState<
+    Record<number, CourseProgress>
+  >({});
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  const [refreshing, setRefreshing] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  /* ------------------------------------------------------------------------ */
-  /* Load dashboard                                                            */
-  /* ------------------------------------------------------------------------ */
-
-  const loadDashboard = useCallback(
-    async (isRefresh = false) => {
-      try {
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
-
-        setError("");
-
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("token")
-            : null;
-
-        if (!token) {
-          setError(
-            "Your session has expired. Please log in again."
-          );
-          return;
-        }
-
-        const response = await fetch(
-          `${API_URL}/students/me/dashboard`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-          }
-        );
-
-        const result =
-          (await response.json()) as DashboardResponse;
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.message ||
-              "Failed to load your courses."
-          );
-        }
-
-        setData(result.data ?? null);
-      } catch (err) {
-        console.error(
-          "Failed to load student courses:",
-          err
-        );
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load your courses."
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    []
-  );
-
-  /* ------------------------------------------------------------------------ */
-  /* Initial load                                                              */
-  /* ------------------------------------------------------------------------ */
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  /* ------------------------------------------------------------------------ */
-  /* Build unique course list                                                  */
-  /* ------------------------------------------------------------------------ */
-
-  const enrolledCourses = useMemo(() => {
-    if (!data) {
-      return [];
+  /*
+   * ---------------------------------------------------------
+   * GET TOKEN
+   * ---------------------------------------------------------
+   */
+  const getToken = () => {
+    if (typeof window === "undefined") {
+      return null;
     }
 
-    const courseMap = new Map<
-      number,
-      {
-        course: Course;
-        enrollment: Enrollment;
-        packageTitle: string | null;
+    return localStorage.getItem("token");
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD STUDENT COURSES
+   * ---------------------------------------------------------
+   */
+  const loadCourses = async () => {
+    const token = getToken();
+
+    if (!token) {
+      setError("Please login again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/students/me/dashboard`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          json?.message || "Failed to load your courses."
+        );
       }
-    >();
 
-    for (const enrollment of data.enrollments) {
-      /* -------------------------------------------------------------------- */
-      /* Direct course enrollment                                              */
-      /* -------------------------------------------------------------------- */
+      const dashboard: DashboardData =
+        json?.data ?? json;
 
-      if (enrollment.course) {
-        if (
-          !courseMap.has(
-            enrollment.course.id
-          )
-        ) {
-          courseMap.set(
-            enrollment.course.id,
-            {
-              course: enrollment.course,
-              enrollment,
-              packageTitle:
-                enrollment.package?.title ??
-                null,
+      const enrollmentList =
+        dashboard?.enrollments ?? [];
+
+      /*
+       * -----------------------------------------------------
+       * BUILD UNIQUE COURSE LIST
+       *
+       * Handles:
+       * 1. Direct course enrollment
+       * 2. Package enrollment
+       * -----------------------------------------------------
+       */
+
+      const courseMap = new Map<
+        number,
+        StudentCourse
+      >();
+
+      for (const enrollment of enrollmentList) {
+        /*
+         * Direct course
+         */
+        if (enrollment.course) {
+          courseMap.set(enrollment.course.id, {
+            course: enrollment.course,
+            enrollmentStatus: enrollment.status,
+            packageName: null,
+            enrolledAt:
+              enrollment.enrolledAt ?? null,
+          });
+        }
+
+        /*
+         * Package courses
+         */
+        if (enrollment.package) {
+          for (const packageItem of enrollment.package
+            .courses ?? []) {
+            if (!packageItem.course) {
+              continue;
             }
-          );
-        }
-      }
 
-      /* -------------------------------------------------------------------- */
-      /* Package enrollment                                                    */
-      /* -------------------------------------------------------------------- */
+            const courseId =
+              packageItem.course.id;
 
-      if (enrollment.package) {
-        for (const packageItem of
-          enrollment.package.courses) {
-          const course = packageItem.course;
-
-          if (!course) {
-            continue;
-          }
-
-          if (!courseMap.has(course.id)) {
-            courseMap.set(course.id, {
-              course,
-              enrollment,
-              packageTitle:
-                enrollment.package.title,
-            });
+            /*
+             * Don't overwrite an existing direct
+             * enrollment with package information.
+             */
+            if (!courseMap.has(courseId)) {
+              courseMap.set(courseId, {
+                course: packageItem.course,
+                enrollmentStatus:
+                  enrollment.status,
+                packageName:
+                  enrollment.package.title,
+                enrolledAt:
+                  enrollment.enrolledAt ?? null,
+              });
+            }
           }
         }
       }
-    }
 
-    return Array.from(courseMap.values());
-  }, [data]);
+      const studentCourses = Array.from(
+        courseMap.values()
+      );
 
-  /* ------------------------------------------------------------------------ */
-  /* Statistics                                                                */
-  /* ------------------------------------------------------------------------ */
+      setCourses(studentCourses);
 
-  const enrolledCourseCount =
-    enrolledCourses.length;
+      /*
+       * -----------------------------------------------------
+       * LOAD PROGRESS FOR EVERY COURSE
+       * -----------------------------------------------------
+       */
 
-  const activeCourseCount =
-    enrolledCourses.filter(
-      ({ enrollment }) =>
-        enrollment.status === "ACTIVE"
-    ).length;
+      const progressResults =
+        await Promise.all(
+          studentCourses.map(async (item) => {
+            try {
+              const progressResponse =
+                await fetch(
+                  `${API_URL}/course-progress/courses/${item.course.id}/progress`,
+                  {
+                    method: "GET",
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      "Content-Type":
+                        "application/json",
+                    },
+                  }
+                );
 
-  const pendingOrCompletedCount =
-    enrolledCourses.filter(
-      ({ enrollment }) =>
-        enrollment.status === "PENDING" ||
-        enrollment.status === "COMPLETED"
-    ).length;
+              const progressJson =
+                await progressResponse.json();
 
-  /* ------------------------------------------------------------------------ */
-  /* Package enrollments                                                       */
-  /* ------------------------------------------------------------------------ */
+              if (!progressResponse.ok) {
+                return null;
+              }
 
-  const packages = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+              const progress: CourseProgress =
+                progressJson?.data ??
+                progressJson;
 
-    const packageMap = new Map<
-      number,
-      CoursePackage
-    >();
+              return progress;
+            } catch (progressError) {
+              console.error(
+                `Progress error for course ${item.course.id}:`,
+                progressError
+              );
 
-    for (const enrollment of data.enrollments) {
-      if (enrollment.package) {
-        packageMap.set(
-          enrollment.package.id,
-          enrollment.package
+              return null;
+            }
+          })
         );
+
+      /*
+       * Convert progress array into lookup map.
+       */
+      const nextProgressMap: Record<
+        number,
+        CourseProgress
+      > = {};
+
+      for (const progress of progressResults) {
+        if (progress) {
+          nextProgressMap[progress.courseId] =
+            progress;
+        }
       }
+
+      setProgressMap(nextProgressMap);
+    } catch (err: any) {
+      console.error(
+        "My Courses error:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to load your courses."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
 
-    return Array.from(packageMap.values());
-  }, [data]);
+  /*
+   * ---------------------------------------------------------
+   * INITIAL LOAD
+   * ---------------------------------------------------------
+   */
+  useEffect(() => {
+    loadCourses();
+  }, []);
 
-  /* ------------------------------------------------------------------------ */
-  /* Navigation                                                                */
-  /* ------------------------------------------------------------------------ */
+  /*
+   * ---------------------------------------------------------
+   * REFRESH
+   * ---------------------------------------------------------
+   */
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadCourses();
+  };
 
-  const openCourse = (courseId: number) => {
-    router.push(
-      `/dashboard/student/my-courses/${courseId}`
+  /*
+   * ---------------------------------------------------------
+   * COURSE PROGRESS
+   * ---------------------------------------------------------
+   */
+  const getCourseProgress = (
+    courseId: number
+  ): CourseProgress => {
+    return (
+      progressMap[courseId] ?? {
+        courseId,
+        totalLessons: 0,
+        completedLessons: 0,
+        startedLessons: 0,
+        remainingLessons: 0,
+        progressPercentage: 0,
+        lessons: [],
+      }
     );
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Loading state                                                              */
-  /* ------------------------------------------------------------------------ */
+  /*
+   * ---------------------------------------------------------
+   * SUMMARY
+   * ---------------------------------------------------------
+   */
+  const averageProgress = useMemo(() => {
+    if (courses.length === 0) {
+      return 0;
+    }
 
+    const total = courses.reduce(
+      (sum, item) =>
+        sum +
+        getCourseProgress(item.course.id)
+          .progressPercentage,
+      0
+    );
+
+    return Math.round(
+      total / courses.length
+    );
+  }, [courses, progressMap]);
+
+  const completedCourses = useMemo(() => {
+    return courses.filter(
+      (item) =>
+        getCourseProgress(item.course.id)
+          .progressPercentage === 100
+    ).length;
+  }, [courses, progressMap]);
+
+  const activeCourses = useMemo(() => {
+    return courses.filter(
+      (item) =>
+        getCourseProgress(item.course.id)
+          .progressPercentage < 100
+    ).length;
+  }, [courses, progressMap]);
+
+  /*
+   * ---------------------------------------------------------
+   * LOADING
+   * ---------------------------------------------------------
+   */
   if (loading) {
     return (
       <main
@@ -331,77 +388,47 @@ export default function MyCoursesPage() {
           minWidth: 0,
         }}
       >
-        <div style={{ marginBottom: "26px" }}>
+        <div
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #E5E7EB",
+            borderRadius: "14px",
+            padding: "60px 25px",
+            textAlign: "center",
+          }}
+        >
           <div
             style={{
-              width: "180px",
-              height: "28px",
-              background: "#E5E7EB",
-              borderRadius: "7px",
-              marginBottom: "9px",
+              width: "40px",
+              height: "40px",
+              margin: "0 auto 14px",
+              borderRadius: "50%",
+              border: "4px solid #E5E7EB",
+              borderTopColor: "#A01441",
+              animation:
+                "spin 0.8s linear infinite",
             }}
           />
 
-          <div
+          <p
             style={{
-              width: "280px",
-              height: "16px",
-              background: "#E5E7EB",
-              borderRadius: "6px",
+              margin: 0,
+              color: "#6B7280",
+              fontSize: "14px",
             }}
-          />
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(3, minmax(0, 1fr))",
-            gap: "14px",
-            marginBottom: "24px",
-          }}
-        >
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              style={{
-                height: "88px",
-                background: "#FFFFFF",
-                border: "1px solid #E5E7EB",
-                borderRadius: "12px",
-              }}
-            />
-          ))}
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(2, minmax(0, 1fr))",
-            gap: "18px",
-          }}
-        >
-          {[1, 2, 3, 4].map((item) => (
-            <div
-              key={item}
-              style={{
-                height: "380px",
-                background: "#FFFFFF",
-                border: "1px solid #E5E7EB",
-                borderRadius: "14px",
-              }}
-            />
-          ))}
+          >
+            Loading your courses...
+          </p>
         </div>
       </main>
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Error state                                                               */
-  /* ------------------------------------------------------------------------ */
-
+  /*
+   * ---------------------------------------------------------
+   * ERROR
+   * ---------------------------------------------------------
+   */
   if (error) {
     return (
       <main
@@ -420,36 +447,19 @@ export default function MyCoursesPage() {
             textAlign: "center",
           }}
         >
-          <div
-            style={{
-              width: "46px",
-              height: "46px",
-              borderRadius: "50%",
-              background: "#FEF2F2",
-              color: "#DC2626",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-            }}
-          >
-            <Clock3 size={23} />
-          </div>
-
           <h2
             style={{
-              margin: "0 0 7px",
+              margin: "0 0 8px",
               fontSize: "18px",
-              color: "#111827",
+              color: "#B91C1C",
             }}
           >
-            Unable to load your courses
+            Unable to Load Courses
           </h2>
 
           <p
             style={{
-              margin: "0 auto 18px",
-              maxWidth: "500px",
+              margin: "0 0 18px",
               color: "#6B7280",
               fontSize: "13px",
             }}
@@ -458,10 +468,10 @@ export default function MyCoursesPage() {
           </p>
 
           <button
-            onClick={() => loadDashboard()}
+            onClick={handleRefresh}
             style={{
               border: "none",
-              background: "#2F6BFF",
+              background: "#A01441",
               color: "#FFFFFF",
               borderRadius: "8px",
               padding: "10px 18px",
@@ -477,10 +487,6 @@ export default function MyCoursesPage() {
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Main page                                                                 */
-  /* ------------------------------------------------------------------------ */
-
   return (
     <main
       style={{
@@ -489,17 +495,16 @@ export default function MyCoursesPage() {
         minWidth: 0,
       }}
     >
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                              */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "20px",
           marginBottom: "26px",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "15px",
         }}
       >
         <div>
@@ -521,46 +526,46 @@ export default function MyCoursesPage() {
               margin: 0,
             }}
           >
-            Your enrolled courses and learning
-            programs.
+            Courses assigned to your student account.
           </p>
         </div>
 
         <button
-          onClick={() => loadDashboard(true)}
+          onClick={handleRefresh}
           disabled={refreshing}
-          title="Refresh courses"
           style={{
-            width: "42px",
-            height: "42px",
-            border: "1px solid #E5E7EB",
-            background: "#FFFFFF",
-            color: "#374151",
-            borderRadius: "9px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            gap: "7px",
+            border: "1px solid #D7DCE5",
+            background: "#FFFFFF",
+            color: "#374151",
+            borderRadius: "8px",
+            padding: "9px 13px",
+            fontSize: "12px",
+            fontWeight: 600,
             cursor: refreshing
-              ? "default"
+              ? "not-allowed"
               : "pointer",
-            opacity: refreshing ? 0.65 : 1,
+            opacity: refreshing ? 0.6 : 1,
           }}
         >
           <RefreshCw
-            size={18}
+            size={14}
             style={{
               animation: refreshing
-                ? "spin 1s linear infinite"
+                ? "spin 0.8s linear infinite"
                 : undefined,
             }}
           />
+
+          Refresh
         </button>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Summary Cards                                                       */}
-      {/* ------------------------------------------------------------------ */}
-
+      {/* =====================================================
+          SUMMARY CARDS
+      ====================================================== */}
       <div
         style={{
           display: "grid",
@@ -573,94 +578,64 @@ export default function MyCoursesPage() {
         <SummaryCard
           icon={<BookOpen size={19} />}
           label="Enrolled Courses"
-          value={String(enrolledCourseCount)}
+          value={String(courses.length)}
+        />
+
+        <SummaryCard
+          icon={<BarChart3 size={19} />}
+          label="Average Progress"
+          value={`${averageProgress}%`}
         />
 
         <SummaryCard
           icon={<CheckCircle2 size={19} />}
-          label="Active Courses"
-          value={String(activeCourseCount)}
-        />
-
-        <SummaryCard
-          icon={<Clock3 size={19} />}
-          label="Pending / Completed"
-          value={String(pendingOrCompletedCount)}
+          label="Completed Courses"
+          value={`${completedCourses}/${courses.length}`}
         />
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Package Enrollment                                                  */}
-      {/* ------------------------------------------------------------------ */}
-
-      {packages.length > 0 && (
+      {/* =====================================================
+          COURSE LIST
+      ====================================================== */}
+      {courses.length === 0 ? (
         <div
           style={{
             background: "#FFFFFF",
             border: "1px solid #E5E7EB",
             borderRadius: "14px",
-            padding: "17px",
-            marginBottom: "22px",
+            padding: "60px 25px",
+            textAlign: "center",
           }}
         >
-          <div
+          <BookOpen
+            size={42}
+            color="#9CA3AF"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
               marginBottom: "12px",
             }}
-          >
-            <Package
-              size={17}
-              color="#2F6BFF"
-            />
+          />
 
-            <span
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              Your Enrollment
-            </span>
-          </div>
-
-          <div
+          <h3
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "8px",
+              margin: "0 0 6px",
+              fontSize: "17px",
+              color: "#111827",
             }}
           >
-            {packages.map((pkg) => (
-              <span
-                key={pkg.id}
-                style={{
-                  padding: "7px 12px",
-                  borderRadius: "999px",
-                  border:
-                    "1px solid #E5E7EB",
-                  background: "#FFFFFF",
-                  color: "#374151",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                }}
-              >
-                {pkg.title}
-              </span>
-            ))}
-          </div>
+            No Courses Assigned
+          </h3>
+
+          <p
+            style={{
+              margin: 0,
+              color: "#6B7280",
+              fontSize: "13px",
+            }}
+          >
+            Your assigned courses will appear here once
+            you are enrolled.
+          </p>
         </div>
-      )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Courses                                                             */}
-      {/* ------------------------------------------------------------------ */}
-
-      {enrolledCourses.length === 0 ? (
-        <EmptyCourses />
       ) : (
         <div
           style={{
@@ -670,63 +645,127 @@ export default function MyCoursesPage() {
             gap: "18px",
           }}
         >
-          {enrolledCourses.map(
-            ({
-              course,
-              enrollment,
-              packageTitle,
-            }) => (
+          {courses.map((item) => {
+            const progress =
+              getCourseProgress(item.course.id);
+
+            return (
               <CourseCard
-                key={course.id}
-                course={course}
-                enrollment={enrollment}
-                packageTitle={packageTitle}
-                onView={() =>
-                  openCourse(course.id)
+                key={item.course.id}
+                course={item.course}
+                progress={progress}
+                enrollmentStatus={
+                  item.enrollmentStatus
+                }
+                packageName={
+                  item.packageName
                 }
                 onContinue={() =>
-                  openCourse(course.id)
+                  router.push(
+                    `/dashboard/student/my-courses/${item.course.id}`
+                  )
                 }
               />
-            )
-          )}
+            );
+          })}
         </div>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Responsive styles                                                   */}
-      {/* ------------------------------------------------------------------ */}
+      {/* =====================================================
+          ACTIVE COURSE SUMMARY
+      ====================================================== */}
+      {courses.length > 0 && (
+        <div
+          style={{
+            marginTop: "24px",
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(2, minmax(0, 1fr))",
+            gap: "14px",
+          }}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid #E5E7EB",
+              borderRadius: "12px",
+              padding: "17px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#6B7280",
+                marginBottom: "5px",
+              }}
+            >
+              Courses In Progress
+            </div>
+
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "#111827",
+              }}
+            >
+              {activeCourses}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid #E5E7EB",
+              borderRadius: "12px",
+              padding: "17px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#6B7280",
+                marginBottom: "5px",
+              }}
+            >
+              Completed Courses
+            </div>
+
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "#15803D",
+              }}
+            >
+              {completedCourses}
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
-        @media (max-width: 1100px) {
-          main {
-            padding-left: 24px !important;
-            padding-right: 24px !important;
-          }
-        }
-
-        @media (max-width: 800px) {
-          main > div:nth-of-type(2) {
-            grid-template-columns: 1fr !important;
-          }
-
-          main > div:nth-of-type(4) {
-            grid-template-columns: 1fr !important;
-          }
-        }
-
-        @media (max-width: 600px) {
-          main {
-            padding: 20px 16px !important;
-          }
-        }
-
         @keyframes spin {
           from {
             transform: rotate(0deg);
           }
+
           to {
             transform: rotate(360deg);
+          }
+        }
+
+        @media (max-width: 900px) {
+          main {
+            padding: 22px 18px !important;
+          }
+
+          div[style*="repeat(3"] {
+            grid-template-columns: 1fr !important;
+          }
+
+          div[style*="repeat(2"] {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>
@@ -764,8 +803,8 @@ function SummaryCard({
           width: "38px",
           height: "38px",
           borderRadius: "9px",
-          background: "#EAF0FE",
-          color: "#2F6BFF",
+          background: "#F8EAF0",
+          color: "#A01441",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -806,46 +845,19 @@ function SummaryCard({
 
 function CourseCard({
   course,
-  enrollment,
-  packageTitle,
+  progress,
+  enrollmentStatus,
+  packageName,
   onContinue,
-  onView,
 }: {
   course: Course;
-  enrollment: Enrollment;
-  packageTitle: string | null;
+  progress: CourseProgress;
+  enrollmentStatus: string;
+  packageName: string | null;
   onContinue: () => void;
-  onView: () => void;
 }) {
-  const statusLabel =
-    enrollment.status === "ACTIVE"
-      ? "Active"
-      : enrollment.status === "COMPLETED"
-        ? "Completed"
-        : enrollment.status === "PENDING"
-          ? "Pending"
-          : "Cancelled";
-
-  const statusStyle =
-    enrollment.status === "ACTIVE"
-      ? {
-          background: "#ECFDF3",
-          color: "#15803D",
-        }
-      : enrollment.status === "COMPLETED"
-        ? {
-            background: "#EFF6FF",
-            color: "#2563EB",
-          }
-        : enrollment.status === "PENDING"
-          ? {
-              background: "#FFFBEB",
-              color: "#B45309",
-            }
-          : {
-              background: "#FEF2F2",
-              color: "#DC2626",
-            };
+  const isCompleted =
+    progress.progressPercentage === 100;
 
   return (
     <div
@@ -859,7 +871,6 @@ function CourseCard({
       }}
     >
       {/* Course Header */}
-
       <div
         style={{
           display: "flex",
@@ -882,7 +893,7 @@ function CourseCard({
               width: "44px",
               height: "44px",
               borderRadius: "10px",
-              background: "#EAF0FE",
+              background: "#F8EAF0",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -891,7 +902,7 @@ function CourseCard({
           >
             <BookOpen
               size={20}
-              color="#2F6BFF"
+              color="#A01441"
             />
           </div>
 
@@ -912,19 +923,15 @@ function CourseCard({
               {course.title}
             </h2>
 
-            {packageTitle && (
+            {course.mode && (
               <div
                 style={{
-                  marginTop: "5px",
+                  marginTop: "4px",
                   fontSize: "12px",
                   color: "#6B7280",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
                 }}
               >
-                <Package size={12} />
-                {packageTitle}
+                {course.mode}
               </div>
             )}
           </div>
@@ -934,33 +941,130 @@ function CourseCard({
           style={{
             padding: "5px 9px",
             borderRadius: "999px",
+            background: isCompleted
+              ? "#ECFDF3"
+              : "#EFF6FF",
+            color: isCompleted
+              ? "#15803D"
+              : "#2563EB",
             fontSize: "10px",
             fontWeight: 700,
             whiteSpace: "nowrap",
-            ...statusStyle,
           }}
         >
-          {statusLabel}
+          {isCompleted
+            ? "Completed"
+            : enrollmentStatus === "ACTIVE"
+            ? "Active"
+            : enrollmentStatus}
         </span>
       </div>
 
       {/* Description */}
+      {course.description && (
+        <p
+          style={{
+            margin: "0 0 18px",
+            fontSize: "12.5px",
+            lineHeight: 1.6,
+            color: "#6B7280",
+          }}
+        >
+          {course.description}
+        </p>
+      )}
 
-      <p
+      {/* Package */}
+      {packageName && (
+        <div
+          style={{
+            marginBottom: "15px",
+            padding: "9px 10px",
+            background: "#F9FAFB",
+            borderRadius: "8px",
+            border: "1px solid #F0F1F3",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#9CA3AF",
+              marginBottom: "3px",
+            }}
+          >
+            Package
+          </div>
+
+          <div
+            style={{
+              fontSize: "11.5px",
+              color: "#374151",
+              fontWeight: 600,
+            }}
+          >
+            {packageName}
+          </div>
+        </div>
+      )}
+
+      {/* Progress */}
+      <div
         style={{
-          margin: "0 0 18px",
-          fontSize: "12.5px",
-          lineHeight: 1.6,
-          color: "#6B7280",
-          minHeight: "40px",
+          marginBottom: "15px",
         }}
       >
-        {course.description ||
-          "Course information will be available soon."}
-      </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "7px",
+            fontSize: "12px",
+          }}
+        >
+          <span
+            style={{
+              color: "#6B7280",
+            }}
+          >
+            Course Progress
+          </span>
 
-      {/* Course Information */}
+          <span
+            style={{
+              color: isCompleted
+                ? "#15803D"
+                : "#A01441",
+              fontWeight: 700,
+            }}
+          >
+            {progress.progressPercentage}%
+          </span>
+        </div>
 
+        <div
+          style={{
+            height: "8px",
+            background: "#EEF0F4",
+            borderRadius: "999px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${progress.progressPercentage}%`,
+              background: isCompleted
+                ? "#16A34A"
+                : "#A01441",
+              borderRadius: "999px",
+              transition:
+                "width 0.4s ease",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Lesson Information */}
       <div
         style={{
           display: "grid",
@@ -970,133 +1074,65 @@ function CourseCard({
         }}
       >
         <InfoItem
-          label="Mode"
-          value={formatMode(course.mode)}
+          label="Lessons"
+          value={`${progress.completedLessons}/${progress.totalLessons}`}
         />
 
         <InfoItem
-          label="Duration"
-          value={
-            course.duration ||
-            "Not specified"
-          }
-        />
-
-        <InfoItem
-          label="Modules"
-          value={
-            course.modules !== null
-              ? String(course.modules)
-              : "Not available"
-          }
-        />
-
-        <InfoItem
-          label="Enrolled On"
-          value={formatDate(
-            enrollment.enrolledAt
+          label="Remaining"
+          value={String(
+            progress.remainingLessons
           )}
         />
-      </div>
 
-      {/* Learning Progress */}
+        <InfoItem
+          label="Started"
+          value={String(
+            progress.startedLessons
+          )}
+        />
 
-      <div
-        style={{
-          padding: "11px 12px",
-          background: "#F9FAFB",
-          border: "1px solid #F0F1F3",
-          borderRadius: "8px",
-          marginBottom: "16px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "11px",
-            color: "#6B7280",
-          }}
-        >
-          Learning Progress
-        </span>
-
-        <span
-          style={{
-            fontSize: "11px",
-            color: "#9CA3AF",
-            fontWeight: 500,
-          }}
-        >
-          Not available yet
-        </span>
-      </div>
-
-      {/* Actions */}
-
-      <div
-        style={{
-          display: "flex",
-          gap: "9px",
-        }}
-      >
-        <button
-          onClick={onView}
-          style={{
-            flex: 1,
-            height: "40px",
-            border:
-              "1px solid #D7DCE5",
-            background: "#FFFFFF",
-            color: "#374151",
-            borderRadius: "8px",
-            fontSize: "12.5px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          View Course
-        </button>
-
-        <button
-          onClick={onContinue}
-          disabled={
-            enrollment.status ===
-            "CANCELLED"
+        <InfoItem
+          label="Status"
+          value={
+            isCompleted
+              ? "Completed"
+              : progress.startedLessons > 0
+              ? "In Progress"
+              : "Not Started"
           }
-          style={{
-            flex: 1,
-            height: "40px",
-            border: "none",
-            background:
-              enrollment.status ===
-              "CANCELLED"
-                ? "#D1D5DB"
-                : "#2F6BFF",
-            color: "#FFFFFF",
-            borderRadius: "8px",
-            fontSize: "12.5px",
-            fontWeight: 600,
-            cursor:
-              enrollment.status ===
-              "CANCELLED"
-                ? "not-allowed"
-                : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-          }}
-        >
-          <PlayCircle size={15} />
-
-          Continue
-
-          <ArrowRight size={14} />
-        </button>
+        />
       </div>
+
+      {/* Action */}
+      <button
+        onClick={onContinue}
+        style={{
+          width: "100%",
+          height: "40px",
+          border: "none",
+          background: "#A01441",
+          color: "#FFFFFF",
+          borderRadius: "8px",
+          fontSize: "12.5px",
+          fontWeight: 600,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "6px",
+        }}
+      >
+        <PlayCircle size={15} />
+
+        {isCompleted
+          ? "Review Course"
+          : progress.startedLessons > 0
+          ? "Continue Learning"
+          : "Start Learning"}
+
+        <ArrowRight size={14} />
+      </button>
     </div>
   );
 }
@@ -1144,98 +1180,5 @@ function InfoItem({
         {value}
       </div>
     </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Empty Courses                                                              */
-/* -------------------------------------------------------------------------- */
-
-function EmptyCourses() {
-  return (
-    <div
-      style={{
-        background: "#FFFFFF",
-        border: "1px solid #E5E7EB",
-        borderRadius: "14px",
-        padding: "55px 25px",
-        textAlign: "center",
-      }}
-    >
-      <BookOpen
-        size={42}
-        color="#9CA3AF"
-        style={{
-          marginBottom: "12px",
-        }}
-      />
-
-      <h3
-        style={{
-          margin: "0 0 6px",
-          fontSize: "17px",
-          color: "#111827",
-        }}
-      >
-        No Courses Assigned
-      </h3>
-
-      <p
-        style={{
-          margin: 0,
-          color: "#6B7280",
-          fontSize: "13px",
-        }}
-      >
-        Your enrolled courses will appear
-        here once you complete registration
-        and payment.
-      </p>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
-function formatMode(
-  mode: Course["mode"]
-) {
-  switch (mode) {
-    case "ONLINE":
-      return "Online";
-
-    case "OFFLINE":
-      return "Offline";
-
-    case "HYBRID":
-      return "Hybrid";
-
-    default:
-      return "Not specified";
-  }
-}
-
-function formatDate(
-  value: string
-) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
   );
 }

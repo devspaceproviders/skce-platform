@@ -1,0 +1,2198 @@
+[
+  {
+    "id": "dropColumn.course.price",
+    "label": "Drop column \"price\" from \"course\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "price",
+        "table": "course"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"price\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"price\"",
+        "sql": "ALTER TABLE \"public\".\"course\" DROP COLUMN \"price\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"price\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.courseModule",
+    "label": "Create table \"courseModule\"",
+    "summary": "Creates table \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"courseModule\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"courseModule\"",
+        "sql": "CREATE TABLE \"public\".\"courseModule\" (\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"courseModule\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.lesson",
+    "label": "Create table \"lesson\"",
+    "summary": "Creates table \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"lesson\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"lesson\"",
+        "sql": "CREATE TABLE \"public\".\"lesson\" (\n  \"content\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"documentUrl\" text,\n  \"id\" SERIAL NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"moduleId\" int4 NOT NULL,\n  \"sortOrder\" int4 DEFAULT 0 NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"videoUrl\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"lesson\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.lessonProgress",
+    "label": "Create table \"lessonProgress\"",
+    "summary": "Creates table \"lessonProgress\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"lessonProgress\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"lessonProgress\"",
+        "sql": "CREATE TABLE \"public\".\"lessonProgress\" (\n  \"completedAt\" timestamptz,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"lessonId\" int4 NOT NULL,\n  \"startedAt\" timestamptz,\n  \"status\" text DEFAULT 'NOT_STARTED' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"lessonProgress\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.address",
+    "label": "Add column \"address\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "address",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"address\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "address"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"address\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"address\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"address\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "address"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.city",
+    "label": "Add column \"city\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "city",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"city\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "city"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"city\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"city\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"city\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "city"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.dateOfBirth",
+    "label": "Add column \"dateOfBirth\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "dateOfBirth",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"dateOfBirth\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "dateOfBirth"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"dateOfBirth\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"dateOfBirth\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"dateOfBirth\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "dateOfBirth"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.declarationAccepted",
+    "label": "Add column \"declarationAccepted\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "declarationAccepted",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"declarationAccepted\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "declarationAccepted"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"declarationAccepted\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"declarationAccepted\" bool DEFAULT false NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"declarationAccepted\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "declarationAccepted"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.deviceTypes",
+    "label": "Add column \"deviceTypes\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deviceTypes",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deviceTypes\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "deviceTypes"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deviceTypes\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"deviceTypes\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deviceTypes\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "deviceTypes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.gender",
+    "label": "Add column \"gender\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "gender",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"gender\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "gender"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"gender\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"gender\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"gender\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "gender"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.guardianEmail",
+    "label": "Add column \"guardianEmail\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianEmail",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianEmail\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianEmail"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianEmail\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"guardianEmail\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianEmail\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianEmail"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.guardianMobile",
+    "label": "Add column \"guardianMobile\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianMobile",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianMobile\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianMobile"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianMobile\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"guardianMobile\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianMobile\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianMobile"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.guardianName",
+    "label": "Add column \"guardianName\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianName",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianName\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"guardianName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.guardianRelationship",
+    "label": "Add column \"guardianRelationship\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianRelationship",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianRelationship\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianRelationship"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianRelationship\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"guardianRelationship\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianRelationship\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianRelationship"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.guardianWhatsapp",
+    "label": "Add column \"guardianWhatsapp\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianWhatsapp",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianWhatsapp\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianWhatsapp"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianWhatsapp\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"guardianWhatsapp\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianWhatsapp\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "guardianWhatsapp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.internetFacility",
+    "label": "Add column \"internetFacility\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "internetFacility",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"internetFacility\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "internetFacility"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"internetFacility\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"internetFacility\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"internetFacility\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "internetFacility"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.organization",
+    "label": "Add column \"organization\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organization",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organization\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "organization"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organization\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"organization\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organization\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "organization"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.pin",
+    "label": "Add column \"pin\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "pin",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"pin\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "pin"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"pin\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"pin\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"pin\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "pin"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.preferredClassApp",
+    "label": "Add column \"preferredClassApp\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "preferredClassApp",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"preferredClassApp\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "preferredClassApp"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"preferredClassApp\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"preferredClassApp\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"preferredClassApp\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "preferredClassApp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.qualification",
+    "label": "Add column \"qualification\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "qualification",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"qualification\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "qualification"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"qualification\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"qualification\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"qualification\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "qualification"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.referralMobile",
+    "label": "Add column \"referralMobile\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralMobile",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralMobile\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralMobile"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralMobile\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"referralMobile\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralMobile\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralMobile"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.referralName",
+    "label": "Add column \"referralName\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralName",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralName\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"referralName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.registrationIntent.referralSource",
+    "label": "Add column \"referralSource\" to \"registrationIntent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralSource",
+        "table": "registrationIntent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralSource\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralSource"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralSource\"",
+        "sql": "ALTER TABLE \"public\".\"registrationIntent\" ADD COLUMN \"referralSource\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralSource\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "registrationIntent",
+          "referralSource"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.address",
+    "label": "Add column \"address\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "address",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"address\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "address"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"address\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"address\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"address\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "address"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.city",
+    "label": "Add column \"city\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "city",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"city\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "city"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"city\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"city\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"city\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "city"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.dateOfBirth",
+    "label": "Add column \"dateOfBirth\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "dateOfBirth",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"dateOfBirth\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "dateOfBirth"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"dateOfBirth\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"dateOfBirth\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"dateOfBirth\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "dateOfBirth"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.declarationAccepted",
+    "label": "Add column \"declarationAccepted\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "declarationAccepted",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"declarationAccepted\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "declarationAccepted"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"declarationAccepted\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"declarationAccepted\" bool DEFAULT false NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"declarationAccepted\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "declarationAccepted"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.deviceTypes",
+    "label": "Add column \"deviceTypes\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "deviceTypes",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"deviceTypes\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "deviceTypes"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"deviceTypes\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"deviceTypes\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"deviceTypes\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "deviceTypes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.gender",
+    "label": "Add column \"gender\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "gender",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"gender\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "gender"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"gender\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"gender\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"gender\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "gender"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.guardianEmail",
+    "label": "Add column \"guardianEmail\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianEmail",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianEmail\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianEmail"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianEmail\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"guardianEmail\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianEmail\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianEmail"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.guardianMobile",
+    "label": "Add column \"guardianMobile\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianMobile",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianMobile\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianMobile"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianMobile\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"guardianMobile\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianMobile\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianMobile"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.guardianName",
+    "label": "Add column \"guardianName\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianName",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianName\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"guardianName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.guardianRelationship",
+    "label": "Add column \"guardianRelationship\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianRelationship",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianRelationship\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianRelationship"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianRelationship\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"guardianRelationship\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianRelationship\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianRelationship"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.guardianWhatsapp",
+    "label": "Add column \"guardianWhatsapp\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "guardianWhatsapp",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"guardianWhatsapp\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianWhatsapp"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"guardianWhatsapp\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"guardianWhatsapp\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"guardianWhatsapp\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "guardianWhatsapp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.internetFacility",
+    "label": "Add column \"internetFacility\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "internetFacility",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"internetFacility\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "internetFacility"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"internetFacility\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"internetFacility\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"internetFacility\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "internetFacility"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.organization",
+    "label": "Add column \"organization\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "organization",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"organization\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "organization"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"organization\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"organization\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"organization\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "organization"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.pin",
+    "label": "Add column \"pin\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "pin",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"pin\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "pin"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"pin\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"pin\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"pin\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "pin"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.preferredClassApp",
+    "label": "Add column \"preferredClassApp\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "preferredClassApp",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"preferredClassApp\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "preferredClassApp"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"preferredClassApp\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"preferredClassApp\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"preferredClassApp\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "preferredClassApp"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.qualification",
+    "label": "Add column \"qualification\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "qualification",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"qualification\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "qualification"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"qualification\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"qualification\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"qualification\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "qualification"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.referralMobile",
+    "label": "Add column \"referralMobile\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralMobile",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralMobile\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralMobile"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralMobile\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"referralMobile\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralMobile\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralMobile"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.referralName",
+    "label": "Add column \"referralName\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralName",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralName\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralName"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralName\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"referralName\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralName\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralName"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentProfile.referralSource",
+    "label": "Add column \"referralSource\" to \"studentProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "referralSource",
+        "table": "studentProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"referralSource\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralSource"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"referralSource\"",
+        "sql": "ALTER TABLE \"public\".\"studentProfile\" ADD COLUMN \"referralSource\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"referralSource\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentProfile",
+          "referralSource"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.lessonProgress.lessonProgress_userId_lessonId_key",
+    "label": "Add unique constraint on \"lessonProgress\" (userId, lessonId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "lessonProgress_userId_lessonId_key",
+        "table": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"lessonProgress_userId_lessonId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lessonProgress_userId_lessonId_key",
+          "public",
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"lessonProgress_userId_lessonId_key\"",
+        "sql": "ALTER TABLE \"public\".\"lessonProgress\" ADD CONSTRAINT \"lessonProgress_userId_lessonId_key\" UNIQUE (\"userId\", \"lessonId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"lessonProgress_userId_lessonId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lessonProgress_userId_lessonId_key",
+          "public",
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.courseModule.courseModule_courseId_idx_12f72d2a",
+    "label": "Create index \"courseModule_courseId_idx_12f72d2a\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "courseModule_courseId_idx_12f72d2a",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"courseModule_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"courseModule_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"courseModule_courseId_idx_12f72d2a\" ON \"public\".\"courseModule\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"courseModule_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.courseModule.courseModule_courseId_sortOrder_idx_d8679aaa",
+    "label": "Create index \"courseModule_courseId_sortOrder_idx_d8679aaa\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "courseModule_courseId_sortOrder_idx_d8679aaa",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"courseModule_courseId_sortOrder_idx_d8679aaa\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_courseId_sortOrder_idx_d8679aaa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"courseModule_courseId_sortOrder_idx_d8679aaa\"",
+        "sql": "CREATE INDEX \"courseModule_courseId_sortOrder_idx_d8679aaa\" ON \"public\".\"courseModule\" (\"courseId\", \"sortOrder\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"courseModule_courseId_sortOrder_idx_d8679aaa\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_courseId_sortOrder_idx_d8679aaa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lesson.lesson_moduleId_idx_04fe188b",
+    "label": "Create index \"lesson_moduleId_idx_04fe188b\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lesson_moduleId_idx_04fe188b",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lesson_moduleId_idx_04fe188b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_moduleId_idx_04fe188b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lesson_moduleId_idx_04fe188b\"",
+        "sql": "CREATE INDEX \"lesson_moduleId_idx_04fe188b\" ON \"public\".\"lesson\" (\"moduleId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lesson_moduleId_idx_04fe188b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_moduleId_idx_04fe188b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lesson.lesson_moduleId_sortOrder_idx_b236c8db",
+    "label": "Create index \"lesson_moduleId_sortOrder_idx_b236c8db\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lesson_moduleId_sortOrder_idx_b236c8db",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lesson_moduleId_sortOrder_idx_b236c8db\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_moduleId_sortOrder_idx_b236c8db\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lesson_moduleId_sortOrder_idx_b236c8db\"",
+        "sql": "CREATE INDEX \"lesson_moduleId_sortOrder_idx_b236c8db\" ON \"public\".\"lesson\" (\"moduleId\", \"sortOrder\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lesson_moduleId_sortOrder_idx_b236c8db\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_moduleId_sortOrder_idx_b236c8db\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lessonProgress.lessonProgress_lessonId_idx_e358970d",
+    "label": "Create index \"lessonProgress_lessonId_idx_e358970d\" on \"lessonProgress\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lessonProgress_lessonId_idx_e358970d",
+        "table": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lessonProgress_lessonId_idx_e358970d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_lessonId_idx_e358970d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lessonProgress_lessonId_idx_e358970d\"",
+        "sql": "CREATE INDEX \"lessonProgress_lessonId_idx_e358970d\" ON \"public\".\"lessonProgress\" (\"lessonId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lessonProgress_lessonId_idx_e358970d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_lessonId_idx_e358970d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lessonProgress.lessonProgress_userId_idx_a489d58a",
+    "label": "Create index \"lessonProgress_userId_idx_a489d58a\" on \"lessonProgress\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lessonProgress_userId_idx_a489d58a",
+        "table": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lessonProgress_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lessonProgress_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"lessonProgress_userId_idx_a489d58a\" ON \"public\".\"lessonProgress\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lessonProgress_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lessonProgress.lessonProgress_userId_status_idx_e4a128ba",
+    "label": "Create index \"lessonProgress_userId_status_idx_e4a128ba\" on \"lessonProgress\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lessonProgress_userId_status_idx_e4a128ba",
+        "table": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lessonProgress_userId_status_idx_e4a128ba\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_userId_status_idx_e4a128ba\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lessonProgress_userId_status_idx_e4a128ba\"",
+        "sql": "CREATE INDEX \"lessonProgress_userId_status_idx_e4a128ba\" ON \"public\".\"lessonProgress\" (\"userId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lessonProgress_userId_status_idx_e4a128ba\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lessonProgress_userId_status_idx_e4a128ba\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.courseModule.courseModule_courseId_fkey",
+    "label": "Add foreign key \"courseModule_courseId_fkey\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "courseModule_courseId_fkey",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"courseModule_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_courseId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"courseModule_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\"\nADD CONSTRAINT \"courseModule_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"courseModule_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_courseId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lesson.lesson_moduleId_fkey",
+    "label": "Add foreign key \"lesson_moduleId_fkey\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lesson_moduleId_fkey",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lesson_moduleId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_moduleId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lesson_moduleId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\"\nADD CONSTRAINT \"lesson_moduleId_fkey\"\nFOREIGN KEY (\"moduleId\")\nREFERENCES \"public\".\"courseModule\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lesson_moduleId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_moduleId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lessonProgress.lessonProgress_lessonId_fkey",
+    "label": "Add foreign key \"lessonProgress_lessonId_fkey\" on \"lessonProgress\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lessonProgress_lessonId_fkey",
+        "table": "lessonProgress"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lessonProgress_lessonId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lessonProgress_lessonId_fkey",
+          "public",
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lessonProgress_lessonId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lessonProgress\"\nADD CONSTRAINT \"lessonProgress_lessonId_fkey\"\nFOREIGN KEY (\"lessonId\")\nREFERENCES \"public\".\"lesson\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lessonProgress_lessonId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lessonProgress_lessonId_fkey",
+          "public",
+          "\"public\".\"lessonProgress\""
+        ]
+      }
+    ]
+  }
+]

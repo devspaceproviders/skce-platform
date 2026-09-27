@@ -20,8 +20,7 @@ export interface Course {
   description: string;
   durationMonths: number;
   modules: number;
-  enrolled: number;
-  price: number;
+  enrolled: number; 
   accentColor: string; // tailwind border color class e.g. "border-t-blue-500"
 
   // Detail-page fields

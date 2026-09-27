@@ -521,8 +521,51 @@ export async function getStudentDashboard(
       name: user.name,
       email: user.email,
       phone: user.phone,
+      profilePhotoUrl: user.profilePhotoUrl,
       state: student.state,
       referralId: student.referralId,
+
+      /* Personal details */
+      dateOfBirth: student.dateOfBirth,
+      gender: student.gender,
+      qualification: student.qualification,
+      organization: student.organization,
+
+      /* Parent / Guardian details */
+      guardianName: student.guardianName,
+      guardianRelationship:
+        student.guardianRelationship,
+      guardianMobile:
+        student.guardianMobile,
+      guardianWhatsapp:
+        student.guardianWhatsapp,
+      guardianEmail:
+        student.guardianEmail,
+
+      /* Online learning facilities */
+      deviceTypes: student.deviceTypes,
+      internetFacility:
+        student.internetFacility,
+      preferredClassApp:
+        student.preferredClassApp,
+
+      /* Address */
+      address: student.address,
+      city: student.city,
+      pin: student.pin,
+
+      /* Referral */
+      referralSource:
+        student.referralSource,
+      referralName:
+        student.referralName,
+      referralMobile:
+        student.referralMobile,
+
+      /* Declaration */
+      declarationAccepted:
+        student.declarationAccepted,
+
       isActive: user.isActive,
     },
 
@@ -570,5 +613,63 @@ export async function getStudentDashboard(
     liveClasses: [],
     recentActivity: [],
     certificates: [],
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* UPDATE LOGGED-IN STUDENT MOBILE NUMBER                                    */
+/* -------------------------------------------------------------------------- */
+
+export async function updateMyPhone(
+  userId: number,
+  phone: string
+) {
+  const normalizedPhone = phone.trim();
+
+  if (!normalizedPhone) {
+    throw new Error(
+      "Mobile number is required"
+    );
+  }
+
+  if (!/^[0-9]{10}$/.test(normalizedPhone)) {
+    throw new Error(
+      "Please enter a valid 10-digit mobile number"
+    );
+  }
+
+  const user =
+    await db.orm.public.User
+      .where({
+        id: userId,
+      })
+      .first();
+
+  if (!user) {
+    throw new Error(
+      "Student user account not found"
+    );
+  }
+
+  const updatedUser =
+    await db.orm.public.User
+      .where({
+        id: userId,
+      })
+      .update({
+        phone: normalizedPhone,
+      });
+
+  if (!updatedUser) {
+    throw new Error(
+      "Failed to update student mobile number"
+    );
+  }
+
+
+  return {
+    phone:
+      updatedUser.phone ??
+      normalizedPhone,
   };
 }

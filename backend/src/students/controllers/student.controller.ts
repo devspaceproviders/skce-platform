@@ -6,6 +6,7 @@ import {
   getAllStudents,
   getStudentByStudentId,
   getStudentDashboard,
+  updateMyPhone,
 } from "../services/student.service";
 
 /*
@@ -188,6 +189,102 @@ export async function getMyDashboard(
       success: false,
       message:
         "Failed to retrieve student dashboard",
+    });
+  }
+}
+
+/*
+ * ==========================================================
+ * UPDATE MY MOBILE NUMBER
+ * ==========================================================
+ *
+ * STUDENT ONLY
+ *
+ * Only the authenticated student's User.phone field can
+ * be changed. All registration/profile fields remain
+ * read-only.
+ */
+
+export async function updateMyPhoneNumber(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    const { phone } = req.body;
+
+    if (
+      typeof phone !== "string" ||
+      !phone.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Mobile number is required",
+      });
+    }
+
+    const result =
+      await updateMyPhone(
+        req.user.userId,
+        phone
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Mobile number updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to update mobile number:",
+      error
+    );
+
+    if (error instanceof Error) {
+      if (
+        error.message ===
+        "Mobile number is required"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      if (
+        error.message ===
+        "Please enter a valid 10-digit mobile number"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      if (
+        error.message ===
+        "Student user account not found"
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to update mobile number",
     });
   }
 }

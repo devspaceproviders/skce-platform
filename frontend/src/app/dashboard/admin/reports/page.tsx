@@ -21,7 +21,6 @@ type ReportType =
   | "overview"
   | "students"
   | "courses"
-  | "attendance"
   | "payments"
   | "certificates"
   | "affiliates";
@@ -30,7 +29,6 @@ const REPORT_TYPES: { key: ReportType; label: string; icon: ReactNode }[] = [
   { key: "overview", label: "Overview", icon: <BarChart3 size={17} /> },
   { key: "students", label: "Students", icon: <Users size={17} /> },
   { key: "courses", label: "Courses", icon: <BookOpen size={17} /> },
-  { key: "attendance", label: "Attendance", icon: <CalendarDays size={17} /> },
   { key: "payments", label: "Payments & Revenue", icon: <IndianRupee size={17} /> },
   { key: "certificates", label: "Certificates", icon: <Award size={17} /> },
   { key: "affiliates", label: "Affiliate Marketing", icon: <Wallet size={17} /> },
@@ -41,7 +39,6 @@ const COURSE_NAMES = COURSE_OPTIONS.map((course) => course.title);
 const reportData = {
   students: { total: 0, active: 0, inactive: 0, newThisPeriod: 0 },
   courses: { total: COURSE_NAMES.length, active: COURSE_NAMES.length, inactive: 0, enrollments: 0 },
-  attendance: { totalRecords: 0, present: 0, absent: 0, late: 0, percentage: 0 },
   payments: { revenue: 0, paid: 0, pending: 0, transactions: 0 },
   certificates: { total: 0, issued: 0, pending: 0, revoked: 0 },
   affiliates: { total: 0, active: 0, referrals: 0, commission: 0 },
@@ -189,7 +186,6 @@ export default function ReportsPage() {
         {reportType === "overview" && <OverviewReport />}
         {reportType === "students" && <StudentsReport />}
         {reportType === "courses" && <CoursesReport />}
-        {reportType === "attendance" && <AttendanceReport />}
         {reportType === "payments" && <PaymentsReport />}
         {reportType === "certificates" && <CertificatesReport />}
         {reportType === "affiliates" && <AffiliateReport />}
@@ -204,7 +200,6 @@ function OverviewReport() {
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard title="Total Students" value={reportData.students.total} icon={<Users size={20} />} iconClass="bg-blue-50 text-blue-600" />
         <SummaryCard title="Active Courses" value={reportData.courses.active} icon={<BookOpen size={20} />} iconClass="bg-violet-50 text-violet-600" />
-        <SummaryCard title="Attendance" value={`${reportData.attendance.percentage}%`} icon={<CalendarDays size={20} />} iconClass="bg-green-50 text-green-600" />
         <SummaryCard title="Revenue" value={`₹${reportData.payments.revenue.toLocaleString("en-IN")}`} icon={<IndianRupee size={20} />} iconClass="bg-amber-50 text-amber-600" />
       </div>
 
@@ -220,12 +215,6 @@ function OverviewReport() {
           <MetricRow label="Active Courses" value={reportData.courses.active} />
           <MetricRow label="Inactive Courses" value={reportData.courses.inactive} />
           <MetricRow label="Total Enrollments" value={reportData.courses.enrollments} />
-        </ReportPanel>
-        <ReportPanel title="Attendance Overview">
-          <MetricRow label="Attendance Records" value={reportData.attendance.totalRecords} />
-          <MetricRow label="Present" value={reportData.attendance.present} />
-          <MetricRow label="Absent" value={reportData.attendance.absent} />
-          <MetricRow label="Late" value={reportData.attendance.late} />
         </ReportPanel>
         <ReportPanel title="Certificate Overview">
           <MetricRow label="Total Certificates" value={reportData.certificates.total} />
@@ -261,20 +250,6 @@ function CoursesReport() {
         <SummaryCard title="Enrollments" value={0} icon={<Users size={20} />} iconClass="bg-violet-50 text-violet-600" />
       </div>
       <EmptyReportState icon={<BookOpen size={30} />} title="Course analytics will appear here" description="Once student enrollments and course activity are connected to the database, course performance will be calculated automatically." />
-    </ReportSection>
-  );
-}
-
-function AttendanceReport() {
-  return (
-    <ReportSection title="Attendance Report">
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard title="Attendance" value="0%" icon={<CalendarDays size={20} />} iconClass="bg-green-50 text-green-600" />
-        <SummaryCard title="Present" value={0} icon={<CheckCircle2 size={20} />} iconClass="bg-blue-50 text-blue-600" />
-        <SummaryCard title="Absent" value={0} icon={<CalendarDays size={20} />} iconClass="bg-red-50 text-red-600" />
-        <SummaryCard title="Late" value={0} icon={<CalendarDays size={20} />} iconClass="bg-amber-50 text-amber-600" />
-      </div>
-      <EmptyReportState icon={<CalendarDays size={30} />} title="Attendance analytics will appear here" description="Attendance percentages and trends will be calculated automatically from attendance records." />
     </ReportSection>
   );
 }

@@ -1,0 +1,2138 @@
+[
+  {
+    "id": "table.trainerCoursePermission",
+    "label": "Create table \"trainerCoursePermission\"",
+    "summary": "Creates table \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"trainerCoursePermission\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"trainerCoursePermission\"",
+        "sql": "CREATE TABLE \"public\".\"trainerCoursePermission\" (\n  \"canCreateAssessments\" bool DEFAULT false NOT NULL,\n  \"canCreateLiveSessions\" bool DEFAULT false NOT NULL,\n  \"canManageContent\" bool DEFAULT false NOT NULL,\n  \"canTeach\" bool DEFAULT true NOT NULL,\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"trainerId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"trainerCoursePermission\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.assessment.approvalStatus",
+    "label": "Add column \"approvalStatus\" to \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "approvalStatus",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"approvalStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "approvalStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"approvalStatus\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD COLUMN \"approvalStatus\" text DEFAULT 'PUBLISHED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"approvalStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "approvalStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.assessment.createdByUserId",
+    "label": "Add column \"createdByUserId\" to \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdByUserId",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "createdByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"createdByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD COLUMN \"createdByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "createdByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.assessment.rejectionReason",
+    "label": "Add column \"rejectionReason\" to \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "rejectionReason",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"rejectionReason\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "rejectionReason"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"rejectionReason\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD COLUMN \"rejectionReason\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"rejectionReason\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "rejectionReason"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.assessment.reviewedAt",
+    "label": "Add column \"reviewedAt\" to \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedAt",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "reviewedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedAt\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD COLUMN \"reviewedAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "reviewedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.assessment.reviewedByUserId",
+    "label": "Add column \"reviewedByUserId\" to \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedByUserId",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "reviewedByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD COLUMN \"reviewedByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "assessment",
+          "reviewedByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.courseModule.approvalStatus",
+    "label": "Add column \"approvalStatus\" to \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "approvalStatus",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"approvalStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "approvalStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"approvalStatus\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD COLUMN \"approvalStatus\" text DEFAULT 'PUBLISHED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"approvalStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "approvalStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.courseModule.createdByUserId",
+    "label": "Add column \"createdByUserId\" to \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdByUserId",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "createdByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"createdByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD COLUMN \"createdByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "createdByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.courseModule.rejectionReason",
+    "label": "Add column \"rejectionReason\" to \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "rejectionReason",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"rejectionReason\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "rejectionReason"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"rejectionReason\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD COLUMN \"rejectionReason\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"rejectionReason\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "rejectionReason"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.courseModule.reviewedAt",
+    "label": "Add column \"reviewedAt\" to \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedAt",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "reviewedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedAt\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD COLUMN \"reviewedAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "reviewedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.courseModule.reviewedByUserId",
+    "label": "Add column \"reviewedByUserId\" to \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedByUserId",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "reviewedByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD COLUMN \"reviewedByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "courseModule",
+          "reviewedByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.lesson.approvalStatus",
+    "label": "Add column \"approvalStatus\" to \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "approvalStatus",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"approvalStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "approvalStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"approvalStatus\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD COLUMN \"approvalStatus\" text DEFAULT 'PUBLISHED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"approvalStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "approvalStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.lesson.createdByUserId",
+    "label": "Add column \"createdByUserId\" to \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdByUserId",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "createdByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"createdByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD COLUMN \"createdByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "createdByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.lesson.rejectionReason",
+    "label": "Add column \"rejectionReason\" to \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "rejectionReason",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"rejectionReason\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "rejectionReason"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"rejectionReason\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD COLUMN \"rejectionReason\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"rejectionReason\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "rejectionReason"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.lesson.reviewedAt",
+    "label": "Add column \"reviewedAt\" to \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedAt",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "reviewedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedAt\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD COLUMN \"reviewedAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "reviewedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.lesson.reviewedByUserId",
+    "label": "Add column \"reviewedByUserId\" to \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedByUserId",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "reviewedByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD COLUMN \"reviewedByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lesson",
+          "reviewedByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.liveSession.approvalStatus",
+    "label": "Add column \"approvalStatus\" to \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "approvalStatus",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"approvalStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "approvalStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"approvalStatus\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD COLUMN \"approvalStatus\" text DEFAULT 'PUBLISHED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"approvalStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "approvalStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.liveSession.createdByUserId",
+    "label": "Add column \"createdByUserId\" to \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "createdByUserId",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"createdByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "createdByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"createdByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD COLUMN \"createdByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"createdByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "createdByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.liveSession.rejectionReason",
+    "label": "Add column \"rejectionReason\" to \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "rejectionReason",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"rejectionReason\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "rejectionReason"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"rejectionReason\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD COLUMN \"rejectionReason\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"rejectionReason\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "rejectionReason"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.liveSession.reviewedAt",
+    "label": "Add column \"reviewedAt\" to \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedAt",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "reviewedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedAt\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD COLUMN \"reviewedAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "reviewedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.liveSession.reviewedByUserId",
+    "label": "Add column \"reviewedByUserId\" to \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reviewedByUserId",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reviewedByUserId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "reviewedByUserId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reviewedByUserId\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD COLUMN \"reviewedByUserId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reviewedByUserId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "liveSession",
+          "reviewedByUserId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.user.profilePhotoUrl",
+    "label": "Add column \"profilePhotoUrl\" to \"user\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "profilePhotoUrl",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"profilePhotoUrl\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "profilePhotoUrl"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"profilePhotoUrl\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ADD COLUMN \"profilePhotoUrl\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"profilePhotoUrl\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "profilePhotoUrl"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.assessment.assessment_approvalStatus_check_5f777b7a",
+    "label": "Add check constraint \"assessment_approvalStatus_check_5f777b7a\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "assessment_approvalStatus_check_5f777b7a",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"assessment_approvalStatus_check_5f777b7a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"assessment_approvalStatus_check_5f777b7a\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\" ADD CONSTRAINT \"assessment_approvalStatus_check_5f777b7a\" CHECK (\"approvalStatus\" IN ('DRAFT', 'PENDING_REVIEW', 'REJECTED', 'PUBLISHED', 'ARCHIVED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"assessment_approvalStatus_check_5f777b7a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.courseModule.courseModule_approvalStatus_check_5f777b7a",
+    "label": "Add check constraint \"courseModule_approvalStatus_check_5f777b7a\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "courseModule_approvalStatus_check_5f777b7a",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"courseModule_approvalStatus_check_5f777b7a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"courseModule_approvalStatus_check_5f777b7a\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\" ADD CONSTRAINT \"courseModule_approvalStatus_check_5f777b7a\" CHECK (\"approvalStatus\" IN ('DRAFT', 'PENDING_REVIEW', 'REJECTED', 'PUBLISHED', 'ARCHIVED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"courseModule_approvalStatus_check_5f777b7a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.lesson.lesson_approvalStatus_check_5f777b7a",
+    "label": "Add check constraint \"lesson_approvalStatus_check_5f777b7a\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "lesson_approvalStatus_check_5f777b7a",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"lesson_approvalStatus_check_5f777b7a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"lesson_approvalStatus_check_5f777b7a\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\" ADD CONSTRAINT \"lesson_approvalStatus_check_5f777b7a\" CHECK (\"approvalStatus\" IN ('DRAFT', 'PENDING_REVIEW', 'REJECTED', 'PUBLISHED', 'ARCHIVED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"lesson_approvalStatus_check_5f777b7a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.liveSession.liveSession_approvalStatus_check_5f777b7a",
+    "label": "Add check constraint \"liveSession_approvalStatus_check_5f777b7a\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "liveSession_approvalStatus_check_5f777b7a",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"liveSession_approvalStatus_check_5f777b7a\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"liveSession_approvalStatus_check_5f777b7a\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\" ADD CONSTRAINT \"liveSession_approvalStatus_check_5f777b7a\" CHECK (\"approvalStatus\" IN ('DRAFT', 'PENDING_REVIEW', 'REJECTED', 'PUBLISHED', 'ARCHIVED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"liveSession_approvalStatus_check_5f777b7a\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_approvalStatus_check_5f777b7a",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.trainerCoursePermission.trainerCoursePermission_trainerId_courseId_key",
+    "label": "Add unique constraint on \"trainerCoursePermission\" (trainerId, courseId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "trainerCoursePermission_trainerId_courseId_key",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"trainerCoursePermission_trainerId_courseId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_trainerId_courseId_key",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"trainerCoursePermission_trainerId_courseId_key\"",
+        "sql": "ALTER TABLE \"public\".\"trainerCoursePermission\" ADD CONSTRAINT \"trainerCoursePermission_trainerId_courseId_key\" UNIQUE (\"trainerId\", \"courseId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"trainerCoursePermission_trainerId_courseId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_trainerId_courseId_key",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_approvalStatus_idx_d15e1cde",
+    "label": "Create index \"assessment_approvalStatus_idx_d15e1cde\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_approvalStatus_idx_d15e1cde",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_approvalStatus_idx_d15e1cde\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_approvalStatus_idx_d15e1cde\"",
+        "sql": "CREATE INDEX \"assessment_approvalStatus_idx_d15e1cde\" ON \"public\".\"assessment\" (\"approvalStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_approvalStatus_idx_d15e1cde\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_createdByUserId_idx_93e8a540",
+    "label": "Create index \"assessment_createdByUserId_idx_93e8a540\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_createdByUserId_idx_93e8a540",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_createdByUserId_idx_93e8a540\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_createdByUserId_idx_93e8a540\"",
+        "sql": "CREATE INDEX \"assessment_createdByUserId_idx_93e8a540\" ON \"public\".\"assessment\" (\"createdByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_createdByUserId_idx_93e8a540\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.assessment.assessment_reviewedByUserId_idx_e62d4e38",
+    "label": "Create index \"assessment_reviewedByUserId_idx_e62d4e38\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "assessment_reviewedByUserId_idx_e62d4e38",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"assessment_reviewedByUserId_idx_e62d4e38\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"assessment_reviewedByUserId_idx_e62d4e38\"",
+        "sql": "CREATE INDEX \"assessment_reviewedByUserId_idx_e62d4e38\" ON \"public\".\"assessment\" (\"reviewedByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"assessment_reviewedByUserId_idx_e62d4e38\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"assessment_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.courseModule.courseModule_approvalStatus_idx_d15e1cde",
+    "label": "Create index \"courseModule_approvalStatus_idx_d15e1cde\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "courseModule_approvalStatus_idx_d15e1cde",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"courseModule_approvalStatus_idx_d15e1cde\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"courseModule_approvalStatus_idx_d15e1cde\"",
+        "sql": "CREATE INDEX \"courseModule_approvalStatus_idx_d15e1cde\" ON \"public\".\"courseModule\" (\"approvalStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"courseModule_approvalStatus_idx_d15e1cde\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.courseModule.courseModule_createdByUserId_idx_93e8a540",
+    "label": "Create index \"courseModule_createdByUserId_idx_93e8a540\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "courseModule_createdByUserId_idx_93e8a540",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"courseModule_createdByUserId_idx_93e8a540\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"courseModule_createdByUserId_idx_93e8a540\"",
+        "sql": "CREATE INDEX \"courseModule_createdByUserId_idx_93e8a540\" ON \"public\".\"courseModule\" (\"createdByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"courseModule_createdByUserId_idx_93e8a540\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.courseModule.courseModule_reviewedByUserId_idx_e62d4e38",
+    "label": "Create index \"courseModule_reviewedByUserId_idx_e62d4e38\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "courseModule_reviewedByUserId_idx_e62d4e38",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"courseModule_reviewedByUserId_idx_e62d4e38\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"courseModule_reviewedByUserId_idx_e62d4e38\"",
+        "sql": "CREATE INDEX \"courseModule_reviewedByUserId_idx_e62d4e38\" ON \"public\".\"courseModule\" (\"reviewedByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"courseModule_reviewedByUserId_idx_e62d4e38\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"courseModule_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lesson.lesson_approvalStatus_idx_d15e1cde",
+    "label": "Create index \"lesson_approvalStatus_idx_d15e1cde\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lesson_approvalStatus_idx_d15e1cde",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lesson_approvalStatus_idx_d15e1cde\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lesson_approvalStatus_idx_d15e1cde\"",
+        "sql": "CREATE INDEX \"lesson_approvalStatus_idx_d15e1cde\" ON \"public\".\"lesson\" (\"approvalStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lesson_approvalStatus_idx_d15e1cde\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lesson.lesson_createdByUserId_idx_93e8a540",
+    "label": "Create index \"lesson_createdByUserId_idx_93e8a540\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lesson_createdByUserId_idx_93e8a540",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lesson_createdByUserId_idx_93e8a540\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lesson_createdByUserId_idx_93e8a540\"",
+        "sql": "CREATE INDEX \"lesson_createdByUserId_idx_93e8a540\" ON \"public\".\"lesson\" (\"createdByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lesson_createdByUserId_idx_93e8a540\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lesson.lesson_reviewedByUserId_idx_e62d4e38",
+    "label": "Create index \"lesson_reviewedByUserId_idx_e62d4e38\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lesson_reviewedByUserId_idx_e62d4e38",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lesson_reviewedByUserId_idx_e62d4e38\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lesson_reviewedByUserId_idx_e62d4e38\"",
+        "sql": "CREATE INDEX \"lesson_reviewedByUserId_idx_e62d4e38\" ON \"public\".\"lesson\" (\"reviewedByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lesson_reviewedByUserId_idx_e62d4e38\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lesson_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_approvalStatus_idx_d15e1cde",
+    "label": "Create index \"liveSession_approvalStatus_idx_d15e1cde\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_approvalStatus_idx_d15e1cde",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_approvalStatus_idx_d15e1cde\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_approvalStatus_idx_d15e1cde\"",
+        "sql": "CREATE INDEX \"liveSession_approvalStatus_idx_d15e1cde\" ON \"public\".\"liveSession\" (\"approvalStatus\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_approvalStatus_idx_d15e1cde\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_approvalStatus_idx_d15e1cde\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_createdByUserId_idx_93e8a540",
+    "label": "Create index \"liveSession_createdByUserId_idx_93e8a540\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_createdByUserId_idx_93e8a540",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_createdByUserId_idx_93e8a540\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_createdByUserId_idx_93e8a540\"",
+        "sql": "CREATE INDEX \"liveSession_createdByUserId_idx_93e8a540\" ON \"public\".\"liveSession\" (\"createdByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_createdByUserId_idx_93e8a540\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_createdByUserId_idx_93e8a540\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_reviewedByUserId_idx_e62d4e38",
+    "label": "Create index \"liveSession_reviewedByUserId_idx_e62d4e38\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_reviewedByUserId_idx_e62d4e38",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_reviewedByUserId_idx_e62d4e38\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_reviewedByUserId_idx_e62d4e38\"",
+        "sql": "CREATE INDEX \"liveSession_reviewedByUserId_idx_e62d4e38\" ON \"public\".\"liveSession\" (\"reviewedByUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_reviewedByUserId_idx_e62d4e38\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_reviewedByUserId_idx_e62d4e38\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerCoursePermission.trainerCoursePermission_courseId_idx_12f72d2a",
+    "label": "Create index \"trainerCoursePermission_courseId_idx_12f72d2a\" on \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerCoursePermission_courseId_idx_12f72d2a",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerCoursePermission_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerCoursePermission_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"trainerCoursePermission_courseId_idx_12f72d2a\" ON \"public\".\"trainerCoursePermission\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerCoursePermission_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerCoursePermission.trainerCoursePermission_trainerId_canTeach_idx_4aa55427",
+    "label": "Create index \"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\" on \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerCoursePermission_trainerId_canTeach_idx_4aa55427",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\"",
+        "sql": "CREATE INDEX \"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\" ON \"public\".\"trainerCoursePermission\" (\"trainerId\", \"canTeach\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_trainerId_canTeach_idx_4aa55427\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerCoursePermission.trainerCoursePermission_trainerId_idx_3e70f981",
+    "label": "Create index \"trainerCoursePermission_trainerId_idx_3e70f981\" on \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerCoursePermission_trainerId_idx_3e70f981",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerCoursePermission_trainerId_idx_3e70f981\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_trainerId_idx_3e70f981\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerCoursePermission_trainerId_idx_3e70f981\"",
+        "sql": "CREATE INDEX \"trainerCoursePermission_trainerId_idx_3e70f981\" ON \"public\".\"trainerCoursePermission\" (\"trainerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerCoursePermission_trainerId_idx_3e70f981\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerCoursePermission_trainerId_idx_3e70f981\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessment.assessment_createdByUserId_fkey",
+    "label": "Add foreign key \"assessment_createdByUserId_fkey\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessment_createdByUserId_fkey",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessment_createdByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_createdByUserId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessment_createdByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\"\nADD CONSTRAINT \"assessment_createdByUserId_fkey\"\nFOREIGN KEY (\"createdByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessment_createdByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_createdByUserId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.assessment.assessment_reviewedByUserId_fkey",
+    "label": "Add foreign key \"assessment_reviewedByUserId_fkey\" on \"assessment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "assessment_reviewedByUserId_fkey",
+        "table": "assessment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"assessment_reviewedByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"assessment_reviewedByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"assessment\"\nADD CONSTRAINT \"assessment_reviewedByUserId_fkey\"\nFOREIGN KEY (\"reviewedByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"assessment_reviewedByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "assessment_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"assessment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.courseModule.courseModule_createdByUserId_fkey",
+    "label": "Add foreign key \"courseModule_createdByUserId_fkey\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "courseModule_createdByUserId_fkey",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"courseModule_createdByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_createdByUserId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"courseModule_createdByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\"\nADD CONSTRAINT \"courseModule_createdByUserId_fkey\"\nFOREIGN KEY (\"createdByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"courseModule_createdByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_createdByUserId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.courseModule.courseModule_reviewedByUserId_fkey",
+    "label": "Add foreign key \"courseModule_reviewedByUserId_fkey\" on \"courseModule\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "courseModule_reviewedByUserId_fkey",
+        "table": "courseModule"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"courseModule_reviewedByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"courseModule_reviewedByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"courseModule\"\nADD CONSTRAINT \"courseModule_reviewedByUserId_fkey\"\nFOREIGN KEY (\"reviewedByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"courseModule_reviewedByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "courseModule_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"courseModule\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lesson.lesson_createdByUserId_fkey",
+    "label": "Add foreign key \"lesson_createdByUserId_fkey\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lesson_createdByUserId_fkey",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lesson_createdByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_createdByUserId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lesson_createdByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\"\nADD CONSTRAINT \"lesson_createdByUserId_fkey\"\nFOREIGN KEY (\"createdByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lesson_createdByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_createdByUserId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lesson.lesson_reviewedByUserId_fkey",
+    "label": "Add foreign key \"lesson_reviewedByUserId_fkey\" on \"lesson\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lesson_reviewedByUserId_fkey",
+        "table": "lesson"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lesson_reviewedByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lesson_reviewedByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lesson\"\nADD CONSTRAINT \"lesson_reviewedByUserId_fkey\"\nFOREIGN KEY (\"reviewedByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lesson_reviewedByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lesson_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"lesson\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSession.liveSession_createdByUserId_fkey",
+    "label": "Add foreign key \"liveSession_createdByUserId_fkey\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSession_createdByUserId_fkey",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSession_createdByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_createdByUserId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSession_createdByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\"\nADD CONSTRAINT \"liveSession_createdByUserId_fkey\"\nFOREIGN KEY (\"createdByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSession_createdByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_createdByUserId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSession.liveSession_reviewedByUserId_fkey",
+    "label": "Add foreign key \"liveSession_reviewedByUserId_fkey\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSession_reviewedByUserId_fkey",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSession_reviewedByUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSession_reviewedByUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\"\nADD CONSTRAINT \"liveSession_reviewedByUserId_fkey\"\nFOREIGN KEY (\"reviewedByUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSession_reviewedByUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_reviewedByUserId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.trainerCoursePermission.trainerCoursePermission_trainerId_fkey",
+    "label": "Add foreign key \"trainerCoursePermission_trainerId_fkey\" on \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "trainerCoursePermission_trainerId_fkey",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"trainerCoursePermission_trainerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_trainerId_fkey",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"trainerCoursePermission_trainerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"trainerCoursePermission\"\nADD CONSTRAINT \"trainerCoursePermission_trainerId_fkey\"\nFOREIGN KEY (\"trainerId\")\nREFERENCES \"public\".\"trainerProfile\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"trainerCoursePermission_trainerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_trainerId_fkey",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.trainerCoursePermission.trainerCoursePermission_courseId_fkey",
+    "label": "Add foreign key \"trainerCoursePermission_courseId_fkey\" on \"trainerCoursePermission\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "trainerCoursePermission_courseId_fkey",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"trainerCoursePermission_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_courseId_fkey",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"trainerCoursePermission_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"trainerCoursePermission\"\nADD CONSTRAINT \"trainerCoursePermission_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"trainerCoursePermission_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerCoursePermission_courseId_fkey",
+          "public",
+          "\"public\".\"trainerCoursePermission\""
+        ]
+      }
+    ]
+  }
+]

@@ -7,10 +7,11 @@ import {
   LayoutDashboard,
   Users,
   BookOpen,
+  Package,
   UserCheck,
   Layers,
   ClipboardList,
-  CalendarCheck,
+  Video,
   CreditCard,
   Award,
   Megaphone,
@@ -18,6 +19,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  UserCircle,
 } from "lucide-react";
 
 const MENU_ITEMS = [
@@ -37,6 +39,11 @@ const MENU_ITEMS = [
     icon: BookOpen,
   },
   {
+    href: "/dashboard/admin/packages",
+    label: "Packages",
+    icon: Package,
+  },
+  {
     href: "/dashboard/admin/trainers",
     label: "Trainers",
     icon: UserCheck,
@@ -47,14 +54,14 @@ const MENU_ITEMS = [
     icon: Layers,
   },
   {
+    href: "/dashboard/admin/live-sessions",
+    label: "Live Sessions",
+    icon: Video,
+  },
+  {
     href: "/dashboard/admin/assignments",
     label: "Assignments & Quizzes",
     icon: ClipboardList,
-  },
-  {
-    href: "/dashboard/admin/attendance",
-    label: "Attendance",
-    icon: CalendarCheck,
   },
   {
     href: "/dashboard/admin/payments",
@@ -81,6 +88,11 @@ const MENU_ITEMS = [
     label: "Settings",
     icon: Settings,
   },
+  {
+    href: "/dashboard/admin/profile",
+    label: "Profile",
+    icon: UserCircle,
+  },
 ];
 
 export default function AdminSidebar() {
@@ -94,9 +106,8 @@ export default function AdminSidebar() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-[270px] shrink-0 flex-col overflow-hidden bg-[#173B67] text-white">
-      {/* =========================================================
-          BRAND HEADER
-      ========================================================= */}
+
+      {/* BRAND HEADER */}
       <div className="border-b border-white/10 px-5 py-5">
         <Link
           href="/dashboard/admin"
@@ -124,11 +135,13 @@ export default function AdminSidebar() {
         </Link>
       </div>
 
-      {/* =========================================================
-          ADMIN PROFILE
-      ========================================================= */}
-      <div className="mx-4 mt-4 rounded-xl border border-white/10 bg-white/[0.06] p-3">
+      {/* ADMIN PROFILE */}
+      <Link
+        href="/dashboard/admin/profile"
+        className="mx-4 mt-4 block rounded-xl border border-white/10 bg-white/[0.06] p-3 transition hover:bg-white/[0.10]"
+      >
         <div className="flex items-center gap-3">
+
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
             A
           </div>
@@ -142,12 +155,11 @@ export default function AdminSidebar() {
               Admin Account
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* =========================================================
-          NAVIGATION
-      ========================================================= */}
+        </div>
+      </Link>
+
+      {/* NAVIGATION */}
       <div className="mt-5 px-3">
         <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-100/45">
           Main Menu
@@ -156,6 +168,7 @@ export default function AdminSidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         <div className="space-y-1">
+
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
 
@@ -176,7 +189,9 @@ export default function AdminSidebar() {
               >
                 <Icon
                   size={18}
-                  strokeWidth={isActive ? 2.3 : 1.9}
+                  strokeWidth={
+                    isActive ? 2.3 : 1.9
+                  }
                   className={
                     isActive
                       ? "text-white"
@@ -184,7 +199,9 @@ export default function AdminSidebar() {
                   }
                 />
 
-                <span className="flex-1">{item.label}</span>
+                <span className="flex-1">
+                  {item.label}
+                </span>
 
                 {isActive && (
                   <ChevronRight
@@ -195,13 +212,13 @@ export default function AdminSidebar() {
               </Link>
             );
           })}
+
         </div>
       </nav>
 
-      {/* =========================================================
-          BOTTOM SECTION
-      ========================================================= */}
+      {/* BOTTOM SECTION */}
       <div className="border-t border-white/10 p-3">
+
         <div className="mb-2 rounded-lg bg-orange-500/10 px-3 py-2">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-300">
             Admin Portal
@@ -217,10 +234,16 @@ export default function AdminSidebar() {
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-blue-50/80 transition hover:bg-red-500/10 hover:text-red-300"
         >
-          <LogOut size={18} strokeWidth={1.9} />
+          <LogOut
+            size={18}
+            strokeWidth={1.9}
+          />
+
           <span>Logout</span>
         </button>
+
       </div>
+
     </aside>
   );
 }

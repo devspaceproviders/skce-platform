@@ -1,0 +1,644 @@
+[
+  {
+    "id": "table.liveSession",
+    "label": "Create table \"liveSession\"",
+    "summary": "Creates table \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"liveSession\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"liveSession\"",
+        "sql": "CREATE TABLE \"public\".\"liveSession\" (\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"endAt\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"isPublished\" bool DEFAULT false NOT NULL,\n  \"meetingUrl\" text,\n  \"recordingUrl\" text,\n  \"startAt\" timestamptz NOT NULL,\n  \"status\" text DEFAULT 'SCHEDULED' NOT NULL,\n  \"title\" text NOT NULL,\n  \"trainerId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"liveSession_status_check_a50348ac\" CHECK (\"status\" IN ('SCHEDULED', 'LIVE', 'COMPLETED', 'CANCELLED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"liveSession\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.liveSessionParticipation",
+    "label": "Create table \"liveSessionParticipation\"",
+    "summary": "Creates table \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"liveSessionParticipation\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"liveSessionParticipation\"",
+        "sql": "CREATE TABLE \"public\".\"liveSessionParticipation\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"joinedAt\" timestamptz,\n  \"leftAt\" timestamptz,\n  \"participated\" bool DEFAULT false NOT NULL,\n  \"sessionId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"liveSessionParticipation\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.course.price",
+    "label": "Add column \"price\" to \"course\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "price",
+        "table": "course"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"price\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"price\"",
+        "sql": "ALTER TABLE \"public\".\"course\" ADD COLUMN \"price\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"price\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "course",
+          "price"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.liveSessionParticipation.liveSessionParticipation_sessionId_userId_key",
+    "label": "Add unique constraint on \"liveSessionParticipation\" (sessionId, userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "liveSessionParticipation_sessionId_userId_key",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"liveSessionParticipation_sessionId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_sessionId_userId_key",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"liveSessionParticipation_sessionId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"liveSessionParticipation\" ADD CONSTRAINT \"liveSessionParticipation_sessionId_userId_key\" UNIQUE (\"sessionId\", \"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"liveSessionParticipation_sessionId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_sessionId_userId_key",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_courseId_idx_12f72d2a",
+    "label": "Create index \"liveSession_courseId_idx_12f72d2a\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_courseId_idx_12f72d2a",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"liveSession_courseId_idx_12f72d2a\" ON \"public\".\"liveSession\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_courseId_startAt_idx_8d058830",
+    "label": "Create index \"liveSession_courseId_startAt_idx_8d058830\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_courseId_startAt_idx_8d058830",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_courseId_startAt_idx_8d058830\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_courseId_startAt_idx_8d058830\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_courseId_startAt_idx_8d058830\"",
+        "sql": "CREATE INDEX \"liveSession_courseId_startAt_idx_8d058830\" ON \"public\".\"liveSession\" (\"courseId\", \"startAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_courseId_startAt_idx_8d058830\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_courseId_startAt_idx_8d058830\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_startAt_idx_8b06bdbe",
+    "label": "Create index \"liveSession_startAt_idx_8b06bdbe\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_startAt_idx_8b06bdbe",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_startAt_idx_8b06bdbe\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_startAt_idx_8b06bdbe\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_startAt_idx_8b06bdbe\"",
+        "sql": "CREATE INDEX \"liveSession_startAt_idx_8b06bdbe\" ON \"public\".\"liveSession\" (\"startAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_startAt_idx_8b06bdbe\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_startAt_idx_8b06bdbe\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_status_idx_e98638ab",
+    "label": "Create index \"liveSession_status_idx_e98638ab\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_status_idx_e98638ab",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"liveSession_status_idx_e98638ab\" ON \"public\".\"liveSession\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSession.liveSession_trainerId_idx_3e70f981",
+    "label": "Create index \"liveSession_trainerId_idx_3e70f981\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSession_trainerId_idx_3e70f981",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSession_trainerId_idx_3e70f981\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_trainerId_idx_3e70f981\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSession_trainerId_idx_3e70f981\"",
+        "sql": "CREATE INDEX \"liveSession_trainerId_idx_3e70f981\" ON \"public\".\"liveSession\" (\"trainerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSession_trainerId_idx_3e70f981\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession_trainerId_idx_3e70f981\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSessionParticipation.liveSessionParticipation_sessionId_idx_29f415d4",
+    "label": "Create index \"liveSessionParticipation_sessionId_idx_29f415d4\" on \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSessionParticipation_sessionId_idx_29f415d4",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSessionParticipation_sessionId_idx_29f415d4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_sessionId_idx_29f415d4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSessionParticipation_sessionId_idx_29f415d4\"",
+        "sql": "CREATE INDEX \"liveSessionParticipation_sessionId_idx_29f415d4\" ON \"public\".\"liveSessionParticipation\" (\"sessionId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSessionParticipation_sessionId_idx_29f415d4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_sessionId_idx_29f415d4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSessionParticipation.liveSessionParticipation_sessionId_participated_idx_e5d938f7",
+    "label": "Create index \"liveSessionParticipation_sessionId_participated_idx_e5d938f7\" on \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSessionParticipation_sessionId_participated_idx_e5d938f7",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSessionParticipation_sessionId_participated_idx_e5d938f7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_sessionId_participated_idx_e5d938f7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSessionParticipation_sessionId_participated_idx_e5d938f7\"",
+        "sql": "CREATE INDEX \"liveSessionParticipation_sessionId_participated_idx_e5d938f7\" ON \"public\".\"liveSessionParticipation\" (\"sessionId\", \"participated\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSessionParticipation_sessionId_participated_idx_e5d938f7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_sessionId_participated_idx_e5d938f7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.liveSessionParticipation.liveSessionParticipation_userId_idx_a489d58a",
+    "label": "Create index \"liveSessionParticipation_userId_idx_a489d58a\" on \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "liveSessionParticipation_userId_idx_a489d58a",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"liveSessionParticipation_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"liveSessionParticipation_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"liveSessionParticipation_userId_idx_a489d58a\" ON \"public\".\"liveSessionParticipation\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"liveSessionParticipation_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSession.liveSession_courseId_fkey",
+    "label": "Add foreign key \"liveSession_courseId_fkey\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSession_courseId_fkey",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSession_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_courseId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSession_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\"\nADD CONSTRAINT \"liveSession_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSession_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_courseId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSession.liveSession_trainerId_fkey",
+    "label": "Add foreign key \"liveSession_trainerId_fkey\" on \"liveSession\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSession_trainerId_fkey",
+        "table": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSession_trainerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_trainerId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSession_trainerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSession\"\nADD CONSTRAINT \"liveSession_trainerId_fkey\"\nFOREIGN KEY (\"trainerId\")\nREFERENCES \"public\".\"trainerProfile\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSession_trainerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSession_trainerId_fkey",
+          "public",
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSessionParticipation.liveSessionParticipation_sessionId_fkey",
+    "label": "Add foreign key \"liveSessionParticipation_sessionId_fkey\" on \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSessionParticipation_sessionId_fkey",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSessionParticipation_sessionId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_sessionId_fkey",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSessionParticipation_sessionId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSessionParticipation\"\nADD CONSTRAINT \"liveSessionParticipation_sessionId_fkey\"\nFOREIGN KEY (\"sessionId\")\nREFERENCES \"public\".\"liveSession\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSessionParticipation_sessionId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_sessionId_fkey",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.liveSessionParticipation.liveSessionParticipation_userId_fkey",
+    "label": "Add foreign key \"liveSessionParticipation_userId_fkey\" on \"liveSessionParticipation\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "liveSessionParticipation_userId_fkey",
+        "table": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"liveSessionParticipation_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_userId_fkey",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"liveSessionParticipation_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"liveSessionParticipation\"\nADD CONSTRAINT \"liveSessionParticipation_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"liveSessionParticipation_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "liveSessionParticipation_userId_fkey",
+          "public",
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ]
+  }
+]

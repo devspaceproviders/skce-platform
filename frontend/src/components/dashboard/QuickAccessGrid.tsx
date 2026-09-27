@@ -1,12 +1,9 @@
 import Link from "next/link";
 import {
   BookOpen,
-  LayoutGrid,
-  Wallet,
   User,
   MonitorPlay,
   Megaphone,
-  Users,
 } from "lucide-react";
 
 const TILES = [
@@ -15,24 +12,6 @@ const TILES = [
     label: "Access Your Training Courses",
     icon: BookOpen,
     bg: "#0F2A44",
-  },
-  {
-    href: "/dashboard/student/associate",
-    label: "Access Your Associate Panel",
-    icon: LayoutGrid,
-    bg: "#6D9E1F",
-  },
-  {
-    href: "/dashboard/student/affiliate-marketing",
-    label: "Affiliate Marketing",
-    icon: Users,
-    bg: "#7C3AED",
-  },
-  {
-    href: "/dashboard/student/wallet",
-    label: "Access Your Wallet",
-    icon: Wallet,
-    bg: "#1CA6D8",
   },
   {
     href: "/dashboard/student/profile",

@@ -1,1131 +1,1343 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  FileText,
-  PlayCircle,
-  Package,
-  RefreshCw,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
-
-type Course = {
+type Lesson = {
   id: number;
-  slug: string;
   title: string;
-  description: string | null;
-  mode: "ONLINE" | "OFFLINE" | "HYBRID";
-  duration: string | null;
-  modules: number | null;
-  price: number | null;
+  description?: string | null;
+  content?: string | null;
+  videoUrl?: string | null;
+  documentUrl?: string | null;
+  sortOrder: number;
   isActive: boolean;
 };
 
-type PackageCourseItem = {
+type CourseModule = {
   id: number;
-  packageId: number;
-  courseId: number;
-  course: Course;
-};
-
-type CoursePackage = {
-  id: number;
-  slug: string;
   title: string;
-  description: string | null;
-  price: number;
+  description?: string | null;
+  sortOrder: number;
   isActive: boolean;
-  courses: PackageCourseItem[];
+  lessons: Lesson[];
 };
 
-type Enrollment = {
-  id: number;
-  userId: number;
-  studentId: number;
-  courseId: number | null;
-  packageId: number | null;
-  status:
-    | "ACTIVE"
-    | "COMPLETED"
-    | "CANCELLED"
-    | "PENDING";
-  enrolledAt: string;
-  completedAt: string | null;
-  course: Course | null;
-  package: CoursePackage | null;
-};
-
-type StudentDashboard = {
-  student: {
+type CourseContent = {
+  course: {
     id: number;
-    studentId: string;
+    code?: string | null;
     name: string;
-    email: string;
-    phone: string | null;
-    state: string | null;
-    referralId: string | null;
-    isActive: boolean;
+    description?: string | null;
+    mode?: string | null;
+    isActive?: boolean;
   };
-  stats: {
-    enrolledCourses: number;
-    activeEnrollments: number;
-    successfulPayments: number;
-    totalPaid: number;
-  };
-  enrollments: Enrollment[];
+  enrollment?: {
+    id: number;
+    status: string;
+  } | null;
+  package?: {
+    id: number;
+    name: string;
+  } | null;
+  modules: CourseModule[];
 };
 
-type DashboardResponse = {
-  success: boolean;
-  message: string;
-  data?: StudentDashboard;
+type LessonProgress = {
+  lessonId: number;
+  status: string;
+  startedAt: string | null;
+  completedAt: string | null;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Page                                                                       */
-/* -------------------------------------------------------------------------- */
+type CourseProgress = {
+  courseId: number;
+  totalLessons: number;
+  completedLessons: number;
+  startedLessons: number;
+  remainingLessons: number;
+  progressPercentage: number;
+  lessons: LessonProgress[];
+};
 
-export default function CourseLearningPage() {
+export default function StudentCoursePage() {
   const params = useParams();
-  const router = useRouter();
-
   const courseId = Number(params.courseId);
 
-  const [dashboard, setDashboard] =
-    useState<StudentDashboard | null>(null);
+  const [courseContent, setCourseContent] =
+    useState<CourseContent | null>(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [progress, setProgress] =
+    useState<CourseProgress | null>(null);
 
-  const [refreshing, setRefreshing] =
+  const [selectedLesson, setSelectedLesson] =
+    useState<Lesson | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [progressLoading, setProgressLoading] =
     useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  /* ------------------------------------------------------------------------ */
-  /* Load student dashboard                                                    */
-  /* ------------------------------------------------------------------------ */
+  const [startingLesson, setStartingLesson] =
+    useState(false);
 
-  const loadDashboard = useCallback(
-    async (isRefresh = false) => {
-      try {
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
+  const [completingLesson, setCompletingLesson] =
+    useState(false);
 
-        setError("");
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
 
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("token")
-            : null;
+  /*
+   * ---------------------------------------------------------
+   * LOAD COURSE CONTENT
+   * ---------------------------------------------------------
+   */
+  const loadCourseContent = async () => {
+    if (!courseId || Number.isNaN(courseId)) {
+      setError("Invalid course ID.");
+      setLoading(false);
+      return;
+    }
 
-        if (!token) {
-          setError(
-            "Your session has expired. Please log in again."
-          );
-          return;
-        }
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await fetch(
-          `${API_URL}/students/me/dashboard`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            cache: "no-store",
-          }
-        );
-
-        const result =
-          (await response.json()) as DashboardResponse;
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.message ||
-              "Failed to load course information."
-          );
-        }
-
-        setDashboard(result.data ?? null);
-      } catch (err) {
-        console.error(
-          "Failed to load course:",
-          err
-        );
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load course information."
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+      if (!token) {
+        setError("Please login again.");
+        return;
       }
-    },
-    []
-  );
 
-  /* ------------------------------------------------------------------------ */
-  /* Initial load                                                              */
-  /* ------------------------------------------------------------------------ */
+      const response = await fetch(
+        `${API_URL}/course-content/${courseId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Failed to load course content."
+        );
+      }
+
+      const content = data?.data ?? data;
+
+      setCourseContent(content);
+
+      /*
+       * Automatically select the first active lesson.
+       */
+      const firstLesson = content?.modules
+        ?.slice()
+        .sort(
+          (a: CourseModule, b: CourseModule) =>
+            a.sortOrder - b.sortOrder
+        )
+        ?.flatMap((module: CourseModule) =>
+          module.lessons
+            .slice()
+            .sort(
+              (a: Lesson, b: Lesson) =>
+                a.sortOrder - b.sortOrder
+            )
+        )
+        ?.find(
+          (lesson: Lesson) =>
+            lesson.isActive !== false
+        );
+
+      if (firstLesson) {
+        setSelectedLesson(firstLesson);
+      }
+    } catch (err: any) {
+      console.error(
+        "Course content error:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to load course content."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * LOAD COURSE PROGRESS
+   * ---------------------------------------------------------
+   */
+  const loadProgress = async () => {
+    if (
+      !courseId ||
+      Number.isNaN(courseId) ||
+      !token
+    ) {
+      return;
+    }
+
+    try {
+      setProgressLoading(true);
+
+      const response = await fetch(
+        `${API_URL}/course-progress/courses/${courseId}/progress`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Failed to load course progress."
+        );
+      }
+
+      setProgress(data?.data ?? data);
+    } catch (err) {
+      console.error(
+        "Course progress error:",
+        err
+      );
+    } finally {
+      setProgressLoading(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * INITIAL LOAD
+   * ---------------------------------------------------------
+   */
   useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+    loadCourseContent();
+    loadProgress();
+  }, [courseId]);
 
-  /* ------------------------------------------------------------------------ */
-  /* Find selected course                                                      */
-  /* ------------------------------------------------------------------------ */
+  /*
+   * ---------------------------------------------------------
+   * GET LESSON PROGRESS
+   * ---------------------------------------------------------
+   */
+  const getLessonProgress = (
+    lessonId: number
+  ) => {
+    return progress?.lessons?.find(
+      (item) =>
+        item.lessonId === lessonId
+    );
+  };
 
-  const selectedCourse = useMemo(() => {
-    if (!dashboard || !Number.isFinite(courseId)) {
-      return null;
+  /*
+   * ---------------------------------------------------------
+   * ALL LESSONS
+   *
+   * Creates one ordered list across all modules.
+   * ---------------------------------------------------------
+   */
+  const allLessons = useMemo(() => {
+    if (!courseContent?.modules) {
+      return [];
     }
 
-    for (const enrollment of dashboard.enrollments) {
-      /* Direct enrollment */
+    return courseContent.modules
+      .slice()
+      .sort(
+        (a, b) =>
+          a.sortOrder - b.sortOrder
+      )
+      .flatMap((module) =>
+        module.lessons
+          .slice()
+          .sort(
+            (a, b) =>
+              a.sortOrder - b.sortOrder
+          )
+          .filter(
+            (lesson) =>
+              lesson.isActive !== false
+          )
+      );
+  }, [courseContent]);
 
-      if (
-        enrollment.course &&
-        enrollment.course.id === courseId
-      ) {
-        return {
-          course: enrollment.course,
-          enrollment,
-          packageTitle:
-            enrollment.package?.title ?? null,
-        };
-      }
+  /*
+   * ---------------------------------------------------------
+   * LESSON LOCKING
+   * ---------------------------------------------------------
+   *
+   * The first lesson is available immediately.
+   * Every following lesson is unlocked only after the
+   * immediately previous lesson has been completed.
+   */
+  const isLessonUnlocked = (lessonId: number) => {
+    const lessonIndex = allLessons.findIndex(
+      (lesson) => lesson.id === lessonId
+    );
 
-      /* Package enrollment */
+    if (lessonIndex <= 0) {
+      return true;
+    }
 
-      if (enrollment.package) {
-        const packageCourse =
-          enrollment.package.courses.find(
-            (item) =>
-              item.course &&
-              item.course.id === courseId
-          );
+    const previousLesson = allLessons[lessonIndex - 1];
 
-        if (packageCourse) {
-          return {
-            course: packageCourse.course,
-            enrollment,
-            packageTitle:
-              enrollment.package.title,
-          };
+    return (
+      getLessonProgress(previousLesson.id)?.status ===
+      "COMPLETED"
+    );
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * CURRENT LESSON INDEX
+   * ---------------------------------------------------------
+   */
+  const currentLessonIndex =
+    selectedLesson
+      ? allLessons.findIndex(
+          (lesson) =>
+            lesson.id ===
+            selectedLesson.id
+        )
+      : -1;
+
+  const previousLesson =
+    currentLessonIndex > 0
+      ? allLessons[
+          currentLessonIndex - 1
+        ]
+      : null;
+
+  const nextLesson =
+    currentLessonIndex >= 0 &&
+    currentLessonIndex <
+      allLessons.length - 1
+      ? allLessons[
+          currentLessonIndex + 1
+        ]
+      : null;
+
+  /*
+   * ---------------------------------------------------------
+   * START LESSON
+   * ---------------------------------------------------------
+   */
+  const startLesson = async (
+    lesson: Lesson
+  ) => {
+    if (!token) {
+      setError("Please login again.");
+      return;
+    }
+
+    if (!isLessonUnlocked(lesson.id)) {
+      setError(
+        "This lesson is locked. Complete the previous lesson first."
+      );
+      return;
+    }
+
+    try {
+      setStartingLesson(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/course-progress/lessons/${lesson.id}/start`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Failed to start lesson."
+        );
       }
+
+      await loadProgress();
+    } catch (err: any) {
+      console.error(
+        "Start lesson error:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to start the lesson."
+      );
+    } finally {
+      setStartingLesson(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * SELECT LESSON
+   * ---------------------------------------------------------
+   */
+  const handleSelectLesson = async (
+    lesson: Lesson
+  ) => {
+    if (!isLessonUnlocked(lesson.id)) {
+      setError(
+        "This lesson is locked. Complete the previous lesson first."
+      );
+      return;
     }
 
-    return null;
-  }, [dashboard, courseId]);
+    setError("");
+    setSelectedLesson(lesson);
 
-  /* ------------------------------------------------------------------------ */
-  /* Loading                                                                   */
-  /* ------------------------------------------------------------------------ */
+    const lessonStatus =
+      getLessonProgress(lesson.id);
 
+    /*
+     * Don't move a completed lesson
+     * backwards to IN_PROGRESS.
+     */
+    if (
+      lessonStatus?.status ===
+      "COMPLETED"
+    ) {
+      return;
+    }
+
+    await startLesson(lesson);
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * GO TO PREVIOUS LESSON
+   * ---------------------------------------------------------
+   */
+  const handlePreviousLesson = async () => {
+    if (!previousLesson) {
+      return;
+    }
+
+    await handleSelectLesson(
+      previousLesson
+    );
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * GO TO NEXT LESSON
+   * ---------------------------------------------------------
+   */
+  const handleNextLesson = async () => {
+    if (!nextLesson) {
+      return;
+    }
+
+    await handleSelectLesson(
+      nextLesson
+    );
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * COMPLETE LESSON
+   * ---------------------------------------------------------
+   */
+  const completeLesson = async () => {
+    if (!selectedLesson || !token) {
+      return;
+    }
+
+    try {
+      setCompletingLesson(true);
+      setError("");
+
+      const response = await fetch(
+        `${API_URL}/course-progress/lessons/${selectedLesson.id}/complete`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            "Failed to complete lesson."
+        );
+      }
+
+      /*
+       * Refresh progress first.
+       */
+      await loadProgress();
+
+      /*
+       * Do not automatically start the next lesson.
+       * Completing this lesson unlocks the next lesson.
+       * The student must explicitly open it.
+       */
+    } catch (err: any) {
+      console.error(
+        "Complete lesson error:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "Unable to complete the lesson."
+      );
+    } finally {
+      setCompletingLesson(false);
+    }
+  };
+
+  /*
+   * ---------------------------------------------------------
+   * TOTAL MODULES / LESSONS
+   * ---------------------------------------------------------
+   */
+  const totalModules =
+    courseContent?.modules?.length || 0;
+
+  const totalLessonsFromContent =
+    useMemo(() => {
+      if (!courseContent?.modules) {
+        return 0;
+      }
+
+      return courseContent.modules.reduce(
+        (total, module) =>
+          total + module.lessons.length,
+        0
+      );
+    }, [courseContent]);
+
+  /*
+   * ---------------------------------------------------------
+   * LOADING
+   * ---------------------------------------------------------
+   */
   if (loading) {
     return (
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "28px 32px",
-        }}
-      >
-        <div
-          style={{
-            width: "130px",
-            height: "16px",
-            background: "#E5E7EB",
-            borderRadius: "6px",
-            marginBottom: "20px",
-          }}
-        />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-xl border bg-white p-8 text-center shadow-sm">
+            <p className="text-gray-600">
+              Loading course content...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        <div
-          style={{
-            background: "#FFFFFF",
-            border: "1px solid #E5E7EB",
-            borderRadius: "14px",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "180px",
-              background: "#EEF2F7",
-            }}
-          />
+  /*
+   * ---------------------------------------------------------
+   * ERROR
+   * ---------------------------------------------------------
+   */
+  if (error && !courseContent) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm">
+            <h2 className="mb-2 text-xl font-semibold text-red-600">
+              Unable to Load Course
+            </h2>
 
-          <div
-            style={{
-              padding: "24px",
-            }}
-          >
-            <div
-              style={{
-                width: "260px",
-                height: "25px",
-                background: "#E5E7EB",
-                borderRadius: "6px",
-                marginBottom: "12px",
+            <p className="text-gray-600">
+              {error}
+            </p>
+
+            <button
+              onClick={() => {
+                loadCourseContent();
+                loadProgress();
               }}
-            />
-
-            <div
-              style={{
-                width: "80%",
-                height: "16px",
-                background: "#E5E7EB",
-                borderRadius: "6px",
-                marginBottom: "25px",
-              }}
-            />
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(3, 1fr)",
-                gap: "12px",
-              }}
+              className="mt-5 rounded-lg bg-[#A01441] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
             >
-              {[1, 2, 3].map((item) => (
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!courseContent) {
+    return null;
+  }
+
+  const currentLessonProgress =
+    selectedLesson
+      ? getLessonProgress(
+          selectedLesson.id
+        )
+      : null;
+
+  const progressPercentage =
+    progress?.progressPercentage ?? 0;
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="mx-auto max-w-7xl">
+
+        {/* =====================================================
+            COURSE HEADER
+        ====================================================== */}
+        <div className="mb-6 rounded-2xl border bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+
+                {courseContent.course.mode && (
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {courseContent.course.mode}
+                  </span>
+                )}
+
+                {courseContent.course.isActive !==
+                  false && (
+                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                    Active
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+                {courseContent.course.name}
+              </h1>
+
+              {courseContent.course.description && (
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+                  {
+                    courseContent.course
+                      .description
+                  }
+                </p>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-500">
+
+                <span>
+                  {totalModules}{" "}
+                  {totalModules === 1
+                    ? "Module"
+                    : "Modules"}
+                </span>
+
+                <span>•</span>
+
+                <span>
+                  {progress?.totalLessons ??
+                    totalLessonsFromContent}{" "}
+                  {(progress?.totalLessons ??
+                    totalLessonsFromContent) ===
+                  1
+                    ? "Lesson"
+                    : "Lessons"}
+                </span>
+
+                {courseContent.package && (
+                  <>
+                    <span>•</span>
+
+                    <span>
+                      Package:{" "}
+                      <strong className="text-gray-700">
+                        {
+                          courseContent
+                            .package.name
+                        }
+                      </strong>
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* COURSE PROGRESS */}
+            <div className="w-full lg:w-72">
+
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-700">
+                  Course Progress
+                </span>
+
+                <span className="text-sm font-bold text-[#A01441]">
+                  {progressPercentage}%
+                </span>
+              </div>
+
+              <div className="h-3 overflow-hidden rounded-full bg-gray-200">
                 <div
-                  key={item}
+                  className="h-full rounded-full bg-[#A01441] transition-all duration-500"
                   style={{
-                    height: "75px",
-                    background: "#F3F4F6",
-                    borderRadius: "9px",
+                    width: `${progressPercentage}%`,
                   }}
                 />
-              ))}
+              </div>
+
+              <div className="mt-2 flex justify-between text-xs text-gray-500">
+                <span>
+                  {progress?.completedLessons ??
+                    0}{" "}
+                  completed
+                </span>
+
+                <span>
+                  {progress?.remainingLessons ??
+                    0}{" "}
+                  remaining
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </main>
-    );
-  }
 
-  /* ------------------------------------------------------------------------ */
-  /* Error                                                                     */
-  /* ------------------------------------------------------------------------ */
-
-  if (error) {
-    return (
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "28px 32px",
-        }}
-      >
-        <button
-          onClick={() =>
-            router.push(
-              "/dashboard/student/my-courses"
-            )
-          }
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "#374151",
-            padding: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            fontSize: "13px",
-            fontWeight: 600,
-            cursor: "pointer",
-            marginBottom: "22px",
-          }}
-        >
-          <ArrowLeft size={16} />
-          Back to My Courses
-        </button>
-
-        <div
-          style={{
-            background: "#FFFFFF",
-            border: "1px solid #FECACA",
-            borderRadius: "14px",
-            padding: "55px 25px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              background: "#FEF2F2",
-              color: "#DC2626",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-            }}
-          >
-            <Clock3 size={24} />
-          </div>
-
-          <h2
-            style={{
-              margin: "0 0 7px",
-              fontSize: "18px",
-              color: "#111827",
-            }}
-          >
-            Unable to load course
-          </h2>
-
-          <p
-            style={{
-              margin: "0 auto 18px",
-              maxWidth: "500px",
-              color: "#6B7280",
-              fontSize: "13px",
-            }}
-          >
+        {/* =====================================================
+            ERROR
+        ====================================================== */}
+        {error && (
+          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
-          </p>
+          </div>
+        )}
 
-          <button
-            onClick={() =>
-              loadDashboard()
-            }
-            style={{
-              border: "none",
-              background: "#2F6BFF",
-              color: "#FFFFFF",
-              borderRadius: "8px",
-              padding: "10px 18px",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Try Again
-          </button>
-        </div>
-      </main>
-    );
-  }
+        {/* =====================================================
+            MAIN LMS AREA
+        ====================================================== */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_1fr]">
 
-  /* ------------------------------------------------------------------------ */
-  /* Course not enrolled                                                       */
-  /* ------------------------------------------------------------------------ */
+          {/* ===================================================
+              LEFT - MODULES / LESSONS
+          ==================================================== */}
+          <div className="rounded-2xl border bg-white shadow-sm">
 
-  if (!selectedCourse) {
-    return (
-      <main
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "28px 32px",
-        }}
-      >
-        <button
-          onClick={() =>
-            router.push(
-              "/dashboard/student/my-courses"
-            )
-          }
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "#374151",
-            padding: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            fontSize: "13px",
-            fontWeight: 600,
-            cursor: "pointer",
-            marginBottom: "22px",
-          }}
-        >
-          <ArrowLeft size={16} />
-          Back to My Courses
-        </button>
+            <div className="border-b px-5 py-4">
 
-        <div
-          style={{
-            background: "#FFFFFF",
-            border: "1px solid #E5E7EB",
-            borderRadius: "14px",
-            padding: "60px 25px",
-            textAlign: "center",
-          }}
-        >
-          <BookOpen
-            size={44}
-            color="#9CA3AF"
-            style={{
-              marginBottom: "14px",
-            }}
-          />
+              <div className="flex items-center justify-between">
 
-          <h2
-            style={{
-              margin: "0 0 7px",
-              fontSize: "19px",
-              color: "#111827",
-            }}
-          >
-            Course Not Available
-          </h2>
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Course Content
+                  </h2>
 
-          <p
-            style={{
-              margin: "0 auto 20px",
-              maxWidth: "500px",
-              color: "#6B7280",
-              fontSize: "13px",
-              lineHeight: 1.6,
-            }}
-          >
-            This course is not part of your current
-            enrollment or is no longer available.
-          </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Select a lesson to continue
+                    learning
+                  </p>
+                </div>
 
-          <button
-            onClick={() =>
-              router.push(
-                "/dashboard/student/my-courses"
-              )
-            }
-            style={{
-              border: "none",
-              background: "#2F6BFF",
-              color: "#FFFFFF",
-              borderRadius: "8px",
-              padding: "10px 18px",
-              fontSize: "13px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            View My Courses
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  const {
-    course,
-    enrollment,
-    packageTitle,
-  } = selectedCourse;
-
-  /* ------------------------------------------------------------------------ */
-  /* Main course learning area                                                */
-  /* ------------------------------------------------------------------------ */
-
-  return (
-    <main
-      style={{
-        flex: 1,
-        minWidth: 0,
-        padding: "24px 32px 40px",
-      }}
-    >
-      {/* ------------------------------------------------------------------ */}
-      {/* Top controls                                                        */}
-      {/* ------------------------------------------------------------------ */}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "15px",
-          marginBottom: "20px",
-        }}
-      >
-        <button
-          onClick={() =>
-            router.push(
-              "/dashboard/student/my-courses"
-            )
-          }
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "#374151",
-            padding: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: "7px",
-            fontSize: "13px",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          <ArrowLeft size={16} />
-          Back to My Courses
-        </button>
-
-        <button
-          onClick={() =>
-            loadDashboard(true)
-          }
-          disabled={refreshing}
-          title="Refresh course"
-          style={{
-            width: "40px",
-            height: "40px",
-            border: "1px solid #E5E7EB",
-            background: "#FFFFFF",
-            color: "#374151",
-            borderRadius: "9px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: refreshing
-              ? "default"
-              : "pointer",
-            opacity: refreshing ? 0.65 : 1,
-          }}
-        >
-          <RefreshCw
-            size={17}
-            style={{
-              animation: refreshing
-                ? "spin 1s linear infinite"
-                : undefined,
-            }}
-          />
-        </button>
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Course Header                                                       */}
-      {/* ------------------------------------------------------------------ */}
-
-      <section
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: "14px",
-          overflow: "hidden",
-          marginBottom: "20px",
-        }}
-      >
-        {/* Course banner */}
-
-        <div
-          style={{
-            minHeight: "175px",
-            background:
-              "linear-gradient(135deg, #12172B 0%, #1D315D 55%, #2F6BFF 100%)",
-            padding: "30px",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "850px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "8px",
-                marginBottom: "12px",
-              }}
-            >
-              <span
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "999px",
-                  background:
-                    "rgba(255,255,255,0.14)",
-                  color: "#FFFFFF",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                }}
-              >
-                {formatMode(course.mode)}
-              </span>
-
-              <span
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: "999px",
-                  background:
-                    enrollment.status ===
-                    "ACTIVE"
-                      ? "rgba(34,197,94,0.18)"
-                      : "rgba(255,255,255,0.14)",
-                  color: "#FFFFFF",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                }}
-              >
-                {formatStatus(
-                  enrollment.status
+                {progressLoading && (
+                  <span className="text-xs text-gray-400">
+                    Updating...
+                  </span>
                 )}
-              </span>
+              </div>
+            </div>
 
-              {packageTitle && (
-                <span
-                  style={{
-                    padding: "5px 10px",
-                    borderRadius: "999px",
-                    background:
-                      "rgba(255,255,255,0.14)",
-                    color: "#FFFFFF",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {packageTitle}
-                </span>
+            <div className="max-h-[700px] overflow-y-auto">
+
+              {courseContent.modules.length ===
+              0 ? (
+                <div className="p-6 text-center">
+                  <p className="text-sm text-gray-500">
+                    No course content available
+                    yet.
+                  </p>
+                </div>
+              ) : (
+                courseContent.modules
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      a.sortOrder -
+                      b.sortOrder
+                  )
+                  .map(
+                    (
+                      module,
+                      moduleIndex
+                    ) => (
+                      <div
+                        key={module.id}
+                        className="border-b last:border-b-0"
+                      >
+
+                        {/* MODULE HEADER */}
+                        <div className="bg-gray-50 px-5 py-4">
+
+                          <div className="flex items-start gap-3">
+
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#A01441] text-sm font-bold text-white">
+                              {moduleIndex + 1}
+                            </div>
+
+                            <div>
+                              <h3 className="font-semibold text-gray-900">
+                                {module.title}
+                              </h3>
+
+                              {module.description && (
+                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                  {
+                                    module.description
+                                  }
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* LESSONS */}
+                        <div className="p-3">
+
+                          {module.lessons.length ===
+                          0 ? (
+                            <p className="px-2 py-3 text-xs text-gray-400">
+                              No lessons available.
+                            </p>
+                          ) : (
+                            module.lessons
+                              .slice()
+                              .sort(
+                                (a, b) =>
+                                  a.sortOrder -
+                                  b.sortOrder
+                              )
+                              .map(
+                                (
+                                  lesson,
+                                  lessonIndex
+                                ) => {
+
+                                  const lessonProgress =
+                                    getLessonProgress(
+                                      lesson.id
+                                    );
+
+                                  const isCompleted =
+                                    lessonProgress?.status ===
+                                    "COMPLETED";
+
+                                  const isUnlocked =
+                                    isLessonUnlocked(
+                                      lesson.id
+                                    );
+
+                                  const isLocked =
+                                    !isUnlocked &&
+                                    !isCompleted;
+
+                                  const isSelected =
+                                    selectedLesson?.id ===
+                                    lesson.id;
+
+                                  return (
+                                    <button
+                                      key={lesson.id}
+                                      onClick={() =>
+                                        handleSelectLesson(
+                                          lesson
+                                        )
+                                      }
+                                      disabled={isLocked}
+                                      className={`mb-2 flex w-full items-start gap-3 rounded-xl border p-3 text-left transition last:mb-0 ${
+                                        isLocked
+                                          ? "cursor-not-allowed border-transparent bg-gray-50 opacity-60"
+                                          : isSelected
+                                          ? "border-[#A01441] bg-[#A01441]/5"
+                                          : "border-transparent hover:border-gray-200 hover:bg-gray-50"
+                                      }`}
+                                    >
+
+                                      {/* STATUS ICON */}
+                                      <div
+                                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                                          isCompleted
+                                            ? "bg-green-100 text-green-700"
+                                            : isLocked
+                                            ? "bg-gray-200 text-gray-500"
+                                            : isSelected
+                                            ? "bg-[#A01441] text-white"
+                                            : "bg-gray-100 text-gray-600"
+                                        }`}
+                                      >
+                                        {isCompleted
+                                          ? "✓"
+                                          : isLocked
+                                          ? "🔒"
+                                          : lessonIndex +
+                                            1}
+                                      </div>
+
+                                      <div className="min-w-0 flex-1">
+
+                                        <div
+                                          className={`text-sm font-medium ${
+                                            isSelected
+                                              ? "text-[#A01441]"
+                                              : "text-gray-800"
+                                          }`}
+                                        >
+                                          {
+                                            lesson.title
+                                          }
+                                        </div>
+
+                                        {lesson.description && (
+                                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+                                            {
+                                              lesson.description
+                                            }
+                                          </p>
+                                        )}
+
+                                        <div className="mt-2">
+
+                                          {isCompleted ? (
+                                            <span className="text-[11px] font-semibold text-green-600">
+                                              Completed
+                                            </span>
+                                          ) : isLocked ? (
+                                            <span className="text-[11px] font-semibold text-gray-500">
+                                              🔒 Locked
+                                            </span>
+                                          ) : lessonProgress?.status ===
+                                            "IN_PROGRESS" ? (
+                                            <span className="text-[11px] font-semibold text-blue-600">
+                                              In Progress
+                                            </span>
+                                          ) : (
+                                            <span className="text-[11px] font-semibold text-[#A01441]">
+                                              Available
+                                            </span>
+                                          )}
+
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                }
+                              )
+                          )}
+                        </div>
+                      </div>
+                    )
+                  )
               )}
             </div>
-
-            <h1
-              style={{
-                margin: "0 0 8px",
-                color: "#FFFFFF",
-                fontSize: "28px",
-                fontWeight: 700,
-                lineHeight: 1.25,
-              }}
-            >
-              {course.title}
-            </h1>
-
-            <p
-              style={{
-                margin: 0,
-                color: "rgba(255,255,255,0.78)",
-                fontSize: "13px",
-                lineHeight: 1.6,
-                maxWidth: "760px",
-              }}
-            >
-              {course.description ||
-                "Course information will be available soon."}
-            </p>
           </div>
-        </div>
 
-        {/* Course information */}
+          {/* ===================================================
+              RIGHT - LESSON VIEWER
+          ==================================================== */}
+          <div className="rounded-2xl border bg-white shadow-sm">
 
-        <div
-          style={{
-            padding: "20px",
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(4, minmax(0, 1fr))",
-            gap: "10px",
-          }}
-        >
-          <CourseInfo
-            icon={<BookOpen size={17} />}
-            label="Modules"
-            value={
-              course.modules !== null
-                ? String(course.modules)
-                : "Not available"
-            }
-          />
+            {!selectedLesson ? (
+              <div className="flex min-h-[500px] items-center justify-center p-8">
 
-          <CourseInfo
-            icon={<Clock3 size={17} />}
-            label="Duration"
-            value={
-              course.duration ||
-              "Not specified"
-            }
-          />
+                <div className="text-center">
 
-          <CourseInfo
-            icon={<CheckCircle2 size={17} />}
-            label="Enrollment"
-            value={formatStatus(
-              enrollment.status
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-2xl">
+                    ▶
+                  </div>
+
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    Select a Lesson
+                  </h2>
+
+                  <p className="mt-2 max-w-md text-sm text-gray-500">
+                    Select a lesson from the
+                    course content to start
+                    learning.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* =================================================
+                    LESSON HEADER
+                ================================================== */}
+                <div className="border-b px-5 py-5 md:px-6">
+
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                    <div>
+
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#A01441]">
+                        Lesson{" "}
+                        {currentLessonIndex >=
+                        0
+                          ? currentLessonIndex +
+                            1
+                          : ""}
+                      </p>
+
+                      <h2 className="mt-1 text-xl font-bold text-gray-900">
+                        {selectedLesson.title}
+                      </h2>
+
+                      {selectedLesson.description && (
+                        <p className="mt-2 text-sm leading-6 text-gray-600">
+                          {
+                            selectedLesson.description
+                          }
+                        </p>
+                      )}
+                    </div>
+
+                    {/* LESSON STATUS */}
+                    <div className="shrink-0">
+
+                      {currentLessonProgress?.status ===
+                      "COMPLETED" ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                          <span>✓</span>
+                          Completed
+                        </span>
+                      ) : currentLessonProgress?.status ===
+                        "IN_PROGRESS" ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                          <span>●</span>
+                          In Progress
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600">
+                          Not Started
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* =================================================
+                    LESSON CONTENT
+                ================================================== */}
+                <div className="p-5 md:p-6">
+
+                  {startingLesson && (
+                    <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                      Starting lesson...
+                    </div>
+                  )}
+
+                  {/* VIDEO */}
+                  {selectedLesson.videoUrl && (
+                    <div className="mb-6 overflow-hidden rounded-xl bg-black">
+                      <div className="aspect-video">
+
+                        <iframe
+                          src={
+                            selectedLesson.videoUrl
+                          }
+                          title={
+                            selectedLesson.title
+                          }
+                          className="h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TEXT CONTENT */}
+                  {selectedLesson.content ? (
+                    <div className="rounded-xl border bg-gray-50 p-5">
+
+                      <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                        Lesson Content
+                      </h3>
+
+                      <div className="whitespace-pre-wrap text-sm leading-7 text-gray-700">
+                        {
+                          selectedLesson.content
+                        }
+                      </div>
+                    </div>
+                  ) : !selectedLesson.videoUrl ? (
+                    <div className="rounded-xl border bg-gray-50 p-6 text-center">
+
+                      <p className="text-sm text-gray-500">
+                        No lesson content has
+                        been added yet.
+                      </p>
+
+                    </div>
+                  ) : null}
+
+                  {/* DOCUMENT */}
+                  {selectedLesson.documentUrl && (
+                    <div className="mt-5 rounded-xl border p-4">
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div>
+
+                          <h3 className="text-sm font-semibold text-gray-900">
+                            Lesson Document
+                          </h3>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Open the supporting
+                            document for this
+                            lesson.
+                          </p>
+
+                        </div>
+
+                        <a
+                          href={
+                            selectedLesson.documentUrl
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-lg border border-[#A01441] px-4 py-2 text-sm font-medium text-[#A01441] hover:bg-[#A01441] hover:text-white"
+                        >
+                          Open Document
+                        </a>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* =================================================
+                      LESSON NAVIGATION
+                  ================================================== */}
+                  <div className="mt-6 border-t pt-5">
+
+                    <div className="mb-4 flex items-center justify-between gap-3">
+
+                      {/* PREVIOUS */}
+                      <button
+                        onClick={
+                          handlePreviousLesson
+                        }
+                        disabled={
+                          !previousLesson ||
+                          startingLesson
+                        }
+                        className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        ← Previous
+                      </button>
+
+                      {/* NEXT */}
+                      {nextLesson && (
+                        <button
+                          onClick={
+                            handleNextLesson
+                          }
+                          disabled={
+                            startingLesson ||
+                            currentLessonProgress?.status !==
+                              "COMPLETED"
+                          }
+                          className="rounded-lg border border-[#A01441] bg-white px-4 py-2.5 text-sm font-medium text-[#A01441] transition hover:bg-[#A01441]/5 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Next →
+                        </button>
+                      )}
+                    </div>
+
+                    {/* =================================================
+                        COMPLETION AREA
+                    ================================================== */}
+
+                    {currentLessonProgress?.status ===
+                    "COMPLETED" ? (
+                      <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                          <div>
+                            <p className="font-semibold text-green-800">
+                              Lesson completed
+                            </p>
+
+                            <p className="mt-1 text-xs text-green-700">
+                              You have successfully
+                              completed this lesson. The next lesson is now unlocked.
+                            </p>
+                          </div>
+
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg text-green-700">
+                            ✓
+                          </div>
+
+                        </div>
+
+                        {/* NEXT LESSON */}
+                        {nextLesson ? (
+                          <div className="mt-4 border-t border-green-200 pt-4">
+
+                            <p className="text-xs font-medium text-green-700">
+                              Next Lesson — Unlocked
+                            </p>
+
+                            <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                              <p className="text-sm font-semibold text-gray-800">
+                                {
+                                  nextLesson.title
+                                }
+                              </p>
+
+                              <button
+                                onClick={
+                                  handleNextLesson
+                                }
+                                disabled={
+                                  startingLesson
+                                }
+                                className="rounded-lg bg-[#A01441] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                              >
+                                {startingLesson
+                                  ? "Opening..."
+                                  : "Continue →"}
+                              </button>
+
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-4 border-t border-green-200 pt-4">
+
+                            <p className="text-sm font-semibold text-green-800">
+                              🎉 Course Completed
+                            </p>
+
+                            <p className="mt-1 text-xs text-green-700">
+                              You have completed
+                              all available
+                              lessons in this
+                              course.
+                            </p>
+
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            Finished this lesson?
+                          </p>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Mark it as complete
+                            to update your
+                            course progress.
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={
+                            completeLesson
+                          }
+                          disabled={
+                            completingLesson
+                          }
+                          className="rounded-lg bg-[#A01441] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {completingLesson
+                            ? "Completing..."
+                            : "Mark as Complete"}
+                        </button>
+
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
-          />
-
-          <CourseInfo
-            icon={<FileText size={17} />}
-            label="Enrolled On"
-            value={formatDate(
-              enrollment.enrolledAt
-            )}
-          />
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Learning Area                                                       */}
-      {/* ------------------------------------------------------------------ */}
-
-      <section
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: "14px",
-          overflow: "hidden",
-          marginBottom: "20px",
-        }}
-      >
-        <div
-          style={{
-            padding: "18px 20px",
-            borderBottom:
-              "1px solid #E5E7EB",
-            display: "flex",
-            alignItems: "center",
-            gap: "9px",
-          }}
-        >
-          <PlayCircle
-            size={18}
-            color="#2F6BFF"
-          />
-
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "15px",
-              fontWeight: 700,
-              color: "#111827",
-            }}
-          >
-            Course Learning Area
-          </h2>
-        </div>
-
-        <div
-          style={{
-            padding: "55px 25px",
-            textAlign: "center",
-            background: "#FAFBFC",
-          }}
-        >
-          <div
-            style={{
-              width: "62px",
-              height: "62px",
-              borderRadius: "14px",
-              background: "#EAF0FE",
-              color: "#2F6BFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <PlayCircle size={30} />
-          </div>
-
-          <h3
-            style={{
-              margin: "0 0 8px",
-              fontSize: "18px",
-              color: "#111827",
-            }}
-          >
-            Learning Content Coming Soon
-          </h3>
-
-          <p
-            style={{
-              margin: "0 auto",
-              maxWidth: "580px",
-              color: "#6B7280",
-              fontSize: "13px",
-              lineHeight: 1.7,
-            }}
-          >
-            Lessons, videos, documents and other
-            learning materials will appear here once
-            course content is added to the learning
-            system.
-          </p>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Course status                                                       */}
-      {/* ------------------------------------------------------------------ */}
-
-      <section
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          borderRadius: "14px",
-          padding: "20px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "12px",
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "10px",
-              background: "#F0FDF4",
-              color: "#16A34A",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <CheckCircle2 size={20} />
-          </div>
-
-          <div>
-            <h3
-              style={{
-                margin: "0 0 5px",
-                fontSize: "14px",
-                fontWeight: 700,
-                color: "#111827",
-              }}
-            >
-              Enrollment Status
-            </h3>
-
-            <p
-              style={{
-                margin: 0,
-                fontSize: "12.5px",
-                color: "#6B7280",
-                lineHeight: 1.6,
-              }}
-            >
-              You are currently enrolled in{" "}
-              <strong
-                style={{
-                  color: "#374151",
-                }}
-              >
-                {course.title}
-              </strong>
-              .
-              {packageTitle
-                ? ` This course is included in your ${packageTitle} package.`
-                : ""}
-            </p>
           </div>
         </div>
-      </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Responsive styles                                                   */}
-      {/* ------------------------------------------------------------------ */}
+        {/* =====================================================
+            PROGRESS SUMMARY
+        ====================================================== */}
+        {progress && (
+          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
 
-      <style jsx>{`
-        @media (max-width: 900px) {
-          main {
-            padding-left: 22px !important;
-            padding-right: 22px !important;
-          }
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">
+                Total Lessons
+              </p>
 
-          section > div:last-child {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
+              <p className="mt-2 text-2xl font-bold text-gray-900">
+                {progress.totalLessons}
+              </p>
+            </div>
 
-        @media (max-width: 600px) {
-          main {
-            padding: 20px 16px 30px !important;
-          }
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">
+                Completed
+              </p>
 
-          section > div:last-child {
-            grid-template-columns: 1fr !important;
-          }
+              <p className="mt-2 text-2xl font-bold text-green-600">
+                {progress.completedLessons}
+              </p>
+            </div>
 
-          h1 {
-            font-size: 23px !important;
-          }
-        }
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">
+                Started
+              </p>
 
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
+              <p className="mt-2 text-2xl font-bold text-blue-600">
+                {progress.startedLessons}
+              </p>
+            </div>
 
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
-    </main>
-  );
-}
+            <div className="rounded-xl border bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-gray-500">
+                Remaining
+              </p>
 
-/* -------------------------------------------------------------------------- */
-/* Course Info                                                                */
-/* -------------------------------------------------------------------------- */
+              <p className="mt-2 text-2xl font-bold text-[#A01441]">
+                {progress.remainingLessons}
+              </p>
+            </div>
 
-function CourseInfo({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div
-      style={{
-        padding: "12px",
-        background: "#F9FAFB",
-        border: "1px solid #F0F1F3",
-        borderRadius: "9px",
-        display: "flex",
-        alignItems: "center",
-        gap: "9px",
-      }}
-    >
-      <div
-        style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "8px",
-          background: "#EAF0FE",
-          color: "#2F6BFF",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </div>
-
-      <div
-        style={{
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "10px",
-            color: "#9CA3AF",
-            marginBottom: "3px",
-          }}
-        >
-          {label}
-        </div>
-
-        <div
-          style={{
-            fontSize: "12px",
-            color: "#374151",
-            fontWeight: 600,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {value}
-        </div>
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
-function formatMode(
-  mode: Course["mode"]
-) {
-  switch (mode) {
-    case "ONLINE":
-      return "Online";
-
-    case "OFFLINE":
-      return "Offline";
-
-    case "HYBRID":
-      return "Hybrid";
-
-    default:
-      return "Not specified";
-  }
-}
-
-function formatStatus(
-  status: Enrollment["status"]
-) {
-  switch (status) {
-    case "ACTIVE":
-      return "Active";
-
-    case "COMPLETED":
-      return "Completed";
-
-    case "PENDING":
-      return "Pending";
-
-    case "CANCELLED":
-      return "Cancelled";
-
-    default:
-      return status;
-  }
-}
-
-function formatDate(
-  value: string
-) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
   );
 }

@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutGrid,
   Layers,
-  CalendarCheck,
+  Video,
   ClipboardList,
-  UploadCloud,
-  TrendingUp,
   User,
   BookOpen,
   ChevronDown,
@@ -26,24 +25,14 @@ const SIDEBAR_ITEMS = [
     icon: Layers,
   },
   {
-    href: "/dashboard/trainer/attendance",
-    label: "Attendance Marking",
-    icon: CalendarCheck,
+    href: "/dashboard/trainer/live-sessions",
+    label: "Live Sessions",
+    icon: Video,
   },
   {
     href: "/dashboard/trainer/assignments",
     label: "Assignments & Quizzes",
     icon: ClipboardList,
-  },
-  {
-    href: "/dashboard/trainer/upload-content",
-    label: "Upload Content",
-    icon: UploadCloud,
-  },
-  {
-    href: "/dashboard/trainer/student-progress",
-    label: "Student Progress",
-    icon: TrendingUp,
   },
   {
     href: "/dashboard/trainer/profile",
@@ -52,8 +41,52 @@ const SIDEBAR_ITEMS = [
   },
 ];
 
+type TrainerUser = {
+  name?: string;
+  email?: string;
+};
+
 export default function TrainerSidebar() {
   const pathname = usePathname();
+
+  const [user, setUser] =
+    useState<TrainerUser | null>(null);
+
+  useEffect(() => {
+    const rawUser =
+      localStorage.getItem("user");
+
+    if (!rawUser) {
+      return;
+    }
+
+    try {
+      setUser(
+        JSON.parse(rawUser) as TrainerUser
+      );
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  const displayName =
+    user?.name?.trim() ||
+    "Trainer";
+
+  const displayEmail =
+    user?.email?.trim() ||
+    "";
+
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(
+        (part) =>
+          part.charAt(0).toUpperCase()
+      )
+      .join("") || "T";
 
   return (
     <aside
@@ -67,7 +100,15 @@ export default function TrainerSidebar() {
         minHeight: "100vh",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 6px 20px" }}>
+      {/* Logo / Institute Name */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "0 6px 20px",
+        }}
+      >
         <div
           style={{
             width: 30,
@@ -77,14 +118,28 @@ export default function TrainerSidebar() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <BookOpen size={16} color="#fff" />
+          <BookOpen
+            size={16}
+            color="#fff"
+          />
         </div>
-        <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>SK Computer Education</span>
+
+        <span
+          style={{
+            fontWeight: 700,
+            letterSpacing: 0.5,
+          }}
+        >
+          SK Computer Education
+        </span>
       </div>
 
+      {/* Portal Selector */}
       <button
+        type="button"
         style={{
           display: "flex",
           alignItems: "center",
@@ -99,7 +154,13 @@ export default function TrainerSidebar() {
           cursor: "pointer",
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <span
             style={{
               width: 7,
@@ -109,45 +170,80 @@ export default function TrainerSidebar() {
               display: "inline-block",
             }}
           />
+
           Trainer Portal
         </span>
+
         <ChevronDown size={14} />
       </button>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
-        {SIDEBAR_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                padding: "9px 12px",
-                borderRadius: 8,
-                fontSize: 13.5,
-                textDecoration: "none",
-                background: isActive ? "#1BAA5E" : "transparent",
-                color: isActive ? "#fff" : "#AEB6CC",
-                fontWeight: isActive ? 600 : 500,
-              }}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-              {label}
-            </Link>
-          );
-        })}
+      {/* Navigation */}
+      <nav
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          flex: 1,
+        }}
+      >
+        {SIDEBAR_ITEMS.map(
+          ({
+            href,
+            label,
+            icon: Icon,
+          }) => {
+            const isActive =
+              pathname === href ||
+              (href !==
+                "/dashboard/trainer" &&
+                pathname.startsWith(
+                  `${href}/`
+                ));
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 11,
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  fontSize: 13.5,
+                  textDecoration: "none",
+                  background: isActive
+                    ? "#1BAA5E"
+                    : "transparent",
+                  color: isActive
+                    ? "#fff"
+                    : "#AEB6CC",
+                  fontWeight: isActive
+                    ? 600
+                    : 500,
+                }}
+              >
+                <Icon
+                  size={17}
+                  strokeWidth={1.8}
+                />
+
+                {label}
+              </Link>
+            );
+          }
+        )}
       </nav>
 
+      {/* Trainer Profile */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 10,
           paddingTop: 14,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderTop:
+            "1px solid rgba(255,255,255,0.08)",
         }}
       >
         <div
@@ -161,13 +257,41 @@ export default function TrainerSidebar() {
             justifyContent: "center",
             fontSize: 12,
             fontWeight: 700,
+            flexShrink: 0,
           }}
         >
-          RK
+          {initials}
         </div>
-        <div style={{ lineHeight: 1.3 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Rajesh Kumar</div>
-          <div style={{ fontSize: 11.5, color: "#8992AC" }}>trainer@skce.in</div>
+
+        <div
+          style={{
+            lineHeight: 1.3,
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {displayName}
+          </div>
+
+          <div
+            style={{
+              fontSize: 11.5,
+              color: "#8992AC",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {displayEmail}
+          </div>
         </div>
       </div>
     </aside>

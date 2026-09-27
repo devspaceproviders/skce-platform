@@ -1,205 +1,222 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import {
   Layers,
   Users,
   ChevronRight,
-  Plus,
-  Pencil,
-  Trash2,
-  Check,
-  X,
-  Clock3,
   GraduationCap,
-  Save,
+  Clock3,
+  AlertCircle,
 } from "lucide-react";
 
-type Batch = {
-  id: string;
-  name: string;
-  course: string;
-  students: number;
-  mode: "Online" | "Offline";
-  status: "Active" | "Completed";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
+type Course = {
+  id: number;
+  slug: string;
+  title: string;
+  isActive: boolean;
 };
 
-const INITIAL_BATCHES: Batch[] = [
-  {
-    id: "BATCH-FS-08",
-    name: "BATCH-FS-08",
-    course: "Full Stack Web Development",
-    students: 18,
-    mode: "Online",
-    status: "Active",
-  },
-  {
-    id: "BATCH-JAVA-06",
-    name: "BATCH-JAVA-06",
-    course: "Spring Boot REST APIs",
-    students: 14,
-    mode: "Offline",
-    status: "Active",
-  },
-  {
-    id: "BATCH-FS-09",
-    name: "BATCH-FS-09",
-    course: "Full Stack Web Development",
-    students: 12,
-    mode: "Online",
-    status: "Active",
-  },
-  {
-    id: "BATCH-FS-05",
-    name: "BATCH-FS-05",
-    course: "Full Stack Web Development",
-    students: 20,
-    mode: "Online",
-    status: "Completed",
-  },
-];
+type Batch = {
+  id: number;
+  displayId: string;
+  name: string;
+  courseId: number;
+  trainerId: number;
+  startDate: string;
+  endDate: string;
+  mode: string;
+  maxStudents: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  course: Course | null;
+  studentCount: number;
+};
 
-const STORAGE_KEY = "skce_trainer_batches";
+function getToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-function createBatch(): Batch {
-  const id = `BATCH-${Date.now()}`;
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("accessToken")
+  );
+}
 
-  return {
-    id,
-    name: id,
-    course: "",
-    students: 0,
-    mode: "Online",
-    status: "Active",
-  };
+function normalizeStatus(
+  status: string
+): "Active" | "Completed" {
+  const normalized =
+    status.trim().toUpperCase();
+
+  if (
+    normalized === "COMPLETED" ||
+    normalized === "COMPLETE"
+  ) {
+    return "Completed";
+  }
+
+  return "Active";
+}
+
+function normalizeMode(mode: string) {
+  const normalized =
+    mode.trim().toUpperCase();
+
+  if (normalized === "OFFLINE") {
+    return "Offline";
+  }
+
+  return "Online";
+}
+
+function formatDate(
+  value: string
+) {
+  if (!value) {
+    return "Not provided";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not provided";
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
 }
 
 export default function MyBatchesPage() {
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Batch | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [batches, setBatches] =
+    useState<Batch[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    let cancelled = false;
 
-    if (stored) {
+    async function loadBatches() {
       try {
-        setBatches(JSON.parse(stored));
-      } catch {
-        setBatches(INITIAL_BATCHES);
+        setLoading(true);
+        setError("");
+
+        const token = getToken();
+
+        if (!token) {
+          throw new Error(
+            "Authentication token not found. Please log in again."
+          );
+        }
+
+        const response =
+          await fetch(
+            `${API_URL}/trainer/batches`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              cache: "no-store",
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result?.message ||
+              "Unable to load trainer batches."
+          );
+        }
+
+        const data =
+          Array.isArray(result?.data)
+            ? result.data
+            : [];
+
+        if (!cancelled) {
+          setBatches(data);
+        }
+      } catch (err) {
+        console.error(
+          "Load trainer batches error:",
+          err
+        );
+
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load trainer batches."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    } else {
-      setBatches(INITIAL_BATCHES);
     }
+
+    loadBatches();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const startEdit = (batch: Batch) => {
-    if (editingId) {
-      alert("Please finish editing the current batch first.");
-      return;
-    }
+  const summary = useMemo(() => {
+    const activeCount =
+      batches.filter(
+        (batch) =>
+          normalizeStatus(
+            batch.status
+          ) === "Active"
+      ).length;
 
-    setEditingId(batch.id);
-    setDraft({ ...batch });
-    setSaved(false);
-  };
+    const completedCount =
+      batches.filter(
+        (batch) =>
+          normalizeStatus(
+            batch.status
+          ) === "Completed"
+      ).length;
 
-  const addBatch = () => {
-    if (editingId) {
-      alert("Please finish editing the current batch first.");
-      return;
-    }
+    const totalStudents =
+      batches.reduce(
+        (total, batch) =>
+          total +
+          Number(
+            batch.studentCount || 0
+          ),
+        0
+      );
 
-    const newBatch = createBatch();
-
-    setBatches((previous) => [...previous, newBatch]);
-    setEditingId(newBatch.id);
-    setDraft(newBatch);
-    setSaved(false);
-  };
-
-  const cancelEdit = () => {
-    if (draft && draft.students === 0) {
-      const exists = batches.some((batch) => batch.id === draft.id);
-
-      if (exists && draft.course === "") {
-        setBatches((previous) =>
-          previous.filter((batch) => batch.id !== draft.id)
-        );
-      }
-    }
-
-    setEditingId(null);
-    setDraft(null);
-  };
-
-  const saveBatch = () => {
-    if (!draft) return;
-
-    if (!draft.name.trim()) {
-      alert("Please enter batch name.");
-      return;
-    }
-
-    if (!draft.course.trim()) {
-      alert("Please enter course name.");
-      return;
-    }
-
-    setBatches((previous) =>
-      previous.map((batch) =>
-        batch.id === draft.id
-          ? {
-              ...draft,
-              name: draft.name.trim(),
-              course: draft.course.trim(),
-            }
-          : batch
-      )
-    );
-
-    setEditingId(null);
-    setDraft(null);
-    setSaved(false);
-  };
-
-  const removeBatch = (id: string) => {
-    const batch = batches.find((item) => item.id === id);
-
-    if (!batch) return;
-
-    const confirmed = window.confirm(
-      `Are you sure you want to remove "${batch.name}"?`
-    );
-
-    if (!confirmed) return;
-
-    setBatches((previous) => previous.filter((item) => item.id !== id));
-    localStorage.removeItem(`skce_batch_students_${id}`);
-    setSaved(false);
-  };
-
-  const handleSave = () => {
-    if (editingId) {
-      alert("Please finish editing the current batch first.");
-      return;
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
-    setSaved(true);
-  };
-
-  const activeCount = batches.filter((batch) => batch.status === "Active").length;
-  const completedCount = batches.filter(
-    (batch) => batch.status === "Completed"
-  ).length;
-  const totalStudents = batches.reduce(
-    (total, batch) => total + batch.students,
-    0
-  );
+    return {
+      total: batches.length,
+      active: activeCount,
+      completed: completedCount,
+      students: totalStudents,
+    };
+  }, [batches]);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
@@ -218,307 +235,223 @@ export default function MyBatchesPage() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
-                Manage your current and previous training batches.
+                View the training batches assigned to you and their
+                current student counts.
               </p>
             </div>
-
-            <button
-              onClick={addBatch}
-              className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
-            >
-              <Plus size={17} />
-              Add Batch
-            </button>
           </div>
         </div>
 
-        {/* Development notice */}
-        <div className="mb-7 flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
-          <Clock3 className="mt-0.5 shrink-0 text-orange-500" size={18} />
-          <div>
-            <p className="font-semibold text-slate-900">Development Mode</p>
-            <p className="mt-0.5 leading-6">
-              Batch data is currently stored in browser local storage. Once
-              the backend is connected, batch assignments and student counts
-              will be managed from the server.
-            </p>
+        {/* Error */}
+        {error && (
+          <div className="mb-7 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+            <AlertCircle
+              className="mt-0.5 shrink-0"
+              size={19}
+            />
+
+            <div>
+              <p className="font-semibold">
+                Unable to load batches
+              </p>
+
+              <p className="mt-1 leading-6">
+                {error}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Summary */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             icon={<Layers size={20} />}
-            value={batches.length}
+            value={summary.total}
             label="Total Batches"
           />
+
           <SummaryCard
             icon={<GraduationCap size={20} />}
-            value={activeCount}
+            value={summary.active}
             label="Active Batches"
           />
+
           <SummaryCard
             icon={<Clock3 size={20} />}
-            value={completedCount}
+            value={summary.completed}
             label="Completed Batches"
           />
+
           <SummaryCard
             icon={<Users size={20} />}
-            value={totalStudents}
+            value={summary.students}
             label="Total Students"
           />
         </div>
 
-        {/* Batch list */}
-        {batches.length === 0 ? (
+        {/* Loading */}
+        {loading ? (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {[1, 2, 3, 4].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="animate-pulse rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-slate-200" />
+
+                    <div className="flex-1">
+                      <div className="h-5 w-48 rounded bg-slate-200" />
+
+                      <div className="mt-2 h-4 w-64 rounded bg-slate-100" />
+                    </div>
+                  </div>
+
+                  <div className="my-5 h-px bg-slate-100" />
+
+                  <div className="h-4 w-40 rounded bg-slate-100" />
+                </div>
+              )
+            )}
+          </div>
+        ) : batches.length === 0 ? (
+          /* Empty */
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
               <Layers size={25} />
             </div>
+
             <h2 className="mt-4 text-lg font-bold text-slate-900">
-              No batches available
+              No batches assigned
             </h2>
+
             <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
-              Add a batch to begin managing your trainer schedule and students.
+              You currently do not have any training batches assigned
+              to your trainer profile.
             </p>
-            <button
-              onClick={addBatch}
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-600"
-            >
-              <Plus size={16} />
-              Add Batch
-            </button>
           </div>
         ) : (
+          /* Batch list */
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            {batches.map((batch) => {
-              const isEditing = editingId === batch.id;
-              const currentBatch =
-                isEditing && draft ? draft : batch;
+            {batches.map(
+              (batch) => {
+                const status =
+                  normalizeStatus(
+                    batch.status
+                  );
 
-              return (
-                <div
-                  key={batch.id}
-                  className={`rounded-2xl border bg-white p-5 shadow-sm transition sm:p-6 ${
-                    isEditing
-                      ? "border-orange-300 ring-2 ring-orange-100"
-                      : "border-slate-200 hover:-translate-y-0.5 hover:shadow-md"
-                  }`}
-                >
-                  {isEditing ? (
-                    <div>
-                      <div className="mb-5 flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                          <Pencil size={19} />
+                const mode =
+                  normalizeMode(
+                    batch.mode
+                  );
+
+                const courseName =
+                  batch.course?.title ||
+                  "Course not available";
+
+                return (
+                  <div
+                    key={batch.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
+                  >
+                    {/* Top */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                          <Layers size={21} />
                         </div>
-                        <div>
-                          <h2 className="font-bold text-[#173B67]">
-                            Edit Batch
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {batch.displayId}
+                          </p>
+
+                          <h2 className="mt-0.5 truncate text-base font-bold text-[#173B67]">
+                            {batch.name}
                           </h2>
-                          <p className="text-xs text-slate-500">
-                            Update the batch information below.
+
+                          <p className="mt-1 text-sm text-slate-500">
+                            {courseName}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                            Batch Name
-                          </label>
-                          <input
-                            value={currentBatch.name}
-                            onChange={(e) =>
-                              setDraft({
-                                ...currentBatch,
-                                name: e.target.value,
-                              })
-                            }
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                            placeholder="Batch name"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                            Course
-                          </label>
-                          <input
-                            value={currentBatch.course}
-                            onChange={(e) =>
-                              setDraft({
-                                ...currentBatch,
-                                course: e.target.value,
-                              })
-                            }
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                            placeholder="Course name"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div>
-                            <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                              Mode
-                            </label>
-                            <select
-                              value={currentBatch.mode}
-                              onChange={(e) =>
-                                setDraft({
-                                  ...currentBatch,
-                                  mode: e.target.value as
-                                    | "Online"
-                                    | "Offline",
-                                })
-                              }
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                            >
-                              <option value="Online">Online</option>
-                              <option value="Offline">Offline</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="mb-1.5 block text-xs font-bold text-slate-700">
-                              Status
-                            </label>
-                            <select
-                              value={currentBatch.status}
-                              onChange={(e) =>
-                                setDraft({
-                                  ...currentBatch,
-                                  status: e.target.value as
-                                    | "Active"
-                                    | "Completed",
-                                })
-                              }
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                            >
-                              <option value="Active">Active</option>
-                              <option value="Completed">Completed</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 flex justify-end gap-2">
-                        <button
-                          onClick={saveBatch}
-                          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
-                        >
-                          <Check size={16} />
-                          Save Batch
-                        </button>
-
-                        <button
-                          onClick={cancelEdit}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                        >
-                          <X size={16} />
-                          Cancel
-                        </button>
-                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                          status ===
+                          "Active"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        {status}
+                      </span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                            <Layers size={21} />
-                          </div>
 
-                          <div className="min-w-0">
-                            <h2 className="truncate text-base font-bold text-[#173B67]">
-                              {batch.name}
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                              {batch.course}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="my-5 h-px bg-slate-100" />
 
-                        <span
-                          className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
-                            batch.status === "Active"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {batch.status}
-                        </span>
-                      </div>
+                    {/* Details */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <DetailItem
+                        label="Students"
+                        value={`${batch.studentCount} students`}
+                      />
 
-                      <div className="my-5 h-px bg-slate-100" />
+                      <DetailItem
+                        label="Mode"
+                        value={mode}
+                      />
 
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-500">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Users size={16} />
-                            {batch.students} students
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span>{batch.mode}</span>
-                        </div>
+                      <DetailItem
+                        label="Start Date"
+                        value={formatDate(
+                          batch.startDate
+                        )}
+                      />
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => startEdit(batch)}
-                            title="Edit batch"
-                            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[#173B67] hover:text-[#173B67]"
-                          >
-                            <Pencil size={14} />
-                            Edit
-                          </button>
+                      <DetailItem
+                        label="End Date"
+                        value={formatDate(
+                          batch.endDate
+                        )}
+                      />
 
-                          <button
-                            onClick={() => removeBatch(batch.id)}
-                            title="Remove batch"
-                            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50"
-                          >
-                            <Trash2 size={14} />
-                            Remove
-                          </button>
+                      <DetailItem
+                        label="Maximum Students"
+                        value={String(
+                          batch.maxStudents
+                        )}
+                      />
 
-                          <Link
-                            href={`/dashboard/trainer/my-batches/batch-detail/${encodeURIComponent(
-                              batch.id
-                            )}`}
-                            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-orange-500 px-3 text-xs font-bold text-white transition hover:bg-orange-600"
-                          >
-                            View Batch
-                            <ChevronRight size={15} />
-                          </Link>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+                      <DetailItem
+                        label="Course"
+                        value={courseName}
+                      />
+                    </div>
+
+                    {/* Action */}
+                    <div className="mt-5 flex justify-end">
+                      <Link
+                        href={`/dashboard/trainer/my-batches/batch-detail/${encodeURIComponent(
+                          String(
+                            batch.id
+                          )
+                        )}`}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-orange-500 px-3 text-xs font-bold text-white transition hover:bg-orange-600"
+                      >
+                        View Batch
+                        <ChevronRight
+                          size={15}
+                        />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              }
+            )}
           </div>
         )}
-
-        {/* Save changes */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            onClick={handleSave}
-            disabled={!!editingId}
-            className={`inline-flex w-fit items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white transition ${
-              editingId
-                ? "cursor-not-allowed bg-slate-300"
-                : "bg-[#173B67] hover:bg-[#123052]"
-            }`}
-          >
-            <Save size={16} />
-            Save Changes
-          </button>
-
-          {saved && (
-            <span className="text-sm font-semibold text-green-600">
-              ✓ Changes saved successfully
-            </span>
-          )}
-        </div>
       </div>
     </main>
   );
@@ -529,7 +462,7 @@ function SummaryCard({
   value,
   label,
 }: {
-  icon: ReactNode;
+  icon: React.ReactNode;
   value: number;
   label: string;
 }) {
@@ -539,11 +472,37 @@ function SummaryCard({
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
           {icon}
         </div>
+
         <div>
-          <p className="text-2xl font-bold text-[#173B67]">{value}</p>
-          <p className="mt-0.5 text-sm text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-[#173B67]">
+            {value}
+          </p>
+
+          <p className="mt-0.5 text-sm text-slate-500">
+            {label}
+          </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm font-semibold text-slate-700">
+        {value}
+      </p>
     </div>
   );
 }
