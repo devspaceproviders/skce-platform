@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.meeting.meetingPlatform",
+    "label": "Add column \"meetingPlatform\" to \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "meetingPlatform",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"meetingPlatform\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "meeting",
+          "meetingPlatform"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"meetingPlatform\"",
+        "sql": "ALTER TABLE \"public\".\"meeting\" ADD COLUMN \"meetingPlatform\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"meetingPlatform\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "meeting",
+          "meetingPlatform"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.meeting.meeting_meetingPlatform_check_b2cec751",
+    "label": "Add check constraint \"meeting_meetingPlatform_check_b2cec751\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "meeting_meetingPlatform_check_b2cec751",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"meeting_meetingPlatform_check_b2cec751\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_meetingPlatform_check_b2cec751",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"meeting_meetingPlatform_check_b2cec751\"",
+        "sql": "ALTER TABLE \"public\".\"meeting\" ADD CONSTRAINT \"meeting_meetingPlatform_check_b2cec751\" CHECK (\"meetingPlatform\" IN ('GOOGLE_MEET', 'MICROSOFT_TEAMS', 'ZOOM', 'WHATSAPP', 'OTHER'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"meeting_meetingPlatform_check_b2cec751\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_meetingPlatform_check_b2cec751",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ]
+  }
+]

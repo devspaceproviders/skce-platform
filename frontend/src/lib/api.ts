@@ -97,10 +97,88 @@ export async function getCourseBySlug(
       (c) => c.slug === slug
     ) ?? null;
 
-  return safeFetch<Course | null>(
-    `/courses/${slug}`,
-    fallback
-  );
+  try {
+    const res = await fetch(
+      `${API_URL}/courses/${slug}`,
+      {
+        next: {
+          revalidate: 60,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Request failed: ${res.status}`
+      );
+    }
+
+    const json = await res.json();
+
+    if (!json.success || !json.data) {
+      return fallback;
+    }
+
+    const data = json.data;
+
+    const modeMap: Record<
+      string,
+      Course["mode"]
+    > = {
+      ONLINE: "Online",
+      OFFLINE: "Offline",
+      HYBRID: "Hybrid",
+    };
+
+    const backendBaseUrl =
+      API_URL.replace(/\/api\/?$/, "");
+
+    const instructor =
+      data.instructor
+        ? {
+            ...data.instructor,
+            avatarUrl:
+              data.instructor.avatarUrl &&
+              data.instructor.avatarUrl.startsWith(
+                "/"
+              )
+                ? `${backendBaseUrl}${data.instructor.avatarUrl}`
+                : data.instructor.avatarUrl || "",
+          }
+        : undefined;
+
+    return {
+      ...data,
+
+      mode:
+        modeMap[data.mode] ??
+        "Online",
+
+      modules:
+        typeof data.modules === "number"
+          ? data.modules
+          : 0,
+
+      enrolled:
+        typeof data.enrolled === "number"
+          ? data.enrolled
+          : 0,
+
+      totalVideos:
+        typeof data.totalVideos === "number"
+          ? data.totalVideos
+          : 0,
+
+      topics:
+        Array.isArray(data.topics)
+          ? data.topics
+          : [],
+
+      instructor,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 export async function submitContactForm(
@@ -134,6 +212,13 @@ export async function submitContactForm(
 // ============================================================
 // PACKAGES
 // ============================================================
+export type CoursePackageCourse = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string | null;
+  mode: string;
+};
 
 export type CoursePackage = {
   id: number;
@@ -142,7 +227,7 @@ export type CoursePackage = {
   description: string | null;
   price: number;
   isActive: boolean;
-  courses?: string[];
+  courses: CoursePackageCourse[];
 };
 
 type PackagesResponse = {

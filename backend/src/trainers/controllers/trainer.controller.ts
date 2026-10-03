@@ -1,11 +1,8 @@
 import type { Response } from "express";
 
-import type {
-  AuthenticatedRequest,
-} from "../../auth/middleware/auth.middleware";
+import type { AuthenticatedRequest } from "../../auth/middleware/auth.middleware";
 
 import {
-  listPublicTrainers,
   createAdminTrainer,
   getAdminTrainer,
   listAdminTrainers,
@@ -15,25 +12,21 @@ import {
   type TrainerUpdateInput,
 } from "../services/trainer.service";
 
-import {
-  updateTrainerProfilePhoto,
-} from "../services/trainer-photo.service";
+function parseId(value: unknown) {
+  const rawValue = Array.isArray(value)
+    ? value[0]
+    : value;
 
-function parseId(
-  value: string | string[] | undefined
-) {
-  if (!value) {
+  if (
+    typeof rawValue !== "string" ||
+    !rawValue.trim()
+  ) {
     throw new Error(
       "Trainer ID is required."
     );
   }
 
-  const idValue =
-    Array.isArray(value)
-      ? value[0]
-      : value;
-
-  const id = Number(idValue);
+  const id = Number(rawValue);
 
   if (
     !Number.isInteger(id) ||
@@ -47,43 +40,9 @@ function parseId(
   return id;
 }
 
-/*
- * ============================================================
- * PUBLIC - LIST TRAINERS
- * ============================================================
- */
-
-export async function listPublicTrainersController(
-  _req: AuthenticatedRequest,
-  res: Response
-) {
-  try {
-    const trainers =
-      await listPublicTrainers();
-
-    return res.status(200).json({
-      success: true,
-      data: trainers,
-    });
-  } catch (error) {
-    console.error(
-      "List public trainers error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to load trainers.",
-    });
-  }
-}
-
-/*
- * ============================================================
- * ADMIN - LIST TRAINERS
- * ============================================================
- */
+/* ============================================================
+   ADMIN - LIST TRAINERS
+   ============================================================ */
 
 export async function listAdminTrainersController(
   _req: AuthenticatedRequest,
@@ -111,11 +70,9 @@ export async function listAdminTrainersController(
   }
 }
 
-/*
- * ============================================================
- * ADMIN - GET TRAINER
- * ============================================================
- */
+/* ============================================================
+   ADMIN - GET TRAINER
+   ============================================================ */
 
 export async function getAdminTrainerController(
   req: AuthenticatedRequest,
@@ -143,7 +100,8 @@ export async function getAdminTrainerController(
         : "Unable to load trainer.";
 
     const status =
-      message === "Trainer not found." ||
+      message ===
+        "Trainer not found." ||
       message ===
         "Trainer account not found."
         ? 404
@@ -156,27 +114,32 @@ export async function getAdminTrainerController(
   }
 }
 
-/*
- * ============================================================
- * ADMIN - CREATE TRAINER
- * ============================================================
- */
+/* ============================================================
+   ADMIN - CREATE TRAINER
+   ============================================================ */
 
 export async function createAdminTrainerController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const body =
-      req.body || {};
+    const actorUserId =
+      req.user?.userId;
+
+    if (!actorUserId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required.",
+      });
+    }
+
+    const body = req.body || {};
 
     if (
-      typeof body.name !==
-        "string" ||
-      typeof body.email !==
-        "string" ||
-      typeof body.password !==
-        "string"
+      typeof body.name !== "string" ||
+      typeof body.email !== "string" ||
+      typeof body.password !== "string"
     ) {
       return res.status(400).json({
         success: false,
@@ -187,20 +150,16 @@ export async function createAdminTrainerController(
 
     const input: TrainerCreateInput = {
       name: body.name,
-
       email: body.email,
-
       phone:
         body.phone === undefined
           ? null
           : body.phone,
-
       specialization:
         body.specialization ===
         undefined
           ? null
           : body.specialization,
-
       experience:
         body.experience ===
           undefined ||
@@ -209,13 +168,11 @@ export async function createAdminTrainerController(
           : Number(
               body.experience
             ),
-
       password:
         body.password,
-
       isActive:
         body.isActive ===
-        undefined
+          undefined
           ? true
           : Boolean(
               body.isActive
@@ -224,7 +181,8 @@ export async function createAdminTrainerController(
 
     const trainer =
       await createAdminTrainer(
-        input
+        input,
+        actorUserId
       );
 
     return res.status(201).json({
@@ -258,19 +216,27 @@ export async function createAdminTrainerController(
   }
 }
 
-/*
- * ============================================================
- * ADMIN - UPDATE TRAINER
- * ============================================================
- */
+/* ============================================================
+   ADMIN - UPDATE TRAINER
+   ============================================================ */
 
 export async function updateAdminTrainerController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const body =
-      req.body || {};
+    const actorUserId =
+      req.user?.userId;
+
+    if (!actorUserId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required.",
+      });
+    }
+
+    const body = req.body || {};
 
     const input: TrainerUpdateInput =
       {};
@@ -342,7 +308,8 @@ export async function updateAdminTrainerController(
         parseId(
           req.params.id
         ),
-        input
+        input,
+        actorUserId
       );
 
     return res.status(200).json({
@@ -363,7 +330,8 @@ export async function updateAdminTrainerController(
         : "Unable to update trainer.";
 
     const status =
-      message === "Trainer not found." ||
+      message ===
+        "Trainer not found." ||
       message ===
         "Trainer account not found."
         ? 404
@@ -380,17 +348,26 @@ export async function updateAdminTrainerController(
   }
 }
 
-/*
- * ============================================================
- * ADMIN - RESET TRAINER PASSWORD
- * ============================================================
- */
+/* ============================================================
+   ADMIN - RESET TRAINER PASSWORD
+   ============================================================ */
 
 export async function resetAdminTrainerPasswordController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
+    const actorUserId =
+      req.user?.userId;
+
+    if (!actorUserId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required.",
+      });
+    }
+
     const password =
       req.body?.password;
 
@@ -409,7 +386,8 @@ export async function resetAdminTrainerPasswordController(
       parseId(
         req.params.id
       ),
-      password
+      password,
+      actorUserId
     );
 
     return res.status(200).json({
@@ -429,71 +407,8 @@ export async function resetAdminTrainerPasswordController(
         : "Unable to reset trainer password.";
 
     const status =
-      message === "Trainer not found." ||
       message ===
-        "Trainer account not found."
-        ? 404
-        : 400;
-
-    return res.status(status).json({
-      success: false,
-      message,
-    });
-  }
-}
-
-/*
- * ============================================================
- * ADMIN - UPDATE TRAINER PROFILE PHOTO
- * ============================================================
- */
-
-export async function updateAdminTrainerPhotoController(
-  req: AuthenticatedRequest,
-  res: Response
-) {
-  try {
-    const file =
-      req.file;
-
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Profile photo is required.",
-      });
-    }
-
-    const profilePhotoUrl =
-      `/uploads/profile/${file.filename}`;
-
-    const trainer =
-      await updateTrainerProfilePhoto(
-        parseId(
-          req.params.id
-        ),
-        profilePhotoUrl
-      );
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "Trainer profile photo updated successfully.",
-      data: trainer,
-    });
-  } catch (error) {
-    console.error(
-      "Update trainer profile photo error:",
-      error
-    );
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to update trainer profile photo.";
-
-    const status =
-      message === "Trainer not found." ||
+        "Trainer not found." ||
       message ===
         "Trainer account not found."
         ? 404

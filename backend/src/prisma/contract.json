@@ -28,6 +28,14 @@
       "model": "CeoProfile",
       "namespace": "public"
     },
+    "certificate": {
+      "model": "Certificate",
+      "namespace": "public"
+    },
+    "certificateSetting": {
+      "model": "CertificateSetting",
+      "namespace": "public"
+    },
     "course": {
       "model": "Course",
       "namespace": "public"
@@ -60,6 +68,14 @@
       "model": "LiveSessionParticipation",
       "namespace": "public"
     },
+    "meeting": {
+      "model": "Meeting",
+      "namespace": "public"
+    },
+    "meetingParticipant": {
+      "model": "MeetingParticipant",
+      "namespace": "public"
+    },
     "packageCourse": {
       "model": "PackageCourse",
       "namespace": "public"
@@ -74,6 +90,14 @@
     },
     "studentProfile": {
       "model": "StudentProfile",
+      "namespace": "public"
+    },
+    "trainerActivity": {
+      "model": "TrainerActivity",
+      "namespace": "public"
+    },
+    "trainerAvailability": {
+      "model": "TrainerAvailability",
       "namespace": "public"
     },
     "trainerCoursePermission": {
@@ -120,6 +144,39 @@
               {
                 "name": "QUIZ",
                 "value": "QUIZ"
+              }
+            ]
+          },
+          "AvailabilityDay": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "MONDAY",
+                "value": "MONDAY"
+              },
+              {
+                "name": "TUESDAY",
+                "value": "TUESDAY"
+              },
+              {
+                "name": "WEDNESDAY",
+                "value": "WEDNESDAY"
+              },
+              {
+                "name": "THURSDAY",
+                "value": "THURSDAY"
+              },
+              {
+                "name": "FRIDAY",
+                "value": "FRIDAY"
+              },
+              {
+                "name": "SATURDAY",
+                "value": "SATURDAY"
+              },
+              {
+                "name": "SUNDAY",
+                "value": "SUNDAY"
               }
             ]
           },
@@ -242,6 +299,73 @@
               {
                 "name": "CANCELLED",
                 "value": "CANCELLED"
+              }
+            ]
+          },
+          "MeetingPlatform": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "GOOGLE_MEET",
+                "value": "GOOGLE_MEET"
+              },
+              {
+                "name": "MICROSOFT_TEAMS",
+                "value": "MICROSOFT_TEAMS"
+              },
+              {
+                "name": "ZOOM",
+                "value": "ZOOM"
+              },
+              {
+                "name": "WHATSAPP",
+                "value": "WHATSAPP"
+              },
+              {
+                "name": "OTHER",
+                "value": "OTHER"
+              }
+            ]
+          },
+          "MeetingStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "SCHEDULED",
+                "value": "SCHEDULED"
+              },
+              {
+                "name": "COMPLETED",
+                "value": "COMPLETED"
+              },
+              {
+                "name": "CANCELLED",
+                "value": "CANCELLED"
+              }
+            ]
+          },
+          "MeetingType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "BATCH_MEETING",
+                "value": "BATCH_MEETING"
+              },
+              {
+                "name": "STUDENT_MEETING",
+                "value": "STUDENT_MEETING"
+              },
+              {
+                "name": "INTERNAL_MEETING",
+                "value": "INTERNAL_MEETING"
+              },
+              {
+                "name": "ONE_TO_ONE",
+                "value": "ONE_TO_ONE"
+              },
+              {
+                "name": "OTHER",
+                "value": "OTHER"
               }
             ]
           },
@@ -1364,6 +1488,253 @@
               "table": "ceoProfile"
             }
           },
+          "Certificate": {
+            "fields": {
+              "certificateNumber": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "certificateType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "certificateUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "courseId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "enrollmentId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "issuedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "packageId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "course": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "courseId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Course",
+                  "namespace": "public"
+                }
+              },
+              "enrollment": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "enrollmentId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Enrollment",
+                  "namespace": "public"
+                }
+              },
+              "package": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "packageId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "CoursePackage",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "certificateNumber": {
+                  "column": "certificateNumber"
+                },
+                "certificateType": {
+                  "column": "certificateType"
+                },
+                "certificateUrl": {
+                  "column": "certificateUrl"
+                },
+                "courseId": {
+                  "column": "courseId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "enrollmentId": {
+                  "column": "enrollmentId"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "issuedAt": {
+                  "column": "issuedAt"
+                },
+                "packageId": {
+                  "column": "packageId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "certificate"
+            }
+          },
+          "CertificateSetting": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "logoUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "signatureUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "logoUrl": {
+                  "column": "logoUrl"
+                },
+                "signatureUrl": {
+                  "column": "signatureUrl"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "certificateSetting"
+            }
+          },
           "Course": {
             "fields": {
               "createdAt": {
@@ -1481,6 +1852,21 @@
                   "namespace": "public"
                 }
               },
+              "certificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "courseId"
+                  ]
+                },
+                "to": {
+                  "model": "Certificate",
+                  "namespace": "public"
+                }
+              },
               "courseModules": {
                 "cardinality": "1:N",
                 "on": {
@@ -1523,6 +1909,21 @@
                 },
                 "to": {
                   "model": "LiveSession",
+                  "namespace": "public"
+                }
+              },
+              "meetings": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "courseId"
+                  ]
+                },
+                "to": {
+                  "model": "Meeting",
                   "namespace": "public"
                 }
               },
@@ -1868,6 +2269,21 @@
               }
             },
             "relations": {
+              "certificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "packageId"
+                  ]
+                },
+                "to": {
+                  "model": "Certificate",
+                  "namespace": "public"
+                }
+              },
               "courses": {
                 "cardinality": "1:N",
                 "on": {
@@ -2025,6 +2441,21 @@
               }
             },
             "relations": {
+              "certificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "enrollmentId"
+                  ]
+                },
+                "to": {
+                  "model": "Certificate",
+                  "namespace": "public"
+                }
+              },
               "course": {
                 "cardinality": "N:1",
                 "nullable": true,
@@ -2896,6 +3327,323 @@
               },
               "namespaceId": "public",
               "table": "liveSessionParticipation"
+            }
+          },
+          "Meeting": {
+            "fields": {
+              "batchId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "courseId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "endAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "meetingPlatform": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "MeetingPlatform",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "meetingType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "MeetingType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "meetingUrl": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "organizerUserId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "startAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "MeetingStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "batch": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "batchId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Batch",
+                  "namespace": "public"
+                }
+              },
+              "course": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "courseId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Course",
+                  "namespace": "public"
+                }
+              },
+              "organizer": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "organizerUserId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "participants": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "meetingId"
+                  ]
+                },
+                "to": {
+                  "model": "MeetingParticipant",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "batchId": {
+                  "column": "batchId"
+                },
+                "courseId": {
+                  "column": "courseId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "endAt": {
+                  "column": "endAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "meetingPlatform": {
+                  "column": "meetingPlatform"
+                },
+                "meetingType": {
+                  "column": "meetingType"
+                },
+                "meetingUrl": {
+                  "column": "meetingUrl"
+                },
+                "organizerUserId": {
+                  "column": "organizerUserId"
+                },
+                "startAt": {
+                  "column": "startAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "meeting"
+            }
+          },
+          "MeetingParticipant": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "meetingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "meeting": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "meetingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Meeting",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "meetingId": {
+                  "column": "meetingId"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "meetingParticipant"
             }
           },
           "PackageCourse": {
@@ -3888,6 +4636,264 @@
               "table": "studentProfile"
             }
           },
+          "TrainerActivity": {
+            "fields": {
+              "action": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "actorUserId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "entityId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "entityType": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "metadata": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "trainerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "actor": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "actorUserId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "trainer": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "trainerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "TrainerProfile",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "action": {
+                  "column": "action"
+                },
+                "actorUserId": {
+                  "column": "actorUserId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "entityId": {
+                  "column": "entityId"
+                },
+                "entityType": {
+                  "column": "entityType"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "metadata": {
+                  "column": "metadata"
+                },
+                "trainerId": {
+                  "column": "trainerId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "trainerActivity"
+            }
+          },
+          "TrainerAvailability": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dayOfWeek": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AvailabilityDay",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "endMinute": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "startMinute": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "timezone": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "trainerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "trainer": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "trainerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "TrainerProfile",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "dayOfWeek": {
+                  "column": "dayOfWeek"
+                },
+                "endMinute": {
+                  "column": "endMinute"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "startMinute": {
+                  "column": "startMinute"
+                },
+                "timezone": {
+                  "column": "timezone"
+                },
+                "trainerId": {
+                  "column": "trainerId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "trainerAvailability"
+            }
+          },
           "TrainerCoursePermission": {
             "fields": {
               "canCreateAssessments": {
@@ -4082,6 +5088,36 @@
               }
             },
             "relations": {
+              "activities": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "trainerId"
+                  ]
+                },
+                "to": {
+                  "model": "TrainerActivity",
+                  "namespace": "public"
+                }
+              },
+              "availabilities": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "trainerId"
+                  ]
+                },
+                "to": {
+                  "model": "TrainerAvailability",
+                  "namespace": "public"
+                }
+              },
               "batches": {
                 "cardinality": "1:N",
                 "on": {
@@ -4286,6 +5322,21 @@
                   "namespace": "public"
                 }
               },
+              "certificates": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Certificate",
+                  "namespace": "public"
+                }
+              },
               "createdAssessments": {
                 "cardinality": "1:N",
                 "on": {
@@ -4373,6 +5424,36 @@
                 },
                 "to": {
                   "model": "LiveSessionParticipation",
+                  "namespace": "public"
+                }
+              },
+              "meetingParticipants": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "MeetingParticipant",
+                  "namespace": "public"
+                }
+              },
+              "organizedMeetings": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "organizerUserId"
+                  ]
+                },
+                "to": {
+                  "model": "Meeting",
                   "namespace": "public"
                 }
               },
@@ -4464,6 +5545,21 @@
                 },
                 "to": {
                   "model": "StudentProfile",
+                  "namespace": "public"
+                }
+              },
+              "trainerActivities": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "actorUserId"
+                  ]
+                },
+                "to": {
+                  "model": "TrainerActivity",
                   "namespace": "public"
                 }
               },
@@ -5509,6 +6605,250 @@
                   ]
                 }
               ]
+            },
+            "certificate": {
+              "columns": {
+                "certificateNumber": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "certificateType": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "COURSE"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "certificateUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "courseId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "enrollmentId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "issuedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "packageId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "enrollmentId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "certificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "enrollment"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "certificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "courseId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "certificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "course"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "packageId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "certificate"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "coursePackage"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "certificateType"
+                  ],
+                  "name": "certificate_certificateType_idx_175a7841",
+                  "prefix": "certificate_certificateType_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "courseId"
+                  ],
+                  "name": "certificate_courseId_idx_12f72d2a",
+                  "prefix": "certificate_courseId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "enrollmentId"
+                  ],
+                  "name": "certificate_enrollmentId_idx_ee5e79c5",
+                  "prefix": "certificate_enrollmentId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "packageId"
+                  ],
+                  "name": "certificate_packageId_idx_51f866f4",
+                  "prefix": "certificate_packageId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "certificate_userId_idx_a489d58a",
+                  "prefix": "certificate_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "certificateNumber"
+                  ]
+                }
+              ]
+            },
+            "certificateSetting": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "logoUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "signatureUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
             },
             "course": {
               "checks": [
@@ -6826,6 +8166,352 @@
                 }
               ]
             },
+            "meeting": {
+              "checks": [
+                {
+                  "expression": "\"meetingPlatform\" IN ('GOOGLE_MEET', 'MICROSOFT_TEAMS', 'ZOOM', 'WHATSAPP', 'OTHER')",
+                  "name": "meeting_meetingPlatform_check_b2cec751",
+                  "prefix": "meeting_meetingPlatform_check"
+                },
+                {
+                  "expression": "\"meetingType\" IN ('BATCH_MEETING', 'STUDENT_MEETING', 'INTERNAL_MEETING', 'ONE_TO_ONE', 'OTHER')",
+                  "name": "meeting_meetingType_check_fd7b9d6e",
+                  "prefix": "meeting_meetingType_check"
+                },
+                {
+                  "expression": "\"status\" IN ('SCHEDULED', 'COMPLETED', 'CANCELLED')",
+                  "name": "meeting_status_check_9eaa8e3a",
+                  "prefix": "meeting_status_check"
+                }
+              ],
+              "columns": {
+                "batchId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "courseId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "endAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "meetingPlatform": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "MeetingPlatform",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "meetingType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "MeetingType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "meetingUrl": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "organizerUserId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "startAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "SCHEDULED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "MeetingStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "organizerUserId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meeting"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                },
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "courseId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meeting"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "course"
+                  }
+                },
+                {
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "batchId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meeting"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "batch"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "batchId"
+                  ],
+                  "name": "meeting_batchId_idx_84d4b0b9",
+                  "prefix": "meeting_batchId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "batchId",
+                    "startAt"
+                  ],
+                  "name": "meeting_batchId_startAt_idx_174e7312",
+                  "prefix": "meeting_batchId_startAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "courseId"
+                  ],
+                  "name": "meeting_courseId_idx_12f72d2a",
+                  "prefix": "meeting_courseId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "endAt"
+                  ],
+                  "name": "meeting_endAt_idx_5e9d9e87",
+                  "prefix": "meeting_endAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "meetingType"
+                  ],
+                  "name": "meeting_meetingType_idx_8c31d2f2",
+                  "prefix": "meeting_meetingType_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "organizerUserId"
+                  ],
+                  "name": "meeting_organizerUserId_idx_832288ad",
+                  "prefix": "meeting_organizerUserId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "startAt"
+                  ],
+                  "name": "meeting_startAt_idx_8b06bdbe",
+                  "prefix": "meeting_startAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status"
+                  ],
+                  "name": "meeting_status_idx_e98638ab",
+                  "prefix": "meeting_status_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "meetingParticipant": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "meetingId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "meetingId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meetingParticipant"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meeting"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "meetingParticipant"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "meetingId"
+                  ],
+                  "name": "meetingParticipant_meetingId_idx_ebb79f08",
+                  "prefix": "meetingParticipant_meetingId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "meetingParticipant_userId_idx_a489d58a",
+                  "prefix": "meetingParticipant_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "meetingId",
+                    "userId"
+                  ]
+                }
+              ]
+            },
             "packageCourse": {
               "columns": {
                 "courseId": {
@@ -7593,6 +9279,289 @@
                 }
               ]
             },
+            "trainerActivity": {
+              "columns": {
+                "action": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "actorUserId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "entityId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "entityType": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "metadata": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "trainerId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "trainerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "trainerActivity"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "trainerProfile"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "actorUserId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "trainerActivity"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "action"
+                  ],
+                  "name": "trainerActivity_action_idx_cd0d2116",
+                  "prefix": "trainerActivity_action_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "actorUserId"
+                  ],
+                  "name": "trainerActivity_actorUserId_idx_96dac96c",
+                  "prefix": "trainerActivity_actorUserId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "entityType",
+                    "entityId"
+                  ],
+                  "name": "trainerActivity_entityType_entityId_idx_ea0fa809",
+                  "prefix": "trainerActivity_entityType_entityId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "trainerId",
+                    "createdAt"
+                  ],
+                  "name": "trainerActivity_trainerId_createdAt_idx_992fa8db",
+                  "prefix": "trainerActivity_trainerId_createdAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "trainerId"
+                  ],
+                  "name": "trainerActivity_trainerId_idx_3e70f981",
+                  "prefix": "trainerActivity_trainerId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "trainerAvailability": {
+              "checks": [
+                {
+                  "expression": "\"dayOfWeek\" IN ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')",
+                  "name": "trainerAvailability_dayOfWeek_check_45d2c9c5",
+                  "prefix": "trainerAvailability_dayOfWeek_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "dayOfWeek": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AvailabilityDay",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "endMinute": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "startMinute": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "timezone": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "Asia/Kolkata"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "trainerId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "trainerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "trainerAvailability"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "trainerProfile"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "trainerId",
+                    "dayOfWeek"
+                  ],
+                  "name": "trainerAvailability_trainerId_dayOfWeek_idx_764badcc",
+                  "prefix": "trainerAvailability_trainerId_dayOfWeek_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "trainerId"
+                  ],
+                  "name": "trainerAvailability_trainerId_idx_3e70f981",
+                  "prefix": "trainerAvailability_trainerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "trainerId",
+                    "isActive"
+                  ],
+                  "name": "trainerAvailability_trainerId_isActive_idx_d3b35e8a",
+                  "prefix": "trainerAvailability_trainerId_isActive_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "trainerId",
+                    "dayOfWeek",
+                    "startMinute",
+                    "endMinute"
+                  ]
+                }
+              ]
+            },
             "trainerCoursePermission": {
               "columns": {
                 "canCreateAssessments": {
@@ -7940,6 +9909,18 @@
                 "QUIZ"
               ]
             },
+            "AvailabilityDay": {
+              "kind": "valueSet",
+              "values": [
+                "MONDAY",
+                "TUESDAY",
+                "WEDNESDAY",
+                "THURSDAY",
+                "FRIDAY",
+                "SATURDAY",
+                "SUNDAY"
+              ]
+            },
             "BatchMode": {
               "kind": "valueSet",
               "values": [
@@ -7993,6 +9974,34 @@
                 "CANCELLED"
               ]
             },
+            "MeetingPlatform": {
+              "kind": "valueSet",
+              "values": [
+                "GOOGLE_MEET",
+                "MICROSOFT_TEAMS",
+                "ZOOM",
+                "WHATSAPP",
+                "OTHER"
+              ]
+            },
+            "MeetingStatus": {
+              "kind": "valueSet",
+              "values": [
+                "SCHEDULED",
+                "COMPLETED",
+                "CANCELLED"
+              ]
+            },
+            "MeetingType": {
+              "kind": "valueSet",
+              "values": [
+                "BATCH_MEETING",
+                "STUDENT_MEETING",
+                "INTERNAL_MEETING",
+                "ONE_TO_ONE",
+                "OTHER"
+              ]
+            },
             "PaymentMethod": {
               "kind": "valueSet",
               "values": [
@@ -8035,10 +10044,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "665a867a3d8c450e7b5ba6f98c2145d2305a8118e3e10e14e850fdd0ed6d125b"
+    "storageHash": "dd45a0d2af30fbab69adc1fa0512521a8280a1aadd61e565959869da913ececd"
   },
   "execution": {
-    "executionHash": "7952194c20e461d8f660f474842e657da86063e35c8999a37486ef9549c590d7",
+    "executionHash": "773ad464b22724330b9d76f7d0a4ffa732fb54d076e2d51619d27092f491235f",
     "mutations": {
       "defaults": [
         {
@@ -8114,6 +10123,36 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "ceoProfile"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "certificate"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "certificateSetting"
           }
         },
         {
@@ -8248,6 +10287,21 @@
           "ref": {
             "column": "updatedAt",
             "namespace": "public",
+            "table": "meeting"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
             "table": "payment"
           }
         },
@@ -8279,6 +10333,21 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "studentProfile"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "trainerAvailability"
           }
         },
         {

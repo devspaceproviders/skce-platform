@@ -1,6 +1,9 @@
 import bcrypt from "bcryptjs";
 
 import { db } from "../../prisma/db";
+import {
+  createTrainerActivity,
+} from "./trainer-activity.service";
 
 export type TrainerCreateInput = {
   name: string;
@@ -30,9 +33,7 @@ function requireName(value: string) {
   const name = value.trim();
 
   if (name.length < 2) {
-    throw new Error(
-      "Trainer name must contain at least 2 characters."
-    );
+    throw new Error("Trainer name must contain at least 2 characters.");
   }
 
   return name;
@@ -42,21 +43,14 @@ function requireEmail(value: string) {
   const email = normalizeEmail(value);
 
   if (!email || !email.includes("@")) {
-    throw new Error(
-      "Please enter a valid trainer email."
-    );
+    throw new Error("Please enter a valid trainer email.");
   }
 
   return email;
 }
 
-function normalizeOptionalText(
-  value?: string | null
-) {
-  if (
-    value === undefined ||
-    value === null
-  ) {
+function normalizeOptionalText(value?: string | null) {
+  if (value === undefined || value === null) {
     return null;
   }
 
@@ -65,23 +59,13 @@ function normalizeOptionalText(
   return trimmed ? trimmed : null;
 }
 
-function normalizeExperience(
-  value?: number | null
-) {
-  if (
-    value === undefined ||
-    value === null
-  ) {
+function normalizeExperience(value?: number | null) {
+  if (value === undefined || value === null) {
     return null;
   }
 
-  if (
-    !Number.isInteger(value) ||
-    value < 0
-  ) {
-    throw new Error(
-      "Experience must be a non-negative whole number."
-    );
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error("Experience must be a non-negative whole number.");
   }
 
   return value;
@@ -89,19 +73,11 @@ function normalizeExperience(
 
 function requirePassword(value: string) {
   if (value.trim().length < 8) {
-    throw new Error(
-      "Password must contain at least 8 characters."
-    );
+    throw new Error("Password must contain at least 8 characters.");
   }
 
   return value;
 }
-
-/*
- * ============================================================
- * ADMIN / COMMON TRAINER RESPONSE
- * ============================================================
- */
 
 function trainerToResponse(
   profile: any,
@@ -109,221 +85,142 @@ function trainerToResponse(
 ) {
   return {
     profileId: profile.id,
-
-    displayId:
-      `TR${String(profile.id).padStart(3, "0")}`,
-
+    displayId: `TR${String(profile.id).padStart(3, "0")}`,
     userId: user.id,
-
     name: user.name,
-
     email: user.email,
-
     phone: user.phone,
-
-    specialization:
-      profile.specialization,
-
-    experience:
-      profile.experience,
-
+    specialization: profile.specialization,
+    experience: profile.experience,
     batches: 0,
-
-    joinedDate:
-      user.createdAt,
-
-    status:
-      user.isActive
-        ? "Active"
-        : "Inactive",
-
-    /*
-     * Actual uploaded trainer photo.
-     *
-     * null means the frontend should
-     * use its default avatar.
-     */
-    profilePhotoUrl:
-      user.profilePhotoUrl ?? null,
+    joinedDate: user.createdAt,
+    status: user.isActive ? "Active" : "Inactive",
+    profilePhotoUrl: user.profilePhotoUrl ?? null,
   };
 }
 
-/*
- * ============================================================
- * PUBLIC TRAINERS
- * ============================================================
- *
- * GET /api/trainers
- *
- * Only active TRAINER accounts are returned.
- * ============================================================
- */
-
 export async function listPublicTrainers() {
-  const [
-    profiles,
-    users,
-  ] = await Promise.all([
-    db.orm.public.TrainerProfile.all(),
-    db.orm.public.User.all(),
-  ]);
+  const [profiles, users] =
+    await Promise.all([
+      db.orm.public.TrainerProfile.all(),
+      db.orm.public.User.all(),
+    ]);
 
   const userMap = new Map(
-    users.map((user) => [
-      user.id,
-      user,
-    ])
+    users.map((user) => [user.id, user])
   );
 
   return profiles
     .map((profile) => {
-      const user =
-        userMap.get(
-          profile.userId
-        );
+      const user = userMap.get(profile.userId);
 
-      if (
-        !user ||
-        user.role !== "TRAINER" ||
-        !user.isActive
-      ) {
+      if (!user || user.role !== "TRAINER" || !user.isActive) {
         return null;
       }
 
       return {
         id: String(profile.id),
-
         name: user.name,
-
-        yearsExperience:
-          profile.experience ?? 0,
-
-        /*
-         * Use uploaded profile photo.
-         * Fall back to default avatar
-         * when no photo exists.
-         */
-        avatarUrl:
-          user.profilePhotoUrl ||
-          "/trainers/default.svg",
-
-        specialty:
-          profile.specialization ||
-          "Professional Trainer",
+        yearsExperience: profile.experience ?? 0,
+        avatarUrl: user.profilePhotoUrl || "/trainers/default.svg",
+        specialty: profile.specialization || "Professional Trainer",
       };
     })
     .filter(
-      (
-        trainer
-      ): trainer is NonNullable<
-        typeof trainer
-      > => trainer !== null
+      (trainer): trainer is NonNullable<typeof trainer> =>
+        trainer !== null
     )
-    .sort((a, b) =>
-      a.name.localeCompare(
-        b.name
-      )
-    );
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/*
- * ============================================================
- * ADMIN - LIST TRAINERS
- * ============================================================
- */
+async function recordTrainerManagementActivity(
+  actorUserId: number,
+  trainerId: number,
+  action:
+    | "CREATED"
+    | "UPDATED"
+    | "ACTIVATED"
+    | "DEACTIVATED",
+  description: string,
+  metadata?: Record<string, unknown>
+) {
+  try {
+    await createTrainerActivity({
+      trainerId,
+      actorUserId,
+      action,
+      entityType: "TRAINER",
+      entityId: trainerId,
+      description,
+      ...(metadata !== undefined ? { metadata } : {}),
+    });
+  } catch (error) {
+    /*
+     * Trainer activity is audit information and must not
+     * cause the trainer operation itself to fail.
+     */
+    console.error(
+      "Failed to record trainer management activity:",
+      error
+    );
+  }
+}
 
 export async function listAdminTrainers() {
-  const [
-    profiles,
-    users,
-    sessions,
-  ] = await Promise.all([
-    db.orm.public.TrainerProfile.all(),
-    db.orm.public.User.all(),
-    db.orm.public.LiveSession.all(),
-  ]);
+  const [profiles, users, sessions] =
+    await Promise.all([
+      db.orm.public.TrainerProfile.all(),
+      db.orm.public.User.all(),
+      db.orm.public.LiveSession.all(),
+    ]);
 
   const userMap = new Map(
-    users.map((user) => [
-      user.id,
-      user,
-    ])
+    users.map((user) => [user.id, user])
   );
 
-  const sessionCounts =
-    new Map<number, number>();
+  const sessionCounts = new Map<number, number>();
 
   for (const session of sessions) {
     sessionCounts.set(
       session.trainerId,
-      (
-        sessionCounts.get(
-          session.trainerId
-        ) ?? 0
-      ) + 1
+      (sessionCounts.get(session.trainerId) ?? 0) + 1
     );
   }
 
   return profiles
     .map((profile) => {
-      const user =
-        userMap.get(
-          profile.userId
-        );
+      const user = userMap.get(profile.userId);
 
-      if (
-        !user ||
-        user.role !== "TRAINER"
-      ) {
+      if (!user || user.role !== "TRAINER") {
         return null;
       }
 
       return {
-        ...trainerToResponse(
-          profile,
-          user
-        ),
-
-        sessionCount:
-          sessionCounts.get(
-            profile.id
-          ) ?? 0,
+        ...trainerToResponse(profile, user),
+        sessionCount: sessionCounts.get(profile.id) ?? 0,
       };
     })
     .filter(
       (
         trainer
-      ): trainer is NonNullable<
-        typeof trainer
-      > => trainer !== null
+      ): trainer is NonNullable<typeof trainer> =>
+        trainer !== null
     )
     .sort((a, b) =>
-      a.name.localeCompare(
-        b.name
-      )
+      a.name.localeCompare(b.name)
     );
 }
-
-/*
- * ============================================================
- * ADMIN - GET TRAINER
- * ============================================================
- */
 
 export async function getAdminTrainer(
   profileId: number
 ) {
   const profile =
-    await db.orm.public.TrainerProfile.first(
-      {
-        id: profileId,
-      }
-    );
+    await db.orm.public.TrainerProfile.first({
+      id: profileId,
+    });
 
   if (!profile) {
-    throw new Error(
-      "Trainer not found."
-    );
+    throw new Error("Trainer not found.");
   }
 
   const user =
@@ -331,57 +228,31 @@ export async function getAdminTrainer(
       id: profile.userId,
     });
 
-  if (
-    !user ||
-    user.role !== "TRAINER"
-  ) {
-    throw new Error(
-      "Trainer account not found."
-    );
+  if (!user || user.role !== "TRAINER") {
+    throw new Error("Trainer account not found.");
   }
 
   const sessionCount = (
     await db.orm.public.LiveSession
       .where({
-        trainerId:
-          profile.id,
+        trainerId: profile.id,
       })
       .all()
   ).length;
 
   return {
-    ...trainerToResponse(
-      profile,
-      user
-    ),
-
+    ...trainerToResponse(profile, user),
     sessionCount,
   };
 }
 
-/*
- * ============================================================
- * ADMIN - CREATE TRAINER
- * ============================================================
- */
-
 export async function createAdminTrainer(
-  input: TrainerCreateInput
+  input: TrainerCreateInput,
+  actorUserId: number
 ) {
-  const name =
-    requireName(
-      input.name
-    );
-
-  const email =
-    requireEmail(
-      input.email
-    );
-
-  const password =
-    requirePassword(
-      input.password
-    );
+  const name = requireName(input.name);
+  const email = requireEmail(input.email);
+  const password = requirePassword(input.password);
 
   const existingUser =
     await db.orm.public.User.first({
@@ -395,60 +266,39 @@ export async function createAdminTrainer(
   }
 
   const passwordHash =
-    await bcrypt.hash(
-      password,
-      12
-    );
+    await bcrypt.hash(password, 12);
 
   const experience =
-    normalizeExperience(
-      input.experience
-    );
+    normalizeExperience(input.experience);
 
   const result =
     await db.transaction(
       async (tx) => {
         const user =
-          await tx.orm.public.User.create(
-            {
-              name,
-
-              email,
-
-              phone:
-                normalizeOptionalText(
-                  input.phone
-                ),
-
-              passwordHash,
-
-              role: "TRAINER",
-
-              isActive:
-                input.isActive ??
-                true,
-            }
-          );
+          await tx.orm.public.User.create({
+            name,
+            email,
+            phone:
+              normalizeOptionalText(
+                input.phone
+              ),
+            passwordHash,
+            role: "TRAINER",
+            isActive:
+              input.isActive ?? true,
+          });
 
         const profile =
-          await tx.orm.public.TrainerProfile.create(
-            {
-              userId:
-                user.id,
-
-              qualification:
-                null,
-
-              specialization:
-                normalizeOptionalText(
-                  input.specialization
-                ),
-
-              bio: null,
-
-              experience,
-            }
-          );
+          await tx.orm.public.TrainerProfile.create({
+            userId: user.id,
+            qualification: null,
+            specialization:
+              normalizeOptionalText(
+                input.specialization
+              ),
+            bio: null,
+            experience,
+          });
 
         return {
           user,
@@ -457,33 +307,40 @@ export async function createAdminTrainer(
       }
     );
 
-  return trainerToResponse(
+  const trainer = trainerToResponse(
     result.profile,
     result.user
   );
-}
 
-/*
- * ============================================================
- * ADMIN - UPDATE TRAINER
- * ============================================================
- */
+  await recordTrainerManagementActivity(
+    actorUserId,
+    trainer.profileId,
+    "CREATED",
+    `Trainer account created for ${trainer.name}`,
+    {
+      name: trainer.name,
+      email: trainer.email,
+      status: trainer.status,
+      specialization: trainer.specialization,
+      experience: trainer.experience,
+    }
+  );
+
+  return trainer;
+}
 
 export async function updateAdminTrainer(
   profileId: number,
-  input: TrainerUpdateInput
+  input: TrainerUpdateInput,
+  actorUserId: number
 ) {
   const profile =
-    await db.orm.public.TrainerProfile.first(
-      {
-        id: profileId,
-      }
-    );
+    await db.orm.public.TrainerProfile.first({
+      id: profileId,
+    });
 
   if (!profile) {
-    throw new Error(
-      "Trainer not found."
-    );
+    throw new Error("Trainer not found.");
   }
 
   const currentUser =
@@ -495,45 +352,28 @@ export async function updateAdminTrainer(
     !currentUser ||
     currentUser.role !== "TRAINER"
   ) {
-    throw new Error(
-      "Trainer account not found."
-    );
+    throw new Error("Trainer account not found.");
   }
 
   const name =
     input.name !== undefined
-      ? requireName(
-          input.name
-        )
+      ? requireName(input.name)
       : currentUser.name;
 
-  let email =
-    currentUser.email;
+  let email = currentUser.email;
 
-  if (
-    input.email !==
-    undefined
-  ) {
-    email =
-      requireEmail(
-        input.email
-      );
+  if (input.email !== undefined) {
+    email = requireEmail(input.email);
 
-    if (
-      email !==
-      currentUser.email
-    ) {
+    if (email !== currentUser.email) {
       const existingUser =
-        await db.orm.public.User.first(
-          {
-            email,
-          }
-        );
+        await db.orm.public.User.first({
+          email,
+        });
 
       if (
         existingUser &&
-        existingUser.id !==
-          currentUser.id
+        existingUser.id !== currentUser.id
       ) {
         throw new Error(
           "An account with this email already exists."
@@ -543,52 +383,91 @@ export async function updateAdminTrainer(
   }
 
   const phone =
-    input.phone !==
-    undefined
-      ? normalizeOptionalText(
-          input.phone
-        )
+    input.phone !== undefined
+      ? normalizeOptionalText(input.phone)
       : currentUser.phone;
 
   let passwordHash =
     currentUser.passwordHash;
 
-  if (
-    input.password !==
-    undefined
-  ) {
+  if (input.password !== undefined) {
     passwordHash =
       await bcrypt.hash(
-        requirePassword(
-          input.password
-        ),
+        requirePassword(input.password),
         12
       );
   }
 
   const isActive =
-    input.isActive !==
-    undefined
-      ? Boolean(
-          input.isActive
-        )
+    input.isActive !== undefined
+      ? Boolean(input.isActive)
       : currentUser.isActive;
 
   const specialization =
-    input.specialization !==
-    undefined
+    input.specialization !== undefined
       ? normalizeOptionalText(
           input.specialization
         )
       : profile.specialization;
 
   const experience =
-    input.experience !==
-    undefined
+    input.experience !== undefined
       ? normalizeExperience(
           input.experience
         )
       : profile.experience;
+
+  const changes: Record<string, unknown> = {};
+
+  if (currentUser.name !== name) {
+    changes.name = {
+      before: currentUser.name,
+      after: name,
+    };
+  }
+
+  if (currentUser.email !== email) {
+    changes.email = {
+      before: currentUser.email,
+      after: email,
+    };
+  }
+
+  if (currentUser.phone !== phone) {
+    changes.phone = {
+      before: currentUser.phone,
+      after: phone,
+    };
+  }
+
+  if (profile.specialization !== specialization) {
+    changes.specialization = {
+      before: profile.specialization,
+      after: specialization,
+    };
+  }
+
+  if (profile.experience !== experience) {
+    changes.experience = {
+      before: profile.experience,
+      after: experience,
+    };
+  }
+
+  if (currentUser.isActive !== isActive) {
+    changes.isActive = {
+      before: currentUser.isActive,
+      after: isActive,
+    };
+  }
+
+  if (input.password !== undefined) {
+    changes.password = {
+      changed: true,
+    };
+  }
+
+  const changedFields = Object.keys(changes);
 
   const result =
     await db.transaction(
@@ -618,43 +497,53 @@ export async function updateAdminTrainer(
 
         return {
           user:
-            updatedUser ||
-            currentUser,
-
+            updatedUser || currentUser,
           profile:
-            updatedProfile ||
-            profile,
+            updatedProfile || profile,
         };
       }
     );
 
-  return trainerToResponse(
+  const trainer = trainerToResponse(
     result.profile,
     result.user
   );
-}
 
-/*
- * ============================================================
- * ADMIN - RESET PASSWORD
- * ============================================================
- */
+  if (changedFields.length > 0) {
+    const statusOnly =
+      changedFields.length === 1 &&
+      changedFields[0] === "isActive";
+
+    await recordTrainerManagementActivity(
+      actorUserId,
+      trainer.profileId,
+      statusOnly
+        ? isActive
+          ? "ACTIVATED"
+          : "DEACTIVATED"
+        : "UPDATED",
+      statusOnly
+        ? `Trainer ${isActive ? "activated" : "deactivated"}: ${trainer.name}`
+        : `Trainer details updated for ${trainer.name}`,
+      changes
+    );
+  }
+
+  return trainer;
+}
 
 export async function resetAdminTrainerPassword(
   profileId: number,
-  password: string
+  password: string,
+  actorUserId: number
 ) {
   const trainer =
-    await db.orm.public.TrainerProfile.first(
-      {
-        id: profileId,
-      }
-    );
+    await db.orm.public.TrainerProfile.first({
+      id: profileId,
+    });
 
   if (!trainer) {
-    throw new Error(
-      "Trainer not found."
-    );
+    throw new Error("Trainer not found.");
   }
 
   const user =
@@ -662,20 +551,13 @@ export async function resetAdminTrainerPassword(
       id: trainer.userId,
     });
 
-  if (
-    !user ||
-    user.role !== "TRAINER"
-  ) {
-    throw new Error(
-      "Trainer account not found."
-    );
+  if (!user || user.role !== "TRAINER") {
+    throw new Error("Trainer account not found.");
   }
 
   const passwordHash =
     await bcrypt.hash(
-      requirePassword(
-        password
-      ),
+      requirePassword(password),
       12
     );
 
@@ -686,6 +568,16 @@ export async function resetAdminTrainerPassword(
     .update({
       passwordHash,
     });
+
+  await recordTrainerManagementActivity(
+    actorUserId,
+    trainer.id,
+    "UPDATED",
+    `Trainer password reset for ${user.name}`,
+    {
+      passwordReset: true,
+    }
+  );
 
   return {
     success: true,

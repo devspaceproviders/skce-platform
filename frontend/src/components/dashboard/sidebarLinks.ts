@@ -11,7 +11,6 @@ import {
   Share2,
   GraduationCap,
   Medal,
-  Video,
   LifeBuoy,
   LucideIcon,
 } from "lucide-react";
@@ -53,6 +52,5 @@ export const SIDEBAR_LINKS: SidebarLink[] = [
   { label: "Affiliate Marketing", href: "/dashboard/affiliate-marketing", icon: Share2 },
   { label: "Internal Trainings", href: "/dashboard/internal-trainings", icon: GraduationCap },
   { label: "Freelancing Winners", href: "/dashboard/freelancing-winners", icon: Medal },
-  { label: "Live Sessions", href: "/dashboard/live-sessions", icon: Video },
   { label: "Support", href: "/dashboard/support", icon: LifeBuoy },
 ];

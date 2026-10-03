@@ -117,19 +117,29 @@ export async function createPermission(
     });
   }
 
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+  }
+
   try {
     const permission =
-      await createTrainerCoursePermission({
-        trainerId,
-        courseId,
-        canTeach: req.body?.canTeach,
-        canManageContent:
-          req.body?.canManageContent,
-        canCreateAssessments:
-          req.body?.canCreateAssessments,
-        canCreateLiveSessions:
-          req.body?.canCreateLiveSessions,
-      });
+      await createTrainerCoursePermission(
+        {
+          trainerId,
+          courseId,
+          canTeach: req.body?.canTeach,
+          canManageContent:
+            req.body?.canManageContent,
+          canCreateAssessments:
+            req.body?.canCreateAssessments,
+          canCreateLiveSessions:
+            req.body?.canCreateLiveSessions,
+        },
+        req.user.userId
+      );
 
     return res.status(201).json({
       success: true,
@@ -175,6 +185,13 @@ export async function updatePermission(
     });
   }
 
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+  }
+
   try {
     const permission =
       await updateTrainerCoursePermission(
@@ -188,7 +205,8 @@ export async function updatePermission(
             req.body?.canCreateAssessments,
           canCreateLiveSessions:
             req.body?.canCreateLiveSessions,
-        }
+        },
+        req.user.userId
       );
 
     return res.status(200).json({
@@ -235,11 +253,19 @@ export async function deletePermission(
     });
   }
 
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+    });
+  }
+
   try {
     const result =
       await deleteTrainerCoursePermission(
         trainerId,
-        courseId
+        courseId,
+        req.user.userId
       );
 
     return res.status(200).json(result);

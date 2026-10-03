@@ -6,7 +6,7 @@ import {
   LayoutGrid,
   BookOpen,
   ClipboardList,
-  Video,
+  CalendarDays,
   TrendingUp,
   Award,
   User,
@@ -31,9 +31,9 @@ const SIDEBAR_ITEMS = [
     icon: ClipboardList,
   },
   {
-    href: "/dashboard/student/live-sessions",
-    label: "Live Sessions",
-    icon: Video,
+    href: "/dashboard/student/calendar",
+    label: "Calendar",
+    icon: CalendarDays,
   },
   {
     href: "/dashboard/student/community",
@@ -171,8 +171,12 @@ export default function StudentSidebar() {
                 borderRadius: 8,
                 fontSize: 13.5,
                 textDecoration: "none",
-                background: isActive ? "#2F6BFF" : "transparent",
-                color: isActive ? "#fff" : "#AEB6CC",
+                background: isActive
+                  ? "#2F6BFF"
+                  : "transparent",
+                color: isActive
+                  ? "#fff"
+                  : "#AEB6CC",
                 fontWeight: isActive ? 600 : 500,
               }}
             >
@@ -190,7 +194,8 @@ export default function StudentSidebar() {
           alignItems: "center",
           gap: 10,
           paddingTop: 14,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderTop:
+            "1px solid rgba(255,255,255,0.08)",
         }}
       >
         <div

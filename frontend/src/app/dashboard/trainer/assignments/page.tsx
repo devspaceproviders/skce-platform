@@ -833,6 +833,21 @@ export default function TrainerAssignmentsPage() {
           ? json.data
           : []
       );
+
+      if (assessment.type === "QUIZ") {
+        const detailsResponse = await authenticatedFetch(
+          `${API_URL}/assessments/${assessment.id}`
+        );
+        const detailsJson = await detailsResponse.json();
+
+        if (detailsResponse.ok && detailsJson?.success) {
+          setAssessmentDetails(detailsJson.data);
+        } else {
+          setAssessmentDetails(null);
+        }
+      } else {
+        setAssessmentDetails(null);
+      }
     } catch (err) {
       console.error(
         "Load submissions error:",
@@ -1226,6 +1241,9 @@ export default function TrainerAssignmentsPage() {
         selectedSubmission={
           selectedSubmission
         }
+        quizQuestions={
+          assessmentDetails?.questions ?? []
+        }
         gradeScore={
           gradeScore
         }
@@ -1270,6 +1288,9 @@ export default function TrainerAssignmentsPage() {
         }
         selectedSubmission={
           selectedSubmission
+        }
+        quizQuestions={
+          assessmentDetails?.questions ?? []
         }
         gradeScore={
           gradeScore
@@ -2140,22 +2161,48 @@ function AssessmentFormPage({
         return;
       }
 
-      const invalidQuestion =
-        questions.find(
+      const invalidQuestionIndex =
+        questions.findIndex(
           (question) =>
             !question.question.trim() ||
             question.options.some(
               (option) =>
                 !option.trim()
             ) ||
-            !question.correctAnswer ||
+            !["A", "B", "C", "D"].includes(
+              question.correctAnswer.trim().toUpperCase()
+            ) ||
             !question.marks ||
             question.marks <= 0
         );
 
-      if (invalidQuestion) {
+      if (invalidQuestionIndex >= 0) {
+        const invalidQuestion =
+          questions[invalidQuestionIndex];
+
+        const missingCorrectAnswer =
+          !["A", "B", "C", "D"].includes(
+            invalidQuestion.correctAnswer.trim().toUpperCase()
+          );
+
         setError(
-          "Please complete every quiz question, all four options, the correct answer and marks."
+          missingCorrectAnswer
+            ? `Question ${invalidQuestionIndex + 1}: please select the correct answer (A, B, C or D).`
+            : `Question ${invalidQuestionIndex + 1}: please complete the question, all four options, and valid marks.`
+        );
+        return;
+      }
+
+      const questionMarksTotal =
+        questions.reduce(
+          (sum, question) =>
+            sum + Number(question.marks || 0),
+          0
+        );
+
+      if (questionMarksTotal !== parsedTotalMarks) {
+        setError(
+          `Quiz question marks total ${questionMarksTotal}, but Maximum Marks is ${parsedTotalMarks}. The question marks must add up to the quiz maximum marks.`
         );
         return;
       }
@@ -2888,23 +2935,24 @@ function QuestionEditor({
             Select Correct Answer
           </option>
 
-          {question.options
-            .filter(
-              (option) =>
-                option.trim()
-            )
-            .map(
-              (option) => (
+          {question.options.map(
+            (option, optionIndex) => {
+              const answerLetter =
+                String.fromCharCode(
+                  65 + optionIndex
+                );
+
+              return (
                 <option
-                  key={option}
-                  value={
-                    option
-                  }
+                  key={`${index}-${optionIndex}`}
+                  value={answerLetter}
+                  disabled={!option.trim()}
                 >
-                  {option}
+                  {answerLetter}. {option || `Option ${answerLetter}`}
                 </option>
-              )
-            )}
+              );
+            }
+          )}
         </select>
 
         <input
@@ -2935,6 +2983,7 @@ function SubmissionsPage({
   assessment,
   submissions,
   selectedSubmission,
+  quizQuestions,
   gradeScore,
   gradeFeedback,
   saving,
@@ -2950,6 +2999,7 @@ function SubmissionsPage({
   assessment: Assessment;
   submissions: Submission[];
   selectedSubmission: Submission | null;
+  quizQuestions: BackendQuestion[];
   gradeScore: string;
   gradeFeedback: string;
   saving: boolean;
@@ -3317,6 +3367,7 @@ function QuizResultsPage({
   onBack,
   onGrade,
   selectedSubmission,
+  quizQuestions,
   gradeScore,
   gradeFeedback,
   saving,
@@ -3334,6 +3385,7 @@ function QuizResultsPage({
     submission: Submission
   ) => void;
   selectedSubmission: Submission | null;
+  quizQuestions: BackendQuestion[];
   gradeScore: string;
   gradeFeedback: string;
   saving: boolean;
@@ -3616,12 +3668,7 @@ function QuizResultsPage({
                                 }
                                 className="rounded-lg bg-[#173B67] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#123052]"
                               >
-                                {score ===
-                                  null ||
-                                submission.status ===
-                                  "SUBMITTED"
-                                  ? "Review"
-                                  : "Update Grade"}
+                                View Result
                               </button>
                             </TableCell>
                           </tr>
@@ -3649,7 +3696,7 @@ function QuizResultsPage({
                   </h3>
 
                   <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                    Select a student to review or update the recorded score and feedback.
+                    Select a student to view the submitted answers and automatically calculated result.
                   </p>
                 </div>
               </div>
@@ -3706,109 +3753,95 @@ function QuizResultsPage({
                   </div>
                 </div>
 
-                {selectedSubmission.answers && (
-                  <details className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">
-                      View submitted answers
-                    </summary>
-
-                    <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                      {
-                        selectedSubmission.answers
-                      }
-                    </pre>
-                  </details>
+                {quizQuestions.length > 0 && (
+                  <QuizAnswerReview
+                    questions={quizQuestions}
+                    answersJson={selectedSubmission.answers}
+                  />
                 )}
 
-                <div className="mt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Trainer Feedback
-                  </label>
-
-                  <textarea
-                    value={
-                      gradeFeedback
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      onFeedbackChange(
-                        event
-                          .target
-                          .value
-                      )
-                    }
-                    rows={5}
-                    className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    placeholder="Enter feedback..."
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Score
-                  </label>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max={
-                        totalMarks
-                      }
-                      value={
-                        gradeScore
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        onScoreChange(
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    />
-
-                    <span className="text-sm text-slate-500">
-                      /{" "}
-                      {
-                        totalMarks
-                      }
-                    </span>
+                {selectedSubmission.feedback && (
+                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Feedback
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {selectedSubmission.feedback}
+                    </p>
                   </div>
+                )}
+
+                <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-semibold text-emerald-800">
+                    Quiz graded automatically
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-emerald-700">
+                    The score was calculated from the correct answers when the student submitted the quiz. No manual grading is required.
+                  </p>
                 </div>
-
-                <button
-                  type="button"
-                  disabled={
-                    saving
-                  }
-                  onClick={() =>
-                    void onSaveGrade()
-                  }
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? (
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <Save size={17} />
-                  )}
-
-                  {saving
-                    ? "Saving Grade..."
-                    : "Save Grade"}
-                </button>
               </>
             )}
           </section>
         </div>
       </div>
     </main>
+  );
+}
+
+function QuizAnswerReview({
+  questions,
+  answersJson,
+}: {
+  questions: BackendQuestion[];
+  answersJson: string | null;
+}) {
+  let answers: Record<string, string> = {};
+
+  try {
+    const parsed = answersJson ? JSON.parse(answersJson) : {};
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      answers = Object.fromEntries(
+        Object.entries(parsed).map(([key, value]) => [key, String(value)])
+      );
+    }
+  } catch {
+    answers = {};
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-bold text-slate-800">Submitted Answers</p>
+      <p className="mt-1 text-xs text-slate-500">Selected answers are shown in red when incorrect; correct answers are shown in green.</p>
+      <div className="mt-4 space-y-4">
+        {questions.map((question, index) => {
+          const selected = answers[String(question.id)]?.toUpperCase() ?? "";
+          const options: Array<[string, string | null]> = [
+            ["A", question.optionA], ["B", question.optionB], ["C", question.optionC], ["D", question.optionD],
+          ];
+          return (
+            <div key={question.id} className="rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold leading-6 text-slate-800">{index + 1}. {question.question}</p>
+                <span className="shrink-0 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">{question.marks} mark{question.marks === 1 ? "" : "s"}</span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {options.filter(([, label]) => Boolean(label?.trim())).map(([key, label]) => {
+                  const isSelected = selected === key;
+                  const isCorrect = question.correctAnswer?.toUpperCase() === key;
+                  return (
+                    <div key={key} className={`rounded-lg border-2 px-3 py-2.5 text-sm ${isCorrect ? "border-green-600 bg-green-50 text-green-800" : isSelected ? "border-red-600 bg-red-50 text-red-800" : "border-slate-200 bg-white text-slate-600"}`}>
+                      <span className="font-bold">{key}.</span> {label}
+                      {isSelected && <span className="ml-2 text-xs font-bold">Your answer</span>}
+                      {isCorrect && <span className="ml-2 text-xs font-bold">Correct answer</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

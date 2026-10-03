@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutGrid,
   Layers,
-  Video,
+  CalendarDays,
   ClipboardList,
   User,
   BookOpen,
@@ -25,9 +25,9 @@ const SIDEBAR_ITEMS = [
     icon: Layers,
   },
   {
-    href: "/dashboard/trainer/live-sessions",
-    label: "Live Sessions",
-    icon: Video,
+    href: "/dashboard/trainer/calendar",
+    label: "Calendar",
+    icon: CalendarDays,
   },
   {
     href: "/dashboard/trainer/course-content",

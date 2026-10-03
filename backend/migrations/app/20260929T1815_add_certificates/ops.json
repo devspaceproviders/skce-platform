@@ -1,0 +1,368 @@
+[
+  {
+    "id": "table.certificate",
+    "label": "Create table \"certificate\"",
+    "summary": "Creates table \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"certificate\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"certificate\"",
+        "sql": "CREATE TABLE \"public\".\"certificate\" (\n  \"certificateNumber\" text NOT NULL,\n  \"certificateUrl\" text,\n  \"courseId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"enrollmentId\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"issuedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"certificate\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.certificate.certificate_certificateNumber_key",
+    "label": "Add unique constraint on \"certificate\" (certificateNumber)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "certificate_certificateNumber_key",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"certificate_certificateNumber_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_certificateNumber_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"certificate_certificateNumber_key\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" ADD CONSTRAINT \"certificate_certificateNumber_key\" UNIQUE (\"certificateNumber\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"certificate_certificateNumber_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_certificateNumber_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.certificate.certificate_enrollmentId_key",
+    "label": "Add unique constraint on \"certificate\" (enrollmentId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "certificate_enrollmentId_key",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"certificate_enrollmentId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"certificate_enrollmentId_key\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" ADD CONSTRAINT \"certificate_enrollmentId_key\" UNIQUE (\"enrollmentId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"certificate_enrollmentId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.certificate.certificate_courseId_idx_12f72d2a",
+    "label": "Create index \"certificate_courseId_idx_12f72d2a\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "certificate_courseId_idx_12f72d2a",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"certificate_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"certificate_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"certificate_courseId_idx_12f72d2a\" ON \"public\".\"certificate\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"certificate_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.certificate.certificate_enrollmentId_idx_ee5e79c5",
+    "label": "Create index \"certificate_enrollmentId_idx_ee5e79c5\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "certificate_enrollmentId_idx_ee5e79c5",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"certificate_enrollmentId_idx_ee5e79c5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_enrollmentId_idx_ee5e79c5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"certificate_enrollmentId_idx_ee5e79c5\"",
+        "sql": "CREATE INDEX \"certificate_enrollmentId_idx_ee5e79c5\" ON \"public\".\"certificate\" (\"enrollmentId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"certificate_enrollmentId_idx_ee5e79c5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_enrollmentId_idx_ee5e79c5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.certificate.certificate_userId_idx_a489d58a",
+    "label": "Create index \"certificate_userId_idx_a489d58a\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "certificate_userId_idx_a489d58a",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"certificate_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"certificate_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"certificate_userId_idx_a489d58a\" ON \"public\".\"certificate\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"certificate_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.certificate.certificate_enrollmentId_fkey",
+    "label": "Add foreign key \"certificate_enrollmentId_fkey\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "certificate_enrollmentId_fkey",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"certificate_enrollmentId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"certificate_enrollmentId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\"\nADD CONSTRAINT \"certificate_enrollmentId_fkey\"\nFOREIGN KEY (\"enrollmentId\")\nREFERENCES \"public\".\"enrollment\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"certificate_enrollmentId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.certificate.certificate_userId_fkey",
+    "label": "Add foreign key \"certificate_userId_fkey\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "certificate_userId_fkey",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"certificate_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_userId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"certificate_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\"\nADD CONSTRAINT \"certificate_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"certificate_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_userId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.certificate.certificate_courseId_fkey",
+    "label": "Add foreign key \"certificate_courseId_fkey\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "certificate_courseId_fkey",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"certificate_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_courseId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"certificate_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\"\nADD CONSTRAINT \"certificate_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"certificate_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_courseId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  }
+]

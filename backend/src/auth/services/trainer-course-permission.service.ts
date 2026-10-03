@@ -13,9 +13,7 @@ export async function hasTrainerCoursePermission(
 ): Promise<boolean> {
   const trainerProfile =
     await db.orm.public.TrainerProfile
-      .where({
-        userId,
-      })
+      .where({ userId })
       .first();
 
   if (!trainerProfile) {
@@ -34,5 +32,7 @@ export async function hasTrainerCoursePermission(
     return false;
   }
 
-  return Boolean(trainerPermission[permission]);
+  return Boolean(
+    trainerPermission[permission]
+  );
 }

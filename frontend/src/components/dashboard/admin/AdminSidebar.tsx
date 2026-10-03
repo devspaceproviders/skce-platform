@@ -11,10 +11,9 @@ import {
   UserCheck,
   Layers,
   ClipboardList,
-  Video,
+  CalendarDays,
   CreditCard,
   Award,
-  Megaphone,
   BarChart3,
   Settings,
   LogOut,
@@ -54,14 +53,19 @@ const MENU_ITEMS = [
     icon: UserCircle,
   },
   {
+    href: "/dashboard/admin/trainer-availability",
+    label: "Trainer Availability",
+    icon: CalendarDays,
+  },
+  {
     href: "/dashboard/admin/batches",
     label: "Batches",
     icon: Layers,
   },
   {
-    href: "/dashboard/admin/live-sessions",
-    label: "Live Sessions",
-    icon: Video,
+    href: "/dashboard/admin/calendar",
+    label: "Calendar",
+    icon: CalendarDays,
   },
   {
     href: "/dashboard/admin/assignments",
@@ -77,11 +81,6 @@ const MENU_ITEMS = [
     href: "/dashboard/admin/certificates",
     label: "Certificates",
     icon: Award,
-  },
-  {
-    href: "/dashboard/admin/affiliates",
-    label: "Affiliate Marketing",
-    icon: Megaphone,
   },
   {
     href: "/dashboard/admin/reports",

@@ -18,22 +18,28 @@ export interface Course {
   title: string;
   mode: CourseMode;
   description: string;
+
   durationMonths: number;
   modules: number;
-  enrolled: number; 
-  accentColor: string; // tailwind border color class e.g. "border-t-blue-500"
 
-  // Detail-page fields
+  enrolled: number;
+
+  accentColor: string;
+
   bannerImageUrl?: string;
   videoThumbnailUrl?: string;
-  videoUrl?: string; // Mux/Vimeo playback URL
+  videoUrl?: string;
+
   language?: string;
   totalVideos?: number;
   hasCertificate?: boolean;
+
   aboutLong?: string;
   whatYouWillLearn?: string[];
   requirements?: string[];
+
   topics?: CourseTopic[];
+
   instructor?: Instructor;
 }
 

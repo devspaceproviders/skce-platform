@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { ArrowRight, Check, Package } from "lucide-react";
 import CourseCard from "@/components/CourseCard";
-import { getCourses } from "@/lib/api";
-import { PACKAGE_OPTIONS } from "@/lib/packageList";
+import { getCourses, getPackages } from "@/lib/api";
 
 export const metadata = {
   title: "Courses & Packages — SK Computer Education",
 };
 
 export default async function CoursesPage() {
-  const courses = await getCourses();
+  const [courses, packages] = await Promise.all([
+    getCourses(),
+    getPackages(),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -74,87 +76,101 @@ export default async function CoursesPage() {
           </div>
 
           {/* Package Cards */}
-          <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
-            {PACKAGE_OPTIONS.map((pkg) => (
-              <div
-                key={pkg.slug}
-                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-xl"
-              >
-                {/* Package Header */}
-                <div className="bg-[#173B67] p-6 text-white">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500">
-                      <Package size={21} />
+          {packages.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-10 text-center">
+              <p className="text-slate-500">
+                No learning packages are currently available.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
+              {packages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-xl"
+                >
+                  {/* Package Header */}
+                  <div className="bg-[#173B67] p-6 text-white">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500">
+                        <Package size={21} />
+                      </div>
+
+                      <h3 className="text-xl font-bold">
+                        {pkg.title}
+                      </h3>
                     </div>
 
-                    <h3 className="text-xl font-bold">
-                      {pkg.title}
-                    </h3>
-                  </div>
-
-                  <p className="text-sm leading-6 text-blue-100">
-                    {pkg.description}
-                  </p>
-                </div>
-
-                {/* Package Content */}
-                <div className="flex flex-1 flex-col p-6">
-                  {/* Price */}
-                  <div className="mb-6">
-                    <span className="text-3xl font-extrabold text-[#173B67]">
-                      ₹{pkg.price.toLocaleString("en-IN")}
-                    </span>
-
-                    <span className="ml-2 text-sm text-slate-400">
-                      package
-                    </span>
-                  </div>
-
-                  {/* Course Count */}
-                  <div className="mb-5">
-                    <p className="text-sm font-bold uppercase tracking-wide text-slate-700">
-                      Package Includes
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-400">
-                      {pkg.courses.length} learning areas
+                    <p className="text-sm leading-6 text-blue-100">
+                      {pkg.description}
                     </p>
                   </div>
 
-                  {/* Courses */}
-                  <ul className="flex-1 space-y-3">
-                    {pkg.courses.slice(0, 8).map((course) => (
-                      <li
-                        key={course}
-                        className="flex items-start gap-3 text-sm text-slate-600"
-                      >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                          <Check size={13} strokeWidth={3} />
-                        </span>
+                  {/* Package Content */}
+                  <div className="flex flex-1 flex-col p-6">
+                    {/* Price */}
+                    <div className="mb-6">
+                      <span className="text-3xl font-extrabold text-[#173B67]">
+                        ₹{Number(pkg.price).toLocaleString("en-IN")}
+                      </span>
 
-                        <span>{course}</span>
-                      </li>
-                    ))}
+                      <span className="ml-2 text-sm text-slate-400">
+                        package
+                      </span>
+                    </div>
 
-                    {pkg.courses.length > 8 && (
-                      <li className="pt-1 text-sm font-semibold text-orange-500">
-                        + {pkg.courses.length - 8} more learning areas
-                      </li>
-                    )}
-                  </ul>
+                    {/* Course Count */}
+                    <div className="mb-5">
+                      <p className="text-sm font-bold uppercase tracking-wide text-slate-700">
+                        Package Includes
+                      </p>
 
-                  {/* View Package */}
-                  <Link
-                    href={`/packages/${pkg.slug}`}
-                    className="mt-7 flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
-                  >
-                    View Package
-                    <ArrowRight size={16} />
-                  </Link>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {pkg.courses?.length ?? 0} learning areas
+                      </p>
+                    </div>
+
+                    {/* Courses */}
+                    <ul className="flex-1 space-y-3">
+                      {(pkg.courses ?? [])
+                        .slice(0, 8)
+                        .map((course) => (
+                          <li
+                            key={course.id}
+                            className="flex items-start gap-3 text-sm text-slate-600"
+                          >
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                              <Check
+                                size={13}
+                                strokeWidth={3}
+                              />
+                            </span>
+
+                            <span>{course.title}</span>
+                          </li>
+                        ))}
+
+                      {(pkg.courses?.length ?? 0) > 8 && (
+                        <li className="pt-1 text-sm font-semibold text-orange-500">
+                          + {(pkg.courses?.length ?? 0) - 8} more learning
+                          areas
+                        </li>
+                      )}
+                    </ul>
+
+                    {/* View Package */}
+                    <Link
+                      href={`/packages/${pkg.slug}`}
+                      className="mt-7 flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+                    >
+                      View Package
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>

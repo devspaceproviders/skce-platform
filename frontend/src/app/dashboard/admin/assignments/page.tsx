@@ -1350,6 +1350,16 @@ export default function AssignmentsPage() {
       setSubmissions(
         json.data || []
       );
+
+      if (assessment.type === "Quiz") {
+        const detailsResponse = await authenticatedFetch(
+          `${API_URL}/admin/assessments/${assessment.id}`
+        );
+        const detailsJson = await detailsResponse.json();
+        if (detailsResponse.ok && detailsJson?.success) {
+          setSelectedDetails(detailsJson.data);
+        }
+      }
     } catch (err) {
       console.error(
         "Load submissions error:",
@@ -1998,6 +2008,7 @@ export default function AssignmentsPage() {
         >
           <SubmissionsPanel
             assessment={selectedAssessment}
+            quizQuestions={selectedDetails?.questions ?? []}
             submissions={submissions}
             gradingId={gradingId}
             gradeScore={gradeScore}
@@ -2009,7 +2020,7 @@ export default function AssignmentsPage() {
             saving={saving}
             onStartGrading={startGrading}
             onGrade={gradeSubmission}
-            onDownloadFile={handleDownloadSubmissionFile}
+            onDownloadSubmissionFile={handleDownloadSubmissionFile}
             onCancelGrading={() => {
               setGradingId(null);
               setGradeScore("");
@@ -2679,6 +2690,7 @@ function QuestionsPanel({
 
 function SubmissionsPanel({
   assessment,
+  quizQuestions,
   submissions,
   gradingId,
   gradeScore,
@@ -2688,10 +2700,11 @@ function SubmissionsPanel({
   saving,
   onStartGrading,
   onGrade,
-  onDownloadFile,
   onCancelGrading,
+  onDownloadSubmissionFile,
 }: {
   assessment: Assessment;
+  quizQuestions: Question[];
   submissions: Submission[];
   gradingId: number | null;
   gradeScore: string;
@@ -2701,8 +2714,8 @@ function SubmissionsPanel({
   saving: boolean;
   onStartGrading: (submission: Submission) => void;
   onGrade: (submissionId: number) => void | Promise<void>;
-  onDownloadFile: (submission: Submission) => void | Promise<void>;
   onCancelGrading: () => void;
+  onDownloadSubmissionFile: (submission: Submission) => void | Promise<void>;
 }) {
   const submitted = submissions.filter(
     (submission) =>
@@ -2793,7 +2806,7 @@ function SubmissionsPanel({
                     <div className="mt-3">
                       <button
                         type="button"
-                        onClick={() => onDownloadFile(submission)}
+                        onClick={() => onDownloadSubmissionFile(submission)}
                         className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                       >
                         <Download size={14} />
@@ -2803,18 +2816,12 @@ function SubmissionsPanel({
                     </div>
                   )}
 
-                  {assessment.type ===
-                    "Quiz" &&
-                    submission.answers && (
-                      <details className="mt-3 rounded-lg border border-slate-200 p-3">
-                        <summary className="cursor-pointer text-xs font-semibold text-slate-600">
-                          View submitted answers
-                        </summary>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs leading-5 text-slate-500">
-                          {submission.answers}
-                        </pre>
-                      </details>
-                    )}
+                  {assessment.type === "Quiz" && quizQuestions.length > 0 && (
+                    <AdminQuizAnswerReview
+                      questions={quizQuestions}
+                      answersJson={submission.answers}
+                    />
+                  )}
 
                   {submission.feedback && (
                     <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
@@ -2837,8 +2844,16 @@ function SubmissionsPanel({
                       : `${submission.score}/${assessment.totalMarks}`}
                   </p>
 
-                  {gradingId ===
-                  submission.id ? (
+                  {assessment.type === "Quiz" ? (
+                    <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                      <p className="text-xs font-semibold text-emerald-800">
+                        Quiz graded automatically
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-emerald-700">
+                        The score was calculated automatically from the submitted answers. No manual grading is required.
+                      </p>
+                    </div>
+                  ) : gradingId === submission.id ? (
                     <div className="mt-4 space-y-3">
                       <Field
                         label="Score"
@@ -3228,6 +3243,48 @@ function StatusBadge({
     >
       {status}
     </span>
+  );
+}
+
+function AdminQuizAnswerReview({
+  questions,
+  answersJson,
+}: {
+  questions: Question[];
+  answersJson: string | null;
+}) {
+  let answers: Record<string, string> = {};
+  try {
+    const parsed = answersJson ? JSON.parse(answersJson) : {};
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      answers = Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]));
+    }
+  } catch {
+    answers = {};
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-bold text-slate-800">Question Review</p>
+      <div className="mt-3 space-y-3">
+        {questions.map((question, index) => {
+          const selected = answers[String(question.id)]?.toUpperCase() ?? "";
+          const options: Array<[string, string | null]> = [["A", question.optionA], ["B", question.optionB], ["C", question.optionC], ["D", question.optionD]];
+          return (
+            <div key={question.id} className="rounded-lg border border-slate-200 p-3">
+              <p className="text-sm font-semibold text-slate-800">{index + 1}. {question.question}</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {options.filter(([, label]) => Boolean(label?.trim())).map(([key, label]) => {
+                  const isSelected = selected === key;
+                  const isCorrect = question.correctAnswer?.toUpperCase() === key;
+                  return <div key={key} className={`rounded-lg border-2 px-3 py-2 text-xs ${isCorrect ? "border-green-600 bg-green-50 text-green-800" : isSelected ? "border-red-600 bg-red-50 text-red-800" : "border-slate-200 bg-white text-slate-600"}`}><span className="font-bold">{key}.</span> {label}{isSelected && <span className="ml-2 font-bold">Your answer</span>}{isCorrect && <span className="ml-2 font-bold">Correct answer</span>}</div>;
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

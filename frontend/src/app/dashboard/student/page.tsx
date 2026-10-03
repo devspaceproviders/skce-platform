@@ -1,1668 +1,4725 @@
 "use client";
 
-import { useEffect, useState } from "react";
+
+
 import {
-  Bell,
-  BookOpen,
-  CreditCard,
-  GraduationCap,
-  CheckCircle2,
-  Package,
-  RefreshCw,
-  ClipboardList,
+
+  useEffect,
+
+  useMemo,
+
+  useState,
+
+  type CSSProperties,
+
+  type ElementType,
+
+} from "react";
+
+import { useRouter } from "next/navigation";
+
+import {
+
+  ArrowRight,
+
+  Award,
+
+  BarChart3,
+
+  BookOpen,
+
+  CalendarDays,
+
+  CheckCircle2,
+
+  ChevronRight,
+
+  ClipboardList,
+
+  CreditCard,
+
+  GraduationCap,
+
+  RefreshCw,
+
+  Sparkles,
+
+
 } from "lucide-react";
-import QuickAccessGrid from "@/components/dashboard/QuickAccessGrid";
+
+
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-/* =========================================================
-   TYPES
-========================================================= */
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+
 
 type CourseData = {
-  id: number;
-  slug: string;
-  title: string;
+
+  id: number;
+
+  slug: string;
+
+  title: string;
+
+  description?: string | null;
+
+  mode?: string | null;
+
 };
+
+
+
+type PackageCourse = {
+
+  id?: number;
+
+  courseId?: number;
+
+  course?: CourseData | null;
+
+};
+
+
 
 type PackageData = {
-  id: number;
-  slug: string;
-  title: string;
-  price: number;
-  courses: CourseData[];
+
+  id: number;
+
+  slug: string;
+
+  title: string;
+
+  price?: number | null;
+
+  courses: PackageCourse[];
+
 };
+
+
 
 type EnrollmentData = {
-  id: number;
-  status: string;
-  enrolledAt: string;
-  package: PackageData | null;
-  course: CourseData | null;
+
+  id: number;
+
+  status: string;
+
+  enrolledAt: string;
+
+  package: PackageData | null;
+
+  course: CourseData | null;
+
 };
+
+
 
 type PaymentData = {
-  id: number;
-  amount: number;
-  currency: string;
-  method: string;
-  status: string;
-  providerOrderId: string | null;
-  providerPaymentId: string | null;
-  paidAt: string | null;
-  createdAt: string;
+
+  id: number;
+
+  amount: number;
+
+  currency: string;
+
+  method: string;
+
+  status: string;
+
+  createdAt: string;
+
+  paidAt?: string | null;
+
 };
+
+
 
 type DashboardData = {
-  student: {
-    id: number;
-    studentId: string;
-    name: string;
-    email: string;
-    phone: string | null;
-    state: string | null;
-    referralId: string | null;
-    isActive: boolean;
-  };
 
-  stats: {
-    enrolledCourses: number;
-    activeEnrollments: number;
-    successfulPayments: number;
-    totalPaid: number;
-  };
+  student: {
 
-  enrollments: EnrollmentData[];
+    id: number;
 
-  payments: PaymentData[];
+    studentId: string;
 
-  assignments: unknown[];
-  quizzes: unknown[];
-  liveClasses: unknown[];
-  recentActivity: unknown[];
-  certificates: unknown[];
+    name: string;
+
+    email: string;
+
+    phone: string | null;
+
+    state: string | null;
+
+    referralId: string | null;
+
+    isActive: boolean;
+
+  };
+
+  stats: {
+
+    enrolledCourses: number;
+
+    activeEnrollments: number;
+
+    successfulPayments: number;
+
+    totalPaid: number;
+
+  };
+
+  enrollments: EnrollmentData[];
+
+  payments: PaymentData[];
+
+  assignments: unknown[];
+
+  quizzes: unknown[];
+
+
+  recentActivity: unknown[];
+
+  certificates: unknown[];
+
 };
 
-type ApiResponse = {
-  success: boolean;
-  data?: DashboardData;
-  message?: string;
+
+
+type CourseProgress = {
+
+  courseId: number;
+
+  totalLessons: number;
+
+  completedLessons: number;
+
+  startedLessons: number;
+
+  remainingLessons: number;
+
+  progressPercentage: number;
+
 };
 
-/* =========================================================
-   HELPERS
-========================================================= */
+
+
+type StudentCourse = {
+
+  course: CourseData;
+
+  packageName: string | null;
+
+  enrollmentStatus: string;
+
+};
+
+
+
+function safeText(value: unknown): string {
+
+  if (value === null || value === undefined) {
+
+    return "—";
+
+  }
+
+
+
+  if (typeof value === "string") {
+
+    return value;
+
+  }
+
+
+
+  if (typeof value === "number" || typeof value === "boolean") {
+
+    return String(value);
+
+  }
+
+
+
+  if (typeof value === "object") {
+
+    const objectValue = value as Record<string, unknown>;
+
+
+
+    for (const key of ["title", "name", "label", "message", "description"]) {
+
+      if (typeof objectValue[key] === "string") {
+
+        return objectValue[key] as string;
+
+      }
+
+    }
+
+
+
+    return JSON.stringify(value);
+
+  }
+
+
+
+  return String(value);
+
+}
+
+
 
 function formatCurrency(
-  amount: number,
-  currency = "INR"
+
+  amount: number,
+
+  currency = "INR"
+
 ): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(Number(amount) || 0);
+
+  try {
+
+    return new Intl.NumberFormat("en-IN", {
+
+      style: "currency",
+
+      currency,
+
+      maximumFractionDigits: 0,
+
+    }).format(Number(amount) || 0);
+
+  } catch {
+
+    return `₹${Number(amount) || 0}`;
+
+  }
+
 }
 
-function formatDate(date: string): string {
-  if (!date) return "—";
 
-  const parsedDate = new Date(date);
 
-  if (Number.isNaN(parsedDate.getTime())) {
-    return "—";
-  }
+function formatDate(value: string | null | undefined): string {
 
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(parsedDate);
+  if (!value) {
+
+    return "—";
+
+  }
+
+
+
+  const date = new Date(value);
+
+
+
+  if (Number.isNaN(date.getTime())) {
+
+    return "—";
+
+  }
+
+
+
+  return new Intl.DateTimeFormat("en-IN", {
+
+    day: "2-digit",
+
+    month: "short",
+
+    year: "numeric",
+
+  }).format(date);
+
 }
 
-function formatStatus(status: string): string {
-  if (!status) return "Unknown";
 
-  return (
-    status.charAt(0).toUpperCase() +
-    status.slice(1).toLowerCase()
-  );
+
+function formatStatus(value: string | null | undefined): string {
+
+  if (!value) {
+
+    return "Unknown";
+
+  }
+
+
+
+  return (
+
+    value.charAt(0).toUpperCase() +
+
+    value.slice(1).toLowerCase()
+
+  );
+
 }
 
-/*
- * Important:
- * Never allow an object to reach JSX directly.
- * This helper converts unknown backend values into safe text.
- */
-function safeText(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "—";
-  }
 
-  if (typeof value === "string") {
-    return value;
-  }
 
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-
-  if (typeof value === "object") {
-    const objectValue = value as Record<string, unknown>;
-
-    if (typeof objectValue.title === "string") {
-      return objectValue.title;
-    }
-
-    if (typeof objectValue.name === "string") {
-      return objectValue.name;
-    }
-
-    if (typeof objectValue.label === "string") {
-      return objectValue.label;
-    }
-
-    if (typeof objectValue.message === "string") {
-      return objectValue.message;
-    }
-
-    return JSON.stringify(value);
-  }
-
-  return String(value);
-}
-
-/*
- * Normalize courses because the backend can return either:
- *
- * {
- *   id,
- *   slug,
- *   title
- * }
- *
- * or:
- *
- * {
- *   course: {
- *      id,
- *      slug,
- *      title
- *   }
- * }
- */
 function normalizeCourse(raw: any): CourseData | null {
-  if (!raw) {
-    return null;
-  }
 
-  const course = raw.course ?? raw;
+  if (!raw) {
 
-  if (!course) {
-    return null;
-  }
+    return null;
 
-  return {
-    id: Number(course.id) || 0,
-    slug: safeText(course.slug),
-    title: safeText(course.title),
-  };
+  }
+
+
+
+  const course = raw.course ?? raw;
+
+
+
+  if (!course?.id) {
+
+    return null;
+
+  }
+
+
+
+  return {
+
+    id: Number(course.id),
+
+    slug: safeText(course.slug),
+
+    title: safeText(course.title),
+
+    description:
+
+      course.description === null ||
+
+      course.description === undefined
+
+        ? null
+
+        : safeText(course.description),
+
+    mode:
+
+      course.mode === null ||
+
+      course.mode === undefined
+
+        ? null
+
+        : safeText(course.mode),
+
+  };
+
 }
+
+
 
 function normalizePackage(raw: any): PackageData | null {
-  if (!raw) {
-    return null;
-  }
 
-  const packageData = raw.package ?? raw;
+  if (!raw) {
 
-  if (!packageData) {
-    return null;
-  }
+    return null;
 
-  const rawCourses = Array.isArray(packageData.courses)
-    ? packageData.courses
-    : [];
+  }
 
-  const courses = rawCourses
-    .map((course: any) => normalizeCourse(course))
-    .filter(
-      (course: CourseData | null): course is CourseData =>
-        course !== null
-    );
 
-  return {
-    id: Number(packageData.id) || 0,
-    slug: safeText(packageData.slug),
-    title: safeText(packageData.title),
-    price: Number(packageData.price) || 0,
-    courses,
-  };
+
+  const packageValue = raw.package ?? raw;
+
+
+
+  if (!packageValue?.id) {
+
+    return null;
+
+  }
+
+
+
+  const courses: PackageCourse[] = Array.isArray(
+
+    packageValue.courses
+
+  )
+
+    ? packageValue.courses
+
+        .map((item: any) => {
+
+          const course = normalizeCourse(item);
+
+
+
+          return course
+
+            ? {
+
+                id: item?.id ? Number(item.id) : undefined,
+
+                courseId: course.id,
+
+                course,
+
+              }
+
+            : null;
+
+        })
+
+        .filter(
+
+          (
+
+            item: PackageCourse | null
+
+          ): item is PackageCourse => item !== null
+
+        )
+
+    : [];
+
+
+
+  return {
+
+    id: Number(packageValue.id),
+
+    slug: safeText(packageValue.slug),
+
+    title: safeText(packageValue.title),
+
+    price:
+
+      packageValue.price === null ||
+
+      packageValue.price === undefined
+
+        ? null
+
+        : Number(packageValue.price) || 0,
+
+    courses,
+
+  };
+
 }
+
+
 
 function normalizeEnrollment(raw: any): EnrollmentData {
-  return {
-    id: Number(raw?.id) || 0,
-    status: safeText(raw?.status),
-    enrolledAt: safeText(raw?.enrolledAt),
-    package: normalizePackage(raw?.package),
-    course: normalizeCourse(raw?.course),
-  };
+
+  return {
+
+    id: Number(raw?.id) || 0,
+
+    status: safeText(raw?.status),
+
+    enrolledAt: safeText(raw?.enrolledAt),
+
+    package: normalizePackage(raw?.package),
+
+    course: normalizeCourse(raw?.course),
+
+  };
+
 }
+
+
 
 function normalizePayment(raw: any): PaymentData {
-  return {
-    id: Number(raw?.id) || 0,
-    amount: Number(raw?.amount) || 0,
-    currency: safeText(raw?.currency || "INR"),
-    method: safeText(raw?.method),
-    status: safeText(raw?.status),
-    providerOrderId:
-      raw?.providerOrderId === null ||
-      raw?.providerOrderId === undefined
-        ? null
-        : safeText(raw.providerOrderId),
-    providerPaymentId:
-      raw?.providerPaymentId === null ||
-      raw?.providerPaymentId === undefined
-        ? null
-        : safeText(raw.providerPaymentId),
-    paidAt:
-      raw?.paidAt === null ||
-      raw?.paidAt === undefined
-        ? null
-        : safeText(raw.paidAt),
-    createdAt: safeText(raw?.createdAt),
-  };
+
+  return {
+
+    id: Number(raw?.id) || 0,
+
+    amount: Number(raw?.amount) || 0,
+
+    currency: safeText(raw?.currency || "INR"),
+
+    method: safeText(raw?.method),
+
+    status: safeText(raw?.status),
+
+    createdAt: safeText(raw?.createdAt),
+
+    paidAt:
+
+      raw?.paidAt === null ||
+
+      raw?.paidAt === undefined
+
+        ? null
+
+        : safeText(raw?.paidAt),
+
+  };
+
 }
+
+
 
 function normalizeDashboard(raw: any): DashboardData {
-  const rawStudent = raw?.student ?? {};
 
-  const rawStats = raw?.stats ?? {};
+  const rawStudent = raw?.student ?? {};
 
-  const rawEnrollments = Array.isArray(raw?.enrollments)
-    ? raw.enrollments
-    : [];
+  const rawStats = raw?.stats ?? {};
 
-  const rawPayments = Array.isArray(raw?.payments)
-    ? raw.payments
-    : [];
 
-  return {
-    student: {
-      id: Number(rawStudent.id) || 0,
-      studentId: safeText(rawStudent.studentId),
-      name: safeText(rawStudent.name),
-      email: safeText(rawStudent.email),
-      phone:
-        rawStudent.phone === null ||
-        rawStudent.phone === undefined
-          ? null
-          : safeText(rawStudent.phone),
-      state:
-        rawStudent.state === null ||
-        rawStudent.state === undefined
-          ? null
-          : safeText(rawStudent.state),
-      referralId:
-        rawStudent.referralId === null ||
-        rawStudent.referralId === undefined
-          ? null
-          : safeText(rawStudent.referralId),
-      isActive: Boolean(rawStudent.isActive),
-    },
 
-    stats: {
-      enrolledCourses:
-        Number(rawStats.enrolledCourses) || 0,
-      activeEnrollments:
-        Number(rawStats.activeEnrollments) || 0,
-      successfulPayments:
-        Number(rawStats.successfulPayments) || 0,
-      totalPaid: Number(rawStats.totalPaid) || 0,
-    },
+  return {
 
-    enrollments: rawEnrollments.map(normalizeEnrollment),
+    student: {
 
-    payments: rawPayments.map(normalizePayment),
+      id: Number(rawStudent.id) || 0,
 
-    assignments: Array.isArray(raw?.assignments)
-      ? raw.assignments
-      : [],
+      studentId: safeText(rawStudent.studentId),
 
-    quizzes: Array.isArray(raw?.quizzes)
-      ? raw.quizzes
-      : [],
+      name: safeText(rawStudent.name),
 
-    liveClasses: Array.isArray(raw?.liveClasses)
-      ? raw.liveClasses
-      : [],
+      email: safeText(rawStudent.email),
 
-    recentActivity: Array.isArray(raw?.recentActivity)
-      ? raw.recentActivity
-      : [],
+      phone:
 
-    certificates: Array.isArray(raw?.certificates)
-      ? raw.certificates
-      : [],
-  };
+        rawStudent.phone === null ||
+
+        rawStudent.phone === undefined
+
+          ? null
+
+          : safeText(rawStudent.phone),
+
+      state:
+
+        rawStudent.state === null ||
+
+        rawStudent.state === undefined
+
+          ? null
+
+          : safeText(rawStudent.state),
+
+      referralId:
+
+        rawStudent.referralId === null ||
+
+        rawStudent.referralId === undefined
+
+          ? null
+
+          : safeText(rawStudent.referralId),
+
+      isActive: Boolean(rawStudent.isActive),
+
+    },
+
+
+
+    stats: {
+
+      enrolledCourses:
+
+        Number(rawStats.enrolledCourses) || 0,
+
+      activeEnrollments:
+
+        Number(rawStats.activeEnrollments) || 0,
+
+      successfulPayments:
+
+        Number(rawStats.successfulPayments) || 0,
+
+      totalPaid:
+
+        Number(rawStats.totalPaid) || 0,
+
+    },
+
+
+
+    enrollments: Array.isArray(raw?.enrollments)
+
+      ? raw.enrollments.map(normalizeEnrollment)
+
+      : [],
+
+
+
+    payments: Array.isArray(raw?.payments)
+
+      ? raw.payments.map(normalizePayment)
+
+      : [],
+
+
+
+    assignments: Array.isArray(raw?.assignments)
+
+      ? raw.assignments
+
+      : [],
+
+
+
+    quizzes: Array.isArray(raw?.quizzes)
+
+      ? raw.quizzes
+
+      : [],
+
+
+
+
+
+
+    recentActivity: Array.isArray(raw?.recentActivity)
+
+      ? raw.recentActivity
+
+      : [],
+
+
+
+    certificates: Array.isArray(raw?.certificates)
+
+      ? raw.certificates
+
+      : [],
+
+  };
+
 }
 
-/* =========================================================
-   PAGE
-========================================================= */
+
 
 export default function StudentDashboardPage() {
-  const [dashboard, setDashboard] =
-    useState<DashboardData | null>(null);
-
-  const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState("");
-
-  async function loadDashboard() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setError(
-          "Your session has expired. Please login again."
-        );
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/students/me/dashboard`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        }
-      );
-
-      const result: ApiResponse = await response.json();
-
-      if (!response.ok || !result.success || !result.data) {
-        throw new Error(
-          result.message ||
-            "Unable to load your dashboard."
-        );
-      }
-
-      const normalizedData = normalizeDashboard(
-        result.data
-      );
-
-      setDashboard(normalizedData);
-
-      console.log(
-        "Student dashboard loaded:",
-        normalizedData
-      );
-    } catch (err) {
-      console.error(
-        "Student dashboard error:",
-        err
-      );
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load your dashboard."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  /* =======================================================
-     LOADING
-  ======================================================= */
-
-  if (loading) {
-    return (
-      <main
-        style={{
-          padding: "28px 32px",
-          flex: 1,
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            padding: 40,
-            textAlign: "center",
-            boxShadow:
-              "0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
-          <RefreshCw
-            size={24}
-            style={{
-              margin: "0 auto 12px",
-              animation:
-                "studentDashboardSpin 1s linear infinite",
-            }}
-            color="#2F6BFF"
-          />
-
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: "#111827",
-            }}
-          >
-            Loading your dashboard...
-          </div>
-
-          <div
-            style={{
-              fontSize: 13,
-              color: "#6B7280",
-              marginTop: 5,
-            }}
-          >
-            Fetching your latest student information.
-          </div>
-        </div>
-
-        <style jsx>{`
-          @keyframes studentDashboardSpin {
-            from {
-              transform: rotate(0deg);
-            }
-
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
-      </main>
-    );
-  }
-
-  /* =======================================================
-     ERROR
-  ======================================================= */
-
-  if (error || !dashboard) {
-    return (
-      <main
-        style={{
-          padding: "28px 32px",
-          flex: 1,
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            padding: 40,
-            textAlign: "center",
-            boxShadow:
-              "0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 12,
-              background: "#FDEAEA",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 14px",
-            }}
-          >
-            <Bell
-              size={21}
-              color="#E0473F"
-            />
-          </div>
-
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-            }}
-          >
-            Unable to load dashboard
-          </div>
-
-          <div
-            style={{
-              fontSize: 13,
-              color: "#6B7280",
-              marginTop: 6,
-              marginBottom: 18,
-            }}
-          >
-            {error || "Something went wrong."}
-          </div>
-
-          <button
-            onClick={loadDashboard}
-            style={{
-              border: "none",
-              background: "#2F6BFF",
-              color: "#fff",
-              borderRadius: 7,
-              padding: "9px 16px",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Try Again
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  /* =======================================================
-     DATA
-  ======================================================= */
-
-  const {
-    student,
-    stats,
-    enrollments,
-    payments,
-    assignments,
-    quizzes,
-    liveClasses,
-    recentActivity,
-  } = dashboard;
-
-  const pendingWorkCount =
-    assignments.length + quizzes.length;
-
-  /* =======================================================
-     RENDER
-  ======================================================= */
-
-  return (
-    <main
-      style={{
-        padding: "28px 32px",
-        flex: 1,
-      }}
-    >
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              margin: 0,
-              color: "#111827",
-            }}
-          >
-            Welcome back, {student.name}! 👋
-          </h1>
-
-          <p
-            style={{
-              color: "#6B7280",
-              fontSize: 14,
-              margin: "4px 0 0",
-            }}
-          >
-            Student ID:{" "}
-            <strong
-              style={{
-                color: "#374151",
-              }}
-            >
-              {student.studentId}
-            </strong>
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            color: "#6B7280",
-            fontSize: 13.5,
-          }}
-        >
-          <Bell size={18} />
-        </div>
-      </div>
-
-      {/* =================================================
-          QUICK ACCESS
-      ================================================= */}
-
-      <QuickAccessGrid />
-
-      {/* =================================================
-          STATS
-      ================================================= */}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(4, minmax(0, 1fr))",
-          gap: 16,
-          marginBottom: 28,
-        }}
-      >
-        <StatCard
-          icon={BookOpen}
-          value={stats.enrolledCourses}
-          label="Enrolled Courses"
-          bg="#EAF0FE"
-          fg="#3B6BF0"
-        />
-
-        <StatCard
-          icon={GraduationCap}
-          value={stats.activeEnrollments}
-          label="Active Enrollments"
-          bg="#E9F9EF"
-          fg="#22A555"
-        />
-
-        <StatCard
-          icon={CheckCircle2}
-          value={stats.successfulPayments}
-          label="Successful Payments"
-          bg="#FDF3E3"
-          fg="#D98E1A"
-        />
-
-        <StatCard
-          icon={CreditCard}
-          value={formatCurrency(
-            stats.totalPaid
-          )}
-          label="Total Paid"
-          bg="#F3EAFD"
-          fg="#8B5CF6"
-        />
-      </div>
-
-      {/* =================================================
-          MAIN GRID
-      ================================================= */}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: 20,
-        }}
-      >
-        {/* =================================================
-            LEFT COLUMN
-        ================================================= */}
-
-        <div>
-          {/* ===============================================
-              MY ENROLLMENTS
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            My Enrollments
-          </h2>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              marginBottom: 28,
-            }}
-          >
-            {enrollments.length === 0 ? (
-              <EmptyCard
-                icon={BookOpen}
-                title="No enrollments yet"
-                message="Your enrolled courses and packages will appear here."
-              />
-            ) : (
-              enrollments.map(
-                (enrollment) => {
-                  const packageCourses =
-                    enrollment.package?.courses ||
-                    [];
-
-                  const individualCourse =
-                    enrollment.course;
-
-                  return (
-                    <div
-                      key={enrollment.id}
-                      style={{
-                        background: "#fff",
-                        borderRadius: 12,
-                        padding:
-                          "17px 18px",
-                        boxShadow:
-                          "0 1px 2px rgba(0,0,0,0.04)",
-                      }}
-                    >
-                      {/* Enrollment Header */}
-
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent:
-                            "space-between",
-                          alignItems:
-                            "flex-start",
-                          gap: 16,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 14,
-                            alignItems:
-                              "flex-start",
-                            minWidth: 0,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 10,
-                              background:
-                                "#EAF0FE",
-                              display:
-                                "flex",
-                              alignItems:
-                                "center",
-                              justifyContent:
-                                "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Package
-                              size={19}
-                              color="#3B6BF0"
-                            />
-                          </div>
-
-                          <div
-                            style={{
-                              minWidth: 0,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize:
-                                  14.5,
-                                fontWeight:
-                                  700,
-                                color:
-                                  "#111827",
-                                wordBreak:
-                                  "break-word",
-                              }}
-                            >
-                              {safeText(
-                                enrollment
-                                  .package
-                                  ?.title ||
-                                  enrollment
-                                    .course
-                                    ?.title ||
-                                  "Course Enrollment"
-                              )}
-                            </div>
-
-                            <div
-                              style={{
-                                fontSize:
-                                  12.5,
-                                color:
-                                  "#6B7280",
-                                marginTop: 3,
-                              }}
-                            >
-                              Enrolled on{" "}
-                              {formatDate(
-                                enrollment.enrolledAt
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <span
-                          style={{
-                            background:
-                              enrollment.status ===
-                              "ACTIVE"
-                                ? "#E9F9EF"
-                                : "#FDF3E3",
-                            color:
-                              enrollment.status ===
-                              "ACTIVE"
-                                ? "#22A555"
-                                : "#B4790E",
-                            fontSize: 12,
-                            fontWeight: 600,
-                            padding:
-                              "5px 9px",
-                            borderRadius: 6,
-                            whiteSpace:
-                              "nowrap",
-                          }}
-                        >
-                          {formatStatus(
-                            enrollment.status
-                          )}
-                        </span>
-                      </div>
-
-                      {/* Package Courses */}
-
-                      {packageCourses.length >
-                        0 && (
-                        <div
-                          style={{
-                            marginTop: 14,
-                            paddingTop: 12,
-                            borderTop:
-                              "1px solid #F1F2F5",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color:
-                                "#6B7280",
-                              marginBottom: 8,
-                            }}
-                          >
-                            Included Courses
-                          </div>
-
-                          <div
-                            style={{
-                              display:
-                                "flex",
-                              flexWrap:
-                                "wrap",
-                              gap: 7,
-                            }}
-                          >
-                            {packageCourses.map(
-                              (course) => (
-                                <span
-                                  key={
-                                    course.id
-                                  }
-                                  style={{
-                                    background:
-                                      "#F8FAFC",
-                                    border:
-                                      "1px solid #E5E7EB",
-                                    color:
-                                      "#374151",
-                                    fontSize:
-                                      11.5,
-                                    padding:
-                                      "5px 9px",
-                                    borderRadius:
-                                      6,
-                                  }}
-                                >
-                                  {safeText(
-                                    course.title
-                                  )}
-                                </span>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Individual Course */}
-
-                      {packageCourses.length ===
-                        0 &&
-                        individualCourse && (
-                          <div
-                            style={{
-                              marginTop: 14,
-                              paddingTop: 12,
-                              borderTop:
-                                "1px solid #F1F2F5",
-                            }}
-                          >
-                            <span
-                              style={{
-                                background:
-                                  "#F8FAFC",
-                                border:
-                                  "1px solid #E5E7EB",
-                                color:
-                                  "#374151",
-                                fontSize:
-                                  11.5,
-                                padding:
-                                  "5px 9px",
-                                borderRadius:
-                                  6,
-                              }}
-                            >
-                              {safeText(
-                                individualCourse.title
-                              )}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  );
-                }
-              )
-            )}
-          </div>
-
-          {/* ===============================================
-              TODAY'S CLASSES
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            Today's Classes
-          </h2>
-
-          <div
-            style={{
-              marginBottom: 28,
-            }}
-          >
-            {liveClasses.length === 0 ? (
-              <EmptyCard
-                icon={GraduationCap}
-                title="No live classes scheduled"
-                message="Live classes will appear here once the class scheduling module is available."
-              />
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection:
-                    "column",
-                  gap: 12,
-                }}
-              >
-                {liveClasses.map(
-                  (item, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        background:
-                          "#fff",
-                        borderRadius: 12,
-                        padding:
-                          "16px 18px",
-                        boxShadow:
-                          "0 1px 2px rgba(0,0,0,0.04)",
-                        fontSize: 13,
-                        color:
-                          "#374151",
-                      }}
-                    >
-                      {safeText(item)}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* ===============================================
-              ASSIGNMENTS & QUIZZES
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            Assignments & Quizzes
-          </h2>
-
-          <div
-            style={{
-              marginBottom: 28,
-            }}
-          >
-            {pendingWorkCount === 0 ? (
-              <EmptyCard
-                icon={ClipboardList}
-                title="No assignments or quizzes"
-                message="Assignments and quizzes will appear here when they are assigned to you."
-              />
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection:
-                    "column",
-                  gap: 12,
-                }}
-              >
-                {assignments.map(
-                  (item, index) => (
-                    <div
-                      key={`assignment-${index}`}
-                      style={{
-                        background:
-                          "#fff",
-                        borderRadius: 12,
-                        padding:
-                          "16px 18px",
-                        boxShadow:
-                          "0 1px 2px rgba(0,0,0,0.04)",
-                        fontSize: 13,
-                        color:
-                          "#374151",
-                      }}
-                    >
-                      {safeText(item)}
-                    </div>
-                  )
-                )}
-
-                {quizzes.map(
-                  (item, index) => (
-                    <div
-                      key={`quiz-${index}`}
-                      style={{
-                        background:
-                          "#fff",
-                        borderRadius: 12,
-                        padding:
-                          "16px 18px",
-                        boxShadow:
-                          "0 1px 2px rgba(0,0,0,0.04)",
-                        fontSize: 13,
-                        color:
-                          "#374151",
-                      }}
-                    >
-                      {safeText(item)}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* =================================================
-            RIGHT COLUMN
-        ================================================= */}
-
-        <div>
-          {/* ===============================================
-              PROFILE
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            My Profile
-          </h2>
-
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: "18px",
-              boxShadow:
-                "0 1px 2px rgba(0,0,0,0.04)",
-              marginBottom: 24,
-            }}
-          >
-            <ProfileRow
-              label="Name"
-              value={safeText(
-                student.name
-              )}
-            />
-
-            <ProfileRow
-              label="Student ID"
-              value={safeText(
-                student.studentId
-              )}
-            />
-
-            <ProfileRow
-              label="Email"
-              value={safeText(
-                student.email
-              )}
-            />
-
-            <ProfileRow
-              label="Phone"
-              value={
-                student.phone
-                  ? safeText(
-                      student.phone
-                    )
-                  : "Not provided"
-              }
-            />
-
-            <ProfileRow
-              label="State"
-              value={
-                student.state
-                  ? safeText(
-                      student.state
-                    )
-                  : "Not provided"
-              }
-              last
-            />
-          </div>
-
-          {/* ===============================================
-              PAYMENTS
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            Recent Payments
-          </h2>
-
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: "6px 18px",
-              boxShadow:
-                "0 1px 2px rgba(0,0,0,0.04)",
-              marginBottom: 24,
-            }}
-          >
-            {payments.length === 0 ? (
-              <div
-                style={{
-                  padding:
-                    "20px 0",
-                  textAlign:
-                    "center",
-                  fontSize: 12.5,
-                  color:
-                    "#6B7280",
-                }}
-              >
-                No payment records
-                found.
-              </div>
-            ) : (
-              payments
-                .slice(0, 5)
-                .map(
-                  (
-                    payment,
-                    index
-                  ) => (
-                    <div
-                      key={
-                        payment.id
-                      }
-                      style={{
-                        display:
-                          "flex",
-                        justifyContent:
-                          "space-between",
-                        gap: 12,
-                        padding:
-                          "13px 0",
-                        borderBottom:
-                          index <
-                          Math.min(
-                            payments.length,
-                            5
-                          ) -
-                            1
-                            ? "1px solid #F1F2F5"
-                            : "none",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize:
-                              13,
-                            fontWeight:
-                              600,
-                            color:
-                              "#111827",
-                          }}
-                        >
-                          {formatCurrency(
-                            payment.amount,
-                            payment.currency
-                          )}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize:
-                              11.5,
-                            color:
-                              "#9CA3AF",
-                            marginTop:
-                              2,
-                          }}
-                        >
-                          {formatDate(
-                            payment.createdAt
-                          )}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize:
-                              11,
-                            color:
-                              "#9CA3AF",
-                            marginTop:
-                              2,
-                          }}
-                        >
-                          {safeText(
-                            payment.method
-                          )}
-                        </div>
-                      </div>
-
-                      <span
-                        style={{
-                          height:
-                            "fit-content",
-                          background:
-                            payment.status ===
-                            "SUCCESS"
-                              ? "#E9F9EF"
-                              : "#FDF3E3",
-                          color:
-                            payment.status ===
-                            "SUCCESS"
-                              ? "#22A555"
-                              : "#B4790E",
-                          fontSize:
-                            11.5,
-                          fontWeight:
-                            600,
-                          padding:
-                            "4px 8px",
-                          borderRadius:
-                            6,
-                        }}
-                      >
-                        {formatStatus(
-                          payment.status
-                        )}
-                      </span>
-                    </div>
-                  )
-                )
-            )}
-          </div>
-
-          {/* ===============================================
-              RECENT ACTIVITY
-          =============================================== */}
-
-          <h2
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              marginBottom: 12,
-            }}
-          >
-            Recent Activity
-          </h2>
-
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: "6px 18px",
-              boxShadow:
-                "0 1px 2px rgba(0,0,0,0.04)",
-            }}
-          >
-            {recentActivity.length === 0 ? (
-              <div
-                style={{
-                  padding:
-                    "20px 0",
-                  textAlign:
-                    "center",
-                  fontSize: 12.5,
-                  color:
-                    "#6B7280",
-                }}
-              >
-                No recent activity
-                yet.
-              </div>
-            ) : (
-              recentActivity.map(
-                (
-                  activity,
-                  index
-                ) => (
-                  <div
-                    key={index}
-                    style={{
-                      display:
-                        "flex",
-                      gap: 12,
-                      padding:
-                        "14px 0",
-                      borderBottom:
-                        index <
-                        recentActivity.length -
-                          1
-                          ? "1px solid #F1F2F5"
-                          : "none",
-                    }}
-                  >
-                    <CheckCircle2
-                      size={17}
-                      color="#2F6BFF"
-                      style={{
-                        marginTop: 2,
-                        flexShrink: 0,
-                      }}
-                    />
-
-                    <div>
-                      <div
-                        style={{
-                          fontSize:
-                            13.5,
-                          fontWeight:
-                            600,
-                          color:
-                            "#111827",
-                        }}
-                      >
-                        {safeText(
-                          activity
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              )
-            )}
-          </div>
-        </div>
-      </div>
-    </main>
-  );
+
+  const router = useRouter();
+
+
+
+  const [dashboard, setDashboard] =
+
+    useState<DashboardData | null>(null);
+
+
+
+  const [progressMap, setProgressMap] = useState<
+
+    Record<number, CourseProgress>
+
+  >({});
+
+
+
+  const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [error, setError] = useState("");
+
+
+
+  async function fetchDashboardData(showRefresh = false) {
+
+    try {
+
+      if (showRefresh) {
+
+        setRefreshing(true);
+
+      } else {
+
+        setLoading(true);
+
+      }
+
+
+
+      setError("");
+
+
+
+      const token = localStorage.getItem("token");
+
+
+
+      if (!token) {
+
+        setError(
+
+          "Your session has expired. Please login again."
+
+        );
+
+        return;
+
+      }
+
+
+
+      const response = await fetch(
+
+        `${API_URL}/students/me/dashboard`,
+
+        {
+
+          method: "GET",
+
+          headers: {
+
+            Authorization: `Bearer ${token}`,
+
+            "Content-Type": "application/json",
+
+          },
+
+          cache: "no-store",
+
+        }
+
+      );
+
+
+
+      const result = await response.json();
+
+
+
+      if (
+
+        !response.ok ||
+
+        !result?.success ||
+
+        !result?.data
+
+      ) {
+
+        throw new Error(
+
+          result?.message ||
+
+            "Unable to load your dashboard."
+
+        );
+
+      }
+
+
+
+      const normalized =
+
+        normalizeDashboard(result.data);
+
+
+
+      setDashboard(normalized);
+
+
+
+      const courseMap = new Map<
+
+        number,
+
+        StudentCourse
+
+      >();
+
+
+
+      for (const enrollment of normalized.enrollments) {
+
+        if (enrollment.course) {
+
+          courseMap.set(enrollment.course.id, {
+
+            course: enrollment.course,
+
+            packageName: null,
+
+            enrollmentStatus: enrollment.status,
+
+          });
+
+        }
+
+
+
+        if (enrollment.package) {
+
+          for (const packageItem of enrollment.package
+
+            .courses) {
+
+            if (!packageItem.course) {
+
+              continue;
+
+            }
+
+
+
+            if (!courseMap.has(packageItem.course.id)) {
+
+              courseMap.set(packageItem.course.id, {
+
+                course: packageItem.course,
+
+                packageName:
+
+                  enrollment.package.title,
+
+                enrollmentStatus:
+
+                  enrollment.status,
+
+              });
+
+            }
+
+          }
+
+        }
+
+      }
+
+
+
+      const studentCourses = Array.from(
+
+        courseMap.values()
+
+      );
+
+
+
+      const progressResults = await Promise.all(
+
+        studentCourses.map(async (item) => {
+
+          try {
+
+            const progressResponse =
+
+              await fetch(
+
+                `${API_URL}/course-progress/courses/${item.course.id}/progress`,
+
+                {
+
+                  method: "GET",
+
+                  headers: {
+
+                    Authorization: `Bearer ${token}`,
+
+                    "Content-Type":
+
+                      "application/json",
+
+                  },
+
+                }
+
+              );
+
+
+
+            if (!progressResponse.ok) {
+
+              return null;
+
+            }
+
+
+
+            const progressJson =
+
+              await progressResponse.json();
+
+
+
+            const progress =
+
+              progressJson?.data ??
+
+              progressJson;
+
+
+
+            return {
+
+              courseId: Number(
+
+                progress?.courseId
+
+              ),
+
+              totalLessons:
+
+                Number(
+
+                  progress?.totalLessons
+
+                ) || 0,
+
+              completedLessons:
+
+                Number(
+
+                  progress?.completedLessons
+
+                ) || 0,
+
+              startedLessons:
+
+                Number(
+
+                  progress?.startedLessons
+
+                ) || 0,
+
+              remainingLessons:
+
+                Number(
+
+                  progress?.remainingLessons
+
+                ) || 0,
+
+              progressPercentage:
+
+                Number(
+
+                  progress?.progressPercentage
+
+                ) || 0,
+
+            } as CourseProgress;
+
+          } catch {
+
+            return null;
+
+          }
+
+        })
+
+      );
+
+
+
+      const nextProgress: Record<
+
+        number,
+
+        CourseProgress
+
+      > = {};
+
+
+
+      for (const progress of progressResults) {
+
+        if (progress?.courseId) {
+
+          nextProgress[
+
+            progress.courseId
+
+          ] = progress;
+
+        }
+
+      }
+
+
+
+      setProgressMap(nextProgress);
+
+    } catch (err) {
+
+      console.error(
+
+        "Student dashboard error:",
+
+        err
+
+      );
+
+
+
+      setError(
+
+        err instanceof Error
+
+          ? err.message
+
+          : "Unable to load your dashboard."
+
+      );
+
+    } finally {
+
+      setLoading(false);
+
+      setRefreshing(false);
+
+    }
+
+  }
+
+
+
+  useEffect(() => {
+
+    fetchDashboardData();
+
+  }, []);
+
+
+
+  const studentCourses = useMemo(() => {
+
+    if (!dashboard) {
+
+      return [];
+
+    }
+
+
+
+    const courseMap = new Map<
+
+      number,
+
+      StudentCourse
+
+    >();
+
+
+
+    for (const enrollment of dashboard.enrollments) {
+
+      if (enrollment.course) {
+
+        courseMap.set(enrollment.course.id, {
+
+          course: enrollment.course,
+
+          packageName: null,
+
+          enrollmentStatus: enrollment.status,
+
+        });
+
+      }
+
+
+
+      if (enrollment.package) {
+
+        for (const packageItem of enrollment.package
+
+          .courses) {
+
+          if (!packageItem.course) {
+
+            continue;
+
+          }
+
+
+
+          if (!courseMap.has(packageItem.course.id)) {
+
+            courseMap.set(packageItem.course.id, {
+
+              course: packageItem.course,
+
+              packageName:
+
+                enrollment.package.title,
+
+              enrollmentStatus:
+
+                enrollment.status,
+
+            });
+
+          }
+
+        }
+
+      }
+
+    }
+
+
+
+    return Array.from(courseMap.values());
+
+  }, [dashboard]);
+
+
+
+  const incompleteCourse = useMemo(
+
+    () =>
+
+      studentCourses.find(
+
+        (item) =>
+
+          (progressMap[item.course.id]
+
+            ?.progressPercentage ?? 0) < 100
+
+      ) ?? null,
+
+    [studentCourses, progressMap]
+
+  );
+
+
+
+  const completedCourseCount = useMemo(
+
+    () =>
+
+      studentCourses.filter(
+
+        (item) =>
+
+          (progressMap[item.course.id]
+
+            ?.progressPercentage ?? 0) === 100
+
+      ).length,
+
+    [studentCourses, progressMap]
+
+  );
+
+
+
+  const totalLessons = useMemo(
+
+    () =>
+
+      Object.values(progressMap).reduce(
+
+        (sum, item) =>
+
+          sum + item.totalLessons,
+
+        0
+
+      ),
+
+    [progressMap]
+
+  );
+
+
+
+  const completedLessons = useMemo(
+
+    () =>
+
+      Object.values(progressMap).reduce(
+
+        (sum, item) =>
+
+          sum + item.completedLessons,
+
+        0
+
+      ),
+
+    [progressMap]
+
+  );
+
+
+
+  const recentPayment = useMemo(
+
+    () =>
+
+      [...(dashboard?.payments ?? [])].sort(
+
+        (a, b) =>
+
+          new Date(b.createdAt).getTime() -
+
+          new Date(a.createdAt).getTime()
+
+      )[0] ?? null,
+
+    [dashboard]
+
+  );
+
+
+
+  const initials = useMemo(() => {
+
+    const name = dashboard?.student.name || "Student";
+
+
+
+    return name
+
+      .split(/\s+/)
+
+      .filter(Boolean)
+
+      .map((part) => part[0])
+
+      .join("")
+
+      .slice(0, 2)
+
+      .toUpperCase();
+
+  }, [dashboard]);
+
+
+
+  if (loading) {
+
+    return (
+
+      <>
+
+        <main
+
+          style={{
+
+            flex: 1,
+
+            minWidth: 0,
+
+            padding: "28px 32px",
+
+            background: "#f5f7fb",
+
+          }}
+
+        >
+
+          <div
+
+            style={{
+
+              minHeight: 360,
+
+              display: "flex",
+
+              flexDirection: "column",
+
+              alignItems: "center",
+
+              justifyContent: "center",
+
+              border: "1px solid #e5e9f0",
+
+              borderRadius: 18,
+
+              background: "#ffffff",
+
+            }}
+
+          >
+
+            <RefreshCw
+
+              size={26}
+
+              color="#2f6bff"
+
+              style={{
+
+                animation:
+
+                  "studentDashboardSpin 0.8s linear infinite",
+
+              }}
+
+            />
+
+            <div
+
+              style={{
+
+                marginTop: 14,
+
+                fontSize: 17,
+
+                fontWeight: 700,
+
+                color: "#111827",
+
+              }}
+
+            >
+
+              Loading your dashboard
+
+            </div>
+
+            <div
+
+              style={{
+
+                marginTop: 6,
+
+                fontSize: 13,
+
+                color: "#7b8495",
+
+              }}
+
+            >
+
+              Preparing your learning home page.
+
+            </div>
+
+          </div>
+
+        </main>
+
+
+
+        <style
+
+          dangerouslySetInnerHTML={{
+
+            __html: `
+
+              @keyframes studentDashboardSpin {
+
+                from { transform: rotate(0deg); }
+
+                to { transform: rotate(360deg); }
+
+              }
+
+            `,
+
+          }}
+
+        />
+
+      </>
+
+    );
+
+  }
+
+
+
+  if (error || !dashboard) {
+
+    return (
+
+      <main
+
+        style={{
+
+          flex: 1,
+
+          minWidth: 0,
+
+          padding: "28px 32px",
+
+          background: "#f5f7fb",
+
+        }}
+
+      >
+
+        <div
+
+          style={{
+
+            minHeight: 360,
+
+            display: "flex",
+
+            flexDirection: "column",
+
+            alignItems: "center",
+
+            justifyContent: "center",
+
+            padding: 30,
+
+            border: "1px solid #f1d4d4",
+
+            borderRadius: 18,
+
+            background: "#ffffff",
+
+            textAlign: "center",
+
+          }}
+
+        >
+
+          <div
+
+            style={{
+
+              width: 48,
+
+              height: 48,
+
+              display: "flex",
+
+              alignItems: "center",
+
+              justifyContent: "center",
+
+              borderRadius: 13,
+
+              background: "#fdeceb",
+
+              color: "#cf433f",
+
+            }}
+
+          >
+
+            <BellFallback />
+
+          </div>
+
+
+
+          <h2
+
+            style={{
+
+              margin: "14px 0 0",
+
+              fontSize: 18,
+
+              fontWeight: 750,
+
+              color: "#111827",
+
+            }}
+
+          >
+
+            Unable to load dashboard
+
+          </h2>
+
+
+
+          <p
+
+            style={{
+
+              maxWidth: 480,
+
+              margin: "7px 0 18px",
+
+              fontSize: 13,
+
+              lineHeight: 1.6,
+
+              color: "#7b8495",
+
+            }}
+
+          >
+
+            {error || "Something went wrong."}
+
+          </p>
+
+
+
+          <button
+
+            type="button"
+
+            onClick={() => fetchDashboardData(true)}
+
+            style={primaryButtonStyle}
+
+          >
+
+            <RefreshCw size={15} />
+
+            Try Again
+
+          </button>
+
+        </div>
+
+      </main>
+
+    );
+
+  }
+
+
+
+  const pendingAssignments =
+
+    dashboard.assignments.length;
+
+
+
+  const pendingQuizzes =
+
+    dashboard.quizzes.length;
+
+
+
+  const pendingTotal =
+
+    pendingAssignments + pendingQuizzes;
+
+
+
+  const completedAll =
+
+    studentCourses.length > 0 &&
+
+    completedCourseCount === studentCourses.length;
+
+
+
+  return (
+
+    <>
+
+      <main
+
+        style={{
+
+          flex: 1,
+
+          minWidth: 0,
+
+          padding: "28px 32px 36px",
+
+          background: "#f5f7fb",
+
+          boxSizing: "border-box",
+
+        }}
+
+      >
+
+        {/* ----------------------------------------------------- */}
+
+        {/* WELCOME */}
+
+        {/* ----------------------------------------------------- */}
+
+        <section
+
+          style={{
+
+            position: "relative",
+
+            overflow: "hidden",
+
+            display: "flex",
+
+            justifyContent: "space-between",
+
+            alignItems: "flex-start",
+
+            gap: 24,
+
+            minHeight: 185,
+
+            padding: "28px 30px",
+
+            marginBottom: 18,
+
+            borderRadius: 20,
+
+            background:
+
+              "linear-gradient(135deg, #10223f 0%, #173f71 62%, #245ed6 100%)",
+
+            boxShadow:
+
+              "0 12px 28px rgba(16,34,63,0.15)",
+
+            color: "#ffffff",
+
+          }}
+
+        >
+
+          <div
+
+            style={{
+
+              position: "absolute",
+
+              width: 260,
+
+              height: 260,
+
+              top: -155,
+
+              right: 55,
+
+              borderRadius: "50%",
+
+              background:
+
+                "rgba(255,255,255,0.07)",
+
+            }}
+
+          />
+
+
+
+          <div
+
+            style={{
+
+              position: "absolute",
+
+              width: 170,
+
+              height: 170,
+
+              bottom: -120,
+
+              right: -30,
+
+              borderRadius: "50%",
+
+              border:
+
+                "1px solid rgba(255,255,255,0.13)",
+
+            }}
+
+          />
+
+
+
+          <div
+
+            style={{
+
+              position: "relative",
+
+              zIndex: 1,
+
+              maxWidth: 760,
+
+            }}
+
+          >
+
+            <div
+
+              style={{
+
+                display: "inline-flex",
+
+                alignItems: "center",
+
+                gap: 7,
+
+                marginBottom: 10,
+
+                fontSize: 11,
+
+                fontWeight: 800,
+
+                letterSpacing: "0.08em",
+
+                textTransform: "uppercase",
+
+                color: "#dce8fb",
+
+              }}
+
+            >
+
+              <GraduationCap size={16} />
+
+              Student Portal
+
+            </div>
+
+
+
+            <h1
+
+              style={{
+
+                margin: 0,
+
+                fontSize: 32,
+
+                lineHeight: 1.2,
+
+                fontWeight: 800,
+
+                letterSpacing: "-0.02em",
+
+              }}
+
+            >
+
+              Welcome back, {dashboard.student.name} 👋
+
+            </h1>
+
+
+
+            <p
+
+              style={{
+
+                maxWidth: 650,
+
+                margin: "10px 0 0",
+
+                fontSize: 13.5,
+
+                lineHeight: 1.7,
+
+                color: "#d7e4f8",
+
+              }}
+
+            >
+
+              Your learning space is ready. Pick up where you
+
+              left off, check what needs your attention, or
+
+              explore your achievements.
+
+            </p>
+
+
+
+            <div
+
+              style={{
+
+                display: "flex",
+
+                flexWrap: "wrap",
+
+                gap: 20,
+
+                marginTop: 18,
+
+              }}
+
+            >
+
+              <InfoPair
+
+                label="Student ID"
+
+                value={dashboard.student.studentId}
+
+              />
+
+
+
+              <InfoPair
+
+                label="Account"
+
+                value={
+
+                  dashboard.student.isActive
+
+                    ? "Active"
+
+                    : "Inactive"
+
+                }
+
+              />
+
+            </div>
+
+          </div>
+
+
+
+          <div
+
+            style={{
+
+              position: "relative",
+
+              zIndex: 1,
+
+              flex: "0 0 auto",
+
+            }}
+
+          >
+
+            <button
+
+              type="button"
+
+              onClick={() => fetchDashboardData(true)}
+
+              disabled={refreshing}
+
+              style={{
+
+                ...ghostButtonStyle,
+
+                opacity: refreshing ? 0.65 : 1,
+
+              }}
+
+            >
+
+              <RefreshCw
+
+                size={15}
+
+                style={{
+
+                  animation: refreshing
+
+                    ? "studentDashboardSpin 0.8s linear infinite"
+
+                    : undefined,
+
+                }}
+
+              />
+
+              Refresh
+
+            </button>
+
+          </div>
+
+        </section>
+
+
+
+        {/* ----------------------------------------------------- */}
+
+        {/* ACTION SUMMARY */}
+
+        {/* ----------------------------------------------------- */}
+
+        <section
+
+          style={{
+
+            display: "grid",
+
+            gridTemplateColumns:
+
+              "repeat(4, minmax(0, 1fr))",
+
+            gap: 14,
+
+            marginBottom: 18,
+
+          }}
+
+        >
+
+          <SummaryTile
+
+            icon={ClipboardList}
+
+            label="Assignments"
+
+            value={pendingAssignments}
+
+            helper={
+
+              pendingAssignments > 0
+
+                ? "Ready to work"
+
+                : "Nothing pending"
+
+            }
+
+            tone="rose"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/assignments"
+
+              )
+
+            }
+
+          />
+
+
+
+          <SummaryTile
+
+            icon={BarChart3}
+
+            label="Quizzes"
+
+            value={pendingQuizzes}
+
+            helper={
+
+              pendingQuizzes > 0
+
+                ? "Available now"
+
+                : "Nothing pending"
+
+            }
+
+            tone="blue"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/assignments"
+
+              )
+
+            }
+
+          />
+
+
+
+
+
+
+          <SummaryTile
+
+            icon={Award}
+
+            label="Achievements"
+
+            value={completedCourseCount}
+
+            helper={
+
+              completedCourseCount > 0
+
+                ? "Courses completed"
+
+                : "Start your first course"
+
+            }
+
+            tone="gold"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/certificates"
+
+              )
+
+            }
+
+          />
+
+        </section>
+
+
+
+        {/* ----------------------------------------------------- */}
+
+        {/* NEXT STEP */}
+
+        {/* ----------------------------------------------------- */}
+
+        <section
+
+          style={{
+
+            display: "grid",
+
+            gridTemplateColumns:
+
+              "minmax(0, 1.7fr) minmax(300px, 0.9fr)",
+
+            gap: 18,
+
+            marginBottom: 18,
+
+          }}
+
+        >
+
+          <div
+
+            style={{
+
+              minWidth: 0,
+
+              padding: 22,
+
+              border:
+
+                completedAll
+
+                  ? "1px solid #eadfba"
+
+                  : "1px solid #dce6fa",
+
+              borderRadius: 18,
+
+              background:
+
+                completedAll
+
+                  ? "linear-gradient(135deg,#fffdf5 0%,#fff9e9 100%)"
+
+                  : "#ffffff",
+
+              boxShadow:
+
+                "0 4px 14px rgba(15,23,42,0.04)",
+
+            }}
+
+          >
+
+            <SectionHeader
+
+              icon={completedAll ? Award : Sparkles}
+
+              title={
+
+                completedAll
+
+                  ? "You are all caught up"
+
+                  : "Continue Learning"
+
+              }
+
+              subtitle={
+
+                completedAll
+
+                  ? "Your enrolled courses are completed."
+
+                  : "Your next learning step is here."
+
+              }
+
+            />
+
+
+
+            {completedAll ? (
+
+              <div
+
+                style={{
+
+                  display: "flex",
+
+                  flexWrap: "wrap",
+
+                  alignItems: "center",
+
+                  justifyContent: "space-between",
+
+                  gap: 18,
+
+                  marginTop: 14,
+
+                  padding: 18,
+
+                  border:
+
+                    "1px solid rgba(205,174,79,0.35)",
+
+                  borderRadius: 14,
+
+                  background: "rgba(255,255,255,0.68)",
+
+                }}
+
+              >
+
+                <div
+
+                  style={{
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    gap: 13,
+
+                  }}
+
+                >
+
+                  <div
+
+                    style={{
+
+                      width: 48,
+
+                      height: 48,
+
+                      display: "flex",
+
+                      alignItems: "center",
+
+                      justifyContent: "center",
+
+                      borderRadius: 14,
+
+                      background: "#fff2c9",
+
+                      color: "#b87a10",
+
+                    }}
+
+                  >
+
+                    <Award size={23} />
+
+                  </div>
+
+
+
+                  <div>
+
+                    <div
+
+                      style={{
+
+                        fontSize: 15,
+
+                        fontWeight: 800,
+
+                        color: "#3a3121",
+
+                      }}
+
+                    >
+
+                      {completedCourseCount} courses completed
+
+                    </div>
+
+
+
+                    <div
+
+                      style={{
+
+                        marginTop: 4,
+
+                        fontSize: 12,
+
+                        color: "#89785b",
+
+                      }}
+
+                    >
+
+                      {completedLessons} lessons completed.
+
+                      Your certificates are ready to view.
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+
+                <button
+
+                  type="button"
+
+                  onClick={() =>
+
+                    router.push(
+
+                      "/dashboard/student/certificates"
+
+                    )
+
+                  }
+
+                  style={{
+
+                    ...primaryButtonStyle,
+
+                    background: "#b98016",
+
+                  }}
+
+                >
+
+                  View Certificates
+
+                  <ArrowRight size={14} />
+
+                </button>
+
+              </div>
+
+            ) : incompleteCourse ? (
+
+              <button
+
+                type="button"
+
+                onClick={() =>
+
+                  router.push(
+
+                    `/dashboard/student/my-courses/${incompleteCourse.course.id}`
+
+                  )
+
+                }
+
+                style={{
+
+                  width: "100%",
+
+                  display: "flex",
+
+                  alignItems: "center",
+
+                  gap: 14,
+
+                  marginTop: 14,
+
+                  padding: 15,
+
+                  border: "1px solid #e9edf5",
+
+                  borderRadius: 14,
+
+                  background: "#ffffff",
+
+                  cursor: "pointer",
+
+                  textAlign: "left",
+
+                }}
+
+              >
+
+                <div
+
+                  style={{
+
+                    width: 48,
+
+                    height: 48,
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    justifyContent: "center",
+
+                    flex: "0 0 48px",
+
+                    borderRadius: 13,
+
+                    background: "#edf3ff",
+
+                    color: "#326cf4",
+
+                  }}
+
+                >
+
+                  <BookOpen size={22} />
+
+                </div>
+
+
+
+                <div
+
+                  style={{
+
+                    minWidth: 0,
+
+                    flex: 1,
+
+                  }}
+
+                >
+
+                  <div
+
+                    style={{
+
+                      fontSize: 15,
+
+                      fontWeight: 800,
+
+                      color: "#1f2937",
+
+                    }}
+
+                  >
+
+                    {incompleteCourse.course.title}
+
+                  </div>
+
+
+
+                  <div
+
+                    style={{
+
+                      display: "flex",
+
+                      flexWrap: "wrap",
+
+                      gap: 10,
+
+                      marginTop: 4,
+
+                      fontSize: 11,
+
+                      color: "#8791a3",
+
+                    }}
+
+                  >
+
+                    <span>
+
+                      {progressMap[
+
+                        incompleteCourse.course.id
+
+                      ]?.completedLessons ?? 0}
+
+                      /
+
+                      {progressMap[
+
+                        incompleteCourse.course.id
+
+                      ]?.totalLessons ?? 0}{" "}
+
+                      lessons completed
+
+                    </span>
+
+
+
+                    {incompleteCourse.packageName ? (
+
+                      <span>
+
+                        Package:{" "}
+
+                        {incompleteCourse.packageName}
+
+                      </span>
+
+                    ) : (
+
+                      <span>Direct enrollment</span>
+
+                    )}
+
+                  </div>
+
+
+
+                  <div
+
+                    style={{
+
+                      height: 6,
+
+                      overflow: "hidden",
+
+                      marginTop: 10,
+
+                      borderRadius: 999,
+
+                      background: "#e9edf4",
+
+                    }}
+
+                  >
+
+                    <span
+
+                      style={{
+
+                        display: "block",
+
+                        width: `${Math.min(
+
+                          Math.max(
+
+                            progressMap[
+
+                              incompleteCourse.course.id
+
+                            ]?.progressPercentage ?? 0,
+
+                            0
+
+                          ),
+
+                          100
+
+                        )}%`,
+
+                        height: "100%",
+
+                        borderRadius: 999,
+
+                        background:
+
+                          "linear-gradient(90deg,#2f6bff,#5e8eff)",
+
+                      }}
+
+                    />
+
+                  </div>
+
+                </div>
+
+
+
+                <div
+
+                  style={{
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    gap: 5,
+
+                    flex: "0 0 auto",
+
+                    color: "#2f6bff",
+
+                    fontSize: 12,
+
+                    fontWeight: 800,
+
+                  }}
+
+                >
+
+                  {Math.round(
+
+                    progressMap[
+
+                      incompleteCourse.course.id
+
+                    ]?.progressPercentage ?? 0
+
+                  )}
+
+                  %
+
+                  <ChevronRight size={17} />
+
+                </div>
+
+              </button>
+
+            ) : (
+
+              <EmptyCard
+
+                title="No active learning item"
+
+                message="Your next course will appear here when you are enrolled."
+
+              />
+
+            )}
+
+          </div>
+
+
+
+          {/* Right: Today / attention */}
+
+          <div
+
+            style={{
+
+              minWidth: 0,
+
+              padding: 22,
+
+              border: "1px solid #e5e9f0",
+
+              borderRadius: 18,
+
+              background: "#ffffff",
+
+              boxShadow:
+
+                "0 4px 14px rgba(15,23,42,0.04)",
+
+            }}
+
+          >
+
+            <SectionHeader
+
+              icon={CalendarDays}
+
+              title="Your Focus"
+
+              subtitle="A simple view of what to do next"
+
+            />
+
+
+
+            <div
+
+              style={{
+
+                display: "flex",
+
+                flexDirection: "column",
+
+                gap: 10,
+
+                marginTop: 15,
+
+              }}
+
+            >
+
+              <FocusRow
+
+                icon={ClipboardList}
+
+                label="Assignments"
+
+                value={
+
+                  pendingAssignments > 0
+
+                    ? `${pendingAssignments} waiting`
+
+                    : "All clear"
+
+                }
+
+                tone={
+
+                  pendingAssignments > 0
+
+                    ? "rose"
+
+                    : "green"
+
+                }
+
+                onClick={() =>
+
+                  router.push(
+
+                    "/dashboard/student/assignments"
+
+                  )
+
+                }
+
+              />
+
+
+
+              <FocusRow
+
+                icon={BarChart3}
+
+                label="Quizzes"
+
+                value={
+
+                  pendingQuizzes > 0
+
+                    ? `${pendingQuizzes} available`
+
+                    : "All clear"
+
+                }
+
+                tone={
+
+                  pendingQuizzes > 0
+
+                    ? "blue"
+
+                    : "green"
+
+                }
+
+                onClick={() =>
+
+                  router.push(
+
+                    "/dashboard/student/assignments"
+
+                  )
+
+                }
+
+              />
+
+
+
+
+            </div>
+
+
+
+            <div
+
+              style={{
+
+                marginTop: 14,
+
+                paddingTop: 14,
+
+                borderTop:
+
+                  "1px solid #edf0f4",
+
+                fontSize: 11,
+
+                color: "#8d96a5",
+
+              }}
+
+            >
+
+              {pendingTotal > 0
+
+                ? `${pendingTotal} learning task${
+
+                    pendingTotal === 1 ? "" : "s"
+
+                  } currently available.`
+
+                : "Nothing is waiting for your attention right now."}
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+
+        {/* ----------------------------------------------------- */}
+
+        {/* RECENT ACTIVITY + ACCOUNT */}
+
+        {/* ----------------------------------------------------- */}
+
+        <section
+
+          style={{
+
+            display: "grid",
+
+            gridTemplateColumns:
+
+              "minmax(0, 1.35fr) minmax(300px, 0.95fr)",
+
+            gap: 18,
+
+            marginBottom: 18,
+
+          }}
+
+        >
+
+          <div
+
+            style={{
+
+              minWidth: 0,
+
+              padding: 22,
+
+              border: "1px solid #e5e9f0",
+
+              borderRadius: 18,
+
+              background: "#ffffff",
+
+              boxShadow:
+
+                "0 4px 14px rgba(15,23,42,0.04)",
+
+            }}
+
+          >
+
+            <SectionHeader
+
+              icon={CheckCircle2}
+
+              title="Recent Activity"
+
+              subtitle="Your latest activity in SKCE"
+
+            />
+
+
+
+            {dashboard.recentActivity.length === 0 ? (
+
+              <EmptyCard
+
+                title="No recent activity"
+
+                message="Your learning actions will appear here as you use the portal."
+
+              />
+
+            ) : (
+
+              <div
+
+                style={{
+
+                  display: "flex",
+
+                  flexDirection: "column",
+
+                  marginTop: 5,
+
+                }}
+
+              >
+
+                {dashboard.recentActivity
+
+                  .slice(0, 5)
+
+                  .map((activity, index) => (
+
+                    <div
+
+                      key={`activity-${index}`}
+
+                      style={{
+
+                        display: "flex",
+
+                        alignItems: "flex-start",
+
+                        gap: 11,
+
+                        padding: "13px 0",
+
+                        borderBottom:
+
+                          index <
+
+                          Math.min(
+
+                            dashboard.recentActivity.length,
+
+                            5
+
+                          ) -
+
+                            1
+
+                            ? "1px solid #eef1f5"
+
+                            : "none",
+
+                      }}
+
+                    >
+
+                      <div
+
+                        style={{
+
+                          width: 32,
+
+                          height: 32,
+
+                          display: "flex",
+
+                          alignItems: "center",
+
+                          justifyContent: "center",
+
+                          flex: "0 0 32px",
+
+                          borderRadius: 9,
+
+                          background: "#eaf8f0",
+
+                          color: "#18945a",
+
+                        }}
+
+                      >
+
+                        <CheckCircle2 size={16} />
+
+                      </div>
+
+
+
+                      <div
+
+                        style={{
+
+                          minWidth: 0,
+
+                        }}
+
+                      >
+
+                        <div
+
+                          style={{
+
+                            fontSize: 12.5,
+
+                            fontWeight: 700,
+
+                            color: "#263142",
+
+                            wordBreak: "break-word",
+
+                          }}
+
+                        >
+
+                          {safeText(activity)}
+
+                        </div>
+
+
+
+                        <div
+
+                          style={{
+
+                            marginTop: 3,
+
+                            fontSize: 10.5,
+
+                            color: "#98a0ad",
+
+                          }}
+
+                        >
+
+                          Recent student activity
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+              </div>
+
+            )}
+
+          </div>
+
+
+
+          <div
+
+            style={{
+
+              minWidth: 0,
+
+              padding: 22,
+
+              border: "1px solid #e5e9f0",
+
+              borderRadius: 18,
+
+              background: "#ffffff",
+
+              boxShadow:
+
+                "0 4px 14px rgba(15,23,42,0.04)",
+
+            }}
+
+          >
+
+            <SectionHeader
+
+              icon={GraduationCap}
+
+              title="My Account"
+
+              subtitle="A quick snapshot of your account"
+
+            />
+
+
+
+            <div
+
+              style={{
+
+                display: "flex",
+
+                alignItems: "center",
+
+                gap: 12,
+
+                marginTop: 15,
+
+                padding: 13,
+
+                borderRadius: 13,
+
+                background: "#f8fafc",
+
+                border: "1px solid #edf0f4",
+
+              }}
+
+            >
+
+              <div
+
+                style={{
+
+                  width: 42,
+
+                  height: 42,
+
+                  display: "flex",
+
+                  alignItems: "center",
+
+                  justifyContent: "center",
+
+                  flex: "0 0 42px",
+
+                  borderRadius: "50%",
+
+                  background: "#2f6bff",
+
+                  color: "#ffffff",
+
+                  fontSize: 12,
+
+                  fontWeight: 800,
+
+                }}
+
+              >
+
+                {initials}
+
+              </div>
+
+
+
+              <div
+
+                style={{
+
+                  minWidth: 0,
+
+                }}
+
+              >
+
+                <div
+
+                  style={{
+
+                    overflow: "hidden",
+
+                    textOverflow: "ellipsis",
+
+                    whiteSpace: "nowrap",
+
+                    fontSize: 13.5,
+
+                    fontWeight: 800,
+
+                    color: "#1f2937",
+
+                  }}
+
+                >
+
+                  {dashboard.student.name}
+
+                </div>
+
+
+
+                <div
+
+                  style={{
+
+                    overflow: "hidden",
+
+                    textOverflow: "ellipsis",
+
+                    whiteSpace: "nowrap",
+
+                    marginTop: 3,
+
+                    fontSize: 10.5,
+
+                    color: "#8d96a5",
+
+                  }}
+
+                >
+
+                  {dashboard.student.email}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            <div
+
+              style={{
+
+                display: "grid",
+
+                gridTemplateColumns:
+
+                  "repeat(2, minmax(0, 1fr))",
+
+                gap: 10,
+
+                marginTop: 11,
+
+              }}
+
+            >
+
+              <SmallAccountCard
+
+                label="Courses"
+
+                value={studentCourses.length}
+
+              />
+
+
+
+              <SmallAccountCard
+
+                label="Completed"
+
+                value={completedCourseCount}
+
+              />
+
+
+
+              <SmallAccountCard
+
+                label="Lessons"
+
+                value={`${completedLessons}/${totalLessons}`}
+
+              />
+
+
+
+              <SmallAccountCard
+
+                label="Paid"
+
+                value={formatCurrency(
+
+                  dashboard.stats.totalPaid
+
+                )}
+
+              />
+
+            </div>
+
+
+
+            {recentPayment ? (
+
+              <div
+
+                style={{
+
+                  display: "flex",
+
+                  alignItems: "center",
+
+                  justifyContent: "space-between",
+
+                  gap: 10,
+
+                  marginTop: 12,
+
+                  padding: "10px 11px",
+
+                  borderRadius: 10,
+
+                  border: "1px solid #edf0f4",
+
+                  background: "#ffffff",
+
+                }}
+
+              >
+
+                <div
+
+                  style={{
+
+                    display: "flex",
+
+                    alignItems: "center",
+
+                    gap: 8,
+
+                    minWidth: 0,
+
+                  }}
+
+                >
+
+                  <CreditCard
+
+                    size={15}
+
+                    color="#7a56d6"
+
+                  />
+
+
+
+                  <span
+
+                    style={{
+
+                      fontSize: 10.5,
+
+                      color: "#8993a4",
+
+                    }}
+
+                  >
+
+                    Latest payment
+
+                  </span>
+
+                </div>
+
+
+
+                <strong
+
+                  style={{
+
+                    flex: "0 0 auto",
+
+                    fontSize: 11.5,
+
+                    color: "#374151",
+
+                  }}
+
+                >
+
+                  {formatCurrency(
+
+                    recentPayment.amount,
+
+                    recentPayment.currency
+
+                  )}
+
+                </strong>
+
+              </div>
+
+            ) : null}
+
+
+
+            <button
+
+              type="button"
+
+              onClick={() =>
+
+                router.push(
+
+                  "/dashboard/student/profile"
+
+                )
+
+              }
+
+              style={{
+
+                width: "100%",
+
+                display: "flex",
+
+                alignItems: "center",
+
+                justifyContent: "center",
+
+                gap: 6,
+
+                marginTop: 12,
+
+                padding: "9px 12px",
+
+                border:
+
+                  "1px solid #dfe5ee",
+
+                borderRadius: 9,
+
+                background: "#ffffff",
+
+                color: "#3b6bf0",
+
+                fontSize: 11,
+
+                fontWeight: 800,
+
+                cursor: "pointer",
+
+              }}
+
+            >
+
+              View Profile
+
+              <ArrowRight size={14} />
+
+            </button>
+
+          </div>
+
+        </section>
+
+
+
+        {/* ----------------------------------------------------- */}
+
+        {/* FOOTER NAVIGATION */}
+
+        {/* ----------------------------------------------------- */}
+
+        <section
+
+          style={{
+
+            display: "grid",
+
+            gridTemplateColumns:
+
+              "repeat(4, minmax(0, 1fr))",
+
+            gap: 10,
+
+          }}
+
+        >
+
+          <FooterAction
+
+            icon={BookOpen}
+
+            title="My Courses"
+
+            description="Open your enrolled courses"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/my-courses"
+
+              )
+
+            }
+
+          />
+
+
+
+          <FooterAction
+
+            icon={ClipboardList}
+
+            title="Assignments & Quizzes"
+
+            description="Open your learning work"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/assignments"
+
+              )
+
+            }
+
+          />
+
+
+
+
+
+
+          <FooterAction
+
+            icon={Award}
+
+            title="Certificates"
+
+            description="View earned certificates"
+
+            onClick={() =>
+
+              router.push(
+
+                "/dashboard/student/certificates"
+
+              )
+
+            }
+
+          />
+
+        </section>
+
+      </main>
+
+
+
+      <style
+
+        dangerouslySetInnerHTML={{
+
+          __html: `
+
+            @keyframes studentDashboardSpin {
+
+              from { transform: rotate(0deg); }
+
+              to { transform: rotate(360deg); }
+
+            }
+
+
+
+            .skce-dashboard-hover {
+
+              transition:
+
+                transform 160ms ease,
+
+                box-shadow 160ms ease,
+
+                border-color 160ms ease;
+
+            }
+
+
+
+            .skce-dashboard-hover:hover {
+
+              transform: translateY(-1px);
+
+              box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+
+            }
+
+
+
+            @media (max-width: 1200px) {
+
+              .skce-dashboard-summary {
+
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+              }
+
+
+
+              .skce-dashboard-main {
+
+                grid-template-columns: minmax(0, 1fr) !important;
+
+              }
+
+            }
+
+
+
+            @media (max-width: 850px) {
+
+              .skce-dashboard-shell {
+
+                padding: 20px 16px 28px !important;
+
+              }
+
+
+
+              .skce-dashboard-bottom {
+
+                grid-template-columns: minmax(0, 1fr) !important;
+
+              }
+
+
+
+              .skce-dashboard-footer {
+
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+              }
+
+            }
+
+
+
+            @media (max-width: 600px) {
+
+              .skce-dashboard-summary {
+
+                grid-template-columns: minmax(0, 1fr) !important;
+
+              }
+
+
+
+              .skce-dashboard-hero {
+
+                flex-direction: column !important;
+
+              }
+
+
+
+              .skce-dashboard-footer {
+
+                grid-template-columns: minmax(0, 1fr) !important;
+
+              }
+
+            }
+
+          `,
+
+        }}
+
+      />
+
+    </>
+
+  );
+
 }
 
-/* =========================================================
-   STAT CARD
-========================================================= */
 
-function StatCard({
-  icon: Icon,
-  value,
-  label,
-  bg,
-  fg,
+
+function InfoPair({
+
+  label,
+
+  value,
+
 }: {
-  icon: React.ElementType;
-  value: string | number;
-  label: string;
-  bg: string;
-  fg: string;
+
+  label: string;
+
+  value: string;
+
 }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: "18px 20px",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        boxShadow:
-          "0 1px 2px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: bg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon
-          size={19}
-          color={fg}
-        />
-      </div>
 
-      <div
-        style={{
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#111827",
-          }}
-        >
-          {safeText(value)}
-        </div>
+  return (
 
-        <div
-          style={{
-            fontSize: 12.5,
-            color: "#6B7280",
-          }}
-        >
-          {label}
-        </div>
-      </div>
-    </div>
-  );
+    <div
+
+      style={{
+
+        display: "flex",
+
+        flexDirection: "column",
+
+        gap: 3,
+
+      }}
+
+    >
+
+      <span
+
+        style={{
+
+          fontSize: 10.5,
+
+          color: "#b7c7df",
+
+        }}
+
+      >
+
+        {label}
+
+      </span>
+
+
+
+      <strong
+
+        style={{
+
+          fontSize: 12.5,
+
+          color: "#ffffff",
+
+        }}
+
+      >
+
+        {value}
+
+      </strong>
+
+    </div>
+
+  );
+
 }
 
-/* =========================================================
-   EMPTY CARD
-========================================================= */
+
+
+function SummaryTile({
+
+  icon: Icon,
+
+  label,
+
+  value,
+
+  helper,
+
+  tone,
+
+  onClick,
+
+}: {
+
+  icon: ElementType;
+
+  label: string;
+
+  value: string | number;
+
+  helper: string;
+
+  tone: "rose" | "blue" | "green" | "gold";
+
+  onClick: () => void;
+
+}) {
+
+  const toneMap: Record<
+
+    string,
+
+    { bg: string; fg: string }
+
+  > = {
+
+    rose: {
+
+      bg: "#f8e8ef",
+
+      fg: "#a01441",
+
+    },
+
+    blue: {
+
+      bg: "#eaf0ff",
+
+      fg: "#316cf2",
+
+    },
+
+    green: {
+
+      bg: "#eaf8f0",
+
+      fg: "#18945a",
+
+    },
+
+    gold: {
+
+      bg: "#fff4dc",
+
+      fg: "#bb7a12",
+
+    },
+
+  };
+
+
+
+  const colors = toneMap[tone];
+
+
+
+  return (
+
+    <button
+
+      type="button"
+
+      onClick={onClick}
+
+      className="skce-dashboard-hover"
+
+      style={{
+
+        display: "flex",
+
+        alignItems: "center",
+
+        gap: 12,
+
+        width: "100%",
+
+        minWidth: 0,
+
+        padding: 16,
+
+        border:
+
+          "1px solid #e4e8ef",
+
+        borderRadius: 15,
+
+        background: "#ffffff",
+
+        cursor: "pointer",
+
+        textAlign: "left",
+
+      }}
+
+    >
+
+      <div
+
+        style={{
+
+          width: 42,
+
+          height: 42,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "center",
+
+          flex: "0 0 42px",
+
+          borderRadius: 12,
+
+          background: colors.bg,
+
+          color: colors.fg,
+
+        }}
+
+      >
+
+        <Icon size={19} />
+
+      </div>
+
+
+
+      <div
+
+        style={{
+
+          minWidth: 0,
+
+          flex: 1,
+
+        }}
+
+      >
+
+        <div
+
+          style={{
+
+            fontSize: 11,
+
+            color: "#8b95a6",
+
+          }}
+
+        >
+
+          {label}
+
+        </div>
+
+
+
+        <div
+
+          style={{
+
+            marginTop: 3,
+
+            fontSize: 19,
+
+            fontWeight: 800,
+
+            color: "#111827",
+
+          }}
+
+        >
+
+          {safeText(value)}
+
+        </div>
+
+
+
+        <div
+
+          style={{
+
+            overflow: "hidden",
+
+            textOverflow: "ellipsis",
+
+            whiteSpace: "nowrap",
+
+            marginTop: 2,
+
+            fontSize: 10,
+
+            color: "#9aa2af",
+
+          }}
+
+        >
+
+          {helper}
+
+        </div>
+
+      </div>
+
+
+
+      <ChevronRight
+
+        size={16}
+
+        color="#a4adba"
+
+        style={{
+
+          flex: "0 0 auto",
+
+        }}
+
+      />
+
+    </button>
+
+  );
+
+}
+
+
+
+function SectionHeader({
+
+  icon: Icon,
+
+  title,
+
+  subtitle,
+
+}: {
+
+  icon: ElementType;
+
+  title: string;
+
+  subtitle: string;
+
+}) {
+
+  return (
+
+    <div
+
+      style={{
+
+        display: "flex",
+
+        alignItems: "center",
+
+        gap: 10,
+
+      }}
+
+    >
+
+      <div
+
+        style={{
+
+          width: 38,
+
+          height: 38,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "center",
+
+          flex: "0 0 38px",
+
+          borderRadius: 10,
+
+          background: "#f8e8ef",
+
+          color: "#a01441",
+
+        }}
+
+      >
+
+        <Icon size={18} />
+
+      </div>
+
+
+
+      <div
+
+        style={{
+
+          minWidth: 0,
+
+        }}
+
+      >
+
+        <h2
+
+          style={{
+
+            margin: 0,
+
+            fontSize: 16,
+
+            lineHeight: 1.3,
+
+            fontWeight: 800,
+
+            color: "#111827",
+
+          }}
+
+        >
+
+          {title}
+
+        </h2>
+
+
+
+        <p
+
+          style={{
+
+            margin: "3px 0 0",
+
+            fontSize: 11,
+
+            color: "#919aaa",
+
+          }}
+
+        >
+
+          {subtitle}
+
+        </p>
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+
+
+function FocusRow({
+
+  icon: Icon,
+
+  label,
+
+  value,
+
+  tone,
+
+  onClick,
+
+}: {
+
+  icon: ElementType;
+
+  label: string;
+
+  value: string;
+
+  tone: "rose" | "blue" | "green" | "purple" | "gray";
+
+  onClick: () => void;
+
+}) {
+
+  const tones: Record<
+
+    string,
+
+    { bg: string; fg: string }
+
+  > = {
+
+    rose: {
+
+      bg: "#f8e8ef",
+
+      fg: "#a01441",
+
+    },
+
+    blue: {
+
+      bg: "#eaf0ff",
+
+      fg: "#316cf2",
+
+    },
+
+    green: {
+
+      bg: "#eaf8f0",
+
+      fg: "#18945a",
+
+    },
+
+    purple: {
+
+      bg: "#f1eaff",
+
+      fg: "#7a56d6",
+
+    },
+
+    gray: {
+
+      bg: "#f2f4f7",
+
+      fg: "#8c96a6",
+
+    },
+
+  };
+
+
+
+  const colors = tones[tone];
+
+
+
+  return (
+
+    <button
+
+      type="button"
+
+      onClick={onClick}
+
+      className="skce-dashboard-hover"
+
+      style={{
+
+        display: "flex",
+
+        alignItems: "center",
+
+        gap: 10,
+
+        width: "100%",
+
+        padding: "10px 11px",
+
+        border:
+
+          "1px solid #edf0f4",
+
+        borderRadius: 11,
+
+        background: "#ffffff",
+
+        cursor: "pointer",
+
+        textAlign: "left",
+
+      }}
+
+    >
+
+      <div
+
+        style={{
+
+          width: 34,
+
+          height: 34,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "center",
+
+          flex: "0 0 34px",
+
+          borderRadius: 9,
+
+          background: colors.bg,
+
+          color: colors.fg,
+
+        }}
+
+      >
+
+        <Icon size={16} />
+
+      </div>
+
+
+
+      <div
+
+        style={{
+
+          minWidth: 0,
+
+          flex: 1,
+
+        }}
+
+      >
+
+        <div
+
+          style={{
+
+            fontSize: 11.5,
+
+            fontWeight: 750,
+
+            color: "#354052",
+
+          }}
+
+        >
+
+          {label}
+
+        </div>
+
+
+
+        <div
+
+          style={{
+
+            overflow: "hidden",
+
+            textOverflow: "ellipsis",
+
+            whiteSpace: "nowrap",
+
+            marginTop: 2,
+
+            fontSize: 10,
+
+            color: "#969fad",
+
+          }}
+
+        >
+
+          {value}
+
+        </div>
+
+      </div>
+
+
+
+      <ChevronRight
+
+        size={15}
+
+        color="#adb5c2"
+
+      />
+
+    </button>
+
+  );
+
+}
+
+
+
+function SmallAccountCard({
+
+  label,
+
+  value,
+
+}: {
+
+  label: string;
+
+  value: string | number;
+
+}) {
+
+  return (
+
+    <div
+
+      style={{
+
+        padding: "10px 11px",
+
+        border:
+
+          "1px solid #edf0f4",
+
+        borderRadius: 10,
+
+        background: "#fafbfc",
+
+      }}
+
+    >
+
+      <div
+
+        style={{
+
+          fontSize: 10,
+
+          color: "#969fad",
+
+        }}
+
+      >
+
+        {label}
+
+      </div>
+
+
+
+      <div
+
+        style={{
+
+          marginTop: 3,
+
+          fontSize: 14,
+
+          fontWeight: 800,
+
+          color: "#283244",
+
+        }}
+
+      >
+
+        {safeText(value)}
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+
+
+function FooterAction({
+
+  icon: Icon,
+
+  title,
+
+  description,
+
+  onClick,
+
+}: {
+
+  icon: ElementType;
+
+  title: string;
+
+  description: string;
+
+  onClick: () => void;
+
+}) {
+
+  return (
+
+    <button
+
+      type="button"
+
+      onClick={onClick}
+
+      className="skce-dashboard-hover"
+
+      style={{
+
+        display: "flex",
+
+        alignItems: "center",
+
+        gap: 10,
+
+        width: "100%",
+
+        minWidth: 0,
+
+        padding: "12px 13px",
+
+        border:
+
+          "1px solid #e4e8ef",
+
+        borderRadius: 13,
+
+        background: "#ffffff",
+
+        cursor: "pointer",
+
+        textAlign: "left",
+
+      }}
+
+    >
+
+      <div
+
+        style={{
+
+          width: 34,
+
+          height: 34,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          justifyContent: "center",
+
+          flex: "0 0 34px",
+
+          borderRadius: 9,
+
+          background: "#eef2ff",
+
+          color: "#396bf1",
+
+        }}
+
+      >
+
+        <Icon size={16} />
+
+      </div>
+
+
+
+      <div
+
+        style={{
+
+          minWidth: 0,
+
+          flex: 1,
+
+        }}
+
+      >
+
+        <div
+
+          style={{
+
+            overflow: "hidden",
+
+            textOverflow: "ellipsis",
+
+            whiteSpace: "nowrap",
+
+            fontSize: 11.5,
+
+            fontWeight: 800,
+
+            color: "#313b4b",
+
+          }}
+
+        >
+
+          {title}
+
+        </div>
+
+
+
+        <div
+
+          style={{
+
+            overflow: "hidden",
+
+            textOverflow: "ellipsis",
+
+            whiteSpace: "nowrap",
+
+            marginTop: 2,
+
+            fontSize: 9.5,
+
+            color: "#9aa2af",
+
+          }}
+
+        >
+
+          {description}
+
+        </div>
+
+      </div>
+
+
+
+      <ArrowRight
+
+        size={14}
+
+        color="#98a2b2"
+
+      />
+
+    </button>
+
+  );
+
+}
+
+
 
 function EmptyCard({
-  icon: Icon,
-  title,
-  message,
+
+  title,
+
+  message,
+
 }: {
-  icon: React.ElementType;
-  title: string;
-  message: string;
+
+  title: string;
+
+  message: string;
+
 }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: "22px 20px",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        boxShadow:
-          "0 1px 2px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: "#F8FAFC",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon
-          size={18}
-          color="#94A3B8"
-        />
-      </div>
 
-      <div>
-        <div
-          style={{
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: "#374151",
-          }}
-        >
-          {title}
-        </div>
+  return (
 
-        <div
-          style={{
-            fontSize: 12,
-            color: "#9CA3AF",
-            marginTop: 3,
-            lineHeight: 1.5,
-          }}
-        >
-          {message}
-        </div>
-      </div>
-    </div>
-  );
+    <div
+
+      style={{
+
+        minHeight: 120,
+
+        display: "flex",
+
+        flexDirection: "column",
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        padding: 20,
+
+        marginTop: 12,
+
+        border:
+
+          "1px dashed #dfe4eb",
+
+        borderRadius: 13,
+
+        background: "#fbfcfd",
+
+        textAlign: "center",
+
+      }}
+
+    >
+
+      <BookOpen
+
+        size={20}
+
+        color="#a1a9b6"
+
+      />
+
+
+
+      <strong
+
+        style={{
+
+          marginTop: 8,
+
+          fontSize: 12.5,
+
+          color: "#4a5565",
+
+        }}
+
+      >
+
+        {title}
+
+      </strong>
+
+
+
+      <span
+
+        style={{
+
+          maxWidth: 380,
+
+          marginTop: 4,
+
+          fontSize: 10.5,
+
+          lineHeight: 1.5,
+
+          color: "#9aa2af",
+
+        }}
+
+      >
+
+        {message}
+
+      </span>
+
+    </div>
+
+  );
+
 }
 
-/* =========================================================
-   PROFILE ROW
-========================================================= */
 
-function ProfileRow({
-  label,
-  value,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  last?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        padding: "10px 0",
-        borderBottom: last
-          ? "none"
-          : "1px solid #F1F2F5",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11.5,
-          color: "#9CA3AF",
-          marginBottom: 3,
-        }}
-      >
-        {label}
-      </div>
 
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#374151",
-          wordBreak:
-            "break-word",
-        }}
-      >
-        {safeText(value)}
-      </div>
-    </div>
-  );
+function BellFallback() {
+
+  return (
+
+    <span
+
+      style={{
+
+        fontSize: 20,
+
+        fontWeight: 800,
+
+      }}
+
+    >
+
+      !
+
+    </span>
+
+  );
+
 }
+
+
+
+const primaryButtonStyle: CSSProperties = {
+
+  display: "inline-flex",
+
+  alignItems: "center",
+
+  justifyContent: "center",
+
+  gap: 7,
+
+  border: 0,
+
+  borderRadius: 9,
+
+  padding: "9px 13px",
+
+  background: "#2f6bff",
+
+  color: "#ffffff",
+
+  fontSize: 11,
+
+  fontWeight: 800,
+
+  cursor: "pointer",
+
+};
+
+
+
+const ghostButtonStyle: CSSProperties = {
+
+  display: "inline-flex",
+
+  alignItems: "center",
+
+  justifyContent: "center",
+
+  gap: 7,
+
+  border:
+
+    "1px solid rgba(255,255,255,0.25)",
+
+  borderRadius: 9,
+
+  padding: "9px 12px",
+
+  background:
+
+    "rgba(255,255,255,0.11)",
+
+  color: "#ffffff",
+
+  fontSize: 11,
+
+  fontWeight: 800,
+
+  cursor: "pointer",
+
+};

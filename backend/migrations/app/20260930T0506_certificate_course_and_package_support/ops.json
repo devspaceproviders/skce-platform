@@ -1,0 +1,291 @@
+[
+  {
+    "id": "dropConstraint.certificate.certificate_enrollmentId_key",
+    "label": "Drop constraint \"certificate_enrollmentId_key\" on \"certificate\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "certificate_enrollmentId_key",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"certificate_enrollmentId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"certificate_enrollmentId_key\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" DROP CONSTRAINT \"certificate_enrollmentId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"certificate_enrollmentId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_enrollmentId_key",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.certificate.certificateType",
+    "label": "Add column \"certificateType\" to \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "certificateType",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"certificateType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "certificateType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"certificateType\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" ADD COLUMN \"certificateType\" text DEFAULT 'COURSE' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"certificateType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "certificateType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.certificate.packageId",
+    "label": "Add column \"packageId\" to \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "packageId",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"packageId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "packageId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"packageId\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" ADD COLUMN \"packageId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"packageId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "packageId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.certificate.courseId",
+    "label": "Drop NOT NULL on \"certificate\".\"courseId\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "courseId",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"courseId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "courseId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"courseId\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\" ALTER COLUMN \"courseId\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"courseId\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "certificate",
+          "courseId",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.certificate.certificate_certificateType_idx_175a7841",
+    "label": "Create index \"certificate_certificateType_idx_175a7841\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "certificate_certificateType_idx_175a7841",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"certificate_certificateType_idx_175a7841\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_certificateType_idx_175a7841\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"certificate_certificateType_idx_175a7841\"",
+        "sql": "CREATE INDEX \"certificate_certificateType_idx_175a7841\" ON \"public\".\"certificate\" (\"certificateType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"certificate_certificateType_idx_175a7841\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_certificateType_idx_175a7841\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.certificate.certificate_packageId_idx_51f866f4",
+    "label": "Create index \"certificate_packageId_idx_51f866f4\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "certificate_packageId_idx_51f866f4",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"certificate_packageId_idx_51f866f4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_packageId_idx_51f866f4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"certificate_packageId_idx_51f866f4\"",
+        "sql": "CREATE INDEX \"certificate_packageId_idx_51f866f4\" ON \"public\".\"certificate\" (\"packageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"certificate_packageId_idx_51f866f4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificate_packageId_idx_51f866f4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.certificate.certificate_packageId_fkey",
+    "label": "Add foreign key \"certificate_packageId_fkey\" on \"certificate\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "certificate_packageId_fkey",
+        "table": "certificate"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"certificate_packageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_packageId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"certificate_packageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"certificate\"\nADD CONSTRAINT \"certificate_packageId_fkey\"\nFOREIGN KEY (\"packageId\")\nREFERENCES \"public\".\"coursePackage\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"certificate_packageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "certificate_packageId_fkey",
+          "public",
+          "\"public\".\"certificate\""
+        ]
+      }
+    ]
+  }
+]

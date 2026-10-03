@@ -1,0 +1,320 @@
+[
+  {
+    "id": "table.trainerActivity",
+    "label": "Create table \"trainerActivity\"",
+    "summary": "Creates table \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"trainerActivity\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"trainerActivity\"",
+        "sql": "CREATE TABLE \"public\".\"trainerActivity\" (\n  \"action\" text NOT NULL,\n  \"actorUserId\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"entityId\" int4,\n  \"entityType\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"metadata\" text,\n  \"trainerId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"trainerActivity\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerActivity.trainerActivity_action_idx_cd0d2116",
+    "label": "Create index \"trainerActivity_action_idx_cd0d2116\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerActivity_action_idx_cd0d2116",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerActivity_action_idx_cd0d2116\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_action_idx_cd0d2116\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerActivity_action_idx_cd0d2116\"",
+        "sql": "CREATE INDEX \"trainerActivity_action_idx_cd0d2116\" ON \"public\".\"trainerActivity\" (\"action\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerActivity_action_idx_cd0d2116\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_action_idx_cd0d2116\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerActivity.trainerActivity_actorUserId_idx_96dac96c",
+    "label": "Create index \"trainerActivity_actorUserId_idx_96dac96c\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerActivity_actorUserId_idx_96dac96c",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerActivity_actorUserId_idx_96dac96c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_actorUserId_idx_96dac96c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerActivity_actorUserId_idx_96dac96c\"",
+        "sql": "CREATE INDEX \"trainerActivity_actorUserId_idx_96dac96c\" ON \"public\".\"trainerActivity\" (\"actorUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerActivity_actorUserId_idx_96dac96c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_actorUserId_idx_96dac96c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerActivity.trainerActivity_entityType_entityId_idx_ea0fa809",
+    "label": "Create index \"trainerActivity_entityType_entityId_idx_ea0fa809\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerActivity_entityType_entityId_idx_ea0fa809",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerActivity_entityType_entityId_idx_ea0fa809\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_entityType_entityId_idx_ea0fa809\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerActivity_entityType_entityId_idx_ea0fa809\"",
+        "sql": "CREATE INDEX \"trainerActivity_entityType_entityId_idx_ea0fa809\" ON \"public\".\"trainerActivity\" (\"entityType\", \"entityId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerActivity_entityType_entityId_idx_ea0fa809\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_entityType_entityId_idx_ea0fa809\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerActivity.trainerActivity_trainerId_createdAt_idx_992fa8db",
+    "label": "Create index \"trainerActivity_trainerId_createdAt_idx_992fa8db\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerActivity_trainerId_createdAt_idx_992fa8db",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerActivity_trainerId_createdAt_idx_992fa8db\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_trainerId_createdAt_idx_992fa8db\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerActivity_trainerId_createdAt_idx_992fa8db\"",
+        "sql": "CREATE INDEX \"trainerActivity_trainerId_createdAt_idx_992fa8db\" ON \"public\".\"trainerActivity\" (\"trainerId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerActivity_trainerId_createdAt_idx_992fa8db\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_trainerId_createdAt_idx_992fa8db\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.trainerActivity.trainerActivity_trainerId_idx_3e70f981",
+    "label": "Create index \"trainerActivity_trainerId_idx_3e70f981\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "trainerActivity_trainerId_idx_3e70f981",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"trainerActivity_trainerId_idx_3e70f981\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_trainerId_idx_3e70f981\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"trainerActivity_trainerId_idx_3e70f981\"",
+        "sql": "CREATE INDEX \"trainerActivity_trainerId_idx_3e70f981\" ON \"public\".\"trainerActivity\" (\"trainerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"trainerActivity_trainerId_idx_3e70f981\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"trainerActivity_trainerId_idx_3e70f981\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.trainerActivity.trainerActivity_trainerId_fkey",
+    "label": "Add foreign key \"trainerActivity_trainerId_fkey\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "trainerActivity_trainerId_fkey",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"trainerActivity_trainerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerActivity_trainerId_fkey",
+          "public",
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"trainerActivity_trainerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"trainerActivity\"\nADD CONSTRAINT \"trainerActivity_trainerId_fkey\"\nFOREIGN KEY (\"trainerId\")\nREFERENCES \"public\".\"trainerProfile\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"trainerActivity_trainerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerActivity_trainerId_fkey",
+          "public",
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.trainerActivity.trainerActivity_actorUserId_fkey",
+    "label": "Add foreign key \"trainerActivity_actorUserId_fkey\" on \"trainerActivity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "trainerActivity_actorUserId_fkey",
+        "table": "trainerActivity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"trainerActivity_actorUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerActivity_actorUserId_fkey",
+          "public",
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"trainerActivity_actorUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"trainerActivity\"\nADD CONSTRAINT \"trainerActivity_actorUserId_fkey\"\nFOREIGN KEY (\"actorUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"trainerActivity_actorUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "trainerActivity_actorUserId_fkey",
+          "public",
+          "\"public\".\"trainerActivity\""
+        ]
+      }
+    ]
+  }
+]

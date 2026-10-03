@@ -22,7 +22,9 @@ export async function generateMetadata({
     title: pkg
       ? `${pkg.title} — SK Computer Education`
       : "Package — SK Computer Education",
-    description: pkg?.description || "SK Computer Education learning package",
+    description:
+      pkg?.description ||
+      "SK Computer Education learning package",
   };
 }
 
@@ -99,7 +101,7 @@ export default async function PackageDetailPage({
               <div className="grid gap-3 sm:grid-cols-2">
                 {courses.map((course) => (
                   <div
-                    key={course}
+                    key={course.id}
                     className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4"
                   >
                     <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100">
@@ -110,7 +112,7 @@ export default async function PackageDetailPage({
                     </div>
 
                     <span className="text-sm font-medium text-slate-700">
-                      {course}
+                      {course.title}
                     </span>
                   </div>
                 ))}

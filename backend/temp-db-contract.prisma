@@ -1,0 +1,587 @@
+// use prisma-8
+// Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
+
+model Course {
+  id                       Int                       @id(map: "course_pkey") @default(autoincrement())
+  createdAt                Timestamptz               @default(now())
+  description              String?
+  duration                 String?
+  isActive                 Boolean                   @default(true)
+  mode                     String                    @default("ONLINE")
+  modules                  Int?
+  slug                     String                    @unique(map: "course_slug_key")
+  title                    String
+  updatedAt                Timestamptz
+  price                    Int?
+  assessments              Assessment[]
+  batches                  Batch[]
+  certificates             Certificate[]
+  courseModules            CourseModule[]
+  enrollments              Enrollment[]
+  liveSessions             LiveSession[]
+  packageCourses           PackageCourse[]
+  registrationIntents      RegistrationIntent[]
+  trainerCoursePermissions TrainerCoursePermission[]
+
+  @@check(expression: "(mode = ANY (ARRAY['ONLINE'::text, 'OFFLINE'::text, 'HYBRID'::text]))", map: "course_mode_check_8ab134e1")
+  @@map("course")
+}
+
+model User {
+  id                        Int                        @id(map: "user_pkey") @default(autoincrement())
+  createdAt                 Timestamptz                @default(now())
+  email                     String                     @unique(map: "user_email_key")
+  isActive                  Boolean                    @default(true)
+  name                      String
+  passwordHash              String?
+  phone                     String?
+  role                      String                     @default("STUDENT")
+  updatedAt                 Timestamptz
+  profilePhotoUrl           String?
+  assessmentSubmissions     AssessmentSubmission[]
+  ceoProfile                CeoProfile?
+  certificates              Certificate[]
+  enrollments               Enrollment[]
+  liveSessionParticipations LiveSessionParticipation[]
+  payments                  Payment[]
+  studentProfile            StudentProfile?
+  trainerActivities         TrainerActivity[]
+  trainerProfile            TrainerProfile?
+  assessments               Assessment[]               @relation(name: "assessment_createdByUserId_fkey")
+  assessmentsAssessment     Assessment[]               @relation(name: "assessment_reviewedByUserId_fkey")
+  courseModules             CourseModule[]             @relation(name: "courseModule_createdByUserId_fkey")
+  courseModulesCourseModule CourseModule[]             @relation(name: "courseModule_reviewedByUserId_fkey")
+  lessons                   Lesson[]                   @relation(name: "lesson_createdByUserId_fkey")
+  lessonsLesson             Lesson[]                   @relation(name: "lesson_reviewedByUserId_fkey")
+  liveSessions              LiveSession[]              @relation(name: "liveSession_createdByUserId_fkey")
+  liveSessionsLiveSession   LiveSession[]              @relation(name: "liveSession_reviewedByUserId_fkey")
+
+  @@check(expression: "(role = ANY (ARRAY['ADMIN'::text, 'STUDENT'::text, 'TRAINER'::text]))", map: "user_role_check_660e0b26")
+  @@map("user")
+}
+
+model Assessment {
+  id                    Int                    @id(map: "assessment_pkey") @default(autoincrement())
+  courseId              Int
+  createdAt             Timestamptz            @default(now())
+  description           String?
+  dueAt                 Timestamptz?
+  durationMinutes       Int?
+  instructions          String?
+  isActive              Boolean                @default(true)
+  title                 String
+  totalMarks            Int                    @default(100)
+  _type                 String                 @map("type")
+  updatedAt             Timestamptz
+  approvalStatus        String                 @default("PUBLISHED")
+  createdByUserId       Int?
+  rejectionReason       String?
+  reviewedAt            Timestamptz?
+  reviewedByUserId      Int?
+  assessmentQuestions   AssessmentQuestion[]
+  assessmentSubmissions AssessmentSubmission[]
+  course                Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "assessment_courseId_fkey")
+  createdByUser         User?                  @relation(name: "assessment_createdByUserId_fkey", fields: [createdByUserId], references: [id], onDelete: SetNull, map: "assessment_createdByUserId_fkey")
+  reviewedByUser        User?                  @relation(name: "assessment_reviewedByUserId_fkey", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "assessment_reviewedByUserId_fkey")
+
+  @@index([approvalStatus], name: "assessment_approvalStatus_idx")
+  @@index([courseId], name: "assessment_courseId_idx")
+  @@index([courseId, isActive], name: "assessment_courseId_isActive_idx")
+  @@index([createdByUserId], name: "assessment_createdByUserId_idx")
+  @@index([dueAt], name: "assessment_dueAt_idx")
+  @@index([reviewedByUserId], name: "assessment_reviewedByUserId_idx")
+  @@index([_type], name: "assessment_type_idx")
+  @@check(expression: "(\"approvalStatus\" = ANY (ARRAY['DRAFT'::text, 'PENDING_REVIEW'::text, 'REJECTED'::text, 'PUBLISHED'::text, 'ARCHIVED'::text]))", map: "assessment_approvalStatus_check_5f777b7a")
+  @@check(expression: "(type = ANY (ARRAY['ASSIGNMENT'::text, 'QUIZ'::text]))", map: "assessment_type_check_65240a52")
+  @@map("assessment")
+}
+
+model AssessmentQuestion {
+  id            Int         @id(map: "assessmentQuestion_pkey") @default(autoincrement())
+  assessmentId  Int
+  correctAnswer String?
+  createdAt     Timestamptz @default(now())
+  marks         Int         @default(1)
+  optionA       String?
+  optionB       String?
+  optionC       String?
+  optionD       String?
+  question      String
+  sortOrder     Int         @default(0)
+  updatedAt     Timestamptz
+  assessment    Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade, map: "assessmentQuestion_assessmentId_fkey")
+
+  @@index([assessmentId], name: "assessmentQuestion_assessmentId_idx")
+  @@index([assessmentId, sortOrder], name: "assessmentQuestion_assessmentId_sortOrder_idx")
+  @@map("assessmentQuestion")
+}
+
+model AssessmentSubmission {
+  id                 Int          @id(map: "assessmentSubmission_pkey") @default(autoincrement())
+  answers            String?
+  assessmentId       Int
+  attemptNumber      Int          @default(1)
+  createdAt          Timestamptz  @default(now())
+  feedback           String?
+  gradedAt           Timestamptz?
+  score              Int?
+  startedAt          Timestamptz?
+  status             String       @default("IN_PROGRESS")
+  submissionComment  String?
+  submissionFileName String?
+  submissionFileUrl  String?
+  submittedAt        Timestamptz?
+  updatedAt          Timestamptz
+  userId             Int
+  assessment         Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade, map: "assessmentSubmission_assessmentId_fkey")
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "assessmentSubmission_userId_fkey")
+
+  @@unique([assessmentId, userId, attemptNumber], map: "assessmentSubmission_assessmentId_userId_attemptNumber_key")
+  @@index([assessmentId], name: "assessmentSubmission_assessmentId_idx")
+  @@index([assessmentId, userId], name: "assessmentSubmission_assessmentId_userId_idx")
+  @@index([status], name: "assessmentSubmission_status_idx")
+  @@index([userId], name: "assessmentSubmission_userId_idx")
+  @@check(expression: "(status = ANY (ARRAY['IN_PROGRESS'::text, 'SUBMITTED'::text, 'GRADED'::text]))", map: "assessmentSubmission_status_check_7aef1854")
+  @@map("assessmentSubmission")
+}
+
+model TrainerProfile {
+  id                       Int                       @id(map: "trainerProfile_pkey") @default(autoincrement())
+  bio                      String?
+  createdAt                Timestamptz               @default(now())
+  experience               Int?
+  qualification            String?
+  specialization           String?
+  updatedAt                Timestamptz
+  userId                   Int                       @unique(map: "trainerProfile_userId_key")
+  batches                  Batch[]
+  liveSessions             LiveSession[]
+  trainerActivities        TrainerActivity[]
+  trainerCoursePermissions TrainerCoursePermission[]
+  user                     User                      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "trainerProfile_userId_fkey")
+
+  @@map("trainerProfile")
+}
+
+model Batch {
+  id            Int             @id(map: "batch_pkey") @default(autoincrement())
+  courseId      Int
+  createdAt     Timestamptz     @default(now())
+  endDate       Timestamptz
+  maxStudents   Int             @default(30)
+  mode          String          @default("OFFLINE")
+  name          String
+  startDate     Timestamptz
+  status        String          @default("UPCOMING")
+  trainerId     Int?
+  updatedAt     Timestamptz
+  batchStudents BatchStudent[]
+  course        Course          @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "batch_courseId_fkey")
+  trainer       TrainerProfile? @relation(fields: [trainerId], references: [id], onDelete: SetNull, map: "batch_trainerId_fkey")
+
+  @@index([courseId], name: "batch_courseId_idx")
+  @@index([courseId, status], name: "batch_courseId_status_idx")
+  @@index([endDate], name: "batch_endDate_idx")
+  @@index([startDate], name: "batch_startDate_idx")
+  @@index([status], name: "batch_status_idx")
+  @@index([trainerId], name: "batch_trainerId_idx")
+  @@check(expression: "(mode = ANY (ARRAY['ONLINE'::text, 'OFFLINE'::text, 'HYBRID'::text]))", map: "batch_mode_check_8ab134e1")
+  @@check(expression: "(status = ANY (ARRAY['UPCOMING'::text, 'ACTIVE'::text, 'COMPLETED'::text, 'INACTIVE'::text]))", map: "batch_status_check_30cd2ac0")
+  @@map("batch")
+}
+
+model StudentProfile {
+  id                   Int            @id(map: "studentProfile_pkey") @default(autoincrement())
+  createdAt            Timestamptz    @default(now())
+  referralId           String?
+  state                String?
+  studentId            String         @unique(map: "studentProfile_studentId_key")
+  updatedAt            Timestamptz
+  userId               Int            @unique(map: "studentProfile_userId_key")
+  address              String?
+  city                 String?
+  dateOfBirth          String?
+  declarationAccepted  Boolean        @default(false)
+  deviceTypes          String?
+  gender               String?
+  guardianEmail        String?
+  guardianMobile       String?
+  guardianName         String?
+  guardianRelationship String?
+  guardianWhatsapp     String?
+  internetFacility     String?
+  organization         String?
+  pin                  String?
+  preferredClassApp    String?
+  qualification        String?
+  referralMobile       String?
+  referralName         String?
+  referralSource       String?
+  batchStudents        BatchStudent[]
+  enrollments          Enrollment[]
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade, map: "studentProfile_userId_fkey")
+
+  @@map("studentProfile")
+}
+
+model BatchStudent {
+  id          Int            @id(map: "batchStudent_pkey") @default(autoincrement())
+  assignedAt  Timestamptz    @default(now())
+  batchId     Int
+  completedAt Timestamptz?
+  studentId   Int
+  batch       Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade, map: "batchStudent_batchId_fkey")
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade, map: "batchStudent_studentId_fkey")
+
+  @@unique([batchId, studentId], map: "batchStudent_batchId_studentId_key")
+  @@index([batchId], name: "batchStudent_batchId_idx")
+  @@index([batchId, studentId], name: "batchStudent_batchId_studentId_idx")
+  @@index([studentId], name: "batchStudent_studentId_idx")
+  @@map("batchStudent")
+}
+
+model CeoProfile {
+  id            Int         @id(map: "ceoProfile_pkey") @default(autoincrement())
+  bioParagraph1 String
+  bioParagraph2 String
+  createdAt     Timestamptz @default(now())
+  designation   String      @default("Founder & CEO")
+  highlight1    String
+  highlight2    String
+  updatedAt     Timestamptz
+  userId        Int         @unique(map: "ceoProfile_userId_key")
+  displayName   String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "ceoProfile_userId_fkey")
+
+  @@map("ceoProfile")
+}
+
+model CoursePackage {
+  id                  Int                  @id(map: "coursePackage_pkey") @default(autoincrement())
+  createdAt           Timestamptz          @default(now())
+  description         String?
+  isActive            Boolean              @default(true)
+  price               Int
+  slug                String               @unique(map: "coursePackage_slug_key")
+  title               String
+  updatedAt           Timestamptz
+  certificates        Certificate[]
+  enrollments         Enrollment[]
+  packageCourses      PackageCourse[]
+  registrationIntents RegistrationIntent[]
+
+  @@map("coursePackage")
+}
+
+model Enrollment {
+  id           Int            @id(map: "enrollment_pkey") @default(autoincrement())
+  completedAt  Timestamptz?
+  courseId     Int?
+  createdAt    Timestamptz    @default(now())
+  enrolledAt   Timestamptz    @default(now())
+  packageId    Int?
+  status       String         @default("PENDING")
+  studentId    Int
+  updatedAt    Timestamptz
+  userId       Int
+  certificates Certificate[]
+  payments     Payment[]
+  course       Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "enrollment_courseId_fkey")
+  package      CoursePackage? @relation(fields: [packageId], references: [id], onDelete: Cascade, map: "enrollment_packageId_fkey")
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade, map: "enrollment_studentId_fkey")
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade, map: "enrollment_userId_fkey")
+
+  @@index([courseId], name: "enrollment_courseId_idx")
+  @@index([packageId], name: "enrollment_packageId_idx")
+  @@index([studentId], name: "enrollment_studentId_idx")
+  @@index([userId], name: "enrollment_userId_idx")
+  @@check(expression: "(status = ANY (ARRAY['ACTIVE'::text, 'COMPLETED'::text, 'CANCELLED'::text, 'PENDING'::text]))", map: "enrollment_status_check_b0c8bb64")
+  @@map("enrollment")
+}
+
+model Certificate {
+  id                Int            @id(map: "certificate_pkey") @default(autoincrement())
+  certificateNumber String         @unique(map: "certificate_certificateNumber_key")
+  certificateUrl    String?
+  courseId          Int?
+  createdAt         Timestamptz    @default(now())
+  enrollmentId      Int
+  issuedAt          Timestamptz    @default(now())
+  updatedAt         Timestamptz
+  userId            Int
+  certificateType   String         @default("COURSE")
+  packageId         Int?
+  course            Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "certificate_courseId_fkey")
+  enrollment        Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade, map: "certificate_enrollmentId_fkey")
+  package           CoursePackage? @relation(fields: [packageId], references: [id], onDelete: Cascade, map: "certificate_packageId_fkey")
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade, map: "certificate_userId_fkey")
+
+  @@index([certificateType], name: "certificate_certificateType_idx")
+  @@index([courseId], name: "certificate_courseId_idx")
+  @@index([enrollmentId], name: "certificate_enrollmentId_idx")
+  @@index([packageId], name: "certificate_packageId_idx")
+  @@index([userId], name: "certificate_userId_idx")
+  @@map("certificate")
+}
+
+model CourseModule {
+  id               Int          @id(map: "courseModule_pkey") @default(autoincrement())
+  courseId         Int
+  createdAt        Timestamptz  @default(now())
+  description      String?
+  isActive         Boolean      @default(true)
+  sortOrder        Int          @default(0)
+  title            String
+  updatedAt        Timestamptz
+  approvalStatus   String       @default("PUBLISHED")
+  createdByUserId  Int?
+  rejectionReason  String?
+  reviewedAt       Timestamptz?
+  reviewedByUserId Int?
+  lessons          Lesson[]
+  course           Course       @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "courseModule_courseId_fkey")
+  createdByUser    User?        @relation(name: "courseModule_createdByUserId_fkey", fields: [createdByUserId], references: [id], onDelete: SetNull, map: "courseModule_createdByUserId_fkey")
+  reviewedByUser   User?        @relation(name: "courseModule_reviewedByUserId_fkey", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "courseModule_reviewedByUserId_fkey")
+
+  @@index([approvalStatus], name: "courseModule_approvalStatus_idx")
+  @@index([courseId], name: "courseModule_courseId_idx")
+  @@index([courseId, sortOrder], name: "courseModule_courseId_sortOrder_idx")
+  @@index([createdByUserId], name: "courseModule_createdByUserId_idx")
+  @@index([reviewedByUserId], name: "courseModule_reviewedByUserId_idx")
+  @@check(expression: "(\"approvalStatus\" = ANY (ARRAY['DRAFT'::text, 'PENDING_REVIEW'::text, 'REJECTED'::text, 'PUBLISHED'::text, 'ARCHIVED'::text]))", map: "courseModule_approvalStatus_check_5f777b7a")
+  @@map("courseModule")
+}
+
+model Lesson {
+  id               Int              @id(map: "lesson_pkey") @default(autoincrement())
+  content          String?
+  createdAt        Timestamptz      @default(now())
+  description      String?
+  documentUrl      String?
+  isActive         Boolean          @default(true)
+  moduleId         Int
+  sortOrder        Int              @default(0)
+  title            String
+  updatedAt        Timestamptz
+  videoUrl         String?
+  approvalStatus   String           @default("PUBLISHED")
+  createdByUserId  Int?
+  rejectionReason  String?
+  reviewedAt       Timestamptz?
+  reviewedByUserId Int?
+  lessonProgresses LessonProgress[]
+  createdByUser    User?            @relation(name: "lesson_createdByUserId_fkey", fields: [createdByUserId], references: [id], onDelete: SetNull, map: "lesson_createdByUserId_fkey")
+  module           CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade, map: "lesson_moduleId_fkey")
+  reviewedByUser   User?            @relation(name: "lesson_reviewedByUserId_fkey", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "lesson_reviewedByUserId_fkey")
+
+  @@index([approvalStatus], name: "lesson_approvalStatus_idx")
+  @@index([createdByUserId], name: "lesson_createdByUserId_idx")
+  @@index([moduleId], name: "lesson_moduleId_idx")
+  @@index([moduleId, sortOrder], name: "lesson_moduleId_sortOrder_idx")
+  @@index([reviewedByUserId], name: "lesson_reviewedByUserId_idx")
+  @@check(expression: "(\"approvalStatus\" = ANY (ARRAY['DRAFT'::text, 'PENDING_REVIEW'::text, 'REJECTED'::text, 'PUBLISHED'::text, 'ARCHIVED'::text]))", map: "lesson_approvalStatus_check_5f777b7a")
+  @@map("lesson")
+}
+
+model LessonProgress {
+  id          Int          @id(map: "lessonProgress_pkey") @default(autoincrement())
+  completedAt Timestamptz?
+  createdAt   Timestamptz  @default(now())
+  lessonId    Int
+  startedAt   Timestamptz?
+  status      String       @default("NOT_STARTED")
+  updatedAt   Timestamptz
+  userId      Int
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade, map: "lessonProgress_lessonId_fkey")
+
+  @@unique([userId, lessonId], map: "lessonProgress_userId_lessonId_key")
+  @@index([lessonId], name: "lessonProgress_lessonId_idx")
+  @@index([userId], name: "lessonProgress_userId_idx")
+  @@index([userId, status], name: "lessonProgress_userId_status_idx")
+  @@map("lessonProgress")
+}
+
+model LiveSession {
+  id                        Int                        @id(map: "liveSession_pkey") @default(autoincrement())
+  courseId                  Int
+  createdAt                 Timestamptz                @default(now())
+  description               String?
+  endAt                     Timestamptz
+  isPublished               Boolean                    @default(false)
+  meetingUrl                String?
+  recordingUrl              String?
+  startAt                   Timestamptz
+  status                    String                     @default("SCHEDULED")
+  title                     String
+  trainerId                 Int
+  updatedAt                 Timestamptz
+  approvalStatus            String                     @default("PUBLISHED")
+  createdByUserId           Int?
+  rejectionReason           String?
+  reviewedAt                Timestamptz?
+  reviewedByUserId          Int?
+  liveSessionParticipations LiveSessionParticipation[]
+  course                    Course                     @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "liveSession_courseId_fkey")
+  createdByUser             User?                      @relation(name: "liveSession_createdByUserId_fkey", fields: [createdByUserId], references: [id], onDelete: SetNull, map: "liveSession_createdByUserId_fkey")
+  reviewedByUser            User?                      @relation(name: "liveSession_reviewedByUserId_fkey", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "liveSession_reviewedByUserId_fkey")
+  trainer                   TrainerProfile             @relation(fields: [trainerId], references: [id], onDelete: Cascade, map: "liveSession_trainerId_fkey")
+
+  @@index([approvalStatus], name: "liveSession_approvalStatus_idx")
+  @@index([courseId], name: "liveSession_courseId_idx")
+  @@index([courseId, startAt], name: "liveSession_courseId_startAt_idx")
+  @@index([createdByUserId], name: "liveSession_createdByUserId_idx")
+  @@index([reviewedByUserId], name: "liveSession_reviewedByUserId_idx")
+  @@index([startAt], name: "liveSession_startAt_idx")
+  @@index([status], name: "liveSession_status_idx")
+  @@index([trainerId], name: "liveSession_trainerId_idx")
+  @@check(expression: "(\"approvalStatus\" = ANY (ARRAY['DRAFT'::text, 'PENDING_REVIEW'::text, 'REJECTED'::text, 'PUBLISHED'::text, 'ARCHIVED'::text]))", map: "liveSession_approvalStatus_check_5f777b7a")
+  @@check(expression: "(status = ANY (ARRAY['SCHEDULED'::text, 'LIVE'::text, 'COMPLETED'::text, 'CANCELLED'::text]))", map: "liveSession_status_check_a50348ac")
+  @@map("liveSession")
+}
+
+model LiveSessionParticipation {
+  id           Int          @id(map: "liveSessionParticipation_pkey") @default(autoincrement())
+  createdAt    Timestamptz  @default(now())
+  joinedAt     Timestamptz?
+  leftAt       Timestamptz?
+  participated Boolean      @default(false)
+  sessionId    Int
+  updatedAt    Timestamptz
+  userId       Int
+  session      LiveSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade, map: "liveSessionParticipation_sessionId_fkey")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "liveSessionParticipation_userId_fkey")
+
+  @@unique([sessionId, userId], map: "liveSessionParticipation_sessionId_userId_key")
+  @@index([sessionId], name: "liveSessionParticipation_sessionId_idx")
+  @@index([sessionId, participated], name: "liveSessionParticipation_sessionId_participated_idx")
+  @@index([userId], name: "liveSessionParticipation_userId_idx")
+  @@map("liveSessionParticipation")
+}
+
+model PackageCourse {
+  id        Int           @id(map: "packageCourse_pkey") @default(autoincrement())
+  courseId  Int
+  packageId Int
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "packageCourse_courseId_fkey")
+  package   CoursePackage @relation(fields: [packageId], references: [id], onDelete: Cascade, map: "packageCourse_packageId_fkey")
+
+  @@unique([packageId, courseId], map: "packageCourse_packageId_courseId_key")
+  @@index([courseId], name: "packageCourse_courseId_idx")
+  @@index([packageId], name: "packageCourse_packageId_idx")
+  @@map("packageCourse")
+}
+
+model RegistrationIntent {
+  id                   Int           @id(map: "registrationIntent_pkey") @default(autoincrement())
+  courseId             Int?
+  createdAt            Timestamptz   @default(now())
+  email                String
+  name                 String
+  packageId            Int
+  passwordHash         String
+  phone                String
+  razorpayOrderId      String?
+  referralId           String?
+  state                String?
+  status               String        @default("CREATED")
+  updatedAt            Timestamptz
+  address              String?
+  city                 String?
+  dateOfBirth          String?
+  declarationAccepted  Boolean       @default(false)
+  deviceTypes          String?
+  gender               String?
+  guardianEmail        String?
+  guardianMobile       String?
+  guardianName         String?
+  guardianRelationship String?
+  guardianWhatsapp     String?
+  internetFacility     String?
+  organization         String?
+  pin                  String?
+  preferredClassApp    String?
+  qualification        String?
+  referralMobile       String?
+  referralName         String?
+  referralSource       String?
+  payment              Payment?
+  course               Course?       @relation(fields: [courseId], references: [id], onDelete: SetNull, map: "registrationIntent_courseId_fkey")
+  package              CoursePackage @relation(fields: [packageId], references: [id], onDelete: Cascade, map: "registrationIntent_packageId_fkey")
+
+  @@index([courseId], name: "registrationIntent_courseId_idx")
+  @@index([email], name: "registrationIntent_email_idx")
+  @@index([packageId], name: "registrationIntent_packageId_idx")
+  @@index([razorpayOrderId], name: "registrationIntent_razorpayOrderId_idx")
+  @@index([status], name: "registrationIntent_status_idx")
+  @@check(expression: "(status = ANY (ARRAY['CREATED'::text, 'PAID'::text, 'EXPIRED'::text, 'FAILED'::text]))", map: "registrationIntent_status_check_0feaa862")
+  @@map("registrationIntent")
+}
+
+model Payment {
+  id                   Int                 @id(map: "payment_pkey") @default(autoincrement())
+  amount               Int
+  createdAt            Timestamptz         @default(now())
+  currency             String              @default("INR")
+  enrollmentId         Int?
+  method               String              @default("RAZORPAY")
+  paidAt               Timestamptz?
+  providerOrderId      String?
+  providerPaymentId    String?
+  providerSignature    String?
+  status               String              @default("CREATED")
+  updatedAt            Timestamptz
+  userId               Int?
+  registrationIntentId Int?                @unique(map: "payment_registrationIntentId_key")
+  enrollment           Enrollment?         @relation(fields: [enrollmentId], references: [id], onDelete: SetNull, map: "payment_enrollmentId_fkey")
+  registrationIntent   RegistrationIntent? @relation(fields: [registrationIntentId], references: [id], onDelete: SetNull, map: "payment_registrationIntentId_fkey")
+  user                 User?               @relation(fields: [userId], references: [id], onDelete: Cascade, map: "payment_userId_fkey")
+
+  @@index([enrollmentId], name: "payment_enrollmentId_idx")
+  @@index([providerOrderId], name: "payment_providerOrderId_idx")
+  @@index([providerPaymentId], name: "payment_providerPaymentId_idx")
+  @@index([userId], name: "payment_userId_idx")
+  @@check(expression: "(method = ANY (ARRAY['RAZORPAY'::text, 'STRIPE'::text, 'UPI'::text, 'OTHER'::text]))", map: "payment_method_check_ed9d8d21")
+  @@check(expression: "(status = ANY (ARRAY['CREATED'::text, 'PENDING'::text, 'SUCCESS'::text, 'FAILED'::text, 'REFUNDED'::text]))", map: "payment_status_check_c5a939c7")
+  @@map("payment")
+}
+
+model TrainerActivity {
+  id          Int            @id(map: "trainerActivity_pkey") @default(autoincrement())
+  action      String
+  actorUserId Int
+  createdAt   Timestamptz    @default(now())
+  description String
+  entityId    Int?
+  entityType  String
+  metadata    String?
+  trainerId   Int
+  actorUser   User           @relation(fields: [actorUserId], references: [id], onDelete: Cascade, map: "trainerActivity_actorUserId_fkey")
+  trainer     TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade, map: "trainerActivity_trainerId_fkey")
+
+  @@index([action], name: "trainerActivity_action_idx")
+  @@index([actorUserId], name: "trainerActivity_actorUserId_idx")
+  @@index([entityType, entityId], name: "trainerActivity_entityType_entityId_idx")
+  @@index([trainerId, createdAt], name: "trainerActivity_trainerId_createdAt_idx")
+  @@index([trainerId], name: "trainerActivity_trainerId_idx")
+  @@map("trainerActivity")
+}
+
+model TrainerCoursePermission {
+  id                    Int            @id(map: "trainerCoursePermission_pkey") @default(autoincrement())
+  canCreateAssessments  Boolean        @default(false)
+  canCreateLiveSessions Boolean        @default(false)
+  canManageContent      Boolean        @default(false)
+  canTeach              Boolean        @default(true)
+  courseId              Int
+  createdAt             Timestamptz    @default(now())
+  trainerId             Int
+  updatedAt             Timestamptz
+  course                Course         @relation(fields: [courseId], references: [id], onDelete: Cascade, map: "trainerCoursePermission_courseId_fkey")
+  trainer               TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade, map: "trainerCoursePermission_trainerId_fkey")
+
+  @@unique([trainerId, courseId], map: "trainerCoursePermission_trainerId_courseId_key")
+  @@index([courseId], name: "trainerCoursePermission_courseId_idx")
+  @@index([trainerId, canTeach], name: "trainerCoursePermission_trainerId_canTeach_idx")
+  @@index([trainerId], name: "trainerCoursePermission_trainerId_idx")
+  @@map("trainerCoursePermission")
+}

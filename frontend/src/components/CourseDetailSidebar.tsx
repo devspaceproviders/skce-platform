@@ -3,7 +3,6 @@ import {
   Award,
   User,
   Images,
-  Users,
   Globe,
   ArrowRight,
   Facebook,
@@ -34,14 +33,6 @@ export default function CourseDetailSidebar({
       value: course.totalVideos ?? "—",
     },
     {
-      icon: Users,
-      label: "Enrolled",
-      value: 
-        typeof course.enrolled === "number"
-      ? `${course.enrolled.toLocaleString("en-IN")} students`
-      : "—",  
-    },
-    {
       icon: Globe,
       label: "Language",
       value: course.language ?? "English",
@@ -57,7 +48,10 @@ export default function CourseDetailSidebar({
         {course.videoThumbnailUrl || course.bannerImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={course.videoThumbnailUrl || course.bannerImageUrl}
+            src={
+              course.videoThumbnailUrl ||
+              course.bannerImageUrl
+            }
             alt={`${course.title} preview`}
             className="h-full w-full object-cover"
           />
@@ -79,7 +73,10 @@ export default function CourseDetailSidebar({
           className="absolute inset-0 flex items-center justify-center"
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-500 text-white shadow-xl shadow-orange-900/20 transition duration-300 hover:scale-110 hover:bg-orange-600">
-            <Play size={24} fill="currentColor" />
+            <Play
+              size={24}
+              fill="currentColor"
+            />
           </span>
         </button>
       </div>
@@ -99,24 +96,29 @@ export default function CourseDetailSidebar({
 
         {/* Course details */}
         <dl className="divide-y divide-slate-100">
-          {includes.map(({ icon: Icon, label, value }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between gap-4 py-3.5"
-            >
-              <dt className="flex min-w-0 items-center gap-2.5 text-sm text-slate-500">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50">
-                  <Icon size={15} className="text-orange-500" />
-                </span>
+          {includes.map(
+            ({ icon: Icon, label, value }) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-4 py-3.5"
+              >
+                <dt className="flex min-w-0 items-center gap-2.5 text-sm text-slate-500">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50">
+                    <Icon
+                      size={15}
+                      className="text-orange-500"
+                    />
+                  </span>
 
-                <span>{label}</span>
-              </dt>
+                  <span>{label}</span>
+                </dt>
 
-              <dd className="max-w-[52%] text-right text-sm font-semibold text-[#173B67]">
-                {value}
-              </dd>
-            </div>
-          ))}
+                <dd className="max-w-[52%] text-right text-sm font-semibold text-[#173B67]">
+                  {value}
+                </dd>
+              </div>
+            )
+          )}
         </dl>
 
         {/* =======================================================
@@ -127,6 +129,7 @@ export default function CourseDetailSidebar({
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition duration-300 hover:bg-orange-600 hover:shadow-md"
         >
           Enroll Now
+
           <ArrowRight
             size={17}
             className="transition-transform duration-300 group-hover:translate-x-1"

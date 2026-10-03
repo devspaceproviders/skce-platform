@@ -1,0 +1,41 @@
+[
+  {
+    "id": "table.certificateSetting",
+    "label": "Create table \"certificateSetting\"",
+    "summary": "Creates table \"certificateSetting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "certificateSetting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"certificateSetting\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificateSetting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"certificateSetting\"",
+        "sql": "CREATE TABLE \"public\".\"certificateSetting\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"logoUrl\" text,\n  \"signatureUrl\" text,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"certificateSetting\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"certificateSetting\""
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,722 @@
+[
+  {
+    "id": "table.meeting",
+    "label": "Create table \"meeting\"",
+    "summary": "Creates table \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"meeting\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"meeting\"",
+        "sql": "CREATE TABLE \"public\".\"meeting\" (\n  \"batchId\" int4,\n  \"courseId\" int4,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"endAt\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"meetingType\" text NOT NULL,\n  \"meetingUrl\" text,\n  \"organizerUserId\" int4 NOT NULL,\n  \"startAt\" timestamptz NOT NULL,\n  \"status\" text DEFAULT 'SCHEDULED' NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"meeting_meetingType_check_fd7b9d6e\" CHECK (\"meetingType\" IN ('BATCH_MEETING', 'STUDENT_MEETING', 'INTERNAL_MEETING', 'ONE_TO_ONE', 'OTHER')),\n  CONSTRAINT \"meeting_status_check_9eaa8e3a\" CHECK (\"status\" IN ('SCHEDULED', 'COMPLETED', 'CANCELLED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"meeting\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.meetingParticipant",
+    "label": "Create table \"meetingParticipant\"",
+    "summary": "Creates table \"meetingParticipant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"meetingParticipant\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"meetingParticipant\"",
+        "sql": "CREATE TABLE \"public\".\"meetingParticipant\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"meetingId\" int4 NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"meetingParticipant\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.meetingParticipant.meetingParticipant_meetingId_userId_key",
+    "label": "Add unique constraint on \"meetingParticipant\" (meetingId, userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "meetingParticipant_meetingId_userId_key",
+        "table": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"meetingParticipant_meetingId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_meetingId_userId_key",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"meetingParticipant_meetingId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"meetingParticipant\" ADD CONSTRAINT \"meetingParticipant_meetingId_userId_key\" UNIQUE (\"meetingId\", \"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"meetingParticipant_meetingId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_meetingId_userId_key",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_batchId_idx_84d4b0b9",
+    "label": "Create index \"meeting_batchId_idx_84d4b0b9\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_batchId_idx_84d4b0b9",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_batchId_idx_84d4b0b9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_batchId_idx_84d4b0b9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_batchId_idx_84d4b0b9\"",
+        "sql": "CREATE INDEX \"meeting_batchId_idx_84d4b0b9\" ON \"public\".\"meeting\" (\"batchId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_batchId_idx_84d4b0b9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_batchId_idx_84d4b0b9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_batchId_startAt_idx_174e7312",
+    "label": "Create index \"meeting_batchId_startAt_idx_174e7312\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_batchId_startAt_idx_174e7312",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_batchId_startAt_idx_174e7312\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_batchId_startAt_idx_174e7312\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_batchId_startAt_idx_174e7312\"",
+        "sql": "CREATE INDEX \"meeting_batchId_startAt_idx_174e7312\" ON \"public\".\"meeting\" (\"batchId\", \"startAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_batchId_startAt_idx_174e7312\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_batchId_startAt_idx_174e7312\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_courseId_idx_12f72d2a",
+    "label": "Create index \"meeting_courseId_idx_12f72d2a\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_courseId_idx_12f72d2a",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"meeting_courseId_idx_12f72d2a\" ON \"public\".\"meeting\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_endAt_idx_5e9d9e87",
+    "label": "Create index \"meeting_endAt_idx_5e9d9e87\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_endAt_idx_5e9d9e87",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_endAt_idx_5e9d9e87\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_endAt_idx_5e9d9e87\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_endAt_idx_5e9d9e87\"",
+        "sql": "CREATE INDEX \"meeting_endAt_idx_5e9d9e87\" ON \"public\".\"meeting\" (\"endAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_endAt_idx_5e9d9e87\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_endAt_idx_5e9d9e87\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_meetingType_idx_8c31d2f2",
+    "label": "Create index \"meeting_meetingType_idx_8c31d2f2\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_meetingType_idx_8c31d2f2",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_meetingType_idx_8c31d2f2\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_meetingType_idx_8c31d2f2\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_meetingType_idx_8c31d2f2\"",
+        "sql": "CREATE INDEX \"meeting_meetingType_idx_8c31d2f2\" ON \"public\".\"meeting\" (\"meetingType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_meetingType_idx_8c31d2f2\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_meetingType_idx_8c31d2f2\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_organizerUserId_idx_832288ad",
+    "label": "Create index \"meeting_organizerUserId_idx_832288ad\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_organizerUserId_idx_832288ad",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_organizerUserId_idx_832288ad\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_organizerUserId_idx_832288ad\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_organizerUserId_idx_832288ad\"",
+        "sql": "CREATE INDEX \"meeting_organizerUserId_idx_832288ad\" ON \"public\".\"meeting\" (\"organizerUserId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_organizerUserId_idx_832288ad\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_organizerUserId_idx_832288ad\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_startAt_idx_8b06bdbe",
+    "label": "Create index \"meeting_startAt_idx_8b06bdbe\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_startAt_idx_8b06bdbe",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_startAt_idx_8b06bdbe\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_startAt_idx_8b06bdbe\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_startAt_idx_8b06bdbe\"",
+        "sql": "CREATE INDEX \"meeting_startAt_idx_8b06bdbe\" ON \"public\".\"meeting\" (\"startAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_startAt_idx_8b06bdbe\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_startAt_idx_8b06bdbe\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meeting.meeting_status_idx_e98638ab",
+    "label": "Create index \"meeting_status_idx_e98638ab\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meeting_status_idx_e98638ab",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meeting_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meeting_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"meeting_status_idx_e98638ab\" ON \"public\".\"meeting\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meeting_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meeting_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meetingParticipant.meetingParticipant_meetingId_idx_ebb79f08",
+    "label": "Create index \"meetingParticipant_meetingId_idx_ebb79f08\" on \"meetingParticipant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meetingParticipant_meetingId_idx_ebb79f08",
+        "table": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meetingParticipant_meetingId_idx_ebb79f08\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant_meetingId_idx_ebb79f08\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meetingParticipant_meetingId_idx_ebb79f08\"",
+        "sql": "CREATE INDEX \"meetingParticipant_meetingId_idx_ebb79f08\" ON \"public\".\"meetingParticipant\" (\"meetingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meetingParticipant_meetingId_idx_ebb79f08\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant_meetingId_idx_ebb79f08\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.meetingParticipant.meetingParticipant_userId_idx_a489d58a",
+    "label": "Create index \"meetingParticipant_userId_idx_a489d58a\" on \"meetingParticipant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "meetingParticipant_userId_idx_a489d58a",
+        "table": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"meetingParticipant_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"meetingParticipant_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"meetingParticipant_userId_idx_a489d58a\" ON \"public\".\"meetingParticipant\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"meetingParticipant_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"meetingParticipant_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.meeting.meeting_organizerUserId_fkey",
+    "label": "Add foreign key \"meeting_organizerUserId_fkey\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "meeting_organizerUserId_fkey",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"meeting_organizerUserId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_organizerUserId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"meeting_organizerUserId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"meeting\"\nADD CONSTRAINT \"meeting_organizerUserId_fkey\"\nFOREIGN KEY (\"organizerUserId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"meeting_organizerUserId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_organizerUserId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.meeting.meeting_courseId_fkey",
+    "label": "Add foreign key \"meeting_courseId_fkey\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "meeting_courseId_fkey",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"meeting_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_courseId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"meeting_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"meeting\"\nADD CONSTRAINT \"meeting_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"meeting_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_courseId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.meeting.meeting_batchId_fkey",
+    "label": "Add foreign key \"meeting_batchId_fkey\" on \"meeting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "meeting_batchId_fkey",
+        "table": "meeting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"meeting_batchId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_batchId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"meeting_batchId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"meeting\"\nADD CONSTRAINT \"meeting_batchId_fkey\"\nFOREIGN KEY (\"batchId\")\nREFERENCES \"public\".\"batch\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"meeting_batchId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meeting_batchId_fkey",
+          "public",
+          "\"public\".\"meeting\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.meetingParticipant.meetingParticipant_meetingId_fkey",
+    "label": "Add foreign key \"meetingParticipant_meetingId_fkey\" on \"meetingParticipant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "meetingParticipant_meetingId_fkey",
+        "table": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"meetingParticipant_meetingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_meetingId_fkey",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"meetingParticipant_meetingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"meetingParticipant\"\nADD CONSTRAINT \"meetingParticipant_meetingId_fkey\"\nFOREIGN KEY (\"meetingId\")\nREFERENCES \"public\".\"meeting\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"meetingParticipant_meetingId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_meetingId_fkey",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.meetingParticipant.meetingParticipant_userId_fkey",
+    "label": "Add foreign key \"meetingParticipant_userId_fkey\" on \"meetingParticipant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "meetingParticipant_userId_fkey",
+        "table": "meetingParticipant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"meetingParticipant_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_userId_fkey",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"meetingParticipant_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"meetingParticipant\"\nADD CONSTRAINT \"meetingParticipant_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"meetingParticipant_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "meetingParticipant_userId_fkey",
+          "public",
+          "\"public\".\"meetingParticipant\""
+        ]
+      }
+    ]
+  }
+]

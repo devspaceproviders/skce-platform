@@ -1,4 +1,7 @@
 import { db } from "../../prisma/db";
+import {
+  createTrainerActivity,
+} from "./trainer-activity.service";
 
 export interface TrainerCoursePermissionInput {
   trainerId: number;
@@ -23,14 +26,6 @@ export async function listTrainerCoursePermissions() {
 /**
  * Get all course permissions belonging to the
  * currently authenticated trainer.
- *
- * The caller provides the User.id from the JWT.
- * We resolve:
- *
- * User.id
- *   -> TrainerProfile.userId
- *   -> TrainerProfile.id
- *   -> TrainerCoursePermission.trainerId
  */
 export async function listCurrentTrainerCoursePermissions(
   userId: number
@@ -65,8 +60,56 @@ export async function getTrainerCoursePermission(
     .first();
 }
 
+async function getCourseTitle(
+  courseId: number
+): Promise<string> {
+  const course =
+    await db.orm.public.Course
+      .where({
+        id: courseId,
+      })
+      .first();
+
+  return course?.title ?? `Course #${courseId}`;
+}
+
+async function recordTrainerPermissionActivity(
+  actorUserId: number,
+  trainerId: number,
+  courseId: number,
+  action:
+    | "ASSIGNED"
+    | "UPDATED"
+    | "UNASSIGNED",
+  permissionId: number,
+  description: string,
+  metadata: Record<string, unknown>
+) {
+  try {
+    await createTrainerActivity({
+      trainerId,
+      actorUserId,
+      action,
+      entityType: "PERMISSION",
+      entityId: permissionId,
+      description,
+      metadata,
+    });
+  } catch (error) {
+    /*
+     * Activity logging must not cause the
+     * permission operation itself to fail.
+     */
+    console.error(
+      "Failed to record trainer permission activity:",
+      error
+    );
+  }
+}
+
 export async function createTrainerCoursePermission(
-  input: TrainerCoursePermissionInput
+  input: TrainerCoursePermissionInput,
+  actorUserId: number
 ) {
   const existing =
     await db.orm.public.TrainerCoursePermission
@@ -82,23 +125,49 @@ export async function createTrainerCoursePermission(
     );
   }
 
-  return await db.orm.public.TrainerCoursePermission.create({
-    trainerId: input.trainerId,
-    courseId: input.courseId,
-    canTeach: input.canTeach ?? true,
-    canManageContent:
-      input.canManageContent ?? false,
-    canCreateAssessments:
-      input.canCreateAssessments ?? false,
-    canCreateLiveSessions:
-      input.canCreateLiveSessions ?? false,
-  });
+  const permission =
+    await db.orm.public.TrainerCoursePermission.create({
+      trainerId: input.trainerId,
+      courseId: input.courseId,
+      canTeach: input.canTeach ?? true,
+      canManageContent:
+        input.canManageContent ?? false,
+      canCreateAssessments:
+        input.canCreateAssessments ?? false,
+      canCreateLiveSessions:
+        input.canCreateLiveSessions ?? false,
+    });
+
+  const courseTitle =
+    await getCourseTitle(input.courseId);
+
+  await recordTrainerPermissionActivity(
+    actorUserId,
+    input.trainerId,
+    input.courseId,
+    "ASSIGNED",
+    permission.id,
+    `Course permission assigned for ${courseTitle}`,
+    {
+      courseId: input.courseId,
+      canTeach: permission.canTeach,
+      canManageContent:
+        permission.canManageContent,
+      canCreateAssessments:
+        permission.canCreateAssessments,
+      canCreateLiveSessions:
+        permission.canCreateLiveSessions,
+    }
+  );
+
+  return permission;
 }
 
 export async function updateTrainerCoursePermission(
   trainerId: number,
   courseId: number,
-  input: TrainerCoursePermissionUpdateInput
+  input: TrainerCoursePermissionUpdateInput,
+  actorUserId: number
 ) {
   const existing =
     await db.orm.public.TrainerCoursePermission
@@ -114,28 +183,59 @@ export async function updateTrainerCoursePermission(
     );
   }
 
-  return await db.orm.public.TrainerCoursePermission
-    .where({
-      id: existing.id,
-    })
-    .update({
-      canTeach:
-        input.canTeach ?? existing.canTeach,
-      canManageContent:
-        input.canManageContent ??
-        existing.canManageContent,
-      canCreateAssessments:
-        input.canCreateAssessments ??
-        existing.canCreateAssessments,
-      canCreateLiveSessions:
-        input.canCreateLiveSessions ??
-        existing.canCreateLiveSessions,
-    });
+  const nextValues = {
+    canTeach:
+      input.canTeach ?? existing.canTeach,
+    canManageContent:
+      input.canManageContent ??
+      existing.canManageContent,
+    canCreateAssessments:
+      input.canCreateAssessments ??
+      existing.canCreateAssessments,
+    canCreateLiveSessions:
+      input.canCreateLiveSessions ??
+      existing.canCreateLiveSessions,
+  };
+
+  const updated =
+    await db.orm.public.TrainerCoursePermission
+      .where({
+        id: existing.id,
+      })
+      .update(nextValues);
+
+  const courseTitle =
+    await getCourseTitle(courseId);
+
+  await recordTrainerPermissionActivity(
+    actorUserId,
+    trainerId,
+    courseId,
+    "UPDATED",
+    existing.id,
+    `Course permission updated for ${courseTitle}`,
+    {
+      courseId,
+      before: {
+        canTeach: existing.canTeach,
+        canManageContent:
+          existing.canManageContent,
+        canCreateAssessments:
+          existing.canCreateAssessments,
+        canCreateLiveSessions:
+          existing.canCreateLiveSessions,
+      },
+      after: nextValues,
+    }
+  );
+
+  return updated;
 }
 
 export async function deleteTrainerCoursePermission(
   trainerId: number,
-  courseId: number
+  courseId: number,
+  actorUserId: number
 ) {
   const existing =
     await db.orm.public.TrainerCoursePermission
@@ -156,6 +256,28 @@ export async function deleteTrainerCoursePermission(
       id: existing.id,
     })
     .delete();
+
+  const courseTitle =
+    await getCourseTitle(courseId);
+
+  await recordTrainerPermissionActivity(
+    actorUserId,
+    trainerId,
+    courseId,
+    "UNASSIGNED",
+    existing.id,
+    `Course permission removed for ${courseTitle}`,
+    {
+      courseId,
+      canTeach: existing.canTeach,
+      canManageContent:
+        existing.canManageContent,
+      canCreateAssessments:
+        existing.canCreateAssessments,
+      canCreateLiveSessions:
+        existing.canCreateLiveSessions,
+    }
+  );
 
   return {
     success: true,

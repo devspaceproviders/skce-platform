@@ -20,12 +20,6 @@ const TILES = [
     bg: "#E0592A",
   },
   {
-    href: "/dashboard/student/live-sessions",
-    label: "Internal Team Live Training",
-    icon: MonitorPlay,
-    bg: "#E0A11A",
-  },
-  {
     href: "/dashboard/student/community",
     label: "Our Community",
     icon: Megaphone,

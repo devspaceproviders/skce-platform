@@ -6,58 +6,57 @@ import {
 } from "../../auth/middleware/auth.middleware";
 
 import {
+  listPublicTrainers,
+} from "../services/trainer.service";
+
+import {
   createAdminTrainerController,
   getAdminTrainerController,
   listAdminTrainersController,
-  listPublicTrainersController,
   resetAdminTrainerPasswordController,
   updateAdminTrainerController,
-  updateAdminTrainerPhotoController,
 } from "../controllers/trainer.controller";
 
 import {
-  profilePhotoUpload,
-} from "../../profile/profile-photo.upload";
+  getTrainerActivityController,
+} from "../controllers/trainer-activity.controller";
 
-/*
- * ============================================================
- * PUBLIC TRAINER ROUTES
- * ============================================================
- *
- * GET /api/trainers
- *
- * No authentication required.
- *
- * Used by the public Trainers page.
- *
- * ============================================================
- */
+/* ============================================================
+   PUBLIC TRAINERS
+   ============================================================ */
 
-export const publicTrainerRouter =
-  Router();
+export const publicTrainerRouter = Router();
 
 publicTrainerRouter.get(
   "/",
-  listPublicTrainersController
+  async (_req, res) => {
+    try {
+      const trainers =
+        await listPublicTrainers();
+
+      return res.status(200).json({
+        success: true,
+        data: trainers,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to load public trainers:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to load trainers.",
+      });
+    }
+  }
 );
 
-/*
- * ============================================================
- * ADMIN TRAINER ROUTES
- * ============================================================
- *
- * GET    /api/admin/trainers
- * GET    /api/admin/trainers/:id
- * POST   /api/admin/trainers
- * PATCH  /api/admin/trainers/:id
- * POST   /api/admin/trainers/:id/photo
- * POST   /api/admin/trainers/:id/reset-password
- *
- * ============================================================
- */
+/* ============================================================
+   ADMIN TRAINERS
+   ============================================================ */
 
-const trainerAdminRouter =
-  Router();
+const trainerAdminRouter = Router();
 
 trainerAdminRouter.use(
   authenticate,
@@ -67,6 +66,11 @@ trainerAdminRouter.use(
 trainerAdminRouter.get(
   "/",
   listAdminTrainersController
+);
+
+trainerAdminRouter.get(
+  "/:id/activity",
+  getTrainerActivityController
 );
 
 trainerAdminRouter.get(
@@ -82,24 +86,6 @@ trainerAdminRouter.post(
 trainerAdminRouter.patch(
   "/:id",
   updateAdminTrainerController
-);
-
-/*
- * ============================================================
- * TRAINER PROFILE PHOTO
- * ============================================================
- *
- * POST /api/admin/trainers/:id/photo
- *
- * Admin can update a trainer's profile photo.
- *
- * ============================================================
- */
-
-trainerAdminRouter.post(
-  "/:id/photo",
-  profilePhotoUpload.single("photo"),
-  updateAdminTrainerPhotoController
 );
 
 trainerAdminRouter.post(

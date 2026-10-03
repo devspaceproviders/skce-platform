@@ -104,6 +104,47 @@ enum BatchStatus {
   INACTIVE  = "INACTIVE"
 }
 
+
+enum MeetingType {
+  @@type("pg/text@1")
+
+  BATCH_MEETING    = "BATCH_MEETING"
+  STUDENT_MEETING  = "STUDENT_MEETING"
+  INTERNAL_MEETING = "INTERNAL_MEETING"
+  ONE_TO_ONE       = "ONE_TO_ONE"
+  OTHER            = "OTHER"
+}
+
+enum MeetingStatus {
+  @@type("pg/text@1")
+
+  SCHEDULED = "SCHEDULED"
+  COMPLETED = "COMPLETED"
+  CANCELLED = "CANCELLED"
+}
+
+enum AvailabilityDay {
+  @@type("pg/text@1")
+
+  MONDAY    = "MONDAY"
+  TUESDAY   = "TUESDAY"
+  WEDNESDAY = "WEDNESDAY"
+  THURSDAY  = "THURSDAY"
+  FRIDAY    = "FRIDAY"
+  SATURDAY  = "SATURDAY"
+  SUNDAY    = "SUNDAY"
+}
+
+enum MeetingPlatform {
+  @@type("pg/text@1")
+
+  GOOGLE_MEET     = "GOOGLE_MEET"
+  MICROSOFT_TEAMS = "MICROSOFT_TEAMS"
+  ZOOM            = "ZOOM"
+  WHATSAPP        = "WHATSAPP"
+  OTHER           = "OTHER"
+}
+
 // ============================================================
 // USER
 // ============================================================
@@ -123,6 +164,7 @@ model User {
   ceoProfile     CeoProfile?
 
   enrollments Enrollment[]
+  certificates Certificate[]
   payments    Payment[]
 
   assessmentSubmissions AssessmentSubmission[]
@@ -139,6 +181,10 @@ model User {
   reviewedLessons Lesson[] @relation("LessonReviewedBy")
 
   liveSessionParticipations LiveSessionParticipation[]
+  trainerActivities TrainerActivity[] @relation("TrainerActivityActor")
+
+  organizedMeetings   Meeting[]            @relation("MeetingOrganizer")
+  meetingParticipants MeetingParticipant[] @relation("MeetingParticipantUser")
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
@@ -249,11 +295,102 @@ model TrainerProfile {
   liveSessions LiveSession[]
   batches     Batch[]
   coursePermissions TrainerCoursePermission[]
+  activities TrainerActivity[]
+  availabilities TrainerAvailability[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 }
 
+
+// ============================================================
+// TRAINER ACTIVITY
+// ============================================================
+//
+// Central audit/history record for meaningful trainer actions.
+// actorUserId identifies who performed the action; trainerId
+// identifies the trainer whose history the activity belongs to.
+
+model TrainerActivity {
+  id Int @id @default(autoincrement())
+
+  trainerId    Int
+  actorUserId  Int
+
+  action       String
+  entityType   String
+  entityId     Int?
+  description  String
+  metadata     String?
+
+  trainer TrainerProfile @relation(
+    fields: [trainerId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  actor User @relation("TrainerActivityActor",
+    fields: [actorUserId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString @default(now())
+
+  @@index([trainerId])
+  @@index([trainerId, createdAt])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([action])
+}
+
+
+// ============================================================
+// TRAINER AVAILABILITY
+// ============================================================
+//
+// Recurring weekly availability for a trainer.
+//
+// A trainer can have multiple availability slots on the same day.
+// Times are stored as minutes from midnight so recurring weekly
+// availability is independent of a particular calendar date.
+//
+// Example:
+// - MONDAY 09:00-12:00 -> startMinute 540, endMinute 720
+// - MONDAY 14:00-18:00 -> startMinute 840, endMinute 1080
+//
+// Meeting conflict detection remains separate from availability.
+// Availability is used to determine whether a trainer can be
+// scheduled during a requested time window.
+
+model TrainerAvailability {
+  id Int @id @default(autoincrement())
+
+  trainerId Int
+
+  dayOfWeek AvailabilityDay
+
+  startMinute Int
+  endMinute   Int
+
+  timezone String @default("Asia/Kolkata")
+
+  isActive Boolean @default(true)
+
+  trainer TrainerProfile @relation(
+    fields: [trainerId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@unique([trainerId, dayOfWeek, startMinute, endMinute])
+  @@index([trainerId])
+  @@index([trainerId, dayOfWeek])
+  @@index([trainerId, isActive])
+}
 
 // ============================================================
 // CEO PROFILE
@@ -302,6 +439,7 @@ model Course {
   isActive Boolean @default(true)
 
   enrollments   Enrollment[]
+  certificates  Certificate[]
   packageItems  PackageCourse[]
   courseModules CourseModule[]
 
@@ -309,6 +447,7 @@ model Course {
   liveSessions LiveSession[]
   batches     Batch[]
   trainerPermissions TrainerCoursePermission[]
+  meetings Meeting[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
@@ -445,8 +584,9 @@ model CoursePackage {
 
   isActive Boolean @default(true)
 
-  courses     PackageCourse[]
-  enrollments Enrollment[]
+  courses       PackageCourse[]
+  enrollments   Enrollment[]
+  certificates  Certificate[]
 
   registrationIntents RegistrationIntent[]
 
@@ -647,6 +787,8 @@ model Enrollment {
 
   payments Payment[]
 
+  certificates Certificate[]
+
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
 
@@ -656,6 +798,72 @@ model Enrollment {
   @@index([packageId])
 }
 
+
+// ============================================================
+// CERTIFICATE
+// ============================================================
+//
+// Supports two certificate types:
+//
+// COURSE  -> Individual course completion certificate
+// PACKAGE -> Complete package completion certificate
+//
+// A package enrollment can therefore have multiple course
+// certificates and one final package certificate.
+//
+// ============================================================
+
+model Certificate {
+  id Int @id @default(autoincrement())
+
+  certificateNumber String @unique
+
+  certificateType String @default("COURSE")
+
+  enrollmentId Int
+
+  userId Int
+
+  courseId  Int?
+  packageId Int?
+
+  issuedAt TimestamptzString @default(now())
+
+  certificateUrl String?
+
+  enrollment Enrollment @relation(
+    fields: [enrollmentId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course? @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  package CoursePackage? @relation(
+    fields: [packageId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([packageId])
+  @@index([enrollmentId])
+  @@index([certificateType])
+}
 
 
 // ============================================================
@@ -781,6 +989,121 @@ model BatchStudent {
   @@index([batchId])
   @@index([studentId])
   @@index([batchId, studentId])
+}
+
+
+// ============================================================
+// MEETING
+// ============================================================
+//
+// General scheduling entity.
+//
+// LiveSession remains separate and continues to represent
+// scheduled live classes.
+//
+// Meeting supports:
+// - Admin -> trainer meetings
+// - Admin -> multiple trainer meetings
+// - Trainer -> student meetings
+// - Trainer -> selected students
+// - Batch meetings
+// - Internal meetings
+// - One-to-one meetings
+//
+// Batch meetings reference the Batch instead of duplicating
+// every batch student as a MeetingParticipant.
+//
+
+model Meeting {
+  id Int @id @default(autoincrement())
+
+  organizerUserId Int
+
+  title       String
+  description String?
+
+  startAt TimestamptzString
+  endAt   TimestamptzString
+
+  meetingUrl String?
+
+  meetingPlatform MeetingPlatform?
+
+  meetingType MeetingType
+  status      MeetingStatus @default(SCHEDULED)
+
+  courseId Int?
+  batchId  Int?
+
+  organizer User @relation(
+    "MeetingOrganizer",
+    fields: [organizerUserId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  course Course? @relation(
+    fields: [courseId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  batch Batch? @relation(
+    fields: [batchId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  participants MeetingParticipant[]
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([organizerUserId])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([status])
+  @@index([meetingType])
+  @@index([courseId])
+  @@index([batchId])
+  @@index([batchId, startAt])
+}
+
+
+// ============================================================
+// MEETING PARTICIPANT
+// ============================================================
+//
+// Explicit users invited/assigned to a general meeting.
+//
+// For a batch meeting, individual batch students do not need
+// to be duplicated here because the Meeting references Batch.
+//
+
+model MeetingParticipant {
+  id Int @id @default(autoincrement())
+
+  meetingId Int
+  userId    Int
+
+  meeting Meeting @relation(
+    fields: [meetingId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user User @relation(
+    "MeetingParticipantUser",
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString @default(now())
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
 }
 
 
@@ -1100,4 +1423,18 @@ model Payment {
   @@index([enrollmentId])
   @@index([providerOrderId])
   @@index([providerPaymentId])
+}
+
+// ============================================================
+// CERTIFICATE SETTINGS
+// ============================================================
+
+model CertificateSetting {
+  id Int @id @default(autoincrement())
+
+  logoUrl      String?
+  signatureUrl String?
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
 }

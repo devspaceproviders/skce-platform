@@ -71,6 +71,7 @@ type SubmitQuizInput = {
   answers: Record<string, string>;
 };
 
+const MAX_QUIZ_ATTEMPTS = 3;
 
 type AssessmentUserRole = "ADMIN" | "STUDENT" | "TRAINER";
 
@@ -84,11 +85,22 @@ async function getTrainerAssignedCourseIds(userId: number) {
   }
 
   const batches = await db.orm.public.Batch.all();
+  const permissions =
+    await db.orm.public.TrainerCoursePermission.all();
   const courseIds = new Set<number>();
 
   for (const batch of batches) {
     if (batch.trainerId === trainerProfile.id) {
       courseIds.add(batch.courseId);
+    }
+  }
+
+  // A trainer can also be explicitly assigned to a course through
+  // TrainerCoursePermission even when no batch has been created yet.
+  // This is required for assessment/content/live-session workflows.
+  for (const permission of permissions) {
+    if (permission.trainerId === trainerProfile.id) {
+      courseIds.add(permission.courseId);
     }
   }
 
@@ -289,6 +301,7 @@ function mapStudentSubmission(submission: any) {
       submission.submissionFileUrl,
     submissionComment:
       submission.submissionComment,
+    answers: submission.answers,
     score: submission.score,
     status: submission.status,
     feedback: submission.feedback,
@@ -300,7 +313,10 @@ function mapStudentSubmission(submission: any) {
   };
 }
 
-function mapQuestionForStudent(question: any) {
+function mapQuestionForStudent(
+  question: any,
+  includeCorrectAnswer: boolean
+) {
   return {
     id: question.id,
     assessmentId: question.assessmentId,
@@ -311,6 +327,9 @@ function mapQuestionForStudent(question: any) {
     optionD: question.optionD,
     marks: question.marks,
     sortOrder: question.sortOrder,
+    ...(includeCorrectAnswer
+      ? { correctAnswer: question.correctAnswer }
+      : {}),
   };
 }
 
@@ -372,6 +391,10 @@ export async function getStudentAssessments(
         totalMarks: assessment.totalMarks,
         durationMinutes: assessment.durationMinutes,
         isActive: assessment.isActive,
+        maxAttempts:
+          assessment.type === "QUIZ"
+            ? MAX_QUIZ_ATTEMPTS
+            : null,
         questionCount: questions.filter(
           (question) =>
             question.assessmentId === assessment.id
@@ -407,10 +430,23 @@ export async function getStudentAssessmentById(
     (await db.orm.public.AssessmentSubmission.all())
       .filter((submission) => submission.userId === userId);
 
+  const assessmentSubmissions = submissions.filter(
+    (submission) => submission.assessmentId === assessment.id
+  );
+
   const latestSubmission = getLatestSubmission(
     submissions,
     assessment.id
   );
+
+  const attemptsUsed = assessmentSubmissions.length;
+  const attemptsRemaining = Math.max(
+    MAX_QUIZ_ATTEMPTS - attemptsUsed,
+    0
+  );
+  const showCorrectAnswers =
+    assessment.type === "QUIZ" &&
+    attemptsUsed >= MAX_QUIZ_ATTEMPTS;
 
   return {
     id: assessment.id,
@@ -424,6 +460,23 @@ export async function getStudentAssessmentById(
     totalMarks: assessment.totalMarks,
     durationMinutes: assessment.durationMinutes,
     isActive: assessment.isActive,
+    maxAttempts:
+      assessment.type === "QUIZ"
+        ? MAX_QUIZ_ATTEMPTS
+        : null,
+    attemptsUsed:
+      assessment.type === "QUIZ"
+        ? attemptsUsed
+        : 0,
+    attemptsRemaining:
+      assessment.type === "QUIZ"
+        ? attemptsRemaining
+        : 0,
+    canRetry:
+      assessment.type === "QUIZ"
+        ? attemptsRemaining > 0
+        : false,
+    showCorrectAnswers,
     questions:
       assessment.type === "QUIZ"
         ? questions
@@ -434,7 +487,12 @@ export async function getStudentAssessmentById(
             .sort(
               (a, b) => a.sortOrder - b.sortOrder
             )
-            .map(mapQuestionForStudent)
+            .map((question) =>
+              mapQuestionForStudent(
+                question,
+                showCorrectAnswers
+              )
+            )
         : [],
     latestSubmission:
       mapStudentSubmission(latestSubmission),
@@ -554,6 +612,20 @@ export async function submitQuiz(
     throw new Error("Assessment is not a quiz");
   }
 
+  const existingSubmissions =
+    await db.orm.public.AssessmentSubmission.all();
+  const attemptCount = existingSubmissions.filter(
+    (submission) =>
+      submission.assessmentId === assessmentId &&
+      submission.userId === userId
+  ).length;
+
+  if (attemptCount >= MAX_QUIZ_ATTEMPTS) {
+    throw new Error(
+      `Maximum ${MAX_QUIZ_ATTEMPTS} attempts reached for this quiz`
+    );
+  }
+
   const questions =
     await db.orm.public.AssessmentQuestion.all();
   const quizQuestions = questions
@@ -628,11 +700,11 @@ export async function submitQuiz(
       submissionFileUrl: null,
       submissionComment: null,
       score,
-      status: "SUBMITTED",
+      status: "GRADED",
       feedback: null,
       startedAt: now,
       submittedAt: now,
-      gradedAt: null,
+      gradedAt: now,
     });
 
   return {
@@ -1286,6 +1358,15 @@ export async function gradeAssessmentSubmission(
   const assessment = await getAssessment(
     submission.assessmentId
   );
+
+  // Quiz submissions are automatically graded by submitQuiz().
+  // Manual grading is only allowed for ASSIGNMENT submissions.
+  if (assessment.type === "QUIZ") {
+    throw new Error(
+      "Quiz submissions are graded automatically and cannot be manually graded"
+    );
+  }
+
   await assertAssessmentManagementAccess(
     userId,
     role,

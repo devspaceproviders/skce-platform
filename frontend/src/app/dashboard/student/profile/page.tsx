@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -12,35 +17,27 @@ type StudentProfile = {
   studentId: string;
   email: string;
   phone: string | null;
-
   state: string | null;
   referralId: string | null;
-
   dateOfBirth: string | null;
   gender: string | null;
   qualification: string | null;
   organization: string | null;
-
   guardianName: string | null;
   guardianRelationship: string | null;
   guardianMobile: string | null;
   guardianWhatsapp: string | null;
   guardianEmail: string | null;
-
   deviceTypes: string | null;
   internetFacility: string | null;
   preferredClassApp: string | null;
-
   address: string | null;
   city: string | null;
   pin: string | null;
-
   referralSource: string | null;
   referralName: string | null;
   referralMobile: string | null;
-
   declarationAccepted: boolean;
-
   isActive: boolean;
   profilePhotoUrl?: string | null;
 };
@@ -84,15 +81,31 @@ function getInitials(name: string): string {
   }
 
   if (parts.length === 1) {
-    return parts[0]
-      .slice(0, 2)
-      .toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
   }
 
   return (
     parts[0].charAt(0) +
     parts[parts.length - 1].charAt(0)
   ).toUpperCase();
+}
+
+function formatDate(value: string | null): string {
+  if (!value) {
+    return "Not provided";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return safeText(value);
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsed);
 }
 
 export default function ProfilePage() {
@@ -105,20 +118,14 @@ export default function ProfilePage() {
   const [showPhoneModal, setShowPhoneModal] =
     useState(false);
 
-  const [newPhone, setNewPhone] =
-    useState("");
-
-  const [phoneError, setPhoneError] =
-    useState("");
-
-  const [savingPhone, setSavingPhone] =
-    useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
 
   const [uploadingPhoto, setUploadingPhoto] =
     useState(false);
 
-  const [photoError, setPhotoError] =
-    useState("");
+  const [photoError, setPhotoError] = useState("");
 
   const photoInputRef =
     useRef<HTMLInputElement>(null);
@@ -128,8 +135,7 @@ export default function ProfilePage() {
       setLoading(true);
       setError("");
 
-      const token =
-        localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         setError(
@@ -185,18 +191,28 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  function getPhotoUrl(photoUrl?: string | null): string | null {
+  function getPhotoUrl(
+    photoUrl?: string | null
+  ): string | null {
     if (!photoUrl) {
       return null;
     }
 
-    if (photoUrl.startsWith("http://") || photoUrl.startsWith("https://")) {
+    if (
+      photoUrl.startsWith("http://") ||
+      photoUrl.startsWith("https://")
+    ) {
       return photoUrl;
     }
 
-    const backendUrl = API_URL.replace(/\/api\/?$/, "");
+    const backendUrl = API_URL.replace(
+      /\/api\/?$/,
+      ""
+    );
 
-    return `${backendUrl}${photoUrl.startsWith("/") ? "" : "/"}${photoUrl}`;
+    return `${backendUrl}${
+      photoUrl.startsWith("/") ? "" : "/"
+    }${photoUrl}`;
   }
 
   function openPhotoPicker() {
@@ -231,7 +247,9 @@ export default function ProfilePage() {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setPhotoError("Profile photo must be 5 MB or smaller.");
+      setPhotoError(
+        "Profile photo must be 5 MB or smaller."
+      );
       event.target.value = "";
       return;
     }
@@ -307,9 +325,7 @@ export default function ProfilePage() {
   }
 
   function openPhoneModal() {
-    setNewPhone(
-      student?.phone ?? ""
-    );
+    setNewPhone(student?.phone ?? "");
     setPhoneError("");
     setShowPhoneModal(true);
   }
@@ -329,8 +345,7 @@ export default function ProfilePage() {
   ) {
     event.preventDefault();
 
-    const normalizedPhone =
-      newPhone.trim();
+    const normalizedPhone = newPhone.trim();
 
     setPhoneError("");
 
@@ -341,11 +356,7 @@ export default function ProfilePage() {
       return;
     }
 
-    if (
-      !/^[0-9]{10}$/.test(
-        normalizedPhone
-      )
-    ) {
+    if (!/^[0-9]{10}$/.test(normalizedPhone)) {
       setPhoneError(
         "Please enter a valid 10-digit mobile number."
       );
@@ -363,8 +374,7 @@ export default function ProfilePage() {
     try {
       setSavingPhone(true);
 
-      const token =
-        localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
       if (!token) {
         setPhoneError(
@@ -390,10 +400,7 @@ export default function ProfilePage() {
       const result: UpdatePhoneResponse =
         await response.json();
 
-      if (
-        !response.ok ||
-        !result.success
-      ) {
+      if (!response.ok || !result.success) {
         throw new Error(
           result.message ||
             "Unable to update mobile number."
@@ -401,8 +408,7 @@ export default function ProfilePage() {
       }
 
       const updatedPhone =
-        result.data?.phone ??
-        normalizedPhone;
+        result.data?.phone ?? normalizedPhone;
 
       setStudent((current) =>
         current
@@ -434,18 +440,18 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main style={pageStyle}>
-        <h1 style={titleStyle}>
-          Profile
-        </h1>
-
-        <p style={subtitleStyle}>
-          Your account details.
-        </p>
+      <main style={pageStyle} className="student-profile-page">
+        <PageHeading />
 
         <div style={loadingCardStyle}>
-          Loading profile...
+          <div style={spinnerStyle} />
+          <strong>Loading your profile</strong>
+          <span>
+            Fetching your latest account information.
+          </span>
         </div>
+
+        <GlobalStyles />
       </main>
     );
   }
@@ -453,17 +459,23 @@ export default function ProfilePage() {
   if (error) {
     return (
       <main style={pageStyle}>
-        <h1 style={titleStyle}>
-          Profile
-        </h1>
-
-        <p style={subtitleStyle}>
-          Your account details.
-        </p>
+        <PageHeading />
 
         <div style={errorCardStyle}>
-          {error}
+          <div style={errorIconStyle}>!</div>
+          <strong>Unable to load your profile</strong>
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={loadProfile}
+            style={primaryButtonStyle}
+          >
+            Try Again
+          </button>
         </div>
+
+        <GlobalStyles />
       </main>
     );
   }
@@ -472,221 +484,305 @@ export default function ProfilePage() {
     return null;
   }
 
-  const initials = getInitials(
-    student.name
+  const initials = getInitials(student.name);
+  const photoUrl = getPhotoUrl(
+    student.profilePhotoUrl
   );
 
   return (
     <>
       <main style={pageStyle}>
-        <h1 style={titleStyle}>
-          Profile
-        </h1>
+        <PageHeading />
 
-        <p style={subtitleStyle}>
-          Your account details.
-        </p>
+        {/* Profile identity */}
+        <section style={heroCardStyle} className="student-profile-hero">
+          <div style={heroAccentStyle} />
 
-        {/* Header Card */}
-        <div style={headerCardStyle}>
-          <div style={headerStyle}>
-            <div style={avatarWrapperStyle}>
-              {getPhotoUrl(student.profilePhotoUrl) ? (
-                <img
-                  src={getPhotoUrl(student.profilePhotoUrl) ?? undefined}
-                  alt={`${student.name} profile`}
-                  style={avatarImageStyle}
+          <div style={heroContentStyle}>
+            <div style={avatarColumnStyle}>
+              <div style={avatarShellStyle}>
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt={`${student.name} profile`}
+                    style={avatarImageStyle}
+                  />
+                ) : (
+                  <div style={avatarStyle}>
+                    {initials}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={openPhotoPicker}
+                  disabled={uploadingPhoto}
+                  style={photoButtonStyle}
+                >
+                  {uploadingPhoto
+                    ? "Uploading..."
+                    : "Change photo"}
+                </button>
+
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handlePhotoChange}
+                  style={{ display: "none" }}
                 />
-              ) : (
-                <div style={avatarStyle}>
-                  {initials}
-                </div>
-              )}
 
-              <button
-                type="button"
-                onClick={openPhotoPicker}
-                disabled={uploadingPhoto}
-                style={changePhotoButtonStyle}
-              >
-                {uploadingPhoto ? "Uploading..." : "Change Photo"}
-              </button>
-
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                onChange={handlePhotoChange}
-                style={hiddenFileInputStyle}
-              />
-
-              {photoError && (
-                <div style={photoErrorStyle}>
-                  {photoError}
-                </div>
-              )}
+                {photoError ? (
+                  <div style={photoErrorStyle}>
+                    {photoError}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            <div>
-              <div style={nameStyle}>
+            <div style={identityStyle}>
+              <div style={statusRowStyle}>
+                <span
+                  style={
+                    student.isActive
+                      ? activeBadgeStyle
+                      : inactiveBadgeStyle
+                  }
+                >
+                  <span
+                    style={{
+                      ...statusDotStyle,
+                      background:
+                        student.isActive
+                          ? "#16a05d"
+                          : "#9ca3af",
+                    }}
+                  />
+                  {student.isActive
+                    ? "Active Student"
+                    : "Inactive"}
+                </span>
+              </div>
+
+              <h2 style={heroNameStyle}>
                 {safeText(student.name)}
-              </div>
+              </h2>
 
-              <div style={emailStyle}>
+              <p style={heroEmailStyle}>
                 {safeText(student.email)}
+              </p>
+
+              <div style={identityFactsStyle}>
+                <IdentityFact
+                  label="Student ID"
+                  value={safeText(student.studentId)}
+                />
+
+                <IdentityFact
+                  label="Location"
+                  value={
+                    student.city ||
+                    student.state ||
+                    "Not provided"
+                  }
+                />
+
+                <IdentityFact
+                  label="Joined"
+                  value="Student account"
+                />
               </div>
             </div>
           </div>
+        </section>
 
-          <div style={statusBadgeStyle}>
-            {student.isActive
-              ? "Active Student"
-              : "Inactive"}
-          </div>
+        {/* Personal details */}
+        <div style={sectionGridStyle} className="student-profile-grid">
+          <ProfileSection
+            title="Personal Details"
+            subtitle="Your basic student information"
+          >
+            <ProfileRow
+              label="Student ID"
+              value={student.studentId}
+            />
+
+            <PhoneProfileRow
+              value={student.phone}
+              onEdit={openPhoneModal}
+            />
+
+            <ProfileRow
+              label="Date of Birth"
+              value={
+                student.dateOfBirth
+                  ? formatDate(
+                      student.dateOfBirth
+                    )
+                  : null
+              }
+            />
+
+            <ProfileRow
+              label="Gender"
+              value={student.gender}
+            />
+
+            <ProfileRow
+              label="Qualification"
+              value={student.qualification}
+            />
+
+            <ProfileRow
+              label="School / College / Organization"
+              value={student.organization}
+              last
+            />
+          </ProfileSection>
+
+          <ProfileSection
+            title="Parent / Guardian"
+            subtitle="Emergency and guardian contact"
+          >
+            <ProfileRow
+              label="Guardian Name"
+              value={student.guardianName}
+            />
+
+            <ProfileRow
+              label="Relationship"
+              value={student.guardianRelationship}
+            />
+
+            <ProfileRow
+              label="Mobile"
+              value={student.guardianMobile}
+            />
+
+            <ProfileRow
+              label="WhatsApp"
+              value={student.guardianWhatsapp}
+            />
+
+            <ProfileRow
+              label="Email"
+              value={student.guardianEmail}
+              last
+            />
+          </ProfileSection>
+
+          <ProfileSection
+            title="Learning Setup"
+            subtitle="Your preferred learning facilities"
+          >
+            <ProfileRow
+              label="Device"
+              value={student.deviceTypes}
+            />
+
+            <ProfileRow
+              label="Internet"
+              value={student.internetFacility}
+            />
+
+            <ProfileRow
+              label="Preferred App"
+              value={student.preferredClassApp}
+              last
+            />
+          </ProfileSection>
+
+          <ProfileSection
+            title="Address"
+            subtitle="Your registered location"
+          >
+            <ProfileRow
+              label="Address"
+              value={student.address}
+            />
+
+            <ProfileRow
+              label="City"
+              value={student.city}
+            />
+
+            <ProfileRow
+              label="PIN"
+              value={student.pin}
+            />
+
+            <ProfileRow
+              label="State"
+              value={student.state}
+              last
+            />
+          </ProfileSection>
+
+          <ProfileSection
+            title="Referral Information"
+            subtitle="How you were referred to SKCE"
+          >
+            <ProfileRow
+              label="Source"
+              value={student.referralSource}
+            />
+
+            <ProfileRow
+              label="Name"
+              value={student.referralName}
+            />
+
+            <ProfileRow
+              label="Mobile"
+              value={student.referralMobile}
+            />
+
+            <ProfileRow
+              label="Referral ID"
+              value={student.referralId}
+              last
+            />
+          </ProfileSection>
+
+          <ProfileSection
+            title="Student Declaration"
+            subtitle="Registration declaration status"
+          >
+            <ProfileRow
+              label="Declaration Accepted"
+              value={
+                student.declarationAccepted
+                  ? "Yes"
+                  : "No"
+              }
+              valueBadge
+              last
+            />
+          </ProfileSection>
         </div>
 
-        {/* Personal Details */}
-        <ProfileSection title="Personal Details">
-          <ProfileRow
-            label="Student ID"
-            value={student.studentId}
-          />
+        {/* Edit note */}
+        <section style={editNoteStyle}>
+          <div style={editNoteIconStyle}>
+            <LockIcon />
+          </div>
 
-          <PhoneProfileRow
-            value={student.phone}
-            onEdit={openPhoneModal}
-          />
+          <div style={{ minWidth: 0 }}>
+            <strong style={editNoteTitleStyle}>
+              Profile information
+            </strong>
 
-          <ProfileRow
-            label="Date of Birth"
-            value={student.dateOfBirth}
-          />
-
-          <ProfileRow
-            label="Gender"
-            value={student.gender}
-          />
-
-          <ProfileRow
-            label="Class / Qualification"
-            value={student.qualification}
-          />
-
-          <ProfileRow
-            label="School / College / Organization"
-            value={student.organization}
-          />
-
-          <ProfileRow
-            label="State"
-            value={student.state}
-          />
-        </ProfileSection>
-
-        {/* Guardian Details */}
-        <ProfileSection title="Parent / Guardian Details">
-          <ProfileRow
-            label="Guardian Name"
-            value={student.guardianName}
-          />
-
-          <ProfileRow
-            label="Relationship"
-            value={
-              student.guardianRelationship
-            }
-          />
-
-          <ProfileRow
-            label="Mobile"
-            value={student.guardianMobile}
-          />
-
-          <ProfileRow
-            label="WhatsApp"
-            value={student.guardianWhatsapp}
-          />
-
-          <ProfileRow
-            label="Email"
-            value={student.guardianEmail}
-          />
-        </ProfileSection>
-
-        {/* Learning Facilities */}
-        <ProfileSection title="Online Learning Facilities">
-          <ProfileRow
-            label="Device"
-            value={student.deviceTypes}
-          />
-
-          <ProfileRow
-            label="Internet"
-            value={student.internetFacility}
-          />
-
-          <ProfileRow
-            label="Preferred App"
-            value={student.preferredClassApp}
-          />
-        </ProfileSection>
-
-        {/* Address */}
-        <ProfileSection title="Address">
-          <ProfileRow
-            label="Address"
-            value={student.address}
-          />
-
-          <ProfileRow
-            label="City"
-            value={student.city}
-          />
-
-          <ProfileRow
-            label="PIN"
-            value={student.pin}
-          />
-
-          <ProfileRow
-            label="State"
-            value={student.state}
-          />
-        </ProfileSection>
-
-        {/* Referral */}
-        <ProfileSection title="How You Heard About SKCE">
-          <ProfileRow
-            label="Source"
-            value={student.referralSource}
-          />
-
-          <ProfileRow
-            label="Name"
-            value={student.referralName}
-          />
-
-          <ProfileRow
-            label="Mobile"
-            value={student.referralMobile}
-          />
-        </ProfileSection>
-
-        {/* Declaration */}
-        <ProfileSection title="Student Declaration">
-          <ProfileRow
-            label="Declaration Accepted"
-            value={
-              student.declarationAccepted
-                ? "Yes"
-                : "No"
-            }
-          />
-        </ProfileSection>
+            <p style={editNoteTextStyle}>
+              Your registered details are displayed from
+              your student account. Mobile number and profile
+              photo can be updated directly from this page.
+            </p>
+          </div>
+        </section>
       </main>
 
-      {/* Change Mobile Modal */}
-      {showPhoneModal && (
+      {/* Change mobile modal */}
+      {showPhoneModal ? (
         <div style={modalOverlayStyle}>
           <div
             role="dialog"
@@ -703,43 +799,30 @@ export default function ProfilePage() {
                   Change Mobile Number
                 </h2>
 
-                <p
-                  style={modalSubtitleStyle}
-                >
-                  Update the mobile number associated with your student account.
+                <p style={modalSubtitleStyle}>
+                  Update the mobile number linked to your
+                  student account.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={
-                  closePhoneModal
-                }
+                onClick={closePhoneModal}
                 disabled={savingPhone}
-                style={
-                  modalCloseButtonStyle
-                }
                 aria-label="Close"
+                style={modalCloseButtonStyle}
               >
                 ×
               </button>
             </div>
 
-            <form
-              onSubmit={
-                handlePhoneUpdate
-              }
-            >
-              <div
-                style={{
-                  marginTop: 20,
-                }}
-              >
+            <form onSubmit={handlePhoneUpdate}>
+              <div style={{ marginTop: 20 }}>
                 <label
                   htmlFor="new-mobile"
                   style={inputLabelStyle}
                 >
-                  New Mobile Number
+                  Mobile Number
                 </label>
 
                 <input
@@ -759,36 +842,22 @@ export default function ProfilePage() {
                   }
                   placeholder="Enter 10-digit mobile number"
                   disabled={savingPhone}
-                  style={
-                    phoneInputStyle
-                  }
+                  style={phoneInputStyle}
                 />
 
-                {phoneError && (
-                  <div
-                    style={
-                      phoneErrorStyle
-                    }
-                  >
+                {phoneError ? (
+                  <div style={phoneErrorStyle}>
                     {phoneError}
                   </div>
-                )}
+                ) : null}
               </div>
 
-              <div
-                style={
-                  modalActionsStyle
-                }
-              >
+              <div style={modalActionsStyle}>
                 <button
                   type="button"
-                  onClick={
-                    closePhoneModal
-                  }
+                  onClick={closePhoneModal}
                   disabled={savingPhone}
-                  style={
-                    cancelButtonStyle
-                  }
+                  style={cancelButtonStyle}
                 >
                   Cancel
                 </button>
@@ -796,35 +865,91 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={savingPhone}
-                  style={
-                    saveButtonStyle
-                  }
+                  style={{
+                    ...saveButtonStyle,
+                    opacity: savingPhone
+                      ? 0.65
+                      : 1,
+                  }}
                 >
                   {savingPhone
                     ? "Saving..."
-                    : "Save Mobile Number"}
+                    : "Save Number"}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+      ) : null}
+
+      <GlobalStyles />
     </>
+  );
+}
+
+function PageHeading() {
+  return (
+    <div style={pageHeadingStyle}>
+      <div>
+        <div style={sectionEyebrowStyle}>
+          STUDENT ACCOUNT
+        </div>
+
+        <h1 style={titleStyle}>
+          My Profile
+        </h1>
+
+        <p style={subtitleStyle}>
+          Manage your account information and registered
+          student details.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function IdentityFact({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div style={identityFactStyle}>
+      <span style={identityFactLabelStyle}>
+        {label}
+      </span>
+
+      <strong style={identityFactValueStyle}>
+        {value}
+      </strong>
+    </div>
   );
 }
 
 function ProfileSection({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle: string;
   children: React.ReactNode;
 }) {
   return (
-    <section style={sectionStyle}>
-      <h2 style={sectionTitleStyle}>
-        {title}
-      </h2>
+    <section style={sectionCardStyle}>
+      <div style={sectionHeaderStyle}>
+        <div>
+          <h2 style={sectionTitleStyle}>
+            {title}
+          </h2>
+
+          <p style={sectionSubtitleStyle}>
+            {subtitle}
+          </p>
+        </div>
+      </div>
 
       <div style={rowsContainerStyle}>
         {children}
@@ -836,19 +961,39 @@ function ProfileSection({
 function ProfileRow({
   label,
   value,
+  last = false,
+  valueBadge = false,
 }: {
   label: string;
   value: unknown;
+  last?: boolean;
+  valueBadge?: boolean;
 }) {
+  const valueText = safeText(value);
+
   return (
-    <div style={rowStyle}>
+    <div
+      className="student-profile-row"
+      style={{
+        ...rowStyle,
+        borderBottom: last
+          ? "none"
+          : "1px solid #eef1f5",
+      }}
+    >
       <span style={labelStyle}>
         {label}
       </span>
 
-      <span style={valueStyle}>
-        {safeText(value)}
-      </span>
+      {valueBadge ? (
+        <span style={acceptedBadgeStyle}>
+          {valueText}
+        </span>
+      ) : (
+        <span className="student-profile-value" style={valueStyle}>
+          {valueText}
+        </span>
+      )}
     </div>
   );
 }
@@ -861,20 +1006,13 @@ function PhoneProfileRow({
   onEdit: () => void;
 }) {
   return (
-    <div
-      style={{
-        ...rowStyle,
-        alignItems: "center",
-      }}
-    >
+    <div style={rowStyle}>
       <span style={labelStyle}>
-        Phone
+        Mobile Number
       </span>
 
-      <div
-        style={phoneValueContainerStyle}
-      >
-        <span style={valueStyle}>
+      <div className="student-profile-phone" style={phoneValueContainerStyle}>
+        <span className="student-profile-value" style={valueStyle}>
           {safeText(value)}
         </span>
 
@@ -883,325 +1021,590 @@ function PhoneProfileRow({
           onClick={onEdit}
           style={changePhoneButtonStyle}
         >
-          Change Mobile
+          Edit
         </button>
       </div>
     </div>
   );
 }
 
-const pageStyle: React.CSSProperties = {
-  padding: "28px 32px",
+function LockIcon() {
+  return (
+    <span
+      style={{
+        fontSize: 17,
+        lineHeight: 1,
+      }}
+      aria-hidden="true"
+    >
+      ✓
+    </span>
+  );
+}
+
+const pageStyle: CSSProperties = {
+  width: "100%",
+  minWidth: 0,
   flex: 1,
-  maxWidth: 1100,
+  boxSizing: "border-box",
+  padding: "28px 32px 36px",
+  background: "#f5f7fb",
 };
 
-const titleStyle: React.CSSProperties = {
-  fontSize: 22,
-  fontWeight: 700,
-  color: "#111827",
-  margin: "0 0 4px",
-};
-
-const subtitleStyle: React.CSSProperties = {
-  color: "#6B7280",
-  fontSize: 14,
-  margin: "0 0 24px",
-};
-
-const headerCardStyle: React.CSSProperties = {
-  position: "relative",
-  background: "#fff",
-  borderRadius: 12,
-  padding: "28px 30px",
-  boxShadow:
-    "0 1px 2px rgba(0,0,0,0.04)",
+const pageHeadingStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 20,
   marginBottom: 20,
 };
 
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 16,
+const sectionEyebrowStyle: CSSProperties = {
+  marginBottom: 5,
+  fontSize: 10.5,
+  fontWeight: 800,
+  letterSpacing: "0.11em",
+  color: "#a01441",
 };
 
-const avatarWrapperStyle: React.CSSProperties = {
+const titleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 27,
+  lineHeight: 1.2,
+  fontWeight: 800,
+  color: "#111827",
+  letterSpacing: "-0.02em",
+};
+
+const subtitleStyle: CSSProperties = {
+  margin: "6px 0 0",
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: "#818b9b",
+};
+
+const heroCardStyle: CSSProperties = {
   position: "relative",
-  width: 150,
-  minHeight: 96,
+  overflow: "hidden",
+  marginBottom: 18,
+  padding: "24px 26px",
+  borderRadius: 20,
+  background:
+    "linear-gradient(135deg,#10223f 0%,#173f70 68%,#245fd6 100%)",
+  boxShadow:
+    "0 12px 28px rgba(16,34,63,0.14)",
+  color: "#ffffff",
+};
+
+const heroAccentStyle: CSSProperties = {
+  position: "absolute",
+  width: 240,
+  height: 240,
+  right: -70,
+  top: -140,
+  borderRadius: "50%",
+  background:
+    "rgba(255,255,255,0.08)",
+};
+
+const heroContentStyle: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: 22,
+  minWidth: 0,
+};
+
+const avatarColumnStyle: CSSProperties = {
+  flex: "0 0 118px",
+  display: "flex",
+  justifyContent: "center",
+};
+
+const avatarShellStyle: CSSProperties = {
+  position: "relative",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   gap: 8,
-  flexShrink: 0,
 };
 
-const avatarImageStyle: React.CSSProperties = {
-  width: 64,
-  height: 64,
+const avatarImageStyle: CSSProperties = {
+  width: 84,
+  height: 84,
   borderRadius: "50%",
   objectFit: "cover",
   display: "block",
+  border: "3px solid rgba(255,255,255,0.28)",
 };
 
-const avatarStyle: React.CSSProperties = {
-  width: 64,
-  height: 64,
+const avatarStyle: CSSProperties = {
+  width: 84,
+  height: 84,
   borderRadius: "50%",
-  background: "#2F6BFF",
-  color: "#fff",
+  background: "#2f6bff",
+  border: "3px solid rgba(255,255,255,0.24)",
+  color: "#ffffff",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: 20,
+  fontSize: 25,
+  fontWeight: 800,
+};
+
+const photoButtonStyle: CSSProperties = {
+  border: "1px solid rgba(255,255,255,0.25)",
+  background: "rgba(255,255,255,0.10)",
+  color: "#ffffff",
+  borderRadius: 8,
+  padding: "6px 9px",
+  fontSize: 10.5,
   fontWeight: 700,
-  flexShrink: 0,
-};
-
-const changePhotoButtonStyle: React.CSSProperties = {
-  border: "1px solid #D7DCE5",
-  background: "#fff",
-  borderRadius: 7,
-  padding: "6px 10px",
-  fontSize: 12,
-  fontWeight: 600,
-  color: "#2F6BFF",
   cursor: "pointer",
-  whiteSpace: "nowrap",
 };
 
-const hiddenFileInputStyle: React.CSSProperties = {
-  display: "none",
-};
-
-const photoErrorStyle: React.CSSProperties = {
-  maxWidth: 180,
-  fontSize: 11.5,
-  lineHeight: 1.4,
-  color: "#B42318",
+const photoErrorStyle: CSSProperties = {
+  maxWidth: 150,
+  fontSize: 9.5,
+  lineHeight: 1.35,
+  color: "#fecaca",
   textAlign: "center",
 };
 
-const nameStyle: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 700,
-  color: "#111827",
+const identityStyle: CSSProperties = {
+  minWidth: 0,
+  flex: 1,
 };
 
-const emailStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: "#6B7280",
-  marginTop: 3,
+const statusRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  marginBottom: 8,
 };
 
-const statusBadgeStyle: React.CSSProperties = {
-  position: "absolute",
-  top: 28,
-  right: 30,
-  padding: "6px 10px",
+const activeBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "5px 8px",
   borderRadius: 999,
-  background: "#ECFDF3",
-  color: "#027A48",
-  fontSize: 12,
-  fontWeight: 600,
+  background: "rgba(232,249,240,0.14)",
+  border: "1px solid rgba(151,232,190,0.28)",
+  color: "#d6f7e3",
+  fontSize: 10,
+  fontWeight: 750,
 };
 
-const sectionStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: "24px 28px",
-  boxShadow:
-    "0 1px 2px rgba(0,0,0,0.04)",
-  marginBottom: 20,
+const inactiveBadgeStyle: CSSProperties = {
+  ...activeBadgeStyle,
+  color: "#e5e7eb",
+  background: "rgba(148,163,184,0.15)",
+  border: "1px solid rgba(148,163,184,0.24)",
 };
 
-const sectionTitleStyle: React.CSSProperties = {
-  margin: "0 0 20px",
-  fontSize: 17,
-  fontWeight: 700,
-  color: "#111827",
+const statusDotStyle: CSSProperties = {
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  display: "inline-block",
 };
 
-const rowsContainerStyle: React.CSSProperties = {
+const heroNameStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 25,
+  lineHeight: 1.2,
+  fontWeight: 800,
+};
+
+const heroEmailStyle: CSSProperties = {
+  margin: "6px 0 0",
+  fontSize: 13,
+  color: "#d6e2f5",
+};
+
+const identityFactsStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 26,
+  marginTop: 17,
+};
+
+const identityFactStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
+  gap: 3,
+};
+
+const identityFactLabelStyle: CSSProperties = {
+  fontSize: 9.5,
+  color: "#aec0db",
+};
+
+const identityFactValueStyle: CSSProperties = {
+  fontSize: 11.5,
+  color: "#ffffff",
+};
+
+const sectionGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns:
+    "repeat(2,minmax(0,1fr))",
   gap: 16,
 };
 
-const rowStyle: React.CSSProperties = {
+const sectionCardStyle: CSSProperties = {
+  minWidth: 0,
+  padding: "20px 22px",
+  border: "1px solid #e4e8ef",
+  borderRadius: 17,
+  background: "#ffffff",
+  boxShadow:
+    "0 4px 14px rgba(15,23,42,0.035)",
+};
+
+const sectionHeaderStyle: CSSProperties = {
+  marginBottom: 15,
+};
+
+const sectionTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 15,
+  fontWeight: 800,
+  color: "#172033",
+};
+
+const sectionSubtitleStyle: CSSProperties = {
+  margin: "3px 0 0",
+  fontSize: 10.5,
+  color: "#98a1af",
+};
+
+const rowsContainerStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+};
+
+const rowStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  gap: 24,
-  paddingBottom: 14,
-  borderBottom: "1px solid #F0F1F4",
+  gap: 18,
+  padding: "11px 0",
 };
 
-const labelStyle: React.CSSProperties = {
-  color: "#6B7280",
-  fontSize: 13.5,
-  minWidth: 220,
+const labelStyle: CSSProperties = {
+  minWidth: 0,
+  flex: "0 0 42%",
+  fontSize: 11,
+  color: "#8a94a4",
 };
 
-const valueStyle: React.CSSProperties = {
-  color: "#111827",
-  fontWeight: 600,
-  fontSize: 13.5,
+const valueStyle: CSSProperties = {
+  minWidth: 0,
+  maxWidth: "58%",
+  fontSize: 11.5,
+  lineHeight: 1.45,
+  fontWeight: 700,
+  color: "#303a4b",
   textAlign: "right",
   wordBreak: "break-word",
 };
 
-const phoneValueContainerStyle: React.CSSProperties =
-  {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 12,
-    flexWrap: "wrap",
-  };
-
-const changePhoneButtonStyle: React.CSSProperties =
-  {
-    border: "1px solid #D7DCE5",
-    background: "#fff",
-    borderRadius: 7,
-    padding: "6px 10px",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#2F6BFF",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
-
-const modalOverlayStyle: React.CSSProperties =
-  {
-    position: "fixed",
-    inset: 0,
-    background:
-      "rgba(15, 23, 42, 0.45)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    zIndex: 1000,
-  };
-
-const modalCardStyle: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 460,
-  background: "#fff",
-  borderRadius: 14,
-  padding: 24,
-  boxShadow:
-    "0 20px 50px rgba(0,0,0,0.18)",
+const phoneValueContainerStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 7,
+  minWidth: 0,
+  maxWidth: "58%",
 };
 
-const modalHeaderStyle: React.CSSProperties =
-  {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 16,
-  };
-
-const modalTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 18,
-  fontWeight: 700,
-  color: "#111827",
+const changePhoneButtonStyle: CSSProperties = {
+  border: "1px solid #dbe1ea",
+  background: "#ffffff",
+  color: "#2f6bff",
+  borderRadius: 7,
+  padding: "5px 8px",
+  fontSize: 9.5,
+  fontWeight: 800,
+  cursor: "pointer",
 };
 
-const modalSubtitleStyle: React.CSSProperties =
-  {
-    margin: "6px 0 0",
-    fontSize: 13,
-    lineHeight: 1.5,
-    color: "#6B7280",
-  };
+const acceptedBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "4px 8px",
+  borderRadius: 999,
+  background: "#eaf8f0",
+  color: "#188653",
+  fontSize: 9.5,
+  fontWeight: 800,
+};
 
-const modalCloseButtonStyle: React.CSSProperties =
-  {
-    border: "none",
-    background: "transparent",
-    color: "#6B7280",
-    fontSize: 26,
-    lineHeight: 1,
-    cursor: "pointer",
-    padding: 0,
-  };
+const editNoteStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 10,
+  marginTop: 16,
+  padding: "13px 15px",
+  border: "1px solid #e1e7f0",
+  borderRadius: 13,
+  background: "#fbfcfe",
+};
 
-const inputLabelStyle: React.CSSProperties = {
+const editNoteIconStyle: CSSProperties = {
+  width: 30,
+  height: 30,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 30px",
+  borderRadius: 9,
+  background: "#eaf0ff",
+  color: "#2f6bff",
+};
+
+const editNoteTitleStyle: CSSProperties = {
   display: "block",
-  marginBottom: 8,
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#374151",
+  fontSize: 11.5,
+  color: "#354052",
 };
 
-const phoneInputStyle: React.CSSProperties = {
+const editNoteTextStyle: CSSProperties = {
+  margin: "3px 0 0",
+  fontSize: 10.5,
+  lineHeight: 1.5,
+  color: "#9099a8",
+};
+
+const loadingCardStyle: CSSProperties = {
+  minHeight: 300,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  padding: 30,
+  border: "1px solid #e4e8ef",
+  borderRadius: 18,
+  background: "#ffffff",
+  color: "#7d8796",
+  fontSize: 12,
+};
+
+const spinnerStyle: CSSProperties = {
+  width: 28,
+  height: 28,
+  marginBottom: 7,
+  border: "3px solid #e8edf3",
+  borderTopColor: "#2f6bff",
+  borderRadius: "50%",
+  animation:
+    "studentProfileSpin 0.8s linear infinite",
+};
+
+const errorCardStyle: CSSProperties = {
+  minHeight: 300,
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  padding: 30,
+  border: "1px solid #f1d6d6",
+  borderRadius: 18,
+  background: "#ffffff",
+  color: "#7d8796",
+  fontSize: 12,
+  textAlign: "center",
+};
+
+const errorIconStyle: CSSProperties = {
+  width: 44,
+  height: 44,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 6,
+  borderRadius: 12,
+  background: "#fdebea",
+  color: "#c8433e",
+  fontSize: 20,
+  fontWeight: 800,
+};
+
+const primaryButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: 9,
+  border: 0,
+  borderRadius: 8,
+  padding: "8px 12px",
+  background: "#2f6bff",
+  color: "#ffffff",
+  fontSize: 10.5,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const modalOverlayStyle: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1000,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 20,
+  background: "rgba(15,23,42,0.5)",
+};
+
+const modalCardStyle: CSSProperties = {
   width: "100%",
-  border: "1px solid #D9DEE8",
-  borderRadius: 8,
-  padding: "11px 12px",
-  fontSize: 14,
+  maxWidth: 440,
+  padding: 23,
+  borderRadius: 15,
+  background: "#ffffff",
+  boxShadow:
+    "0 24px 60px rgba(15,23,42,0.2)",
+};
+
+const modalHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 15,
+};
+
+const modalTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: 17,
+  fontWeight: 800,
   color: "#111827",
-  outline: "none",
-  boxSizing: "border-box",
 };
 
-const phoneErrorStyle: React.CSSProperties = {
-  marginTop: 8,
-  fontSize: 12.5,
-  color: "#B42318",
+const modalSubtitleStyle: CSSProperties = {
+  maxWidth: 350,
+  margin: "5px 0 0",
+  fontSize: 11.5,
+  lineHeight: 1.5,
+  color: "#7d8796",
 };
 
-const modalActionsStyle: React.CSSProperties =
-  {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 24,
-  };
+const modalCloseButtonStyle: CSSProperties = {
+  border: 0,
+  background: "transparent",
+  color: "#7a8494",
+  fontSize: 25,
+  lineHeight: 1,
+  cursor: "pointer",
+  padding: 0,
+};
 
-const cancelButtonStyle: React.CSSProperties = {
-  border: "1px solid #D9DEE8",
-  background: "#fff",
-  borderRadius: 8,
-  padding: "10px 14px",
-  fontSize: 13,
-  fontWeight: 600,
+const inputLabelStyle: CSSProperties = {
+  display: "block",
+  marginBottom: 7,
+  fontSize: 11.5,
+  fontWeight: 750,
   color: "#374151",
-  cursor: "pointer",
 };
 
-const saveButtonStyle: React.CSSProperties = {
-  border: "none",
-  background: "#2F6BFF",
+const phoneInputStyle: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: "1px solid #d9e0e9",
   borderRadius: 8,
-  padding: "10px 14px",
+  padding: "10px 11px",
+  outline: "none",
   fontSize: 13,
-  fontWeight: 600,
-  color: "#fff",
+  color: "#111827",
+};
+
+const phoneErrorStyle: CSSProperties = {
+  marginTop: 7,
+  fontSize: 11.5,
+  color: "#b42318",
+};
+
+const modalActionsStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 9,
+  marginTop: 21,
+};
+
+const cancelButtonStyle: CSSProperties = {
+  border: "1px solid #d9e0e9",
+  background: "#ffffff",
+  color: "#374151",
+  borderRadius: 8,
+  padding: "9px 12px",
+  fontSize: 11.5,
+  fontWeight: 750,
   cursor: "pointer",
 };
 
-const loadingCardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: 30,
-  maxWidth: 480,
-  boxShadow:
-    "0 1px 2px rgba(0,0,0,0.04)",
-  color: "#6B7280",
-  fontSize: 14,
+const saveButtonStyle: CSSProperties = {
+  border: 0,
+  background: "#2f6bff",
+  color: "#ffffff",
+  borderRadius: 8,
+  padding: "9px 12px",
+  fontSize: 11.5,
+  fontWeight: 750,
+  cursor: "pointer",
 };
 
-const errorCardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: 30,
-  maxWidth: 480,
-  color: "#B42318",
-  boxShadow:
-    "0 1px 2px rgba(0,0,0,0.04)",
-};
+function GlobalStyles() {
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes studentProfileSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+
+          @media (max-width: 900px) {
+            .student-profile-grid {
+              grid-template-columns: minmax(0, 1fr) !important;
+            }
+
+            .student-profile-hero {
+              flex-direction: column !important;
+              align-items: flex-start !important;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .student-profile-page {
+              padding: 20px 15px 28px !important;
+            }
+
+            .student-profile-name {
+              font-size: 22px !important;
+            }
+
+            .student-profile-row {
+              flex-direction: column !important;
+              gap: 5px !important;
+            }
+
+            .student-profile-value {
+              max-width: 100% !important;
+              text-align: left !important;
+            }
+
+            .student-profile-phone {
+              max-width: 100% !important;
+              justify-content: flex-start !important;
+            }
+          }
+        `,
+      }}
+    />
+  );
+}

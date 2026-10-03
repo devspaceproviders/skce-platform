@@ -71,15 +71,149 @@ export async function getAllCourses() {
 }
 
 export async function getCourseBySlug(slug: string) {
-  const course = await db.orm.public.Course.first({
-    slug,
-  });
+  const course = await db.orm.public.Course.first({ slug });
 
   if (!course || !course.isActive) {
     throw new Error("Course not found");
   }
 
-  return course;
+  // ------------------------------------------------------------
+  // Active course modules
+  // ------------------------------------------------------------
+  const allModules = await db.orm.public.CourseModule.all();
+
+  const courseModules = allModules
+    .filter(
+      (module) =>
+        module.courseId === course.id &&
+        module.isActive
+    )
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    );
+
+  // ------------------------------------------------------------
+  // Active lessons belonging to this course's modules
+  // ------------------------------------------------------------
+  const allLessons = await db.orm.public.Lesson.all();
+
+  const moduleIds = new Set(
+    courseModules.map((module) => module.id)
+  );
+
+  const courseLessons = allLessons
+    .filter(
+      (lesson) =>
+        moduleIds.has(lesson.moduleId) &&
+        lesson.isActive
+    )
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    );
+
+  // ------------------------------------------------------------
+  // Total video count
+  // ------------------------------------------------------------
+  const totalVideos = courseLessons.filter(
+    (lesson) =>
+      typeof lesson.videoUrl === "string" &&
+      lesson.videoUrl.trim().length > 0
+  ).length;
+
+  // ------------------------------------------------------------
+  // Enrolled student count
+  // Keep this consistent with the existing admin course logic:
+  // count Enrollment records belonging directly to this course.
+  // ------------------------------------------------------------
+  const allEnrollments =
+    await db.orm.public.Enrollment.all();
+
+  const enrolled = allEnrollments.filter(
+    (enrollment) =>
+      enrollment.courseId === course.id
+  ).length;
+
+  // ------------------------------------------------------------
+  // Topics
+  // Build the existing frontend topic structure from the
+  // actual CourseModule + Lesson records.
+  // ------------------------------------------------------------
+  const topics = courseModules.map((module) => ({
+    title: module.title,
+    lessons: courseLessons
+      .filter(
+        (lesson) =>
+          lesson.moduleId === module.id
+      )
+      .map((lesson) => lesson.title),
+  }));
+
+  // ------------------------------------------------------------
+  // Instructor
+  //
+  // A course can have multiple batches/trainers.
+  // For the current public course-detail UI, select the trainer
+  // from the first active/upcoming batch that has a trainer.
+  // ------------------------------------------------------------
+  const allBatches = await db.orm.public.Batch.all();
+
+  const courseBatches = allBatches
+    .filter(
+      (batch) =>
+        batch.courseId === course.id &&
+        batch.trainerId !== null &&
+        batch.status !== "COMPLETED"
+    )
+    .sort(
+      (a, b) =>
+        new Date(String(a.startDate)).getTime() -
+        new Date(String(b.startDate)).getTime()
+    );
+
+  let instructor = null;
+
+  const selectedBatch = courseBatches[0];
+
+  if (selectedBatch?.trainerId) {
+    const trainerProfile =
+      await db.orm.public.TrainerProfile.first({
+        id: selectedBatch.trainerId,
+      });
+
+    if (trainerProfile) {
+      const trainerUser =
+        await db.orm.public.User.first({
+          id: trainerProfile.userId,
+        });
+
+      if (trainerUser) {
+        instructor = {
+          id: trainerProfile.id,
+          name: trainerUser.name,
+          title:
+            trainerProfile.specialization ||
+            "Trainer",
+          avatarUrl:
+            trainerUser.profilePhotoUrl || "",
+          bio:
+            trainerProfile.bio || "",
+        };
+      }
+    }
+  }
+
+  return {
+    ...course,
+
+    // Dynamic course-detail values
+    modules: courseModules.length,
+    totalVideos,
+    enrolled,
+    topics,
+    instructor,
+  };
 }
 
 /*

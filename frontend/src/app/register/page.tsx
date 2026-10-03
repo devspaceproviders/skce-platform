@@ -106,6 +106,7 @@ type PackagesResponse = {
 type RegistrationIntentResponse = {
   success: boolean;
   message: string;
+  errors?: Record<string, string[] | undefined>;
   data?: {
     registrationIntentId: number;
 
@@ -934,8 +935,19 @@ function RegisterForm() {
         !json.success ||
         !json.data
       ) {
+        const fieldError = Object.values(
+          json.errors ?? {}
+        )
+          .flat()
+          .find(
+            (message): message is string =>
+              typeof message === "string" &&
+              message.trim().length > 0
+          );
+
         throw new Error(
-          json.message ||
+          fieldError ||
+            json.message ||
             "Unable to create registration."
         );
       }
