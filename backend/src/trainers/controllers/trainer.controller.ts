@@ -12,37 +12,30 @@ import {
   type TrainerUpdateInput,
 } from "../services/trainer.service";
 
-function parseId(value: unknown) {
-  const rawValue = Array.isArray(value)
-    ? value[0]
-    : value;
+import {
+  getTrainerEngagementsByTrainerId,
+} from "../services/trainer-engagement.service";
 
-  if (
-    typeof rawValue !== "string" ||
-    !rawValue.trim()
-  ) {
-    throw new Error(
-      "Trainer ID is required."
-    );
+function parseId(
+  value: string | string[] | undefined
+) {
+  const normalized =
+    Array.isArray(value)
+      ? value[0]
+      : value;
+
+  if (!normalized) {
+    throw new Error("Trainer ID is required.");
   }
 
-  const id = Number(rawValue);
+  const id = Number(normalized);
 
-  if (
-    !Number.isInteger(id) ||
-    id <= 0
-  ) {
-    throw new Error(
-      "Invalid trainer ID."
-    );
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Invalid trainer ID.");
   }
 
   return id;
 }
-
-/* ============================================================
-   ADMIN - LIST TRAINERS
-   ============================================================ */
 
 export async function listAdminTrainersController(
   _req: AuthenticatedRequest,
@@ -64,15 +57,10 @@ export async function listAdminTrainersController(
 
     return res.status(500).json({
       success: false,
-      message:
-        "Unable to load trainers.",
+      message: "Unable to load trainers.",
     });
   }
 }
-
-/* ============================================================
-   ADMIN - GET TRAINER
-   ============================================================ */
 
 export async function getAdminTrainerController(
   req: AuthenticatedRequest,
@@ -100,10 +88,8 @@ export async function getAdminTrainerController(
         : "Unable to load trainer.";
 
     const status =
-      message ===
-        "Trainer not found." ||
-      message ===
-        "Trainer account not found."
+      message === "Trainer not found." ||
+      message === "Trainer account not found."
         ? 404
         : 400;
 
@@ -114,23 +100,57 @@ export async function getAdminTrainerController(
   }
 }
 
-/* ============================================================
-   ADMIN - CREATE TRAINER
-   ============================================================ */
+export async function getAdminTrainerEngagementsController(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    const trainerId =
+      parseId(req.params.id);
+
+    const data =
+      await getTrainerEngagementsByTrainerId(
+        trainerId
+      );
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error(
+      "Get admin trainer engagements error:",
+      error
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unable to load trainer engagements.";
+
+    const status =
+      message === "Trainer profile not found"
+        ? 404
+        : 400;
+
+    return res.status(status).json({
+      success: false,
+      message,
+    });
+  }
+}
 
 export async function createAdminTrainerController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const actorUserId =
-      req.user?.userId;
+    const actorUserId = req.user?.userId;
 
     if (!actorUserId) {
       return res.status(401).json({
         success: false,
-        message:
-          "Authentication required.",
+        message: "Authentication required.",
       });
     }
 
@@ -156,27 +176,19 @@ export async function createAdminTrainerController(
           ? null
           : body.phone,
       specialization:
-        body.specialization ===
-        undefined
+        body.specialization === undefined
           ? null
           : body.specialization,
       experience:
-        body.experience ===
-          undefined ||
+        body.experience === undefined ||
         body.experience === null
           ? null
-          : Number(
-              body.experience
-            ),
-      password:
-        body.password,
+          : Number(body.experience),
+      password: body.password,
       isActive:
-        body.isActive ===
-          undefined
+        body.isActive === undefined
           ? true
-          : Boolean(
-              body.isActive
-            ),
+          : Boolean(body.isActive),
     };
 
     const trainer =
@@ -187,8 +199,7 @@ export async function createAdminTrainerController(
 
     return res.status(201).json({
       success: true,
-      message:
-        "Trainer created successfully.",
+      message: "Trainer created successfully.",
       data: trainer,
     });
   } catch (error) {
@@ -216,106 +227,72 @@ export async function createAdminTrainerController(
   }
 }
 
-/* ============================================================
-   ADMIN - UPDATE TRAINER
-   ============================================================ */
-
 export async function updateAdminTrainerController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const actorUserId =
-      req.user?.userId;
+    const actorUserId = req.user?.userId;
 
     if (!actorUserId) {
       return res.status(401).json({
         success: false,
-        message:
-          "Authentication required.",
+        message: "Authentication required.",
       });
     }
 
     const body = req.body || {};
 
-    const input: TrainerUpdateInput =
-      {};
+    const input: TrainerUpdateInput = {};
 
-    if (
-      body.name !== undefined
-    ) {
-      input.name =
-        body.name;
+    if (body.name !== undefined) {
+      input.name = body.name;
     }
 
-    if (
-      body.email !== undefined
-    ) {
-      input.email =
-        body.email;
+    if (body.email !== undefined) {
+      input.email = body.email;
     }
 
-    if (
-      body.phone !== undefined
-    ) {
-      input.phone =
-        body.phone;
+    if (body.phone !== undefined) {
+      input.phone = body.phone;
     }
 
-    if (
-      body.specialization !==
-      undefined
-    ) {
+    if (body.specialization !== undefined) {
       input.specialization =
         body.specialization;
     }
 
-    if (
-      body.experience !==
-      undefined
-    ) {
+    if (body.experience !== undefined) {
       input.experience =
-        body.experience ===
-          null ||
-        body.experience ===
-          ""
+        body.experience === null ||
+        body.experience === ""
           ? null
-          : Number(
-              body.experience
-            );
+          : Number(body.experience);
     }
 
     if (
-      body.password !==
-      undefined
+      body.password !== undefined
     ) {
-      input.password =
-        body.password;
+      input.password = body.password;
     }
 
     if (
-      body.isActive !==
-      undefined
+      body.isActive !== undefined
     ) {
       input.isActive =
-        Boolean(
-          body.isActive
-        );
+        Boolean(body.isActive);
     }
 
     const trainer =
       await updateAdminTrainer(
-        parseId(
-          req.params.id
-        ),
+        parseId(req.params.id),
         input,
         actorUserId
       );
 
     return res.status(200).json({
       success: true,
-      message:
-        "Trainer updated successfully.",
+      message: "Trainer updated successfully.",
       data: trainer,
     });
   } catch (error) {
@@ -330,10 +307,8 @@ export async function updateAdminTrainerController(
         : "Unable to update trainer.";
 
     const status =
-      message ===
-        "Trainer not found." ||
-      message ===
-        "Trainer account not found."
+      message === "Trainer not found." ||
+      message === "Trainer account not found."
         ? 404
         : message.includes(
               "already exists"
@@ -348,23 +323,17 @@ export async function updateAdminTrainerController(
   }
 }
 
-/* ============================================================
-   ADMIN - RESET TRAINER PASSWORD
-   ============================================================ */
-
 export async function resetAdminTrainerPasswordController(
   req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const actorUserId =
-      req.user?.userId;
+    const actorUserId = req.user?.userId;
 
     if (!actorUserId) {
       return res.status(401).json({
         success: false,
-        message:
-          "Authentication required.",
+        message: "Authentication required.",
       });
     }
 
@@ -372,8 +341,7 @@ export async function resetAdminTrainerPasswordController(
       req.body?.password;
 
     if (
-      typeof password !==
-      "string"
+      typeof password !== "string"
     ) {
       return res.status(400).json({
         success: false,
@@ -383,9 +351,7 @@ export async function resetAdminTrainerPasswordController(
     }
 
     await resetAdminTrainerPassword(
-      parseId(
-        req.params.id
-      ),
+      parseId(req.params.id),
       password,
       actorUserId
     );
@@ -407,10 +373,8 @@ export async function resetAdminTrainerPasswordController(
         : "Unable to reset trainer password.";
 
     const status =
-      message ===
-        "Trainer not found." ||
-      message ===
-        "Trainer account not found."
+      message === "Trainer not found." ||
+      message === "Trainer account not found."
         ? 404
         : 400;
 

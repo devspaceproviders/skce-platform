@@ -1,20 +1,37 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  AlertTriangle,
+  Ban,
   CalendarDays,
+  CheckCircle2,
   Clock3,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Plus,
   RefreshCw,
-  Video,
-  Users,
+  Save,
   UserCircle,
+  Users,
+  Video,
   BookOpen,
   Layers,
   XCircle,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Save,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from "lucide-react";
 
 const API_URL =
@@ -115,6 +132,62 @@ function getToken() {
     localStorage.getItem("accessToken") ||
     ""
   );
+}
+
+function getCurrentUserId(): number | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const token = getToken();
+    if (token) {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const payload = JSON.parse(
+          decodeURIComponent(
+            Array.from(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")))
+              .map((character) =>
+                `%${`00${character.charCodeAt(0).toString(16)}`.slice(-2)}`
+              )
+              .join("")
+          )
+        ) as Record<string, unknown>;
+
+        const tokenUserId = Number(
+          payload.userId ?? payload.id ?? payload.sub
+        );
+
+        if (Number.isInteger(tokenUserId) && tokenUserId > 0) {
+          return tokenUserId;
+        }
+      }
+    }
+  } catch {
+    // Fall back to the locally stored user object below.
+  }
+
+  try {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser) as Record<string, unknown>;
+      const storedUserId = Number(parsed.userId ?? parsed.id);
+
+      if (Number.isInteger(storedUserId) && storedUserId > 0) {
+        return storedUserId;
+      }
+    }
+  } catch {
+    // Backend authorization remains the final permission check.
+  }
+
+  return null;
+}
+
+function toDateTimeLocalValue(date: Date) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60_000);
+  return localDate.toISOString().slice(0, 16);
 }
 
 async function authenticatedFetch(
@@ -231,6 +304,20 @@ function getStatusClasses(status: MeetingStatus) {
   }
 }
 
+function getOrganizerLabel(meeting: CalendarMeeting) {
+  const organizer = meeting.organizer;
+
+  if (!organizer) {
+    return "Not available";
+  }
+
+  return organizer.name || organizer.email || "Not available";
+}
+
+function getOrganizerRole(meeting: CalendarMeeting) {
+  return meeting.organizer?.role || "";
+}
+
 function getCalendarDayKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
     2,
@@ -255,15 +342,47 @@ export default function TrainerCalendarPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Page-level errors are only for loading/refreshing the calendar itself.
+  // Form and meeting-action errors stay inside their respective modals.
   const [error, setError] = useState("");
+
   const [selectedMeeting, setSelectedMeeting] =
     useState<CalendarMeeting | null>(null);
+  const [selectedMeetingError, setSelectedMeetingError] = useState("");
+  const [cancellingMeeting, setCancellingMeeting] = useState(false);
+
+  // UltraViewer is used as an optional remote-control tool alongside
+  // the normal meeting. The student supplies the current UltraViewer
+  // ID/password at meeting time; the password is never persisted.
+  const [remoteAssistId, setRemoteAssistId] = useState("");
+  const [remoteAssistPassword, setRemoteAssistPassword] = useState("");
+  const [showRemoteAssistPassword, setShowRemoteAssistPassword] =
+    useState(false);
+  const [remoteAssistMessage, setRemoteAssistMessage] = useState("");
+
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingMeeting, setEditingMeeting] =
+    useState<CalendarMeeting | null>(null);
   const [optionsLoading, setOptionsLoading] = useState(false);
-  const [creatingMeeting, setCreatingMeeting] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [meetingOptions, setMeetingOptions] = useState<MeetingOptions | null>(null);
-  const [form, setForm] = useState<MeetingFormState>({ title:"", description:"", meetingType:"BATCH_MEETING", startAt:"", endAt:"", meetingUrl:"", meetingPlatform:"OTHER", courseId:"", batchId:"", participantUserIds:[] });
+  const [savingMeeting, setSavingMeeting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const [meetingOptions, setMeetingOptions] =
+    useState<MeetingOptions | null>(null);
+
+  const [form, setForm] = useState<MeetingFormState>({
+    title: "",
+    description: "",
+    meetingType: "BATCH_MEETING",
+    startAt: "",
+    endAt: "",
+    meetingUrl: "",
+    meetingPlatform: "OTHER",
+    courseId: "",
+    batchId: "",
+    participantUserIds: [],
+  });
 
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [calendarWeekDate, setCalendarWeekDate] = useState(() => new Date());
@@ -273,54 +392,577 @@ export default function TrainerCalendarPage() {
 
   const agendaTodayRef = useRef<HTMLDivElement | null>(null);
 
-  function resetCreateForm() {
-    setForm({ title:"", description:"", meetingType:"BATCH_MEETING", startAt:"", endAt:"", meetingUrl:"", meetingPlatform:"OTHER", courseId:"", batchId:"", participantUserIds:[] });
-    setCreateError("");
+  function resetMeetingForm() {
+    setForm({
+      title: "",
+      description: "",
+      meetingType: "BATCH_MEETING",
+      startAt: "",
+      endAt: "",
+      meetingUrl: "",
+      meetingPlatform: "OTHER",
+      courseId: "",
+      batchId: "",
+      participantUserIds: [],
+    });
+    setFormError("");
+  }
+
+  async function loadMeetingOptions() {
+    try {
+      setOptionsLoading(true);
+
+      const response = await authenticatedFetch(
+        `${API_URL}/trainer/meetings/options`
+      );
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to load meeting options."
+        );
+      }
+
+      setMeetingOptions(result.data);
+    } catch (err) {
+      console.error("Failed to load trainer meeting options:", err);
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load meeting options."
+      );
+    } finally {
+      setOptionsLoading(false);
+    }
   }
 
   async function openCreateMeetingModal() {
-    setShowCreateModal(true); setCreateError("");
-    if (meetingOptions) return;
-    try {
-      setOptionsLoading(true);
-      const response = await authenticatedFetch(`${API_URL}/trainer/meetings/options`);
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.message || "Failed to load meeting options.");
-      setMeetingOptions(result.data);
-    } catch (err) { setCreateError(err instanceof Error ? err.message : "Failed to load meeting options."); }
-    finally { setOptionsLoading(false); }
+    setSelectedMeeting(null);
+    setSelectedMeetingError("");
+    setEditingMeeting(null);
+    setError("");
+    setFormError("");
+    setRemoteAssistId("");
+    setRemoteAssistPassword("");
+    setShowRemoteAssistPassword(false);
+    setRemoteAssistMessage("");
+
+    setForm({
+      title: "",
+      description: "",
+      meetingType: "BATCH_MEETING",
+      startAt: "",
+      endAt: "",
+      meetingUrl: "",
+      meetingPlatform: "OTHER",
+      courseId: "",
+      batchId: "",
+      participantUserIds: [],
+    });
+
+    setShowCreateModal(true);
+
+    if (!meetingOptions) {
+      await loadMeetingOptions();
+    }
   }
 
-  function closeCreateMeetingModal() { if (creatingMeeting) return; setShowCreateModal(false); resetCreateForm(); }
+  function openEditMeetingModal(meeting: CalendarMeeting) {
+    if (meeting.status !== "SCHEDULED") {
+      return;
+    }
 
-  function toggleParticipant(userId:number) {
-    setForm(current => {
-      if (current.meetingType === "ONE_TO_ONE") return {...current, participantUserIds:[userId]};
-      const exists=current.participantUserIds.includes(userId);
-      return {...current, participantUserIds: exists ? current.participantUserIds.filter(id=>id!==userId) : [...current.participantUserIds,userId]};
+    const currentUserId = getCurrentUserId();
+
+    if (
+      currentUserId !== null &&
+      meeting.organizerUserId !== currentUserId
+    ) {
+      setSelectedMeetingError(
+        "Only the trainer who organized this meeting can update or cancel it."
+      );
+      return;
+    }
+
+    setSelectedMeeting(null);
+    setSelectedMeetingError("");
+    setError("");
+    setFormError("");
+    setRemoteAssistId("");
+    setRemoteAssistPassword("");
+    setShowRemoteAssistPassword(false);
+    setRemoteAssistMessage("");
+    setEditingMeeting(meeting);
+
+    setForm({
+      title: meeting.title || "",
+      description: meeting.description || "",
+      meetingType: meeting.meetingType,
+      startAt: toDateTimeLocalValue(new Date(meeting.startAt)),
+      endAt: toDateTimeLocalValue(new Date(meeting.endAt)),
+      meetingUrl: meeting.meetingUrl || "",
+      meetingPlatform: meeting.meetingPlatform || "OTHER",
+      courseId: meeting.courseId ? String(meeting.courseId) : "",
+      batchId: meeting.batchId ? String(meeting.batchId) : "",
+      participantUserIds:
+        meeting.participants?.map((participant) => participant.userId) || [],
+    });
+
+    setShowCreateModal(true);
+
+    if (!meetingOptions) {
+      void loadMeetingOptions();
+    }
+  }
+
+  function closeCreateMeetingModal() {
+    if (savingMeeting) {
+      return;
+    }
+
+    setShowCreateModal(false);
+    setEditingMeeting(null);
+    resetMeetingForm();
+  }
+
+  function closeSelectedMeetingModal() {
+    if (cancellingMeeting) {
+      return;
+    }
+
+    setSelectedMeeting(null);
+    setSelectedMeetingError("");
+    setRemoteAssistId("");
+    setRemoteAssistPassword("");
+    setShowRemoteAssistPassword(false);
+    setRemoteAssistMessage("");
+  }
+
+  async function copyRemoteAssistValue(
+    value: string,
+    label: string
+  ) {
+    if (!value.trim()) {
+      setRemoteAssistMessage(`${label} is empty.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value.trim());
+      setRemoteAssistMessage(`${label} copied.`);
+    } catch {
+      setRemoteAssistMessage(`Unable to copy ${label.toLowerCase()}.`);
+    }
+  }
+
+  async function prepareRemoteAssistance() {
+    const id = remoteAssistId.trim();
+    const password = remoteAssistPassword.trim();
+
+    if (!id) {
+      setRemoteAssistMessage(
+        "Enter the student's current UltraViewer ID first."
+      );
+      return;
+    }
+
+    if (!password) {
+      setRemoteAssistMessage(
+        "Enter the student's current UltraViewer password first."
+      );
+      return;
+    }
+
+    try {
+      const command = `UltraViewer_Desktop.exe -i:${id} -p:${password}`;
+      await navigator.clipboard.writeText(command);
+      setRemoteAssistMessage(
+        "UltraViewer connection command copied. Open UltraViewer, or paste the command in Windows Command Prompt if command-line support is available on your installed version."
+      );
+      window.open(
+        "https://www.ultraviewer.net/en/download.html",
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } catch {
+      setRemoteAssistMessage(
+        "Unable to prepare the UltraViewer connection command."
+      );
+    }
+  }
+
+  function toggleParticipant(userId: number) {
+    setFormError("");
+
+    setForm((current) => {
+      if (current.meetingType === "ONE_TO_ONE") {
+        return {
+          ...current,
+          participantUserIds: [userId],
+        };
+      }
+
+      const exists = current.participantUserIds.includes(userId);
+
+      return {
+        ...current,
+        participantUserIds: exists
+          ? current.participantUserIds.filter((id) => id !== userId)
+          : [...current.participantUserIds, userId],
+      };
     });
   }
 
-  async function handleCreateMeeting() {
-    setCreateError(""); const title=form.title.trim();
-    if(!title) return setCreateError("Meeting title is required.");
-    if(!form.startAt || !form.endAt) return setCreateError("Start time and end time are required.");
-    const start=new Date(form.startAt), end=new Date(form.endAt);
-    if(Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return setCreateError("Please enter valid start and end times.");
-    if(end.getTime()<=start.getTime()) return setCreateError("End time must be after start time.");
-    if((form.meetingType==="BATCH_MEETING" || form.meetingType==="STUDENT_MEETING") && !form.batchId) return setCreateError("Please select a batch for this meeting type.");
-    if(form.meetingType==="ONE_TO_ONE" && form.participantUserIds.length!==1) return setCreateError("Please select exactly one student.");
-    if(form.meetingType==="STUDENT_MEETING" && form.participantUserIds.length===0) return setCreateError("Please select at least one student.");
-    if(form.meetingType==="INTERNAL_MEETING" && form.participantUserIds.length===0) return setCreateError("Please select at least one trainer.");
+  async function handleCreateMeeting(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setFormError("");
+    setError("");
+
+    const title = form.title.trim();
+
+    if (!title) {
+      setFormError("Meeting title is required.");
+      return;
+    }
+
+    if (!form.startAt || !form.endAt) {
+      setFormError("Start time and end time are required.");
+      return;
+    }
+
+    const start = new Date(form.startAt);
+    const end = new Date(form.endAt);
+
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime())
+    ) {
+      setFormError("Please enter valid start and end times.");
+      return;
+    }
+
+    if (end.getTime() <= start.getTime()) {
+      setFormError("End time must be after start time.");
+      return;
+    }
+
+    if (
+      form.meetingUrl.trim() &&
+      !/^https?:\/\//i.test(form.meetingUrl.trim())
+    ) {
+      setFormError(
+        "Meeting URL must start with http:// or https://."
+      );
+      return;
+    }
+
+    if (
+      (form.meetingType === "BATCH_MEETING" ||
+        form.meetingType === "STUDENT_MEETING") &&
+      !form.batchId
+    ) {
+      setFormError(
+        "Please select a batch for this meeting type."
+      );
+      return;
+    }
+
+    if (
+      form.meetingType === "ONE_TO_ONE" &&
+      form.participantUserIds.length !== 1
+    ) {
+      setFormError("Please select exactly one student.");
+      return;
+    }
+
+    if (
+      form.meetingType === "STUDENT_MEETING" &&
+      form.participantUserIds.length === 0
+    ) {
+      setFormError("Please select at least one student.");
+      return;
+    }
+
+    if (
+      form.meetingType === "INTERNAL_MEETING" &&
+      form.participantUserIds.length === 0
+    ) {
+      setFormError("Please select at least one trainer.");
+      return;
+    }
+
     try {
-      setCreatingMeeting(true);
-      const payload={title,description:form.description.trim()||undefined,startAt:start.toISOString(),endAt:end.toISOString(),meetingUrl:form.meetingUrl.trim()||undefined,meetingPlatform:form.meetingPlatform,meetingType:form.meetingType,courseId:form.courseId?Number(form.courseId):undefined,batchId:form.batchId?Number(form.batchId):undefined,participantUserIds:form.participantUserIds};
-      const response=await authenticatedFetch(`${API_URL}/trainer/meetings`,{method:"POST",body:JSON.stringify(payload)});
-      const result=await response.json();
-      if(!response.ok || !result.success) throw new Error(result.message||"Failed to schedule the meeting.");
-      setShowCreateModal(false); resetCreateForm(); await loadCalendar(true);
-    } catch(err) { setCreateError(err instanceof Error?err.message:"Failed to schedule the meeting."); }
-    finally { setCreatingMeeting(false); }
+      setSavingMeeting(true);
+
+      const payload = {
+        title,
+        description: form.description.trim() || null,
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+        meetingUrl: form.meetingUrl.trim() || null,
+        meetingPlatform: form.meetingPlatform,
+        meetingType: form.meetingType,
+        status: "SCHEDULED",
+        courseId: form.courseId ? Number(form.courseId) : null,
+        batchId: form.batchId ? Number(form.batchId) : null,
+        participantUserIds: form.participantUserIds,
+      };
+
+      const response = await authenticatedFetch(
+        `${API_URL}/trainer/meetings`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        if (response.status === 409) {
+          setFormError(
+            result.message ||
+              "The selected time conflicts with another scheduled meeting. Change the time, participant, or batch and try again."
+          );
+          return;
+        }
+
+        throw new Error(
+          result.message || "Failed to schedule the meeting."
+        );
+      }
+
+      setShowCreateModal(false);
+      setEditingMeeting(null);
+      resetMeetingForm();
+      await loadCalendar(true);
+    } catch (err) {
+      console.error("Create trainer meeting error:", err);
+
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "Failed to schedule the meeting."
+      );
+    } finally {
+      setSavingMeeting(false);
+    }
+  }
+
+  async function handleUpdateMeeting(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
+    if (!editingMeeting) {
+      return;
+    }
+
+    setFormError("");
+    setError("");
+
+    const title = form.title.trim();
+
+    if (!title) {
+      setFormError("Meeting title is required.");
+      return;
+    }
+
+    if (!form.startAt || !form.endAt) {
+      setFormError("Start time and end time are required.");
+      return;
+    }
+
+    const start = new Date(form.startAt);
+    const end = new Date(form.endAt);
+
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime())
+    ) {
+      setFormError("Please enter valid start and end times.");
+      return;
+    }
+
+    if (end.getTime() <= start.getTime()) {
+      setFormError("End time must be after start time.");
+      return;
+    }
+
+    if (
+      form.meetingUrl.trim() &&
+      !/^https?:\/\//i.test(form.meetingUrl.trim())
+    ) {
+      setFormError(
+        "Meeting URL must start with http:// or https://."
+      );
+      return;
+    }
+
+    if (
+      (form.meetingType === "BATCH_MEETING" ||
+        form.meetingType === "STUDENT_MEETING") &&
+      !form.batchId
+    ) {
+      setFormError(
+        "Please select a batch for this meeting type."
+      );
+      return;
+    }
+
+    if (
+      form.meetingType === "ONE_TO_ONE" &&
+      form.participantUserIds.length !== 1
+    ) {
+      setFormError(
+        "Please select exactly one student."
+      );
+      return;
+    }
+
+    if (
+      form.meetingType === "STUDENT_MEETING" &&
+      form.participantUserIds.length === 0
+    ) {
+      setFormError(
+        "Please select at least one student."
+      );
+      return;
+    }
+
+    if (
+      form.meetingType === "INTERNAL_MEETING" &&
+      form.participantUserIds.length === 0
+    ) {
+      setFormError(
+        "Please select at least one trainer."
+      );
+      return;
+    }
+
+    try {
+      setSavingMeeting(true);
+
+      const payload = {
+        title,
+        description: form.description.trim() || null,
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+        meetingUrl: form.meetingUrl.trim() || null,
+        meetingPlatform: form.meetingPlatform,
+        meetingType: form.meetingType,
+        status: editingMeeting.status,
+        courseId: form.courseId ? Number(form.courseId) : null,
+        batchId: form.batchId ? Number(form.batchId) : null,
+        participantUserIds:
+          form.meetingType === "BATCH_MEETING"
+            ? []
+            : form.participantUserIds,
+      };
+
+      const response = await authenticatedFetch(
+        `${API_URL}/trainer/meetings/${editingMeeting.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        if (response.status === 409) {
+          setFormError(
+            result.message ||
+              "The selected time conflicts with another scheduled meeting. Change the time, participant, or batch and try again."
+          );
+          return;
+        }
+
+        throw new Error(
+          result.message || "Failed to update the meeting."
+        );
+      }
+
+      setShowCreateModal(false);
+      setEditingMeeting(null);
+      resetMeetingForm();
+      await loadCalendar(true);
+    } catch (err) {
+      console.error("Update trainer meeting error:", err);
+
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update the meeting."
+      );
+    } finally {
+      setSavingMeeting(false);
+    }
+  }
+
+  async function handleCancelMeeting(meeting: CalendarMeeting) {
+    if (meeting.status !== "SCHEDULED") {
+      return;
+    }
+
+    const currentUserId = getCurrentUserId();
+
+    if (
+      currentUserId !== null &&
+      meeting.organizerUserId !== currentUserId
+    ) {
+      setSelectedMeetingError(
+        "Only the trainer who organized this meeting can update or cancel it."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel meeting "${meeting.title}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCancellingMeeting(true);
+      setSelectedMeetingError("");
+      setError("");
+
+      const response = await authenticatedFetch(
+        `${API_URL}/trainer/meetings/${meeting.id}/cancel`,
+        {
+          method: "POST",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Failed to cancel the meeting."
+        );
+      }
+
+      setSelectedMeeting(
+        result.data || {
+          ...meeting,
+          status: "CANCELLED",
+        }
+      );
+
+      await loadCalendar(true);
+    } catch (err) {
+      console.error("Cancel trainer meeting error:", err);
+
+      setSelectedMeetingError(
+        err instanceof Error
+          ? err.message
+          : "Failed to cancel the meeting."
+      );
+    } finally {
+      setCancellingMeeting(false);
+    }
   }
 
   const loadCalendar = useCallback(async (showRefresh = false) => {
@@ -741,7 +1383,7 @@ export default function TrainerCalendarPage() {
       </div>
 
       <div className="space-y-6 px-8 py-6">
-        {error && (
+        {!showCreateModal && !selectedMeeting && error && (
           <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <span>{error}</span>
 
@@ -1272,6 +1914,12 @@ export default function TrainerCalendarPage() {
                         {formatTime(meeting.startAt)} –{" "}
                         {formatTime(meeting.endAt)}
                       </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Scheduled By: {getOrganizerLabel(meeting)}
+                        {getOrganizerRole(meeting)
+                          ? ` · ${getOrganizerRole(meeting)}`
+                          : ""}
+                      </p>
                     </div>
 
                     <span
@@ -1291,32 +1939,571 @@ export default function TrainerCalendarPage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5"><div><h2 className="text-xl font-bold text-slate-900">Create Meeting</h2><p className="mt-1 text-sm text-slate-500">Schedule a meeting with your assigned students, batch, or trainers.</p></div><button type="button" onClick={closeCreateMeetingModal} disabled={creatingMeeting} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><XCircle size={20}/></button></div>
-            <div className="space-y-5 px-6 py-6">
-              {createError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{createError}</div>}
-              {optionsLoading ? <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">Loading meeting options...</div> : meetingOptions ? <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Meeting Title *</span><input value={form.title} maxLength={255} onChange={e=>setForm(c=>({...c,title:e.target.value}))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></label>
-                  <label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Meeting Type *</span><select value={form.meetingType} onChange={e=>setForm(c=>({...c,meetingType:e.target.value as MeetingType,batchId:["BATCH_MEETING","STUDENT_MEETING"].includes(e.target.value)?c.batchId:"",participantUserIds:[]}))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="BATCH_MEETING">Batch Meeting</option><option value="STUDENT_MEETING">Student Meeting</option><option value="ONE_TO_ONE">One-to-One</option><option value="INTERNAL_MEETING">Internal Meeting</option></select></label><label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Meeting Platform</span><select value={form.meetingPlatform} onChange={e=>setForm(c=>({...c,meetingPlatform:e.target.value as MeetingPlatform}))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="GOOGLE_MEET">Google Meet</option><option value="MICROSOFT_TEAMS">Microsoft Teams</option><option value="ZOOM">Zoom</option><option value="WHATSAPP">WhatsApp</option><option value="OTHER">Other</option></select></label>
+          <div className="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-200 px-6 py-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#173B67]/10 px-2.5 py-1 text-[11px] font-semibold text-[#173B67]">
+                    {editingMeeting ? "Edit Meeting" : "Create Meeting"}
+                  </span>
+                  {editingMeeting && (
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusClasses(
+                        editingMeeting.status
+                      )}`}
+                    >
+                      {editingMeeting.status}
+                    </span>
+                  )}
                 </div>
-                <label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Description</span><textarea rows={3} value={form.description} onChange={e=>setForm(c=>({...c,description:e.target.value}))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></label>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2"><label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Start *</span><input type="datetime-local" value={form.startAt} onChange={e=>setForm(c=>({...c,startAt:e.target.value}))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></label><label><span className="mb-1.5 block text-sm font-semibold text-slate-700">End *</span><input type="datetime-local" value={form.endAt} onChange={e=>setForm(c=>({...c,endAt:e.target.value}))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" /></label></div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2"><label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Course</span><select value={form.courseId} onChange={e=>setForm(c=>({...c,courseId:e.target.value}))} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">No course</option>{meetingOptions.courses.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select></label>{(form.meetingType==="BATCH_MEETING"||form.meetingType==="STUDENT_MEETING")&&<label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Batch *</span><select value={form.batchId} onChange={e=>{const id=e.target.value,b=meetingOptions.batches.find(x=>String(x.id)===id);setForm(c=>({...c,batchId:id,courseId:b?.courseId?String(b.courseId):c.courseId}))}} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="">Select batch</option>{meetingOptions.batches.map(b=><option key={b.id} value={b.id}>{b.displayId?`${b.displayId} • `:""}{b.name}</option>)}</select></label>}</div>
-                {(form.meetingType==="STUDENT_MEETING"||form.meetingType==="ONE_TO_ONE")&&<div><div className="mb-2 flex justify-between"><p className="text-sm font-semibold text-slate-700">Students *</p><span className="text-xs text-slate-500">{form.participantUserIds.length} selected</span></div><div className="max-h-52 overflow-y-auto rounded-xl border border-slate-200">{meetingOptions.students.map(st=>{const selected=form.participantUserIds.includes(st.userId);return <label key={st.userId} className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3"><input type={form.meetingType==="ONE_TO_ONE"?"radio":"checkbox"} checked={selected} onChange={()=>toggleParticipant(st.userId)} className="h-4 w-4"/><div><p className="text-sm font-medium text-slate-800">{st.name}</p><p className="text-xs text-slate-500">{st.email}</p></div></label>})}</div></div>}
-                {form.meetingType==="INTERNAL_MEETING"&&<div><div className="mb-2 flex justify-between"><p className="text-sm font-semibold text-slate-700">Trainers *</p><span className="text-xs text-slate-500">{form.participantUserIds.length} selected</span></div><div className="max-h-52 overflow-y-auto rounded-xl border border-slate-200">{meetingOptions.trainers.map(t=>{const selected=form.participantUserIds.includes(t.userId);return <label key={t.userId} className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3"><input type="checkbox" checked={selected} onChange={()=>toggleParticipant(t.userId)} className="h-4 w-4"/><div><p className="text-sm font-medium text-slate-800">{t.name}</p><p className="text-xs text-slate-500">{t.email}</p></div></label>})}</div></div>}
-                <label><span className="mb-1.5 block text-sm font-semibold text-slate-700">Meeting URL</span><input type="url" value={form.meetingUrl} onChange={e=>setForm(c=>({...c,meetingUrl:e.target.value}))} className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" placeholder="https://..." /></label>
-                <div className="flex justify-end gap-3 border-t border-slate-200 pt-5"><button type="button" onClick={closeCreateMeetingModal} disabled={creatingMeeting} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">Cancel</button><button type="button" onClick={handleCreateMeeting} disabled={creatingMeeting} className="inline-flex items-center gap-2 rounded-lg bg-[#173B67] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"><Save size={16}/>{creatingMeeting?"Scheduling...":"Schedule Meeting"}</button></div>
-              </> : null}
+
+                <h2 className="mt-2 text-xl font-bold text-slate-900">
+                  {editingMeeting ? "Update Meeting" : "Schedule Meeting"}
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  {editingMeeting
+                    ? "Update the meeting details. The system will re-check participant, batch, trainer, and organizer conflicts."
+                    : "Schedule a meeting with your assigned students, batch, or trainers."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeCreateMeetingModal}
+                disabled={savingMeeting}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Close meeting form"
+              >
+                <XCircle size={20} />
+              </button>
             </div>
+
+            {formError && (
+              <div className="shrink-0 border-b border-red-200 bg-red-50 px-6 py-3.5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                    <AlertTriangle size={15} />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-red-800">
+                      {formError.toLowerCase().includes("conflict") ||
+                      formError.toLowerCase().includes("scheduled meeting")
+                        ? "Scheduling conflict"
+                        : "Unable to continue"}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-red-700">
+                      {formError}
+                    </p>
+                    {(formError.toLowerCase().includes("conflict") ||
+                      formError
+                        .toLowerCase()
+                        .includes("scheduled meeting")) && (
+                      <p className="mt-1.5 text-xs font-medium text-red-600">
+                        Change the time, participant, or batch and try again. The form will remain open.
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormError("")}
+                    className="shrink-0 rounded-md p-1 text-red-400 transition hover:bg-red-100 hover:text-red-700"
+                    aria-label="Dismiss form error"
+                  >
+                    <XCircle size={17} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <form
+              onSubmit={
+                editingMeeting
+                  ? handleUpdateMeeting
+                  : handleCreateMeeting
+              }
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                {optionsLoading ? (
+                  <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <Loader2
+                        size={24}
+                        className="animate-spin text-[#173B67]"
+                      />
+                      <p className="text-sm font-medium text-slate-600">
+                        Loading meeting options...
+                      </p>
+                    </div>
+                  </div>
+                ) : meetingOptions ? (
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          Meeting Title *
+                        </span>
+                        <input
+                          value={form.title}
+                          maxLength={255}
+                          onChange={(event) =>
+                            setForm((current) => ({
+                              ...current,
+                              title: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          Meeting Type *
+                        </span>
+                        <select
+                          value={form.meetingType}
+                          onChange={(event) => {
+                            const meetingType =
+                              event.target.value as MeetingType;
+
+                            setForm((current) => ({
+                              ...current,
+                              meetingType,
+                              batchId:
+                                meetingType === "BATCH_MEETING" ||
+                                meetingType === "STUDENT_MEETING"
+                                  ? current.batchId
+                                  : "",
+                              participantUserIds: [],
+                            }));
+                            setFormError("");
+                          }}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        >
+                          <option value="BATCH_MEETING">
+                            Batch Meeting
+                          </option>
+                          <option value="STUDENT_MEETING">
+                            Student Meeting
+                          </option>
+                          <option value="ONE_TO_ONE">
+                            One-to-One
+                          </option>
+                          <option value="INTERNAL_MEETING">
+                            Internal Meeting
+                          </option>
+                        </select>
+                      </label>
+
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          Meeting Platform
+                        </span>
+                        <select
+                          value={form.meetingPlatform}
+                          onChange={(event) => {
+                            setForm((current) => ({
+                              ...current,
+                              meetingPlatform:
+                                event.target.value as MeetingPlatform,
+                            }));
+                            setFormError("");
+                          }}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        >
+                          <option value="GOOGLE_MEET">
+                            Google Meet
+                          </option>
+                          <option value="MICROSOFT_TEAMS">
+                            Microsoft Teams
+                          </option>
+                          <option value="ZOOM">Zoom</option>
+                          <option value="WHATSAPP">WhatsApp</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <label>
+                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                        Description
+                      </span>
+                      <textarea
+                        rows={3}
+                        value={form.description}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            description: event.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                      />
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          Start *
+                        </span>
+                        <input
+                          type="datetime-local"
+                          value={form.startAt}
+                          onChange={(event) => {
+                            setForm((current) => ({
+                              ...current,
+                              startAt: event.target.value,
+                            }));
+                            setFormError("");
+                          }}
+                          className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          End *
+                        </span>
+                        <input
+                          type="datetime-local"
+                          value={form.endAt}
+                          onChange={(event) => {
+                            setForm((current) => ({
+                              ...current,
+                              endAt: event.target.value,
+                            }));
+                            setFormError("");
+                          }}
+                          className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                          Course
+                        </span>
+                        <select
+                          value={form.courseId}
+                          onChange={(event) => {
+                            setForm((current) => ({
+                              ...current,
+                              courseId: event.target.value,
+                            }));
+                            setFormError("");
+                          }}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        >
+                          <option value="">No course</option>
+                          {meetingOptions.courses.map((course) => (
+                            <option
+                              key={course.id}
+                              value={course.id}
+                            >
+                              {course.title}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      {(form.meetingType === "BATCH_MEETING" ||
+                        form.meetingType === "STUDENT_MEETING") && (
+                        <label>
+                          <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                            Batch *
+                          </span>
+                          <select
+                            value={form.batchId}
+                            onChange={(event) => {
+                              const batchId = event.target.value;
+                              const batch =
+                                meetingOptions.batches.find(
+                                  (item) =>
+                                    String(item.id) === batchId
+                                );
+
+                              setForm((current) => ({
+                                ...current,
+                                batchId,
+                                courseId: batch?.courseId
+                                  ? String(batch.courseId)
+                                  : current.courseId,
+                              }));
+                              setFormError("");
+                            }}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                          >
+                            <option value="">Select batch</option>
+                            {meetingOptions.batches.map((batch) => (
+                              <option
+                                key={batch.id}
+                                value={batch.id}
+                              >
+                                {batch.displayId
+                                  ? `${batch.displayId} • `
+                                  : ""}
+                                {batch.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                    </div>
+
+                    {(form.meetingType === "STUDENT_MEETING" ||
+                      form.meetingType === "ONE_TO_ONE") && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">
+                              Student Participants
+                              <span className="ml-1 text-red-500">
+                                *
+                              </span>
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {form.meetingType === "ONE_TO_ONE"
+                                ? "Select one student for this meeting."
+                                : "Select one or more students for this meeting."}
+                            </p>
+                          </div>
+
+                          <span className="rounded-full bg-[#173B67]/10 px-2.5 py-1 text-xs font-semibold text-[#173B67]">
+                            {form.participantUserIds.length} selected
+                          </span>
+                        </div>
+
+                        {form.meetingType === "ONE_TO_ONE" ? (
+                          <select
+                            value={
+                              form.participantUserIds[0] ?? ""
+                            }
+                            onChange={(event) =>
+                              toggleParticipant(
+                                Number(event.target.value)
+                              )
+                            }
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                          >
+                            <option value="">
+                              Select a student
+                            </option>
+                            {meetingOptions.students.map(
+                              (student) => (
+                                <option
+                                  key={student.userId}
+                                  value={student.userId}
+                                >
+                                  {student.name} — {student.email}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        ) : (
+                          <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+                            {meetingOptions.students.map(
+                              (student) => {
+                                const selected =
+                                  form.participantUserIds.includes(
+                                    student.userId
+                                  );
+
+                                return (
+                                  <label
+                                    key={student.userId}
+                                    className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-50"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={() =>
+                                        toggleParticipant(
+                                          student.userId
+                                        )
+                                      }
+                                      className="h-4 w-4 rounded border-slate-300 text-[#173B67] focus:ring-[#173B67]"
+                                    />
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm font-medium text-slate-800">
+                                        {student.name}
+                                      </span>
+                                      <span className="block truncate text-xs text-slate-500">
+                                        {student.email}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {form.meetingType === "INTERNAL_MEETING" && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">
+                              Internal Participants
+                              <span className="ml-1 text-red-500">
+                                *
+                              </span>
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Select one or more trainers for this internal meeting.
+                            </p>
+                          </div>
+
+                          <span className="rounded-full bg-[#173B67]/10 px-2.5 py-1 text-xs font-semibold text-[#173B67]">
+                            {form.participantUserIds.length} selected
+                          </span>
+                        </div>
+
+                        {meetingOptions.trainers.length === 0 ? (
+                          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-700">
+                            No active trainers are available.
+                          </p>
+                        ) : (
+                          <div className="max-h-52 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+                            {meetingOptions.trainers.map(
+                              (trainer) => {
+                                const selected =
+                                  form.participantUserIds.includes(
+                                    trainer.userId
+                                  );
+
+                                return (
+                                  <label
+                                    key={trainer.userId}
+                                    className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-slate-50"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      onChange={() =>
+                                        toggleParticipant(
+                                          trainer.userId
+                                        )
+                                      }
+                                      className="h-4 w-4 rounded border-slate-300 text-[#173B67] focus:ring-[#173B67]"
+                                    />
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm font-medium text-slate-800">
+                                        {trainer.name}
+                                      </span>
+                                      <span className="block truncate text-xs text-slate-500">
+                                        {trainer.email}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {form.meetingType === "BATCH_MEETING" && (
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2
+                            size={18}
+                            className="mt-0.5 shrink-0 text-[#173B67]"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-[#173B67]">
+                              Batch meeting
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-blue-700">
+                              The selected batch determines the meeting audience.
+                              The trainer, batch students, and organizer are
+                              checked for overlapping scheduled meetings.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <label>
+                      <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+                        Meeting URL
+                      </span>
+                      <input
+                        type="url"
+                        value={form.meetingUrl}
+                        onChange={(event) => {
+                          setForm((current) => ({
+                            ...current,
+                            meetingUrl: event.target.value,
+                          }));
+                          setFormError("");
+                        }}
+                        className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                        placeholder="https://teams.microsoft.com/..."
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                    Meeting options could not be loaded. Close this window and try again.
+                  </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+                <button
+                  type="button"
+                  onClick={closeCreateMeetingModal}
+                  disabled={savingMeeting}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Close
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    savingMeeting ||
+                    optionsLoading ||
+                    !meetingOptions
+                  }
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#173B67] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#102c4f] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingMeeting ? (
+                    <Loader2
+                      size={16}
+                      className="animate-spin"
+                    />
+                  ) : editingMeeting ? (
+                    <Pencil size={16} />
+                  ) : (
+                    <Save size={16} />
+                  )}
+
+                  {savingMeeting
+                    ? editingMeeting
+                      ? "Updating..."
+                      : "Scheduling..."
+                    : editingMeeting
+                    ? "Update Meeting"
+                    : "Schedule Meeting"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
       {selectedMeeting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+          <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-200 px-6 py-5">
               <div>
                 <div className="flex items-center gap-2">
                   <span
@@ -1328,7 +2515,9 @@ export default function TrainerCalendarPage() {
                   </span>
 
                   <span className="text-xs font-medium text-slate-500">
-                    {getMeetingTypeLabel(selectedMeeting.meetingType)}
+                    {getMeetingTypeLabel(
+                      selectedMeeting.meetingType
+                    )}
                   </span>
                 </div>
 
@@ -1339,123 +2528,413 @@ export default function TrainerCalendarPage() {
 
               <button
                 type="button"
-                onClick={() => setSelectedMeeting(null)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                onClick={closeSelectedMeetingModal}
+                disabled={cancellingMeeting}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Close meeting details"
               >
                 <XCircle size={20} />
               </button>
             </div>
 
-            <div className="space-y-5 px-6 py-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    <Clock3 size={14} />
-                    Start
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">
-                    {formatDateTime(selectedMeeting.startAt)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    <Clock3 size={14} />
-                    End
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">
-                    {formatDateTime(selectedMeeting.endAt)}
-                  </p>
-                </div>
-              </div>
-
-              {selectedMeeting.description && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Description
-                  </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                    {selectedMeeting.description}
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {selectedMeeting.course?.title && (
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      <BookOpen size={14} />
-                      Course
-                    </div>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">
-                      {selectedMeeting.course.title}
+            {selectedMeetingError && (
+              <div className="shrink-0 border-b border-red-200 bg-red-50 px-6 py-3.5">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle
+                    size={18}
+                    className="mt-0.5 shrink-0 text-red-600"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-red-800">
+                      Meeting action failed
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-red-700">
+                      {selectedMeetingError}
                     </p>
                   </div>
-                )}
 
-                {selectedMeeting.batch?.name && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMeetingError("")}
+                    className="shrink-0 rounded-md p-1 text-red-400 transition hover:bg-red-100 hover:text-red-700"
+                    aria-label="Dismiss meeting action error"
+                  >
+                    <XCircle size={17} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      <Layers size={14} />
-                      Batch
+                      <Clock3 size={14} />
+                      Start
                     </div>
                     <p className="mt-2 text-sm font-semibold text-slate-900">
-                      {selectedMeeting.batch.displayId
-                        ? `${selectedMeeting.batch.displayId} • `
-                        : ""}
-                      {selectedMeeting.batch.name}
+                      {formatDateTime(selectedMeeting.startAt)}
                     </p>
                   </div>
-                )}
-              </div>
 
-              {selectedMeeting.participants &&
-                selectedMeeting.participants.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      <Clock3 size={14} />
+                      End
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                      {formatDateTime(selectedMeeting.endAt)}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedMeeting.description && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Participants
+                      Description
                     </p>
-
-                    <div className="mt-2 space-y-2">
-                      {selectedMeeting.participants.map((participant) => (
-                        <div
-                          key={participant.id}
-                          className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">
-                              {participant.name || "Participant"}
-                            </p>
-                            {participant.email && (
-                              <p className="text-xs text-slate-500">
-                                {participant.email}
-                              </p>
-                            )}
-                          </div>
-
-                          {participant.role && (
-                            <span className="text-[11px] font-semibold uppercase text-slate-400">
-                              {participant.role}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {selectedMeeting.description}
+                    </p>
                   </div>
                 )}
 
-              {selectedMeeting.meetingUrl && (
-                <a
-                  href={selectedMeeting.meetingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#173B67] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#102c4f]"
-                >
-                  <Video size={16} />
-                  Join Meeting
-                </a>
-              )}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {selectedMeeting.course?.title && (
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <BookOpen size={14} />
+                        Course
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        {selectedMeeting.course.title}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedMeeting.batch?.name && (
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <Layers size={14} />
+                        Batch
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        {selectedMeeting.batch.displayId
+                          ? `${selectedMeeting.batch.displayId} • `
+                          : ""}
+                        {selectedMeeting.batch.name}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <UserCircle size={14} />
+                    Scheduled By
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {getOrganizerLabel(selectedMeeting)}
+                  </p>
+                  {getOrganizerRole(selectedMeeting) ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      {getOrganizerRole(selectedMeeting)}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          Remote Assistance • UltraViewer
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">
+                          Use UltraViewer alongside {getMeetingPlatformLabel(
+                            selectedMeeting.meetingPlatform
+                          )} when the trainer needs to work directly on the student's Windows PC.
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href="https://www.ultraviewer.net/en/download.html"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      <ExternalLink size={14} />
+                      UltraViewer App
+                    </a>
+                  </div>
+
+                  {selectedMeeting.status === "SCHEDULED" ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+                        Ask the student to open UltraViewer and share the current ID and password. Do not save the password in SKCE. It is used only for this remote connection.
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+                            Student UltraViewer ID
+                          </span>
+                          <div className="flex gap-2">
+                            <input
+                              value={remoteAssistId}
+                              onChange={(event) => {
+                                setRemoteAssistId(event.target.value);
+                                setRemoteAssistMessage("");
+                              }}
+                              inputMode="numeric"
+                              autoComplete="off"
+                              placeholder="Enter current ID"
+                              className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void copyRemoteAssistValue(
+                                  remoteAssistId,
+                                  "UltraViewer ID"
+                                )
+                              }
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 transition hover:bg-slate-100"
+                              title="Copy UltraViewer ID"
+                            >
+                              <Copy size={15} />
+                            </button>
+                          </div>
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+                            Connection Password
+                          </span>
+                          <div className="flex gap-2">
+                            <div className="relative min-w-0 flex-1">
+                              <input
+                                type={
+                                  showRemoteAssistPassword
+                                    ? "text"
+                                    : "password"
+                                }
+                                value={remoteAssistPassword}
+                                onChange={(event) => {
+                                  setRemoteAssistPassword(event.target.value);
+                                  setRemoteAssistMessage("");
+                                }}
+                                autoComplete="off"
+                                placeholder="Enter current password"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowRemoteAssistPassword(
+                                    (current) => !current
+                                  )
+                                }
+                                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-700"
+                                aria-label={
+                                  showRemoteAssistPassword
+                                    ? "Hide password"
+                                    : "Show password"
+                                }
+                              >
+                                {showRemoteAssistPassword ? (
+                                  <EyeOff size={16} />
+                                ) : (
+                                  <Eye size={16} />
+                                )}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void copyRemoteAssistValue(
+                                  remoteAssistPassword,
+                                  "UltraViewer password"
+                                )
+                              }
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 transition hover:bg-slate-100"
+                              title="Copy UltraViewer password"
+                            >
+                              <Copy size={15} />
+                            </button>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-[11px] leading-5 text-slate-500">
+                          The web browser cannot directly control a Windows desktop application. SKCE prepares the official UltraViewer connection command; UltraViewer performs the actual remote-control session.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => void prepareRemoteAssistance()}
+                          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        >
+                          <ExternalLink size={15} />
+                          Start Remote Assistance
+                        </button>
+                      </div>
+
+                      {remoteAssistMessage && (
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-5 text-blue-800">
+                          {remoteAssistMessage}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-xs text-slate-500">
+                      Remote assistance is available only while the meeting is scheduled.
+                    </p>
+                  )}
+                </div>
+
+                {selectedMeeting.participants &&
+                  selectedMeeting.participants.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Participants
+                      </p>
+
+                      <div className="mt-2 space-y-2">
+                        {selectedMeeting.participants.map(
+                          (participant) => (
+                            <div
+                              key={participant.id}
+                              className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
+                            >
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">
+                                  {participant.name ||
+                                    "Participant"}
+                                </p>
+                                {participant.email && (
+                                  <p className="text-xs text-slate-500">
+                                    {participant.email}
+                                  </p>
+                                )}
+                              </div>
+
+                              {participant.role && (
+                                <span className="text-[11px] font-semibold uppercase text-slate-400">
+                                  {participant.role}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {selectedMeeting.meetingUrl && (
+                  <a
+                    href={selectedMeeting.meetingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#173B67] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#102c4f]"
+                  >
+                    <Video size={16} />
+                    Join Meeting
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-4">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-500">
+                  {selectedMeeting.status === "SCHEDULED"
+                    ? "Scheduled meetings can be updated or cancelled by their organizer."
+                    : selectedMeeting.status === "CANCELLED"
+                    ? "This meeting has been cancelled."
+                    : "This meeting is completed."}
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  {selectedMeeting.status === "SCHEDULED" &&
+                    (() => {
+                      const currentUserId = getCurrentUserId();
+                      const canManage =
+                        currentUserId === null ||
+                        selectedMeeting.organizerUserId ===
+                          currentUserId;
+
+                      return canManage;
+                    })() && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEditMeetingModal(
+                              selectedMeeting
+                            )
+                          }
+                          disabled={cancellingMeeting}
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Pencil size={16} />
+                          Update Meeting
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleCancelMeeting(
+                              selectedMeeting
+                            )
+                          }
+                          disabled={cancellingMeeting}
+                          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {cancellingMeeting ? (
+                            <Loader2
+                              size={16}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <Ban size={16} />
+                          )}
+                          {cancellingMeeting
+                            ? "Cancelling..."
+                            : "Cancel Meeting"}
+                        </button>
+                      </>
+                    )}
+
+                  {selectedMeeting.status === "SCHEDULED" &&
+                    (() => {
+                      const currentUserId = getCurrentUserId();
+                      return (
+                        currentUserId !== null &&
+                        selectedMeeting.organizerUserId !==
+                          currentUserId
+                      );
+                    })() && (
+                      <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                        Only the organizer can update or cancel this meeting.
+                      </span>
+                    )}
+
+                  <button
+                    type="button"
+                    onClick={closeSelectedMeetingModal}
+                    disabled={cancellingMeeting}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

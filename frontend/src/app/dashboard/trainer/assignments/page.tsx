@@ -80,6 +80,9 @@ type Assessment = {
   submissionCount: number;
   createdAt: string;
   updatedAt: string;
+  createdByUserId: number | null;
+  createdByName: string | null;
+  createdByRole: string | null;
 };
 
 type AssessmentDetails =
@@ -292,6 +295,24 @@ export default function TrainerAssignmentsPage() {
     useState<"All" | AssessmentType>(
       "All"
     );
+
+  const [courseFilter, setCourseFilter] =
+    useState("All");
+
+  const [creatorFilter, setCreatorFilter] =
+    useState("All");
+
+  const [dueDateFilter, setDueDateFilter] =
+    useState<"All" | "Due" | "No due date">("All");
+
+  const [questionsFilter, setQuestionsFilter] =
+    useState("");
+
+  const [submissionsFilter, setSubmissionsFilter] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState<"All" | "Active" | "Inactive">("All");
 
   const [view, setView] =
     useState<View>("list");
@@ -511,6 +532,15 @@ export default function TrainerAssignmentsPage() {
               Boolean(
                 item.isActive
               ),
+            createdByUserId:
+              item.createdByUserId === null ||
+              item.createdByUserId === undefined
+                ? null
+                : Number(item.createdByUserId),
+            createdByName:
+              item.createdByName ?? null,
+            createdByRole:
+              item.createdByRole ?? null,
           })
         )
       );
@@ -564,30 +594,99 @@ export default function TrainerAssignmentsPage() {
     void loadPage();
   }, []);
 
+  const creatorOptions = useMemo(() => {
+    const values = new Map<string, string>();
+
+    assessments.forEach((assessment) => {
+      const name =
+        assessment.createdByName?.trim() ||
+        "Not available";
+
+      if (!values.has(name)) {
+        values.set(name, name);
+      }
+    });
+
+    return Array.from(values.keys()).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [assessments]);
+
   const filteredAssessments =
     useMemo(() => {
       const query =
         search.trim().toLowerCase();
+      const questionQuery =
+        questionsFilter.trim();
+      const submissionQuery =
+        submissionsFilter.trim();
 
       return assessments.filter(
         (assessment) => {
-          const matchesSearch =
+          const assessmentText = [
+            assessment.title,
+            String(assessment.id),
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          const creatorName =
+            assessment.createdByName?.trim() ||
+            "Not available";
+
+          const matchesAssessment =
             !query ||
-            assessment.title
-              .toLowerCase()
-              .includes(query) ||
+            assessmentText.includes(query) ||
             assessment.courseTitle
               .toLowerCase()
               .includes(query);
 
+          const matchesCourse =
+            courseFilter === "All" ||
+            assessment.courseTitle ===
+              courseFilter;
+
+          const matchesCreator =
+            creatorFilter === "All" ||
+            creatorName === creatorFilter;
+
+          const matchesDueDate =
+            dueDateFilter === "All" ||
+            (dueDateFilter === "Due" &&
+              Boolean(assessment.dueAt)) ||
+            (dueDateFilter === "No due date" &&
+              !assessment.dueAt);
+
+          const matchesQuestions =
+            !questionQuery ||
+            String(assessment.questionCount)
+              .includes(questionQuery);
+
+          const matchesSubmissions =
+            !submissionQuery ||
+            String(assessment.submissionCount)
+              .includes(submissionQuery);
+
+          const matchesStatus =
+            statusFilter === "All" ||
+            (statusFilter === "Active" &&
+              assessment.isActive) ||
+            (statusFilter === "Inactive" &&
+              !assessment.isActive);
+
           const matchesType =
             filterType === "All" ||
-            assessment.type ===
-              filterType;
+            assessment.type === filterType;
 
           return (
-            matchesSearch &&
-            matchesType
+            matchesAssessment &&
+            matchesType &&
+            matchesCourse &&
+            matchesCreator &&
+            matchesDueDate &&
+            matchesQuestions &&
+            matchesSubmissions &&
+            matchesStatus
           );
         }
       );
@@ -595,6 +694,12 @@ export default function TrainerAssignmentsPage() {
       assessments,
       search,
       filterType,
+      courseFilter,
+      creatorFilter,
+      dueDateFilter,
+      questionsFilter,
+      submissionsFilter,
+      statusFilter,
     ]);
 
   const totalAssignments =
@@ -833,21 +938,6 @@ export default function TrainerAssignmentsPage() {
           ? json.data
           : []
       );
-
-      if (assessment.type === "QUIZ") {
-        const detailsResponse = await authenticatedFetch(
-          `${API_URL}/assessments/${assessment.id}`
-        );
-        const detailsJson = await detailsResponse.json();
-
-        if (detailsResponse.ok && detailsJson?.success) {
-          setAssessmentDetails(detailsJson.data);
-        } else {
-          setAssessmentDetails(null);
-        }
-      } else {
-        setAssessmentDetails(null);
-      }
     } catch (err) {
       console.error(
         "Load submissions error:",
@@ -1241,9 +1331,6 @@ export default function TrainerAssignmentsPage() {
         selectedSubmission={
           selectedSubmission
         }
-        quizQuestions={
-          assessmentDetails?.questions ?? []
-        }
         gradeScore={
           gradeScore
         }
@@ -1288,9 +1375,6 @@ export default function TrainerAssignmentsPage() {
         }
         selectedSubmission={
           selectedSubmission
-        }
-        quizQuestions={
-          assessmentDetails?.questions ?? []
         }
         gradeScore={
           gradeScore
@@ -1438,134 +1522,365 @@ export default function TrainerAssignmentsPage() {
           />
         </div>
 
-        {/* FILTERS */}
-        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search
-                size={18}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+        {/* FILTERS + LIST */}
+        <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Filter assessments
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Use the filters to find assignments and quizzes by the same criteria available in the Admin portal.
+                </p>
+              </div>
 
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(
-                    event.target.value
-                  )
-                }
-                placeholder="Search assignments or quizzes by title or course..."
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setFilterType("All");
+                  setCourseFilter("All");
+                  setCreatorFilter("All");
+                  setDueDateFilter("All");
+                  setQuestionsFilter("");
+                  setSubmissionsFilter("");
+                  setStatusFilter("All");
+                }}
+                className="w-fit rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Clear Filters
+              </button>
             </div>
+          </div>
 
-            <select
-              value={filterType}
-              onChange={(event) =>
-                setFilterType(
-                  event.target.value as
-                    | "All"
-                    | AssessmentType
-                )
-              }
-              className="h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 outline-none focus:border-orange-400"
-            >
-              <option value="All">
-                All Types
-              </option>
-              <option value="ASSIGNMENT">
-                Assignments
-              </option>
-              <option value="QUIZ">
-                Quizzes
-              </option>
-            </select>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px]">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Assessment
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Type
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Course
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Created By
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Due Date
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Questions
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Submissions
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Actions
+                  </th>
+                </tr>
 
-            <button
-              type="button"
-              onClick={() =>
-                void loadPage(
-                  true
-                )
-              }
-              disabled={
-                loading ||
-                refreshing
-              }
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                className={
-                  refreshing
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-              Refresh
-            </button>
+                <tr className="bg-white">
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={search}
+                      onChange={(event) =>
+                        setSearch(event.target.value)
+                      }
+                      placeholder="Title / ID / Course"
+                      className="w-full min-w-[170px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={filterType}
+                      onChange={(event) =>
+                        setFilterType(
+                          event.target.value as
+                            | "All"
+                            | AssessmentType
+                        )
+                      }
+                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All</option>
+                      <option value="ASSIGNMENT">Assignment</option>
+                      <option value="QUIZ">Quiz</option>
+                    </select>
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={courseFilter}
+                      onChange={(event) =>
+                        setCourseFilter(event.target.value)
+                      }
+                      className="w-full min-w-[170px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All Courses</option>
+                      {courses
+                        .slice()
+                        .sort((a, b) =>
+                          a.title.localeCompare(b.title)
+                        )
+                        .map((course) => (
+                          <option
+                            key={course.id}
+                            value={course.title}
+                          >
+                            {course.title}
+                          </option>
+                        ))}
+                    </select>
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={creatorFilter}
+                      onChange={(event) =>
+                        setCreatorFilter(event.target.value)
+                      }
+                      className="w-full min-w-[150px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All Creators</option>
+                      {creatorOptions.map((creator) => (
+                        <option key={creator} value={creator}>
+                          {creator}
+                        </option>
+                      ))}
+                    </select>
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={dueDateFilter}
+                      onChange={(event) =>
+                        setDueDateFilter(
+                          event.target.value as
+                            | "All"
+                            | "Due"
+                            | "No due date"
+                        )
+                      }
+                      className="w-full min-w-[130px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All</option>
+                      <option value="Due">Has due date</option>
+                      <option value="No due date">No due date</option>
+                    </select>
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={questionsFilter}
+                      onChange={(event) =>
+                        setQuestionsFilter(event.target.value)
+                      }
+                      inputMode="numeric"
+                      placeholder="Count"
+                      className="w-full min-w-[80px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    />
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={submissionsFilter}
+                      onChange={(event) =>
+                        setSubmissionsFilter(event.target.value)
+                      }
+                      inputMode="numeric"
+                      placeholder="Count"
+                      className="w-full min-w-[90px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    />
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={statusFilter}
+                      onChange={(event) =>
+                        setStatusFilter(
+                          event.target.value as
+                            | "All"
+                            | "Active"
+                            | "Inactive"
+                        )
+                      }
+                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All</option>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </th>
+
+                  <th className="border-b border-slate-200 px-3 py-2" />
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="px-5 py-20 text-center">
+                      <div className="mx-auto flex items-center justify-center gap-2 text-sm text-slate-500">
+                        <RefreshCw size={17} className="animate-spin" />
+                        Loading assessments...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredAssessments.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-5 py-20 text-center">
+                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                        <ClipboardList size={27} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-slate-800">
+                        No assessments found
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Try changing the filters or create an assignment or quiz.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAssessments.map((assessment) => {
+                    const canManage =
+                      canManageAssessment(assessment.courseId);
+
+                    return (
+                      <tr
+                        key={assessment.id}
+                        className="transition hover:bg-slate-50/70"
+                      >
+                        <td className="border-b border-slate-100 px-4 py-4">
+                          <div className="font-semibold text-slate-800">
+                            {assessment.title}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            ASM-{String(assessment.id).padStart(4, "0")}
+                          </div>
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${typeClasses(
+                              assessment.type
+                            )}`}
+                          >
+                            {typeLabel(assessment.type)}
+                          </span>
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
+                          {assessment.courseTitle || "Unknown course"}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
+                          <div className="font-medium">
+                            {assessment.createdByName || "Not available"}
+                          </div>
+                          {assessment.createdByRole && (
+                            <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+                              {assessment.createdByRole}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-600">
+                          {formatDate(assessment.dueAt)}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm font-medium text-slate-700">
+                          {assessment.type === "QUIZ"
+                            ? assessment.questionCount
+                            : "—"}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm font-medium text-slate-700">
+                          {assessment.submissionCount}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                              assessment.isActive
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {assessment.isActive
+                              ? "Active"
+                              : "Inactive"}
+                          </span>
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-right">
+                          {canManage ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void openSubmissions(assessment)
+                                }
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#123052]"
+                              >
+                                <Eye size={15} />
+                                {assessment.type === "ASSIGNMENT"
+                                  ? "Submissions"
+                                  : "View Results"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void openEdit(assessment)
+                                }
+                                title="Edit"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                              >
+                                <Pencil size={15} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void deleteAssessment(assessment)
+                                }
+                                title="Delete"
+                                disabled={deletingId === assessment.id}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {deletingId === assessment.id ? (
+                                  <Loader2
+                                    size={15}
+                                    className="animate-spin"
+                                  />
+                                ) : (
+                                  <Trash2 size={15} />
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
+                              No assessment management permission
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
-
-        {/* LIST */}
-        {loading ? (
-          <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="inline-flex items-center gap-2 text-sm text-slate-500">
-              <Loader2
-                size={18}
-                className="animate-spin"
-              />
-              Loading assignments and quizzes...
-            </div>
-          </div>
-        ) : filteredAssessments.length ===
-          0 ? (
-          <EmptyState
-            search={search}
-            filterType={
-              filterType
-            }
-          />
-        ) : (
-          <div className="space-y-3">
-            {filteredAssessments.map(
-              (assessment) => (
-                <AssessmentCard
-                  key={
-                    assessment.id
-                  }
-                  assessment={
-                    assessment
-                  }
-                  canManage={
-                    canManageAssessment(
-                      assessment.courseId
-                    )
-                  }
-                  deleting={
-                    deletingId ===
-                    assessment.id
-                  }
-                  onView={() =>
-                    void openSubmissions(
-                      assessment
-                    )
-                  }
-                  onEdit={() =>
-                    void openEdit(
-                      assessment
-                    )
-                  }
-                  onDelete={() =>
-                    void deleteAssessment(
-                      assessment
-                    )
-                  }
-                />
-              )
-            )}
-          </div>
-        )}
 
         {/* CREATE CHOICE */}
         {showCreateChoice && (
@@ -2161,8 +2476,8 @@ function AssessmentFormPage({
         return;
       }
 
-      const invalidQuestionIndex =
-        questions.findIndex(
+      const invalidQuestion =
+        questions.find(
           (question) =>
             !question.question.trim() ||
             question.options.some(
@@ -2176,33 +2491,9 @@ function AssessmentFormPage({
             question.marks <= 0
         );
 
-      if (invalidQuestionIndex >= 0) {
-        const invalidQuestion =
-          questions[invalidQuestionIndex];
-
-        const missingCorrectAnswer =
-          !["A", "B", "C", "D"].includes(
-            invalidQuestion.correctAnswer.trim().toUpperCase()
-          );
-
+      if (invalidQuestion) {
         setError(
-          missingCorrectAnswer
-            ? `Question ${invalidQuestionIndex + 1}: please select the correct answer (A, B, C or D).`
-            : `Question ${invalidQuestionIndex + 1}: please complete the question, all four options, and valid marks.`
-        );
-        return;
-      }
-
-      const questionMarksTotal =
-        questions.reduce(
-          (sum, question) =>
-            sum + Number(question.marks || 0),
-          0
-        );
-
-      if (questionMarksTotal !== parsedTotalMarks) {
-        setError(
-          `Quiz question marks total ${questionMarksTotal}, but Maximum Marks is ${parsedTotalMarks}. The question marks must add up to the quiz maximum marks.`
+          "Please complete every quiz question, all four options, select a correct answer (A, B, C or D), and enter valid marks."
         );
         return;
       }
@@ -2983,7 +3274,6 @@ function SubmissionsPage({
   assessment,
   submissions,
   selectedSubmission,
-  quizQuestions,
   gradeScore,
   gradeFeedback,
   saving,
@@ -2999,7 +3289,6 @@ function SubmissionsPage({
   assessment: Assessment;
   submissions: Submission[];
   selectedSubmission: Submission | null;
-  quizQuestions: BackendQuestion[];
   gradeScore: string;
   gradeFeedback: string;
   saving: boolean;
@@ -3367,7 +3656,6 @@ function QuizResultsPage({
   onBack,
   onGrade,
   selectedSubmission,
-  quizQuestions,
   gradeScore,
   gradeFeedback,
   saving,
@@ -3385,7 +3673,6 @@ function QuizResultsPage({
     submission: Submission
   ) => void;
   selectedSubmission: Submission | null;
-  quizQuestions: BackendQuestion[];
   gradeScore: string;
   gradeFeedback: string;
   saving: boolean;
@@ -3668,7 +3955,12 @@ function QuizResultsPage({
                                 }
                                 className="rounded-lg bg-[#173B67] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#123052]"
                               >
-                                View Result
+                                {score ===
+                                  null ||
+                                submission.status ===
+                                  "SUBMITTED"
+                                  ? "Review"
+                                  : "Update Grade"}
                               </button>
                             </TableCell>
                           </tr>
@@ -3696,7 +3988,7 @@ function QuizResultsPage({
                   </h3>
 
                   <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                    Select a student to view the submitted answers and automatically calculated result.
+                    Select a student to review or update the recorded score and feedback.
                   </p>
                 </div>
               </div>
@@ -3753,95 +4045,109 @@ function QuizResultsPage({
                   </div>
                 </div>
 
-                {quizQuestions.length > 0 && (
-                  <QuizAnswerReview
-                    questions={quizQuestions}
-                    answersJson={selectedSubmission.answers}
+                {selectedSubmission.answers && (
+                  <details className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+                      View submitted answers
+                    </summary>
+
+                    <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                      {
+                        selectedSubmission.answers
+                      }
+                    </pre>
+                  </details>
+                )}
+
+                <div className="mt-5">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Trainer Feedback
+                  </label>
+
+                  <textarea
+                    value={
+                      gradeFeedback
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      onFeedbackChange(
+                        event
+                          .target
+                          .value
+                      )
+                    }
+                    rows={5}
+                    className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    placeholder="Enter feedback..."
                   />
-                )}
-
-                {selectedSubmission.feedback && (
-                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Feedback
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                      {selectedSubmission.feedback}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-800">
-                    Quiz graded automatically
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-emerald-700">
-                    The score was calculated from the correct answers when the student submitted the quiz. No manual grading is required.
-                  </p>
                 </div>
+
+                <div className="mt-5">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Score
+                  </label>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="0"
+                      max={
+                        totalMarks
+                      }
+                      value={
+                        gradeScore
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        onScoreChange(
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+
+                    <span className="text-sm text-slate-500">
+                      /{" "}
+                      {
+                        totalMarks
+                      }
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={
+                    saving
+                  }
+                  onClick={() =>
+                    void onSaveGrade()
+                  }
+                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? (
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <Save size={17} />
+                  )}
+
+                  {saving
+                    ? "Saving Grade..."
+                    : "Save Grade"}
+                </button>
               </>
             )}
           </section>
         </div>
       </div>
     </main>
-  );
-}
-
-function QuizAnswerReview({
-  questions,
-  answersJson,
-}: {
-  questions: BackendQuestion[];
-  answersJson: string | null;
-}) {
-  let answers: Record<string, string> = {};
-
-  try {
-    const parsed = answersJson ? JSON.parse(answersJson) : {};
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      answers = Object.fromEntries(
-        Object.entries(parsed).map(([key, value]) => [key, String(value)])
-      );
-    }
-  } catch {
-    answers = {};
-  }
-
-  return (
-    <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-sm font-bold text-slate-800">Submitted Answers</p>
-      <p className="mt-1 text-xs text-slate-500">Selected answers are shown in red when incorrect; correct answers are shown in green.</p>
-      <div className="mt-4 space-y-4">
-        {questions.map((question, index) => {
-          const selected = answers[String(question.id)]?.toUpperCase() ?? "";
-          const options: Array<[string, string | null]> = [
-            ["A", question.optionA], ["B", question.optionB], ["C", question.optionC], ["D", question.optionD],
-          ];
-          return (
-            <div key={question.id} className="rounded-xl border border-slate-200 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold leading-6 text-slate-800">{index + 1}. {question.question}</p>
-                <span className="shrink-0 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-500">{question.marks} mark{question.marks === 1 ? "" : "s"}</span>
-              </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {options.filter(([, label]) => Boolean(label?.trim())).map(([key, label]) => {
-                  const isSelected = selected === key;
-                  const isCorrect = question.correctAnswer?.toUpperCase() === key;
-                  return (
-                    <div key={key} className={`rounded-lg border-2 px-3 py-2.5 text-sm ${isCorrect ? "border-green-600 bg-green-50 text-green-800" : isSelected ? "border-red-600 bg-red-50 text-red-800" : "border-slate-200 bg-white text-slate-600"}`}>
-                      <span className="font-bold">{key}.</span> {label}
-                      {isSelected && <span className="ml-2 text-xs font-bold">Your answer</span>}
-                      {isCorrect && <span className="ml-2 text-xs font-bold">Correct answer</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

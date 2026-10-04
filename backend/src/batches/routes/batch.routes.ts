@@ -20,8 +20,11 @@ import {
   updateAdminBatchController,
 } from "../controllers/batch.controller";
 
-const adminBatchRouter =
-  Router();
+import {
+  getTrainerBatchStudentDetailsController,
+} from "../controllers/trainer-batch-student.controller";
+
+const adminBatchRouter = Router();
 
 adminBatchRouter.use(
   authenticate,
@@ -73,8 +76,7 @@ adminBatchRouter.delete(
   deleteAdminBatchController
 );
 
-const trainerBatchRouter =
-  Router();
+const trainerBatchRouter = Router();
 
 trainerBatchRouter.use(
   authenticate,
@@ -84,6 +86,16 @@ trainerBatchRouter.use(
 trainerBatchRouter.get(
   "/",
   listTrainerBatchesController
+);
+
+/*
+ * IMPORTANT:
+ * This route must be before "/:id".
+ * It is the Trainer-only student details endpoint.
+ */
+trainerBatchRouter.get(
+  "/:batchId/students/:studentId",
+  getTrainerBatchStudentDetailsController
 );
 
 trainerBatchRouter.get(

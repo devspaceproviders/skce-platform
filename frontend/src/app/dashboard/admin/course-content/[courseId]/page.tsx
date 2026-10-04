@@ -13,17 +13,11 @@ import {
   Pencil,
   Trash2,
   X,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
-
-/* =========================================================
-   TYPES
-========================================================= */
 
 type Lesson = {
   id: number;
@@ -57,88 +51,11 @@ type Course = {
   isActive: boolean;
 };
 
-/* =========================================================
-   DYNAMIC MODULE PLACEHOLDER
-========================================================= */
-
-function getModuleTitlePlaceholder(
-  courseTitle: string
-) {
-  const normalized =
-    courseTitle.trim().toLowerCase();
-
-  if (normalized === "ms word") {
-    return "Example: Word Fundamentals";
-  }
-
-  if (normalized === "ms excel") {
-    return "Example: Excel Fundamentals";
-  }
-
-  if (normalized === "ms powerpoint") {
-    return "Example: PowerPoint Fundamentals";
-  }
-
-  if (normalized === "c programming") {
-    return "Example: C Programming Fundamentals";
-  }
-
-  if (normalized === "c++") {
-    return "Example: C++ Programming Fundamentals";
-  }
-
-  if (normalized === "data structures") {
-    return "Example: Data Structures Fundamentals";
-  }
-
-  if (normalized === "spoken english") {
-    return "Example: English Communication Fundamentals";
-  }
-
-  if (normalized === "computer basics") {
-    return "Example: Computer Fundamentals";
-  }
-
-  if (normalized === "typing basics") {
-    return "Example: Typing Fundamentals";
-  }
-
-  if (normalized === "digital marketing") {
-    return "Example: Digital Marketing Fundamentals";
-  }
-
-  if (normalized === "affiliate marketing") {
-    return "Example: Affiliate Marketing Fundamentals";
-  }
-
-  if (normalized === "power bi") {
-    return "Example: Power BI Fundamentals";
-  }
-
-  if (normalized === "tally") {
-    return "Example: Tally Fundamentals";
-  }
-
-  if (normalized === "ai skills") {
-    return "Example: AI Skills Fundamentals";
-  }
-
-  return `Example: ${courseTitle.trim()} Fundamentals`;
-}
-
-/* =========================================================
-   COMPONENT
-========================================================= */
-
 export default function AdminCourseContentPage() {
   const params = useParams();
   const router = useRouter();
 
   const courseId = Number(params.courseId);
-
-  /* =======================================================
-     COURSE
-  ======================================================= */
 
   const [course, setCourse] =
     useState<Course | null>(null);
@@ -149,31 +66,20 @@ export default function AdminCourseContentPage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
-
   const [error, setError] =
     useState("");
 
-  /* =======================================================
-     MODULE CREATE
-  ======================================================= */
-
   const [showModuleForm, setShowModuleForm] =
     useState(false);
+
+  const [showLessonForm, setShowLessonForm] =
+    useState<number | null>(null);
 
   const [moduleTitle, setModuleTitle] =
     useState("");
 
   const [moduleDescription, setModuleDescription] =
     useState("");
-
-  /* =======================================================
-     LESSON CREATE
-  ======================================================= */
-
-  const [showLessonForm, setShowLessonForm] =
-    useState<number | null>(null);
 
   const [lessonTitle, setLessonTitle] =
     useState("");
@@ -190,18 +96,16 @@ export default function AdminCourseContentPage() {
   const [lessonDocumentUrl, setLessonDocumentUrl] =
     useState("");
 
-  /* =======================================================
-     MODULE EXPANSION
-  ======================================================= */
+  const [saving, setSaving] =
+    useState(false);
 
   const [expandedModules, setExpandedModules] =
     useState<number[]>([]);
 
-  /* =======================================================
-     MODULE EDIT
-  ======================================================= */
-
   const [editingModuleId, setEditingModuleId] =
+    useState<number | null>(null);
+
+  const [editingLessonId, setEditingLessonId] =
     useState<number | null>(null);
 
   const [editModuleTitle, setEditModuleTitle] =
@@ -209,13 +113,6 @@ export default function AdminCourseContentPage() {
 
   const [editModuleDescription, setEditModuleDescription] =
     useState("");
-
-  /* =======================================================
-     LESSON EDIT
-  ======================================================= */
-
-  const [editingLessonId, setEditingLessonId] =
-    useState<number | null>(null);
 
   const [editLessonTitle, setEditLessonTitle] =
     useState("");
@@ -231,10 +128,6 @@ export default function AdminCourseContentPage() {
 
   const [editLessonDocumentUrl, setEditLessonDocumentUrl] =
     useState("");
-
-  /* =======================================================
-     LOAD COURSE CONTENT
-  ======================================================= */
 
   useEffect(() => {
     if (!courseId || Number.isNaN(courseId)) {
@@ -286,15 +179,7 @@ export default function AdminCourseContentPage() {
       }
 
       setCourse(result.data.course);
-
-      setModules(
-        (result.data.modules || []).map(
-          (module: Module) => ({
-            ...module,
-            lessons: module.lessons || [],
-          })
-        )
-      );
+      setModules(result.data.modules || []);
     } catch (err) {
       console.error(err);
 
@@ -308,10 +193,6 @@ export default function AdminCourseContentPage() {
     }
   }
 
-  /* =======================================================
-     TOGGLE MODULE
-  ======================================================= */
-
   function toggleModule(moduleId: number) {
     setExpandedModules((current) =>
       current.includes(moduleId)
@@ -322,17 +203,12 @@ export default function AdminCourseContentPage() {
     );
   }
 
-  /* =======================================================
-     CREATE MODULE
-  ======================================================= */
-
   async function handleCreateModule(
     e: React.FormEvent
   ) {
     e.preventDefault();
 
     if (!moduleTitle.trim()) {
-      setError("Module title is required");
       return;
     }
 
@@ -346,7 +222,6 @@ export default function AdminCourseContentPage() {
 
     try {
       setSaving(true);
-      setError("");
 
       const response = await fetch(
         `${API_URL}/admin/course-content/${courseId}/modules`,
@@ -392,10 +267,6 @@ export default function AdminCourseContentPage() {
     }
   }
 
-  /* =======================================================
-     CREATE LESSON
-  ======================================================= */
-
   async function handleCreateLesson(
     e: React.FormEvent,
     moduleId: number
@@ -403,7 +274,6 @@ export default function AdminCourseContentPage() {
     e.preventDefault();
 
     if (!lessonTitle.trim()) {
-      setError("Lesson title is required");
       return;
     }
 
@@ -417,7 +287,6 @@ export default function AdminCourseContentPage() {
 
     try {
       setSaving(true);
-      setError("");
 
       const response = await fetch(
         `${API_URL}/admin/course-content/modules/${moduleId}/lessons`,
@@ -475,43 +344,36 @@ export default function AdminCourseContentPage() {
     }
   }
 
-  /* =======================================================
-     EDIT MODULE
-  ======================================================= */
-
-  function startEditModule(
-    module: Module
-  ) {
+  function startEditModule(module: Module) {
     setEditingLessonId(null);
-
     setEditingModuleId(module.id);
-
-    setEditModuleTitle(
-      module.title
-    );
-
-    setEditModuleDescription(
-      module.description || ""
-    );
-
-    if (
-      !expandedModules.includes(
-        module.id
-      )
-    ) {
-      setExpandedModules(
-        (current) => [
-          ...current,
-          module.id,
-        ]
-      );
-    }
+    setEditModuleTitle(module.title);
+    setEditModuleDescription(module.description || "");
   }
 
   function cancelEditModule() {
     setEditingModuleId(null);
     setEditModuleTitle("");
     setEditModuleDescription("");
+  }
+
+  function startEditLesson(lesson: Lesson) {
+    setEditingModuleId(null);
+    setEditingLessonId(lesson.id);
+    setEditLessonTitle(lesson.title);
+    setEditLessonDescription(lesson.description || "");
+    setEditLessonContent(lesson.content || "");
+    setEditLessonVideoUrl(lesson.videoUrl || "");
+    setEditLessonDocumentUrl(lesson.documentUrl || "");
+  }
+
+  function cancelEditLesson() {
+    setEditingLessonId(null);
+    setEditLessonTitle("");
+    setEditLessonDescription("");
+    setEditLessonContent("");
+    setEditLessonVideoUrl("");
+    setEditLessonDocumentUrl("");
   }
 
   async function handleUpdateModule(
@@ -525,8 +387,7 @@ export default function AdminCourseContentPage() {
       return;
     }
 
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/admin/login");
@@ -546,11 +407,9 @@ export default function AdminCourseContentPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title:
-              editModuleTitle.trim(),
+            title: editModuleTitle.trim(),
             description:
-              editModuleDescription.trim() ||
-              undefined,
+              editModuleDescription.trim() || undefined,
           }),
         }
       );
@@ -559,17 +418,14 @@ export default function AdminCourseContentPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to update module"
+          result.message || "Failed to update module"
         );
       }
 
       cancelEditModule();
-
       await loadCourseContent();
     } catch (err) {
       console.error(err);
-
       setError(
         err instanceof Error
           ? err.message
@@ -580,24 +436,14 @@ export default function AdminCourseContentPage() {
     }
   }
 
-  /* =======================================================
-     DELETE MODULE
-  ======================================================= */
+  async function handleDeleteModule(module: Module) {
+    const confirmed = window.confirm(
+      `Delete "${module.title}"?\n\nThis will also delete all lessons inside this module and their progress. This action cannot be undone.`
+    );
 
-  async function handleDeleteModule(
-    module: Module
-  ) {
-    const confirmed =
-      window.confirm(
-        `Delete "${module.title}"?\n\nThis will also delete all lessons inside this module and their progress.\n\nThis action cannot be undone.`
-      );
+    if (!confirmed) return;
 
-    if (!confirmed) {
-      return;
-    }
-
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/admin/login");
@@ -622,30 +468,17 @@ export default function AdminCourseContentPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to delete module"
+          result.message || "Failed to delete module"
         );
       }
 
-      if (
-        editingModuleId ===
-        module.id
-      ) {
+      if (editingModuleId === module.id) {
         cancelEditModule();
       }
-
-      setExpandedModules(
-        (current) =>
-          current.filter(
-            (id) =>
-              id !== module.id
-          )
-      );
 
       await loadCourseContent();
     } catch (err) {
       console.error(err);
-
       setError(
         err instanceof Error
           ? err.message
@@ -654,50 +487,6 @@ export default function AdminCourseContentPage() {
     } finally {
       setSaving(false);
     }
-  }
-
-  /* =======================================================
-     EDIT LESSON
-  ======================================================= */
-
-  function startEditLesson(
-    lesson: Lesson
-  ) {
-    setEditingModuleId(null);
-
-    setEditingLessonId(
-      lesson.id
-    );
-
-    setEditLessonTitle(
-      lesson.title
-    );
-
-    setEditLessonDescription(
-      lesson.description || ""
-    );
-
-    setEditLessonContent(
-      lesson.content || ""
-    );
-
-    setEditLessonVideoUrl(
-      lesson.videoUrl || ""
-    );
-
-    setEditLessonDocumentUrl(
-      lesson.documentUrl || ""
-    );
-  }
-
-  function cancelEditLesson() {
-    setEditingLessonId(null);
-
-    setEditLessonTitle("");
-    setEditLessonDescription("");
-    setEditLessonContent("");
-    setEditLessonVideoUrl("");
-    setEditLessonDocumentUrl("");
   }
 
   async function handleUpdateLesson(
@@ -711,8 +500,7 @@ export default function AdminCourseContentPage() {
       return;
     }
 
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/admin/login");
@@ -732,20 +520,15 @@ export default function AdminCourseContentPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title:
-              editLessonTitle.trim(),
+            title: editLessonTitle.trim(),
             description:
-              editLessonDescription.trim() ||
-              undefined,
+              editLessonDescription.trim() || undefined,
             content:
-              editLessonContent.trim() ||
-              undefined,
+              editLessonContent.trim() || undefined,
             videoUrl:
-              editLessonVideoUrl.trim() ||
-              undefined,
+              editLessonVideoUrl.trim() || undefined,
             documentUrl:
-              editLessonDocumentUrl.trim() ||
-              undefined,
+              editLessonDocumentUrl.trim() || undefined,
           }),
         }
       );
@@ -754,17 +537,14 @@ export default function AdminCourseContentPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to update lesson"
+          result.message || "Failed to update lesson"
         );
       }
 
       cancelEditLesson();
-
       await loadCourseContent();
     } catch (err) {
       console.error(err);
-
       setError(
         err instanceof Error
           ? err.message
@@ -775,24 +555,14 @@ export default function AdminCourseContentPage() {
     }
   }
 
-  /* =======================================================
-     DELETE LESSON
-  ======================================================= */
+  async function handleDeleteLesson(lesson: Lesson) {
+    const confirmed = window.confirm(
+      `Delete "${lesson.title}"?\n\nThis lesson and its saved progress will be permanently removed. This action cannot be undone.`
+    );
 
-  async function handleDeleteLesson(
-    lesson: Lesson
-  ) {
-    const confirmed =
-      window.confirm(
-        `Delete "${lesson.title}"?\n\nThis lesson and its saved progress will be permanently removed.\n\nThis action cannot be undone.`
-      );
+    if (!confirmed) return;
 
-    if (!confirmed) {
-      return;
-    }
-
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
     if (!token) {
       router.push("/admin/login");
@@ -817,22 +587,17 @@ export default function AdminCourseContentPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to delete lesson"
+          result.message || "Failed to delete lesson"
         );
       }
 
-      if (
-        editingLessonId ===
-        lesson.id
-      ) {
+      if (editingLessonId === lesson.id) {
         cancelEditLesson();
       }
 
       await loadCourseContent();
     } catch (err) {
       console.error(err);
-
       setError(
         err instanceof Error
           ? err.message
@@ -842,126 +607,6 @@ export default function AdminCourseContentPage() {
       setSaving(false);
     }
   }
-
-  /* =======================================================
-     MOVE MODULE
-  ======================================================= */
-
-  async function handleMoveModule(
-    moduleId: number,
-    direction: "UP" | "DOWN"
-  ) {
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/admin/login");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError("");
-
-      const response = await fetch(
-        `${API_URL}/admin/course-content/modules/${moduleId}/reorder`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            direction,
-          }),
-        }
-      );
-
-      const result =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to reorder module"
-        );
-      }
-
-      await loadCourseContent();
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to reorder module"
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  /* =======================================================
-     MOVE LESSON
-  ======================================================= */
-
-  async function handleMoveLesson(
-    lessonId: number,
-    direction: "UP" | "DOWN"
-  ) {
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/admin/login");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError("");
-
-      const response = await fetch(
-        `${API_URL}/admin/course-content/lessons/${lessonId}/reorder`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            direction,
-          }),
-        }
-      );
-
-      const result =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            "Failed to reorder lesson"
-        );
-      }
-
-      await loadCourseContent();
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to reorder lesson"
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  /* =======================================================
-     LOADING
-  ======================================================= */
 
   if (loading) {
     return (
@@ -977,22 +622,14 @@ export default function AdminCourseContentPage() {
     );
   }
 
-  /* =======================================================
-     PAGE
-  ======================================================= */
-
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="mx-auto max-w-6xl px-6 py-8">
 
-        {/* BACK */}
-
+        {/* Back */}
         <button
-          type="button"
           onClick={() =>
-            router.push(
-              "/dashboard/admin/courses"
-            )
+            router.push("/dashboard/admin/courses")
           }
           className="mb-6 flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
         >
@@ -1000,30 +637,17 @@ export default function AdminCourseContentPage() {
           Back to Courses
         </button>
 
-        {/* ERROR */}
-
+        {/* Error */}
         {error && (
-          <div className="mb-6 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            <span>{error}</span>
-
-            <button
-              type="button"
-              onClick={() =>
-                setError("")
-              }
-              className="rounded-lg p-1 hover:bg-red-100"
-            >
-              <X size={16} />
-            </button>
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            {error}
           </div>
         )}
 
-        {/* COURSE HEADER */}
-
+        {/* Course Header */}
         {course && (
           <div className="mb-8 rounded-2xl bg-white p-7 shadow-sm">
             <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-
               <div>
                 <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-500">
                   <BookOpen size={17} />
@@ -1041,7 +665,6 @@ export default function AdminCourseContentPage() {
                 )}
 
                 <div className="mt-4 flex flex-wrap gap-2">
-
                   {course.mode && (
                     <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                       {course.mode}
@@ -1059,12 +682,10 @@ export default function AdminCourseContentPage() {
                       ? "Active"
                       : "Inactive"}
                   </span>
-
                 </div>
               </div>
 
               <button
-                type="button"
                 onClick={() =>
                   setShowModuleForm(
                     !showModuleForm
@@ -1075,13 +696,11 @@ export default function AdminCourseContentPage() {
                 <Plus size={18} />
                 Add Module
               </button>
-
             </div>
           </div>
         )}
 
-        {/* ADD MODULE */}
-
+        {/* Add Module */}
         {showModuleForm && (
           <form
             onSubmit={handleCreateModule}
@@ -1092,7 +711,6 @@ export default function AdminCourseContentPage() {
             </h2>
 
             <div className="mt-5 grid gap-4">
-
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Module Title
@@ -1105,15 +723,9 @@ export default function AdminCourseContentPage() {
                       e.target.value
                     )
                   }
-                  placeholder={
-                    course
-                      ? getModuleTitlePlaceholder(
-                          course.title
-                        )
-                      : "Example: Module Fundamentals"
-                  }
-                  required
+                  placeholder="Example: MS Word Fundamentals"
                   className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                  required
                 />
               </div>
 
@@ -1134,11 +746,9 @@ export default function AdminCourseContentPage() {
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                 />
               </div>
-
             </div>
 
             <div className="mt-5 flex gap-3">
-
               <button
                 type="submit"
                 disabled={saving}
@@ -1158,19 +768,14 @@ export default function AdminCourseContentPage() {
               >
                 Cancel
               </button>
-
             </div>
           </form>
         )}
 
-        {/* MODULES */}
-
+        {/* Modules */}
         <div className="space-y-5">
-
           {modules.length === 0 ? (
-
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-
               <BookOpen
                 size={42}
                 className="mx-auto text-slate-300"
@@ -1184,811 +789,505 @@ export default function AdminCourseContentPage() {
                 Start building this course by
                 adding the first module.
               </p>
-
             </div>
-
           ) : (
+            modules.map((module, index) => {
+              const expanded =
+                expandedModules.includes(
+                  module.id
+                );
 
-            modules.map(
-              (module, index) => {
+              return (
+                <div
+                  key={module.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  {/* Module Header */}
+                  <div className="flex items-center justify-between gap-4 p-5">
+                    <button
+                      onClick={() =>
+                        toggleModule(
+                          module.id
+                        )
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#173B67]">
+                        {expanded ? (
+                          <ChevronDown
+                            size={20}
+                          />
+                        ) : (
+                          <ChevronRight
+                            size={20}
+                          />
+                        )}
+                      </div>
 
-                const expanded =
-                  expandedModules.includes(
-                    module.id
-                  );
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wide text-orange-500">
+                          Module {index + 1}
+                        </p>
 
-                const lessons =
-                  module.lessons || [];
+                        <h2 className="truncate text-lg font-bold text-slate-900">
+                          {module.title}
+                        </h2>
 
-                return (
-                  <div
-                    key={module.id}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                  >
+                        {module.description && (
+                          <p className="mt-1 truncate text-sm text-slate-500">
+                            {module.description}
+                          </p>
+                        )}
+                      </div>
+                    </button>
 
-                    {/* MODULE HEADER */}
-
-                    <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          startEditModule(module)
+                        }
+                        disabled={saving}
+                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        <Pencil size={15} />
+                        Edit
+                      </button>
 
                       <button
                         type="button"
                         onClick={() =>
-                          toggleModule(
-                            module.id
-                          )
+                          handleDeleteModule(module)
                         }
-                        className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                        disabled={saving}
+                        className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
                       >
-
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#173B67]">
-
-                          {expanded ? (
-                            <ChevronDown
-                              size={20}
-                            />
-                          ) : (
-                            <ChevronRight
-                              size={20}
-                            />
-                          )}
-
-                        </div>
-
-                        <div className="min-w-0">
-
-                          <p className="text-xs font-bold uppercase tracking-wide text-orange-500">
-                            Module {index + 1}
-                          </p>
-
-                          <h2 className="truncate text-lg font-bold text-slate-900">
-                            {module.title}
-                          </h2>
-
-                          {module.description && (
-                            <p className="mt-1 truncate text-sm text-slate-500">
-                              {module.description}
-                            </p>
-                          )}
-
-                        </div>
-
+                        <Trash2 size={15} />
+                        Delete
                       </button>
 
-                      {/* MODULE ACTIONS */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowLessonForm(
+                            showLessonForm === module.id
+                              ? null
+                              : module.id
+                          );
 
-                      <div className="flex flex-wrap items-center gap-2">
-
-                        {/* UP */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleMoveModule(
-                              module.id,
-                              "UP"
+                          if (
+                            !expandedModules.includes(
+                              module.id
                             )
-                          }
-                          disabled={
-                            saving ||
-                            index === 0
-                          }
-                          title="Move module up"
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <ArrowUp size={15} />
-                        </button>
-
-                        {/* DOWN */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleMoveModule(
-                              module.id,
-                              "DOWN"
-                            )
-                          }
-                          disabled={
-                            saving ||
-                            index ===
-                              modules.length - 1
-                          }
-                          title="Move module down"
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <ArrowDown size={15} />
-                        </button>
-
-                        {/* EDIT */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            startEditModule(
-                              module
-                            )
-                          }
-                          disabled={saving}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          <Pencil size={15} />
-                          Edit
-                        </button>
-
-                        {/* DELETE */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteModule(
-                              module
-                            )
-                          }
-                          disabled={saving}
-                          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                        >
-                          <Trash2 size={15} />
-                          Delete
-                        </button>
-
-                        {/* ADD LESSON */}
-
-                        <button
-                          type="button"
-                          onClick={() => {
-
-                            setShowLessonForm(
-                              showLessonForm ===
-                                module.id
-                                ? null
-                                : module.id
+                          ) {
+                            setExpandedModules(
+                              (current) => [
+                                ...current,
+                                module.id,
+                              ]
                             );
+                          }
+                        }}
+                        className="flex shrink-0 items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600"
+                      >
+                        <Plus size={16} />
+                        Add Lesson
+                      </button>
+                    </div>
+                  </div>
 
-                            if (
-                              !expandedModules.includes(
-                                module.id
-                              )
-                            ) {
-                              setExpandedModules(
-                                (current) => [
-                                  ...current,
-                                  module.id,
-                                ]
-                              );
-                            }
-
-                          }}
-                          className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white hover:bg-orange-600"
+                  {/* Edit Module */}
+                  {editingModuleId === module.id && (
+                    <form
+                      onSubmit={(e) =>
+                        handleUpdateModule(e, module.id)
+                      }
+                      className="border-t border-orange-100 bg-orange-50/40 p-5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900">
+                          Edit Module
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={cancelEditModule}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-700"
                         >
-                          <Plus size={16} />
-                          Add Lesson
+                          <X size={18} />
                         </button>
-
                       </div>
 
-                    </div>
+                      <div className="mt-4 grid gap-4">
+                        <input
+                          value={editModuleTitle}
+                          onChange={(e) =>
+                            setEditModuleTitle(e.target.value)
+                          }
+                          placeholder="Module title"
+                          required
+                          className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none focus:border-orange-500"
+                        />
 
-                    {/* EDIT MODULE */}
+                        <textarea
+                          value={editModuleDescription}
+                          onChange={(e) =>
+                            setEditModuleDescription(
+                              e.target.value
+                            )
+                          }
+                          placeholder="Module description"
+                          rows={3}
+                          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-500"
+                        />
+                      </div>
 
-                    {editingModuleId ===
-                      module.id && (
-                      <form
-                        onSubmit={(e) =>
-                          handleUpdateModule(
-                            e,
-                            module.id
-                          )
-                        }
-                        className="border-t border-orange-100 bg-orange-50/50 p-5"
-                      >
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          type="submit"
+                          disabled={saving}
+                          className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                        >
+                          {saving ? "Saving..." : "Save Changes"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditModule}
+                          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
 
-                        <div className="flex items-center justify-between">
+                  {/* Expanded Module */}
+                  {expanded && (
+                    <div className="border-t border-slate-100 bg-slate-50 p-5">
 
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">
-                              Module {index + 1}
-                            </p>
+                      {/* Add Lesson Form */}
+                      {showLessonForm ===
+                        module.id && (
+                        <form
+                          onSubmit={(e) =>
+                            handleCreateLesson(
+                              e,
+                              module.id
+                            )
+                          }
+                          className="mb-5 rounded-xl border border-orange-100 bg-white p-5"
+                        >
+                          <h3 className="font-bold text-slate-900">
+                            Add Lesson
+                          </h3>
 
-                            <h3 className="font-bold text-slate-900">
-                              Edit Module
-                            </h3>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={
-                              cancelEditModule
-                            }
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-700"
-                          >
-                            <X size={18} />
-                          </button>
-
-                        </div>
-
-                        <div className="mt-4 grid gap-4">
-
-                          <div>
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">
-                              Module Title
-                            </label>
+                          <div className="mt-4 grid gap-4">
+                            <input
+                              value={
+                                lessonTitle
+                              }
+                              onChange={(e) =>
+                                setLessonTitle(
+                                  e.target
+                                    .value
+                                )
+                              }
+                              placeholder="Lesson title"
+                              required
+                              className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                            />
 
                             <input
                               value={
-                                editModuleTitle
+                                lessonDescription
                               }
                               onChange={(e) =>
-                                setEditModuleTitle(
-                                  e.target.value
+                                setLessonDescription(
+                                  e.target
+                                    .value
                                 )
                               }
-                              required
-                              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm outline-none focus:border-orange-500"
+                              placeholder="Short description"
+                              className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
                             />
-                          </div>
-
-                          <div>
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">
-                              Description
-                            </label>
 
                             <textarea
                               value={
-                                editModuleDescription
+                                lessonContent
                               }
                               onChange={(e) =>
-                                setEditModuleDescription(
-                                  e.target.value
+                                setLessonContent(
+                                  e.target
+                                    .value
                                 )
                               }
-                              rows={3}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-orange-500"
+                              placeholder="Lesson content"
+                              rows={5}
+                              className="rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                            />
+
+                            <input
+                              value={
+                                lessonVideoUrl
+                              }
+                              onChange={(e) =>
+                                setLessonVideoUrl(
+                                  e.target
+                                    .value
+                                )
+                              }
+                              placeholder="Video URL (optional)"
+                              className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                            />
+
+                            <input
+                              value={
+                                lessonDocumentUrl
+                              }
+                              onChange={(e) =>
+                                setLessonDocumentUrl(
+                                  e.target
+                                    .value
+                                )
+                              }
+                              placeholder="Document URL (optional)"
+                              className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
                             />
                           </div>
 
-                        </div>
-
-                        <div className="mt-4 flex gap-3">
-
-                          <button
-                            type="submit"
-                            disabled={saving}
-                            className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                          >
-                            {saving
-                              ? "Saving..."
-                              : "Save Changes"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={
-                              cancelEditModule
-                            }
-                            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600"
-                          >
-                            Cancel
-                          </button>
-
-                        </div>
-
-                      </form>
-                    )}
-
-                    {/* EXPANDED MODULE */}
-
-                    {expanded && (
-                      <div className="border-t border-slate-100 bg-slate-50 p-5">
-
-                        {/* ADD LESSON */}
-
-                        {showLessonForm ===
-                          module.id && (
-                          <form
-                            onSubmit={(e) =>
-                              handleCreateLesson(
-                                e,
-                                module.id
-                              )
-                            }
-                            className="mb-5 rounded-xl border border-orange-100 bg-white p-5"
-                          >
-
-                            <h3 className="font-bold text-slate-900">
-                              Add Lesson
-                            </h3>
-
-                            <div className="mt-4 grid gap-4">
-
-                              <input
-                                value={
-                                  lessonTitle
-                                }
-                                onChange={(e) =>
-                                  setLessonTitle(
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Lesson title"
-                                required
-                                className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                              />
-
-                              <input
-                                value={
-                                  lessonDescription
-                                }
-                                onChange={(e) =>
-                                  setLessonDescription(
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Short description"
-                                className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                              />
-
-                              <textarea
-                                value={
-                                  lessonContent
-                                }
-                                onChange={(e) =>
-                                  setLessonContent(
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Lesson content"
-                                rows={5}
-                                className="rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-500"
-                              />
-
-                              <input
-                                value={
-                                  lessonVideoUrl
-                                }
-                                onChange={(e) =>
-                                  setLessonVideoUrl(
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Video URL (optional)"
-                                className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                              />
-
-                              <input
-                                value={
-                                  lessonDocumentUrl
-                                }
-                                onChange={(e) =>
-                                  setLessonDocumentUrl(
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Document URL (optional)"
-                                className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                              />
-
-                            </div>
-
-                            <div className="mt-4 flex gap-3">
-
-                              <button
-                                type="submit"
-                                disabled={saving}
-                                className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                              >
-                                {saving
-                                  ? "Saving..."
-                                  : "Create Lesson"}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowLessonForm(
-                                    null
-                                  )
-                                }
-                                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-                              >
-                                Cancel
-                              </button>
-
-                            </div>
-
-                          </form>
-                        )}
-
-                        {/* LESSONS */}
-
-                        {lessons.length === 0 ? (
-
-                          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-
-                            <p className="text-sm text-slate-500">
-                              No lessons in this
-                              module yet.
-                            </p>
+                          <div className="mt-4 flex gap-3">
+                            <button
+                              type="submit"
+                              disabled={saving}
+                              className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                            >
+                              {saving
+                                ? "Saving..."
+                                : "Create Lesson"}
+                            </button>
 
                             <button
                               type="button"
                               onClick={() =>
                                 setShowLessonForm(
-                                  module.id
+                                  null
                                 )
                               }
-                              className="mt-3 text-sm font-bold text-orange-500 hover:text-orange-600"
+                              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
                             >
-                              + Add the first lesson
+                              Cancel
                             </button>
-
                           </div>
+                        </form>
+                      )}
 
-                        ) : (
+                      {/* Lessons */}
+                      {module.lessons.length ===
+                      0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+                          <p className="text-sm text-slate-500">
+                            No lessons in this
+                            module yet.
+                          </p>
 
-                          <div className="space-y-3">
-
-                            {lessons.map(
-                              (
-                                lesson,
-                                lessonIndex
-                              ) => (
-
-                                <div
-                                  key={lesson.id}
-                                  className="rounded-xl border border-slate-200 bg-white"
-                                >
-
-                                  {/* EDIT LESSON */}
-
-                                  {editingLessonId ===
-                                  lesson.id ? (
-
-                                    <form
-                                      onSubmit={(e) =>
-                                        handleUpdateLesson(
-                                          e,
-                                          lesson.id
-                                        )
-                                      }
-                                      className="p-5"
-                                    >
-
-                                      <div className="flex items-center justify-between">
-
-                                        <div>
-                                          <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">
-                                            Lesson{" "}
-                                            {lessonIndex +
-                                              1}
-                                          </p>
-
-                                          <h3 className="font-bold text-slate-900">
-                                            Edit Lesson
-                                          </h3>
-                                        </div>
-
-                                        <button
-                                          type="button"
-                                          onClick={
-                                            cancelEditLesson
-                                          }
-                                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
-                                        >
-                                          <X size={18} />
-                                        </button>
-
-                                      </div>
-
-                                      <div className="mt-4 grid gap-4">
-
-                                        <div>
-                                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                            Lesson Title
-                                          </label>
-
-                                          <input
-                                            value={
-                                              editLessonTitle
-                                            }
-                                            onChange={(
-                                              e
-                                            ) =>
-                                              setEditLessonTitle(
-                                                e.target.value
-                                              )
-                                            }
-                                            required
-                                            className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                            Short Description
-                                          </label>
-
-                                          <input
-                                            value={
-                                              editLessonDescription
-                                            }
-                                            onChange={(
-                                              e
-                                            ) =>
-                                              setEditLessonDescription(
-                                                e.target.value
-                                              )
-                                            }
-                                            className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                            Lesson Content
-                                          </label>
-
-                                          <textarea
-                                            value={
-                                              editLessonContent
-                                            }
-                                            onChange={(
-                                              e
-                                            ) =>
-                                              setEditLessonContent(
-                                                e.target.value
-                                              )
-                                            }
-                                            rows={6}
-                                            className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-500"
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                            Video URL
-                                          </label>
-
-                                          <input
-                                            value={
-                                              editLessonVideoUrl
-                                            }
-                                            onChange={(
-                                              e
-                                            ) =>
-                                              setEditLessonVideoUrl(
-                                                e.target.value
-                                              )
-                                            }
-                                            placeholder="https://..."
-                                            className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                                          />
-                                        </div>
-
-                                        <div>
-                                          <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                            Document URL
-                                          </label>
-
-                                          <input
-                                            value={
-                                              editLessonDocumentUrl
-                                            }
-                                            onChange={(
-                                              e
-                                            ) =>
-                                              setEditLessonDocumentUrl(
-                                                e.target.value
-                                              )
-                                            }
-                                            placeholder="https://..."
-                                            className="h-11 w-full rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
-                                          />
-                                        </div>
-
-                                      </div>
-
-                                      <div className="mt-5 flex gap-3">
-
-                                        <button
-                                          type="submit"
-                                          disabled={
-                                            saving
-                                          }
-                                          className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                                        >
-                                          {saving
-                                            ? "Saving..."
-                                            : "Save Changes"}
-                                        </button>
-
-                                        <button
-                                          type="button"
-                                          onClick={
-                                            cancelEditLesson
-                                          }
-                                          className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-                                        >
-                                          Cancel
-                                        </button>
-
-                                      </div>
-
-                                    </form>
-
-                                  ) : (
-
-                                    /* LESSON DISPLAY */
-
-                                    <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
-
-                                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-
-                                        {lesson.videoUrl ? (
-                                          <PlayCircle
-                                            size={19}
-                                          />
-                                        ) : lesson.documentUrl ? (
-                                          <FileText
-                                            size={19}
-                                          />
-                                        ) : (
-                                          <BookOpen
-                                            size={19}
-                                          />
-                                        )}
-
-                                      </div>
-
-                                      <div className="min-w-0 flex-1">
-
-                                        <p className="text-xs font-semibold text-slate-400">
-                                          Lesson{" "}
-                                          {lessonIndex +
-                                            1}
-                                        </p>
-
-                                        <h4 className="font-semibold text-slate-800">
-                                          {
-                                            lesson.title
-                                          }
-                                        </h4>
-
-                                        {lesson.description && (
-                                          <p className="mt-1 truncate text-sm text-slate-500">
-                                            {
-                                              lesson.description
-                                            }
-                                          </p>
-                                        )}
-
-                                      </div>
-
-                                      <span
-                                        className={
-                                          lesson.isActive
-                                            ? "rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700"
-                                            : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500"
-                                        }
-                                      >
-                                        {lesson.isActive
-                                          ? "Active"
-                                          : "Inactive"}
-                                      </span>
-
-                                      <div className="flex flex-wrap items-center gap-2">
-
-                                        {/* LESSON UP */}
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleMoveLesson(
-                                              lesson.id,
-                                              "UP"
-                                            )
-                                          }
-                                          disabled={
-                                            saving ||
-                                            lessonIndex ===
-                                              0
-                                          }
-                                          title="Move lesson up"
-                                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                          <ArrowUp
-                                            size={14}
-                                          />
-                                        </button>
-
-                                        {/* LESSON DOWN */}
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleMoveLesson(
-                                              lesson.id,
-                                              "DOWN"
-                                            )
-                                          }
-                                          disabled={
-                                            saving ||
-                                            lessonIndex ===
-                                              lessons.length -
-                                                1
-                                          }
-                                          title="Move lesson down"
-                                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                        >
-                                          <ArrowDown
-                                            size={14}
-                                          />
-                                        </button>
-
-                                        {/* EDIT */}
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            startEditLesson(
-                                              lesson
-                                            )
-                                          }
-                                          disabled={
-                                            saving
-                                          }
-                                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-                                        >
-                                          <Pencil
-                                            size={14}
-                                          />
-                                          Edit
-                                        </button>
-
-                                        {/* DELETE */}
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleDeleteLesson(
-                                              lesson
-                                            )
-                                          }
-                                          disabled={
-                                            saving
-                                          }
-                                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                        >
-                                          <Trash2
-                                            size={14}
-                                          />
-                                          Delete
-                                        </button>
-
-                                      </div>
-
-                                    </div>
-                                  )}
-
-                                </div>
-
+                          <button
+                            onClick={() =>
+                              setShowLessonForm(
+                                module.id
                               )
-                            )}
+                            }
+                            className="mt-3 text-sm font-bold text-orange-500 hover:text-orange-600"
+                          >
+                            + Add the first lesson
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {module.lessons.map(
+                            (lesson, lessonIndex) => (
+                              <div
+                                key={lesson.id}
+                                className="rounded-xl border border-slate-200 bg-white"
+                              >
+                                {editingLessonId === lesson.id ? (
+                                  <form
+                                    onSubmit={(e) =>
+                                      handleUpdateLesson(
+                                        e,
+                                        lesson.id
+                                      )
+                                    }
+                                    className="p-5"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-bold text-slate-900">
+                                        Edit Lesson
+                                      </h4>
 
-                          </div>
-                        )}
+                                      <button
+                                        type="button"
+                                        onClick={cancelEditLesson}
+                                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+                                      >
+                                        <X size={18} />
+                                      </button>
+                                    </div>
 
-                      </div>
-                    )}
+                                    <div className="mt-4 grid gap-4">
+                                      <input
+                                        value={editLessonTitle}
+                                        onChange={(e) =>
+                                          setEditLessonTitle(
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Lesson title"
+                                        required
+                                        className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                                      />
 
-                  </div>
-                );
-              }
-            )
+                                      <input
+                                        value={editLessonDescription}
+                                        onChange={(e) =>
+                                          setEditLessonDescription(
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Short description"
+                                        className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                                      />
 
+                                      <textarea
+                                        value={editLessonContent}
+                                        onChange={(e) =>
+                                          setEditLessonContent(
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Lesson content"
+                                        rows={6}
+                                        className="rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-orange-500"
+                                      />
+
+                                      <input
+                                        value={editLessonVideoUrl}
+                                        onChange={(e) =>
+                                          setEditLessonVideoUrl(
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Video URL (optional)"
+                                        className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                                      />
+
+                                      <input
+                                        value={editLessonDocumentUrl}
+                                        onChange={(e) =>
+                                          setEditLessonDocumentUrl(
+                                            e.target.value
+                                          )
+                                        }
+                                        placeholder="Document URL (optional)"
+                                        className="h-11 rounded-lg border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"
+                                      />
+                                    </div>
+
+                                    <div className="mt-4 flex gap-3">
+                                      <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className="rounded-lg bg-[#173B67] px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                                      >
+                                        {saving
+                                          ? "Saving..."
+                                          : "Save Changes"}
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={cancelEditLesson}
+                                        className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </form>
+                                ) : (
+                                  <div className="flex items-center gap-4 p-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                                      {lesson.videoUrl ? (
+                                        <PlayCircle size={19} />
+                                      ) : lesson.documentUrl ? (
+                                        <FileText size={19} />
+                                      ) : (
+                                        <BookOpen size={19} />
+                                      )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-semibold text-slate-400">
+                                        Lesson {lessonIndex + 1}
+                                      </p>
+
+                                      <h4 className="font-semibold text-slate-800">
+                                        {lesson.title}
+                                      </h4>
+
+                                      {lesson.description && (
+                                        <p className="mt-1 truncate text-sm text-slate-500">
+                                          {lesson.description}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                                      {lesson.isActive
+                                        ? "Active"
+                                        : "Inactive"}
+                                    </span>
+
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          startEditLesson(
+                                            lesson
+                                          )
+                                        }
+                                        disabled={saving}
+                                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                      >
+                                        <Pencil size={14} />
+                                        Edit
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDeleteLesson(
+                                            lesson
+                                          )
+                                        }
+                                        disabled={saving}
+                                        className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                      >
+                                        <Trash2 size={14} />
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
-
         </div>
-
       </main>
     </div>
   );

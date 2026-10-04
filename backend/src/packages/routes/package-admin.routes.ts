@@ -1,27 +1,33 @@
-    import { Router } from "express";
+import { Router } from "express";
 
-    import {
-    getAdminPackage,
-    updateAdminPackage,
-    } from "../controllers/package-admin.controller";
+import {
+  listAdminPackages,
+  createAdminPackage,
+  getAdminPackage,
+  updateAdminPackage,
+} from "../controllers/package-admin.controller";
 
-    import {
-    authenticate,
-    requireRole,
-    } from "../../auth/middleware/auth.middleware";
+import {
+  authenticate,
+  requireRole,
+} from "../../auth/middleware/auth.middleware";
 
-    const router = Router();
+const router = Router();
 
-    /*
-    * All routes in this file are ADMIN only.
-    */
-    router.use(
-    authenticate,
-    requireRole("ADMIN")
-    );
+/*
+ * All routes in this file are ADMIN only.
+ */
+router.use(
+  authenticate,
+  requireRole("ADMIN")
+);
 
-    router.get("/:id", getAdminPackage);
+router.get("/", listAdminPackages);
 
-    router.patch("/:id", updateAdminPackage);
+router.post("/", createAdminPackage);
 
-    export default router;
+router.get("/:id", getAdminPackage);
+
+router.patch("/:id", updateAdminPackage);
+
+export default router;

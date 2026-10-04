@@ -1,0 +1,118 @@
+[
+  {
+    "id": "dropTable.liveSession",
+    "label": "Drop table \"liveSession\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "liveSession"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"liveSession\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"liveSession\"",
+        "sql": "DROP TABLE \"public\".\"liveSession\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"liveSession\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSession\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.liveSessionParticipation",
+    "label": "Drop table \"liveSessionParticipation\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "liveSessionParticipation"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"liveSessionParticipation\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"liveSessionParticipation\"",
+        "sql": "DROP TABLE \"public\".\"liveSessionParticipation\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"liveSessionParticipation\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"liveSessionParticipation\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.trainerCoursePermission.canCreateLiveSessions",
+    "label": "Drop column \"canCreateLiveSessions\" from \"trainerCoursePermission\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "canCreateLiveSessions",
+        "table": "trainerCoursePermission"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"canCreateLiveSessions\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "trainerCoursePermission",
+          "canCreateLiveSessions"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"canCreateLiveSessions\"",
+        "sql": "ALTER TABLE \"public\".\"trainerCoursePermission\" DROP COLUMN \"canCreateLiveSessions\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"canCreateLiveSessions\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "trainerCoursePermission",
+          "canCreateLiveSessions"
+        ]
+      }
+    ]
+  }
+]

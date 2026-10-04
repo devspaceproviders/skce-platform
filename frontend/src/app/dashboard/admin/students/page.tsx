@@ -1,1283 +1,3795 @@
 "use client";
 
-import { useMemo, useState } from "react";
+
+
+import { useEffect, useMemo, useState } from "react";
+
 import {
-  Search,
-  UserPlus,
-  MoreVertical,
-  Eye,
-  Pencil,
-  UserX,
-  Users,
-  X,
-  Save,
-  KeyRound,
-  Activity,
-  Star,
-  Mail,
-  Phone,
+
+  AlertCircle,
+
+  Award,
+
+  BarChart3,
+
   CalendarDays,
+
+  CheckCircle2,
+
+  Eye,
+
+  GraduationCap,
+
+  Mail,
+
+  MapPin,
+
+  Package,
+
+  Phone,
+
+  RefreshCw,
+
+  Search,
+
+  Users,
+
+  X,
+
 } from "lucide-react";
-import { COURSE_OPTIONS } from "@/lib/courseList";
+
+
 
 type StudentStatus = "Active" | "Inactive";
 
+
+
 type Student = {
+
   id: string;
+
+  userId: string;
+
   name: string;
+
   email: string;
+
   phone: string;
+
   dob: string;
+
   courses: string[];
+
+  packages: string[];
+
   joinedDate: string;
+
   status: StudentStatus;
+
+  state: string;
+
+  referralId: string;
+
 };
 
-type StudentForm = {
-  name: string;
-  email: string;
+
+
+type StudentApiRow = {
+
+  id?: string;
+
+  studentId?: string;
+
+  name?: string;
+
+  email?: string;
+
+  phone?: string;
+
+  dob?: string;
+
+  courses?: unknown;
+
+  packages?: unknown;
+
+  createdAt?: string;
+
+  isActive?: boolean;
+
+  state?: string;
+
+  referralId?: string;
+
+};
+
+
+
+type ColumnFilters = {
+
+  student: string;
+
+  studentId: string;
+
   phone: string;
-  dob: string;
+
+  package: string;
+
+  joined: string;
+
+  status: "All" | StudentStatus;
+
+};
+
+
+
+type SortKey =
+
+  | "student"
+
+  | "studentId"
+
+  | "phone"
+
+  | "package"
+
+  | "joined"
+
+  | "status";
+
+
+
+type SortDirection = "asc" | "desc";
+
+
+
+type PackageDetails = {
+
+  title: string;
+
   courses: string[];
-  password: string;
-  status: StudentStatus;
+
 };
 
-const EMPTY_FORM: StudentForm = {
-  name: "",
-  email: "",
-  phone: "",
-  dob: "",
-  courses: [],
-  password: "",
-  status: "Active",
+
+
+type StudentDetails = Student & {
+
+  enrollments: any[];
+
+  payments: any[];
+
 };
 
-const INITIAL_STUDENTS: Student[] = [];
+
+
+type ProgressData = {
+
+  summary?: {
+
+    averageProgress?: number;
+
+    totalCourses?: number;
+
+    completedCourses?: number;
+
+    totalLessons?: number;
+
+    completedLessons?: number;
+
+    totalCertificates?: number;
+
+  };
+
+  /**
+   * The admin progress API returns course-wise progress under `courseProgress`.
+   * `courses` is kept as a backward-compatible fallback.
+   */
+  courseProgress?: any[];
+
+  courses?: any[];
+
+  assessments?: any[];
+
+  certificates?: any[];
+
+};
+
+
+
+type StudentTab = "overview" | "progress" | "enrollments" | "payments";
+
+
+
+function formatDate(value: string) {
+
+  if (!value) return "Not provided";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-IN");
+
+}
+
+
+
+function formatDateTime(value: string) {
+
+  if (!value) return "Not provided";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-IN");
+
+}
+
+
+
+function mapStudent(student: StudentApiRow): Student {
+
+  return {
+
+    id: student.studentId || student.id || "",
+
+    userId: student.id || "",
+
+    name: student.name || "Unnamed Student",
+
+    email: student.email || "",
+
+    phone: student.phone || "",
+
+    dob: student.dob || "",
+
+    courses: Array.isArray(student.courses)
+
+      ? student.courses.filter(
+
+          (item): item is string => typeof item === "string"
+
+        )
+
+      : [],
+
+    packages: Array.isArray(student.packages)
+
+      ? student.packages.filter(
+
+          (item): item is string => typeof item === "string"
+
+        )
+
+      : [],
+
+    joinedDate: formatDate(student.createdAt || ""),
+
+    status: student.isActive ? "Active" : "Inactive",
+
+    state: student.state || "",
+
+    referralId: student.referralId || "",
+
+  };
+
+}
+
+
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<"All" | StudentStatus>("All");
 
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [loadError, setLoadError] = useState("");
+
+
+
+  const [search, setSearch] = useState("");
+
+  const [columnFilters, setColumnFilters] = useState<ColumnFilters>({
+
+    student: "",
+
+    studentId: "",
+
+    phone: "",
+
+    package: "",
+
+    joined: "",
+
+    status: "All",
+
+  });
+
+
+
+  const [sortKey, setSortKey] = useState<SortKey>("joined");
+
+  const [sortDirection, setSortDirection] =
+
+    useState<SortDirection>("desc");
+
+
 
   const [selectedStudent, setSelectedStudent] =
+
     useState<Student | null>(null);
 
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [form, setForm] = useState<StudentForm>(EMPTY_FORM);
-  const [feedback, setFeedback] = useState("");
+  const [showViewModal, setShowViewModal] = useState(false);
 
-  const filteredStudents = useMemo(() => {
-    const searchText = search.trim().toLowerCase();
 
-    return students.filter((student) => {
-      const matchesSearch =
-        !searchText ||
-        student.name.toLowerCase().includes(searchText) ||
-        student.email.toLowerCase().includes(searchText) ||
-        student.id.toLowerCase().includes(searchText) ||
-        student.phone.includes(search) ||
-        student.courses.some((course) =>
-          course.toLowerCase().includes(searchText)
+
+  const [selectedPackage, setSelectedPackage] =
+
+    useState<PackageDetails | null>(null);
+
+  const [isPackageLoading, setIsPackageLoading] = useState(false);
+
+  const [packageError, setPackageError] = useState("");
+
+
+
+  const [activeStudentTab, setActiveStudentTab] =
+
+    useState<StudentTab>("overview");
+
+  const [studentDetails, setStudentDetails] =
+
+    useState<StudentDetails | null>(null);
+
+  const [progressData, setProgressData] =
+
+    useState<ProgressData | null>(null);
+
+  const [isStudentLoading, setIsStudentLoading] = useState(false);
+
+  const [studentLoadError, setStudentLoadError] = useState("");
+
+
+
+  const getToken = () =>
+
+    typeof window !== "undefined"
+
+      ? localStorage.getItem("token")
+
+      : null;
+
+
+
+  const logoutAdmin = () => {
+
+    if (typeof window === "undefined") return;
+
+    [
+
+      "token",
+
+      "skce_admin_logged_in",
+
+      "user",
+
+      "role",
+
+      "student",
+
+      "studentId",
+
+    ].forEach((key) => localStorage.removeItem(key));
+
+    window.location.href = "/admin/login";
+
+  };
+
+
+
+  const getApiUrl = () =>
+
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+
+
+  const loadStudents = async (refresh = false) => {
+
+    const token = getToken();
+
+
+
+    if (!token) {
+
+      logoutAdmin();
+
+      return;
+
+    }
+
+
+
+    if (refresh) setIsRefreshing(true);
+
+    else setIsLoading(true);
+
+
+
+    setLoadError("");
+
+
+
+    try {
+
+      const response = await fetch(`${getApiUrl()}/students`, {
+
+        method: "GET",
+
+        headers: {
+
+          Authorization: `Bearer ${token}`,
+
+          "Content-Type": "application/json",
+
+        },
+
+        cache: "no-store",
+
+      });
+
+
+
+      if (response.status === 401 || response.status === 403) {
+
+        logoutAdmin();
+
+        return;
+
+      }
+
+
+
+      if (!response.ok) {
+
+        throw new Error(`Failed to load students (${response.status})`);
+
+      }
+
+
+
+      const result = await response.json();
+
+      const rows: StudentApiRow[] = Array.isArray(result?.data)
+
+        ? result.data
+
+        : [];
+
+
+
+      setStudents(rows.map(mapStudent));
+
+    } catch (error) {
+
+      console.error("Failed to load students:", error);
+
+      setLoadError(
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Unable to load registered students from the database."
+
+      );
+
+    } finally {
+
+      setIsLoading(false);
+
+      setIsRefreshing(false);
+
+    }
+
+  };
+
+
+
+  useEffect(() => {
+
+    void loadStudents();
+
+  }, []);
+
+
+
+  const loadStudentDetails = async (student: Student) => {
+
+    const token = getToken();
+
+
+
+    if (!token) {
+
+      logoutAdmin();
+
+      return;
+
+    }
+
+
+
+    setIsStudentLoading(true);
+
+    setStudentLoadError("");
+
+    setStudentDetails(null);
+
+    setProgressData(null);
+
+
+
+    try {
+
+      const encodedStudentId = encodeURIComponent(student.id);
+
+      const headers = {
+
+        Authorization: `Bearer ${token}`,
+
+        "Content-Type": "application/json",
+
+      };
+
+
+
+      const [detailsResponse, progressResponse] = await Promise.all([
+
+        fetch(`${getApiUrl()}/students/${encodedStudentId}`, {
+
+          method: "GET",
+
+          headers,
+
+          cache: "no-store",
+
+        }),
+
+        fetch(`${getApiUrl()}/students/${encodedStudentId}/progress`, {
+
+          method: "GET",
+
+          headers,
+
+          cache: "no-store",
+
+        }),
+
+      ]);
+
+
+
+      if (
+
+        detailsResponse.status === 401 ||
+
+        detailsResponse.status === 403 ||
+
+        progressResponse.status === 401 ||
+
+        progressResponse.status === 403
+
+      ) {
+
+        logoutAdmin();
+
+        return;
+
+      }
+
+
+
+      const detailsResult = await detailsResponse.json();
+
+      const progressResult = await progressResponse.json();
+
+
+
+      if (!detailsResponse.ok) {
+
+        throw new Error(
+
+          detailsResult?.message ||
+
+            `Failed to load student details (${detailsResponse.status})`
+
         );
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        student.status === statusFilter;
+      }
 
-      return matchesSearch && matchesStatus;
+
+
+      if (!progressResponse.ok) {
+
+        throw new Error(
+
+          progressResult?.message ||
+
+            `Failed to load student progress (${progressResponse.status})`
+
+        );
+
+      }
+
+
+
+      const details = detailsResult?.data || {};
+
+      const mapped = mapStudent({
+
+        id: details.id || student.userId,
+
+        studentId: details.studentId || student.id,
+
+        name: details.name || student.name,
+
+        email: details.email || student.email,
+
+        phone: details.phone || student.phone,
+
+        dob: details.dob || student.dob,
+
+        createdAt: details.createdAt,
+
+        isActive:
+
+          typeof details.isActive === "boolean"
+
+            ? details.isActive
+
+            : student.status === "Active",
+
+        state: details.state || student.state,
+
+        referralId: details.referralId || student.referralId,
+
+        courses: student.courses,
+
+        packages: student.packages,
+
+      });
+
+
+
+      setStudentDetails({
+
+        ...mapped,
+
+        enrollments: Array.isArray(details.enrollments)
+
+          ? details.enrollments
+
+          : [],
+
+        payments: Array.isArray(details.payments)
+
+          ? details.payments
+
+          : [],
+
+      });
+
+
+
+      setProgressData(progressResult?.data || null);
+
+    } catch (error) {
+
+      console.error("Failed to load student details:", error);
+
+      setStudentLoadError(
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Unable to load student details."
+
+      );
+
+    } finally {
+
+      setIsStudentLoading(false);
+
+    }
+
+  };
+
+
+
+  const filteredStudents = useMemo(() => {
+
+    const searchText = search.trim().toLowerCase();
+
+
+
+    const matches = (value: string, filterValue: string) =>
+
+      !filterValue ||
+
+      value.toLowerCase().includes(filterValue.toLowerCase());
+
+
+
+    const filtered = students.filter((student) => {
+
+      const matchesSearch =
+
+        !searchText ||
+
+        student.name.toLowerCase().includes(searchText) ||
+
+        student.email.toLowerCase().includes(searchText) ||
+
+        student.id.toLowerCase().includes(searchText) ||
+
+        student.phone.toLowerCase().includes(searchText) ||
+
+        student.courses.some((course) =>
+
+          course.toLowerCase().includes(searchText)
+
+        ) ||
+
+        student.packages.some((pkg) =>
+
+          pkg.toLowerCase().includes(searchText)
+
+        );
+
+
+
+      return (
+
+        matchesSearch &&
+
+        matches(student.name, columnFilters.student) &&
+
+        matches(student.id, columnFilters.studentId) &&
+
+        matches(student.phone, columnFilters.phone) &&
+
+        matches(student.packages.join(" "), columnFilters.package) &&
+
+        matches(student.joinedDate, columnFilters.joined) &&
+
+        (columnFilters.status === "All" ||
+
+          student.status === columnFilters.status)
+
+      );
+
     });
-  }, [students, search, statusFilter]);
+
+
+
+    return [...filtered].sort((a, b) => {
+
+      let left = "";
+
+      let right = "";
+
+
+
+      switch (sortKey) {
+
+        case "student":
+
+          left = a.name;
+
+          right = b.name;
+
+          break;
+
+        case "studentId":
+
+          left = a.id;
+
+          right = b.id;
+
+          break;
+
+        case "phone":
+
+          left = a.phone;
+
+          right = b.phone;
+
+          break;
+
+        case "package":
+
+          left = a.packages.join(", ");
+
+          right = b.packages.join(", ");
+
+          break;
+
+        case "joined":
+
+          left = a.joinedDate;
+
+          right = b.joinedDate;
+
+          break;
+
+        case "status":
+
+          left = a.status;
+
+          right = b.status;
+
+          break;
+
+      }
+
+
+
+      if (sortKey === "joined") {
+
+        const leftTime = new Date(left).getTime();
+
+        const rightTime = new Date(right).getTime();
+
+
+
+        if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime)) {
+
+          return sortDirection === "asc"
+
+            ? leftTime - rightTime
+
+            : rightTime - leftTime;
+
+        }
+
+      }
+
+
+
+      const comparison = left.toLowerCase().localeCompare(
+
+        right.toLowerCase(),
+
+        undefined,
+
+        { numeric: true, sensitivity: "base" }
+
+      );
+
+
+
+      return sortDirection === "asc" ? comparison : -comparison;
+
+    });
+
+  }, [
+
+    students,
+
+    search,
+
+    columnFilters,
+
+    sortKey,
+
+    sortDirection,
+
+  ]);
+
+
 
   const activeCount = students.filter(
+
     (student) => student.status === "Active"
+
   ).length;
+
+
 
   const inactiveCount = students.filter(
+
     (student) => student.status === "Inactive"
+
   ).length;
 
-  const toggleCourse = (course: string) => {
-    setForm((current) => ({
-      ...current,
-      courses: current.courses.includes(course)
-        ? current.courses.filter((item) => item !== course)
-        : [...current.courses, course],
-    }));
-  };
 
-  const createStudent = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
-
-    if (!form.name.trim()) {
-      alert("Please enter the student's name.");
-      return;
-    }
-
-    if (!form.email.trim()) {
-      alert("Please enter the student's email.");
-      return;
-    }
-
-    if (!form.phone.trim()) {
-      alert("Please enter the student's phone number.");
-      return;
-    }
-
-    if (!form.password.trim()) {
-      alert("Please create a password.");
-      return;
-    }
-
-    if (form.courses.length === 0) {
-      alert("Please select at least one course.");
-      return;
-    }
-
-    const newStudent: Student = {
-      // Development-only ID.
-      // Production Student ID will come from the backend.
-      id: `SKCE${String(students.length + 1).padStart(4, "0")}`,
-      name: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      dob: form.dob,
-      courses: form.courses,
-      joinedDate: new Date().toLocaleDateString("en-IN"),
-      status: form.status,
-    };
-
-    setStudents((current) => [newStudent, ...current]);
-    setForm(EMPTY_FORM);
-    setShowAddForm(false);
-  };
 
   const openViewModal = (student: Student) => {
-    setOpenMenuId(null);
+
     setSelectedStudent(student);
+
+    setActiveStudentTab("overview");
+
     setShowViewModal(true);
+
+    void loadStudentDetails(student);
+
   };
 
-  const openEditModal = (student: Student) => {
-    setOpenMenuId(null);
-    setSelectedStudent(student);
 
-    setForm({
-      name: student.name,
-      email: student.email,
-      phone: student.phone,
-      dob: student.dob,
-      courses: [...student.courses],
-      password: "",
-      status: student.status,
-    });
 
-    setShowEditForm(true);
-  };
+  const closeViewModal = () => {
 
-  const updateStudent = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
-
-    if (!selectedStudent) return;
-
-    if (!form.courses.length) {
-      alert("Please select at least one course.");
-      return;
-    }
-
-    setStudents((current) =>
-      current.map((student) =>
-        student.id === selectedStudent.id
-          ? {
-              ...student,
-              name: form.name.trim(),
-              email: form.email.trim(),
-              phone: form.phone.trim(),
-              dob: form.dob,
-              courses: form.courses,
-              status: form.status,
-            }
-          : student
-      )
-    );
-
-    setShowEditForm(false);
     setSelectedStudent(null);
-    setForm(EMPTY_FORM);
-  };
 
-  const toggleStatus = (id: string) => {
-    setStudents((current) =>
-      current.map((student) =>
-        student.id === id
-          ? {
-              ...student,
-              status:
-                student.status === "Active"
-                  ? "Inactive"
-                  : "Active",
-            }
-          : student
-      )
-    );
-  };
+    setStudentDetails(null);
 
-  const handleMoreAction = (
-    action: "reset-password" | "activity" | "feedback",
-    student: Student
-  ) => {
-    setOpenMenuId(null);
+    setProgressData(null);
 
-    if (action === "reset-password") {
-      alert(
-        `Password reset for ${student.name} will be connected to the backend later.`
-      );
-      return;
-    }
+    setStudentLoadError("");
 
-    if (action === "activity") {
-      alert(
-        `Student activity for ${student.name} will be connected to the backend later.`
-      );
-      return;
-    }
-
-    setSelectedStudent(student);
-    setFeedback("");
-    setShowFeedbackModal(true);
-  };
-
-  const submitFeedback = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
-
-    if (!selectedStudent) return;
-
-    if (!feedback.trim()) {
-      alert("Please enter appreciation or feedback.");
-      return;
-    }
-
-    alert(`Feedback saved for ${selectedStudent.name}.`);
-
-    setFeedback("");
-    setShowFeedbackModal(false);
-    setSelectedStudent(null);
-  };
-
-  const closeAllModals = () => {
-    setShowAddForm(false);
     setShowViewModal(false);
-    setShowEditForm(false);
-    setShowFeedbackModal(false);
-    setSelectedStudent(null);
-    setOpenMenuId(null);
-    setForm(EMPTY_FORM);
-    setFeedback("");
+
   };
+
+
+
+  const openPackageCourses = async (
+
+    student: Student,
+
+    packageTitle: string
+
+  ) => {
+
+    const token = getToken();
+
+
+
+    if (!token) {
+
+      logoutAdmin();
+
+      return;
+
+    }
+
+
+
+    setSelectedPackage({ title: packageTitle, courses: [] });
+
+    setPackageError("");
+
+    setIsPackageLoading(true);
+
+
+
+    try {
+
+      const response = await fetch(
+
+        `${getApiUrl()}/students/${encodeURIComponent(student.id)}`,
+
+        {
+
+          method: "GET",
+
+          headers: {
+
+            Authorization: `Bearer ${token}`,
+
+            "Content-Type": "application/json",
+
+          },
+
+          cache: "no-store",
+
+        }
+
+      );
+
+
+
+      if (response.status === 401 || response.status === 403) {
+
+        logoutAdmin();
+
+        return;
+
+      }
+
+
+
+      if (!response.ok) {
+
+        throw new Error(
+
+          `Failed to load package details (${response.status})`
+
+        );
+
+      }
+
+
+
+      const result = await response.json();
+
+      const details = result?.data;
+
+      const courses = new Set<string>();
+
+
+
+      if (Array.isArray(details?.enrollments)) {
+
+        for (const enrollment of details.enrollments) {
+
+          const pkg = enrollment?.package;
+
+
+
+          if (
+
+            pkg &&
+
+            typeof pkg.title === "string" &&
+
+            pkg.title === packageTitle &&
+
+            Array.isArray(pkg.courses)
+
+          ) {
+
+            for (const item of pkg.courses) {
+
+              const title = item?.course?.title;
+
+              if (typeof title === "string" && title.trim()) {
+
+                courses.add(title.trim());
+
+              }
+
+            }
+
+          }
+
+        }
+
+      }
+
+
+
+      setSelectedPackage({
+
+        title: packageTitle,
+
+        courses: Array.from(courses),
+
+      });
+
+    } catch (error) {
+
+      console.error("Failed to load package courses:", error);
+
+      setPackageError(
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Unable to load the courses in this package."
+
+      );
+
+    } finally {
+
+      setIsPackageLoading(false);
+
+    }
+
+  };
+
+
+
+  const handleSort = (key: SortKey) => {
+
+    if (sortKey === key) {
+
+      setSortDirection((current) =>
+
+        current === "asc" ? "desc" : "asc"
+
+      );
+
+      return;
+
+    }
+
+
+
+    setSortKey(key);
+
+    setSortDirection("asc");
+
+  };
+
+
+
+  const updateColumnFilter = <K extends keyof ColumnFilters>(
+
+    field: K,
+
+    value: ColumnFilters[K]
+
+  ) => {
+
+    setColumnFilters((current) => ({
+
+      ...current,
+
+      [field]: value,
+
+    }));
+
+  };
+
+
+
+  const details = studentDetails || selectedStudent;
+
+  const summary = progressData?.summary || {};
+
+  // The backend returns the real course-wise progress under `courseProgress`.
+  // Keep `courses` as a fallback so the UI also works with older response shapes.
+  const courses = Array.isArray(progressData?.courseProgress)
+    ? progressData.courseProgress
+    : Array.isArray(progressData?.courses)
+      ? progressData.courses
+      : [];
+
+  // Assessments may be returned either at the top level or alongside a course.
+  const assessments = Array.isArray(progressData?.assessments)
+    ? progressData.assessments
+    : courses.flatMap((course: any) => {
+        if (Array.isArray(course?.assessments)) {
+          return course.assessments.map((assessment: any) => ({
+            ...assessment,
+            courseId: course.courseId,
+            courseTitle:
+              course.courseTitle ||
+              course.title ||
+              course.course?.title ||
+              "—",
+          }));
+        }
+
+        if (course?.assessment) {
+          return [
+            {
+              ...course.assessment,
+              courseId: course.courseId,
+              courseTitle:
+                course.courseTitle ||
+                course.title ||
+                course.course?.title ||
+                "—",
+              submission:
+                course.assessment.latestSubmission ||
+                course.latestSubmission ||
+                course.submission ||
+                null,
+            },
+          ];
+        }
+
+        return [];
+      });
+
+  const certificates = Array.isArray(progressData?.certificates)
+    ? progressData.certificates
+    : [];
+
+  const enrollments = studentDetails?.enrollments || [];
+
+  const payments = studentDetails?.payments || [];
+
+
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px]">
 
-        {/* HEADER */}
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+
+      <div className="mx-auto max-w-[1550px]">
+
         <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+
           <div>
+
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-orange-500">
+
               Student Management
+
             </p>
 
             <h1 className="text-2xl font-bold tracking-tight text-[#173B67] sm:text-3xl">
+
               Students
+
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage student accounts, courses and status.
+
+              Registered students from the SKCE database.
+
             </p>
+
           </div>
 
+
+
           <button
+
             type="button"
-            onClick={() => {
-              setForm(EMPTY_FORM);
-              setShowAddForm(true);
-            }}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md"
+
+            onClick={() => void loadStudents(true)}
+
+            disabled={isRefreshing || isLoading}
+
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+
           >
-            <UserPlus size={18} />
-            Add Student
+
+            <RefreshCw
+
+              size={17}
+
+              className={isRefreshing ? "animate-spin" : ""}
+
+            />
+
+            {isRefreshing ? "Refreshing..." : "Refresh Students"}
+
           </button>
+
         </div>
 
-        {/* SUMMARY */}
+
+
         <div className="mb-7 grid gap-4 sm:grid-cols-3">
+
           <SummaryCard
+
             title="Total Students"
+
             value={students.length}
+
             icon={Users}
-            description="All registered students"
+
+            description="Registered in database"
+
           />
 
           <SummaryCard
+
             title="Active Students"
+
             value={activeCount}
-            icon={UserCheckIcon}
+
+            icon={Users}
+
             description="Currently active"
+
           />
 
           <SummaryCard
+
             title="Inactive Students"
+
             value={inactiveCount}
-            icon={UserX}
+
+            icon={Users}
+
             description="Currently inactive"
+
           />
+
         </div>
 
-        {/* TABLE */}
+
+
+        {loadError && (
+
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+
+            <AlertCircle
+
+              size={20}
+
+              className="mt-0.5 shrink-0 text-red-500"
+
+            />
+
+            <div className="flex-1">
+
+              <p className="text-sm font-semibold text-red-800">
+
+                Unable to load registered students
+
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-red-700">
+
+                {loadError}
+
+              </p>
+
+            </div>
+
+            <button
+
+              type="button"
+
+              onClick={() => void loadStudents(true)}
+
+              className="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
+
+            >
+
+              Retry
+
+            </button>
+
+          </div>
+
+        )}
+
+
+
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-          {/* TOOLBAR */}
           <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+
             <div className="relative w-full sm:max-w-xl">
+
               <Search
+
                 size={18}
+
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+
               />
 
               <input
+
                 type="text"
+
                 value={search}
+
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, email, phone, ID or course..."
+
+                placeholder="Search all student details..."
+
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
+
               />
+
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as "All" | StudentStatus
-                )
-              }
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+
+
+            <button
+
+              type="button"
+
+              onClick={() => {
+
+                setSearch("");
+
+                setColumnFilters({
+
+                  student: "",
+
+                  studentId: "",
+
+                  phone: "",
+
+                  package: "",
+
+                  joined: "",
+
+                  status: "All",
+
+                });
+
+                setSortKey("joined");
+
+                setSortDirection("desc");
+
+              }}
+
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+
             >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+
+              Clear Filters
+
+            </button>
+
           </div>
 
-          {/* EMPTY STATE */}
-          {filteredStudents.length === 0 ? (
+
+
+          {isLoading ? (
+
             <div className="px-6 py-20 text-center">
+
+              <RefreshCw
+
+                size={28}
+
+                className="mx-auto animate-spin text-orange-500"
+
+              />
+
+              <h3 className="mt-5 text-lg font-semibold text-[#173B67]">
+
+                Loading registered students...
+
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500">
+
+                Fetching student records from the database.
+
+              </p>
+
+            </div>
+
+          ) : filteredStudents.length === 0 ? (
+
+            <div className="px-6 py-20 text-center">
+
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
-                <Users
-                  size={28}
-                  className="text-orange-500"
-                />
+
+                <Users size={28} className="text-orange-500" />
+
               </div>
 
               <h3 className="mt-5 text-lg font-semibold text-[#173B67]">
-                No students found
+
+                {students.length === 0
+
+                  ? "No registered students found"
+
+                  : "No students match your search"}
+
               </h3>
 
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+
                 {students.length === 0
-                  ? 'Click "Add Student" to create the first student.'
-                  : "Try changing your search or status filter."}
+
+                  ? "Students will appear here automatically after they register through the SKCE registration process."
+
+                  : "Try changing your search text or status filter."}
+
               </p>
 
-              {students.length === 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(true)}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
-                >
-                  <UserPlus size={17} />
-                  Add Student
-                </button>
-              )}
             </div>
+
           ) : (
+
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px]">
+
+              <table className="w-full min-w-[1120px]">
+
                 <thead>
+
                   <tr className="bg-slate-50">
-                    <TableHeader>Student</TableHeader>
-                    <TableHeader>Student ID</TableHeader>
-                    <TableHeader>Phone</TableHeader>
-                    <TableHeader>Courses</TableHeader>
-                    <TableHeader>Joined</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Actions</TableHeader>
+
+                    <SortableTableHeader
+
+                      label="Student"
+
+                      sortKey="student"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <SortableTableHeader
+
+                      label="Student ID"
+
+                      sortKey="studentId"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <SortableTableHeader
+
+                      label="Phone"
+
+                      sortKey="phone"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <SortableTableHeader
+
+                      label="Packages"
+
+                      sortKey="package"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <SortableTableHeader
+
+                      label="Joined"
+
+                      sortKey="joined"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <SortableTableHeader
+
+                      label="Status"
+
+                      sortKey="status"
+
+                      activeSortKey={sortKey}
+
+                      direction={sortDirection}
+
+                      onSort={handleSort}
+
+                    />
+
+                    <TableHeader>Action</TableHeader>
+
                   </tr>
+
+
+
+                  <tr className="border-t border-slate-100 bg-white">
+
+                    <TableFilterCell
+
+                      value={columnFilters.student}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("student", value)
+
+                      }
+
+                      placeholder="Filter student..."
+
+                    />
+
+                    <TableFilterCell
+
+                      value={columnFilters.studentId}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("studentId", value)
+
+                      }
+
+                      placeholder="Filter ID..."
+
+                    />
+
+                    <TableFilterCell
+
+                      value={columnFilters.phone}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("phone", value)
+
+                      }
+
+                      placeholder="Filter phone..."
+
+                    />
+
+                    <TableFilterCell
+
+                      value={columnFilters.package}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("package", value)
+
+                      }
+
+                      placeholder="Filter package..."
+
+                    />
+
+                    <TableFilterCell
+
+                      value={columnFilters.joined}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("joined", value)
+
+                      }
+
+                      placeholder="Filter date..."
+
+                    />
+
+                    <TableFilterStatusCell
+
+                      value={columnFilters.status}
+
+                      onChange={(value) =>
+
+                        updateColumnFilter("status", value)
+
+                      }
+
+                    />
+
+                    <TableFilterCell
+
+                      disabled
+
+                      value=""
+
+                      onChange={() => undefined}
+
+                      placeholder="—"
+
+                    />
+
+                  </tr>
+
                 </thead>
 
+
+
                 <tbody>
+
                   {filteredStudents.map((student) => (
+
                     <tr
-                      key={student.id}
+
+                      key={student.userId || student.id}
+
                       className="border-t border-slate-100 transition hover:bg-slate-50/60"
+
                     >
+
                       <TableCell>
-                        <div className="flex items-center gap-3">
+
+                        <div className="flex min-w-[230px] items-center gap-3">
+
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#173B67] text-sm font-bold text-white">
-                            {student.name
-                              .charAt(0)
-                              .toUpperCase()}
+
+                            {student.name.charAt(0).toUpperCase()}
+
                           </div>
 
-                          <div>
-                            <p className="font-semibold text-slate-800">
+                          <div className="min-w-0">
+
+                            <p className="truncate font-semibold text-slate-800">
+
                               {student.name}
+
                             </p>
 
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {student.email}
+                            <p className="mt-0.5 truncate text-xs text-slate-500">
+
+                              {student.email || "Email not provided"}
+
                             </p>
+
                           </div>
+
                         </div>
+
                       </TableCell>
 
+
+
                       <TableCell>
-                        <span className="font-medium text-[#173B67]">
-                          {student.id}
+
+                        <span className="font-semibold text-[#173B67]">
+
+                          {student.id || "Not assigned"}
+
                         </span>
+
                       </TableCell>
 
-                      <TableCell>
-                        {student.phone}
-                      </TableCell>
+
 
                       <TableCell>
-                        <div className="flex max-w-[350px] flex-wrap gap-1.5">
-                          {student.courses.map((course) => (
-                            <span
-                              key={course}
-                              className="rounded-lg bg-orange-50 px-2 py-1 text-[11px] font-semibold text-orange-600"
-                            >
-                              {course}
+
+                        <span className="whitespace-nowrap">
+
+                          {student.phone || "Not provided"}
+
+                        </span>
+
+                      </TableCell>
+
+
+
+                      <TableCell>
+
+                        <div className="w-[280px]">
+
+                          {student.packages.length > 0 ? (
+
+                            <div className="space-y-2">
+
+                              {student.packages.map((pkg) => (
+
+                                <button
+
+                                  key={pkg}
+
+                                  type="button"
+
+                                  onClick={() =>
+
+                                    void openPackageCourses(student, pkg)
+
+                                  }
+
+                                  className="flex w-full items-start gap-2 rounded-xl border border-violet-100 bg-violet-50 px-3 py-2.5 text-left transition hover:border-violet-300 hover:bg-violet-100"
+
+                                  title="Click to view courses in this package"
+
+                                >
+
+                                  <Package
+
+                                    size={15}
+
+                                    className="mt-0.5 shrink-0 text-violet-600"
+
+                                  />
+
+                                  <span className="text-xs font-semibold leading-4 text-violet-700">
+
+                                    {pkg}
+
+                                  </span>
+
+                                </button>
+
+                              ))}
+
+                            </div>
+
+                          ) : (
+
+                            <span className="text-xs text-slate-400">
+
+                              No package
+
                             </span>
-                          ))}
+
+                          )}
+
                         </div>
+
                       </TableCell>
 
-                      <TableCell>
-                        {student.joinedDate}
-                      </TableCell>
+
 
                       <TableCell>
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            student.status === "Active"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-red-50 text-red-700"
-                          }`}
-                        >
-                          {student.status}
+
+                        <span className="whitespace-nowrap">
+
+                          {student.joinedDate}
+
                         </span>
+
                       </TableCell>
+
+
 
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <ActionButton
-                            title="View student"
-                            onClick={() =>
-                              openViewModal(student)
-                            }
-                          >
-                            <Eye size={16} />
-                          </ActionButton>
 
-                          <ActionButton
-                            title="Edit student"
-                            onClick={() =>
-                              openEditModal(student)
-                            }
-                          >
-                            <Pencil size={16} />
-                          </ActionButton>
+                        <span
 
-                          <ActionButton
-                            title={
-                              student.status === "Active"
-                                ? "Deactivate student"
-                                : "Activate student"
-                            }
-                            onClick={() =>
-                              toggleStatus(student.id)
-                            }
-                          >
-                            <UserX size={16} />
-                          </ActionButton>
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
 
-                          <div className="relative">
-                            <ActionButton
-                              title="More actions"
-                              onClick={() =>
-                                setOpenMenuId(
-                                  openMenuId === student.id
-                                    ? null
-                                    : student.id
-                                )
-                              }
-                            >
-                              <MoreVertical size={16} />
-                            </ActionButton>
+                            student.status === "Active"
 
-                            {openMenuId === student.id && (
-                              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-                                <MoreMenuItem
-                                  icon={
-                                    <KeyRound size={17} />
-                                  }
-                                  label="Reset Password"
-                                  onClick={() =>
-                                    handleMoreAction(
-                                      "reset-password",
-                                      student
-                                    )
-                                  }
-                                />
+                              ? "bg-emerald-50 text-emerald-700"
 
-                                <MoreMenuItem
-                                  icon={
-                                    <Activity size={17} />
-                                  }
-                                  label="View Student Activity"
-                                  onClick={() =>
-                                    handleMoreAction(
-                                      "activity",
-                                      student
-                                    )
-                                  }
-                                />
+                              : "bg-red-50 text-red-700"
 
-                                <MoreMenuItem
-                                  icon={
-                                    <Star size={17} />
-                                  }
-                                  label="Appreciation & Feedback"
-                                  onClick={() =>
-                                    handleMoreAction(
-                                      "feedback",
-                                      student
-                                    )
-                                  }
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                          }`}
+
+                        >
+
+                          {student.status}
+
+                        </span>
+
                       </TableCell>
+
+
+
+                      <TableCell>
+
+                        <button
+
+                          type="button"
+
+                          title="View student details"
+
+                          onClick={() => openViewModal(student)}
+
+                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500"
+
+                        >
+
+                          <Eye size={16} />
+
+                        </button>
+
+                      </TableCell>
+
                     </tr>
+
                   ))}
+
                 </tbody>
+
               </table>
+
             </div>
+
           )}
+
         </section>
 
-        {/* DEVELOPMENT NOTICE */}
-        <div className="mt-6 rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-          <p className="text-xs font-semibold text-orange-800">
-            Development Mode
+
+
+        <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+
+          <p className="text-xs font-semibold text-blue-800">
+
+            Registered Students Only
+
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-orange-700/80">
-            Student records are currently stored in frontend state.
-            Registration, database storage, authentication, password
-            reset and permanent Student ID generation will be connected
-            when the backend is implemented.
+          <p className="mt-1 text-xs leading-5 text-blue-700/80">
+
+            This page is read-only for student registration. Student records
+
+            shown here come directly from the SKCE database. Students are
+
+            created through the normal registration process, not manually from
+
+            the Admin portal.
+
           </p>
+
         </div>
+
       </div>
 
-      {/* ADD */}
-      {showAddForm && (
-        <StudentFormModal
-          title="Add New Student"
-          subtitle="Create a student account for SKCE."
-          form={form}
-          setForm={setForm}
-          toggleCourse={toggleCourse}
-          onClose={closeAllModals}
-          onSubmit={createStudent}
-          submitLabel="Create Student"
-        />
-      )}
 
-      {/* EDIT */}
-      {showEditForm && (
-        <StudentFormModal
-          title="Edit Student"
-          subtitle="Update student information and courses."
-          form={form}
-          setForm={setForm}
-          toggleCourse={toggleCourse}
-          onClose={closeAllModals}
-          onSubmit={updateStudent}
-          submitLabel="Save Changes"
-          isEdit
-        />
-      )}
 
-      {/* VIEW */}
-      {showViewModal && selectedStudent && (
-        <ModalOverlay onClose={closeAllModals}>
+      {selectedPackage && (
+
+        <ModalOverlay
+
+          onClose={() => {
+
+            setSelectedPackage(null);
+
+            setPackageError("");
+
+          }}
+
+        >
+
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+
             <ModalHeader
-              title="Student Details"
-              subtitle="Complete student information."
-              onClose={closeAllModals}
+
+              title={selectedPackage.title}
+
+              subtitle="Courses included in this registered package."
+
+              onClose={() => {
+
+                setSelectedPackage(null);
+
+                setPackageError("");
+
+              }}
+
             />
 
+
+
             <div className="p-6">
-              <div className="mb-6 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
+              {isPackageLoading ? (
+
+                <div className="py-10 text-center">
+
+                  <RefreshCw
+
+                    size={26}
+
+                    className="mx-auto animate-spin text-violet-600"
+
+                  />
+
+                  <p className="mt-4 text-sm font-semibold text-[#173B67]">
+
+                    Loading package courses...
+
+                  </p>
+
+                </div>
+
+              ) : packageError ? (
+
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+
+                  <p className="text-sm font-semibold text-red-800">
+
+                    Unable to load package courses
+
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-red-700">
+
+                    {packageError}
+
+                  </p>
+
+                </div>
+
+              ) : selectedPackage.courses.length === 0 ? (
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
+
+                  <Package
+
+                    size={28}
+
+                    className="mx-auto text-violet-500"
+
+                  />
+
+                  <p className="mt-3 text-sm font-semibold text-[#173B67]">
+
+                    No courses found
+
+                  </p>
+
+                </div>
+
+              ) : (
+
+                <div>
+
+                  <p className="mb-3 text-sm font-semibold text-slate-700">
+
+                    Included Courses
+
+                  </p>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+
+                    {selectedPackage.courses.map((course) => (
+
+                      <div
+
+                        key={course}
+
+                        className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3"
+
+                      >
+
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white">
+
+                          <Users size={15} className="text-orange-500" />
+
+                        </div>
+
+                        <span className="text-sm font-semibold text-orange-700">
+
+                          {course}
+
+                        </span>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
+
+
+            <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+
+              <button
+
+                type="button"
+
+                onClick={() => {
+
+                  setSelectedPackage(null);
+
+                  setPackageError("");
+
+                }}
+
+                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+
+              >
+
+                Close
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </ModalOverlay>
+
+      )}
+
+
+
+      {showViewModal && selectedStudent && (
+
+        <ModalOverlay onClose={closeViewModal}>
+
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+
+            <ModalHeader
+
+              title="Student Details"
+
+              subtitle="Student profile, progress, enrollments and payments."
+
+              onClose={closeViewModal}
+
+            />
+
+
+
+            <div className="p-6">
+
+              <div className="mb-5 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#173B67] text-xl font-bold text-white">
-                  {selectedStudent.name
-                    .charAt(0)
-                    .toUpperCase()}
+
+                  {selectedStudent.name.charAt(0).toUpperCase()}
+
                 </div>
 
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-[#173B67]">
+
+                  <h3 className="truncate text-lg font-bold text-[#173B67]">
+
                     {selectedStudent.name}
+
                   </h3>
 
                   <p className="mt-0.5 text-sm text-slate-500">
-                    {selectedStudent.id}
+
+                    {selectedStudent.id || "Student ID not assigned"}
+
                   </p>
+
                 </div>
 
                 <span
-                  className={`ml-auto rounded-full px-3 py-1 text-xs font-semibold ${
+
+                  className={`ml-auto shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+
                     selectedStudent.status === "Active"
+
                       ? "bg-emerald-50 text-emerald-700"
+
                       : "bg-red-50 text-red-700"
+
                   }`}
+
                 >
+
                   {selectedStudent.status}
+
                 </span>
+
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <DetailItem
-                  icon={<Users size={16} />}
-                  label="Full Name"
-                  value={selectedStudent.name}
-                />
 
-                <DetailItem
-                  icon={<Users size={16} />}
-                  label="Student ID"
-                  value={selectedStudent.id}
-                />
 
-                <DetailItem
-                  icon={<Mail size={16} />}
-                  label="Email"
-                  value={selectedStudent.email}
-                />
+              <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-100 pb-2">
 
-                <DetailItem
-                  icon={<Phone size={16} />}
-                  label="Phone"
-                  value={selectedStudent.phone}
-                />
+                {(
 
-                <DetailItem
-                  icon={<CalendarDays size={16} />}
-                  label="Date of Birth"
-                  value={
-                    selectedStudent.dob || "Not provided"
-                  }
-                />
+                  [
 
-                <DetailItem
-                  icon={<CalendarDays size={16} />}
-                  label="Joined Date"
-                  value={selectedStudent.joinedDate}
-                />
+                    ["overview", "Overview", Users],
+
+                    ["progress", "Progress", BarChart3],
+
+                    ["enrollments", "Enrollments", GraduationCap],
+
+                    ["payments", "Payments", Package],
+
+                  ] as const
+
+                ).map(([tab, label, Icon]) => (
+
+                  <button
+
+                    key={tab}
+
+                    type="button"
+
+                    onClick={() => setActiveStudentTab(tab)}
+
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
+
+                      activeStudentTab === tab
+
+                        ? "bg-[#173B67] text-white"
+
+                        : "text-slate-500 hover:bg-slate-50 hover:text-[#173B67]"
+
+                    }`}
+
+                  >
+
+                    <Icon size={16} />
+
+                    {label}
+
+                  </button>
+
+                ))}
+
               </div>
 
-              <div className="mt-6">
-                <p className="mb-3 text-sm font-semibold text-slate-700">
-                  Enrolled Courses
-                </p>
 
-                <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 p-4">
-                  {selectedStudent.courses.map((course) => (
-                    <span
-                      key={course}
-                      className="rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600"
-                    >
-                      {course}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
 
-            <ModalFooter onClose={closeAllModals} />
-          </div>
-        </ModalOverlay>
-      )}
+              {isStudentLoading ? (
 
-      {/* FEEDBACK */}
-      {showFeedbackModal && selectedStudent && (
-        <ModalOverlay onClose={closeAllModals}>
-          <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <ModalHeader
-              title="Appreciation & Feedback"
-              subtitle={`Give feedback to ${selectedStudent.name}.`}
-              onClose={closeAllModals}
-            />
+                <div className="py-16 text-center">
 
-            <form onSubmit={submitFeedback}>
-              <div className="p-6">
-                <div className="mb-5 flex items-center gap-3 rounded-xl bg-orange-50 p-4">
-                  <Star
-                    size={20}
-                    className="text-orange-500"
+                  <RefreshCw
+
+                    size={30}
+
+                    className="mx-auto animate-spin text-orange-500"
+
                   />
 
-                  <p className="text-xs leading-5 text-orange-800">
-                    Recognize good performance or provide
-                    constructive feedback.
+                  <p className="mt-4 text-sm font-semibold text-[#173B67]">
+
+                    Loading student details...
+
                   </p>
+
                 </div>
 
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Appreciation / Feedback
-                  <span className="ml-1 text-red-500">*</span>
-                </label>
+              ) : studentLoadError ? (
 
-                <textarea
-                  required
-                  rows={6}
-                  value={feedback}
-                  onChange={(e) =>
-                    setFeedback(e.target.value)
-                  }
-                  placeholder="Write appreciation or feedback for the student..."
-                  className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                />
-              </div>
+                <div className="rounded-xl border border-red-200 bg-red-50 p-5">
 
-              <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
-                <button
-                  type="button"
-                  onClick={closeAllModals}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
+                  <p className="text-sm font-semibold text-red-800">
 
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
-                >
-                  <Star size={16} />
-                  Save Feedback
-                </button>
-              </div>
-            </form>
-          </div>
-        </ModalOverlay>
-      )}
-    </main>
-  );
-}
+                    Unable to load student details
 
-/* ============================================================
-   STUDENT FORM MODAL
-============================================================ */
+                  </p>
 
-function StudentFormModal({
-  title,
-  subtitle,
-  form,
-  setForm,
-  toggleCourse,
-  onClose,
-  onSubmit,
-  submitLabel,
-  isEdit = false,
-}: {
-  title: string;
-  subtitle: string;
-  form: StudentForm;
-  setForm: React.Dispatch<
-    React.SetStateAction<StudentForm>
-  >;
-  toggleCourse: (course: string) => void;
-  onClose: () => void;
-  onSubmit: (
-    e: React.FormEvent<HTMLFormElement>
-  ) => void;
-  submitLabel: string;
-  isEdit?: boolean;
-}) {
-  const updateForm = (
-    field: keyof StudentForm,
-    value: string
-  ) => {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
+                  <p className="mt-1 text-xs leading-5 text-red-700">
 
-  return (
-    <ModalOverlay onClose={onClose}>
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        <ModalHeader
-          title={title}
-          subtitle={subtitle}
-          onClose={onClose}
-        />
+                    {studentLoadError}
 
-        <form onSubmit={onSubmit}>
-          <div className="grid gap-5 p-6 sm:grid-cols-2">
+                  </p>
 
-            <FormField
-              label="Full Name"
-              required
-              value={form.name}
-              onChange={(value) =>
-                updateForm("name", value)
-              }
-              placeholder="Enter student name"
-            />
+                </div>
 
-            <FormField
-              label="Email"
-              type="email"
-              required
-              value={form.email}
-              onChange={(value) =>
-                updateForm("email", value)
-              }
-              placeholder="student@example.com"
-            />
-
-            <FormField
-              label="Phone"
-              required
-              value={form.phone}
-              onChange={(value) =>
-                updateForm("phone", value)
-              }
-              placeholder="Enter phone number"
-            />
-
-            <FormField
-              label="Date of Birth"
-              type="date"
-              value={form.dob}
-              onChange={(value) =>
-                updateForm("dob", value)
-              }
-            />
-
-            {/* COURSES */}
-            <div className="sm:col-span-2">
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Courses
-                <span className="ml-1 text-red-500">*</span>
-              </label>
-
-              <div className="grid max-h-64 gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
-                {COURSE_OPTIONS.map((course) => {
-                  const selected =
-                    form.courses.includes(course.title);
-
-                  return (
-                    <label
-                      key={course.slug}
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
-                        selected
-                          ? "border-orange-200 bg-orange-50 text-orange-700"
-                          : "border-transparent bg-white text-slate-600 hover:border-slate-200"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() =>
-                          toggleCourse(course.title)
-                        }
-                        className="h-4 w-4 accent-orange-500"
-                      />
-
-                      <span>{course.title}</span>
-                    </label>
-                  );
-                })}
-              </div>
-
-              <p className="mt-2 text-xs text-slate-400">
-                {form.courses.length} course
-                {form.courses.length !== 1 ? "s" : ""} selected
-              </p>
-            </div>
-
-            <FormField
-              label={isEdit ? "New Password" : "Password"}
-              type="password"
-              required={!isEdit}
-              value={form.password}
-              onChange={(value) =>
-                updateForm("password", value)
-              }
-              placeholder={
-                isEdit
-                  ? "Leave blank to keep current password"
-                  : "Create login password"
-              }
-            />
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Status
-              </label>
-
-              <select
-                value={form.status}
-                onChange={(e) =>
-                  updateForm(
-                    "status",
-                    e.target.value
-                  )
-                }
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-              >
-                <option value="Active">
-                  Active
-                </option>
-
-                <option value="Inactive">
-                  Inactive
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
-            >
-              {isEdit ? (
-                <Save size={17} />
               ) : (
-                <UserPlus size={17} />
+
+                <>
+
+                  {activeStudentTab === "overview" && (
+
+                    <OverviewTab student={details as Student} />
+
+                  )}
+
+
+
+                  {activeStudentTab === "progress" && (
+
+                    <ProgressTab
+
+                      summary={summary}
+
+                      courses={courses}
+
+                      assessments={assessments}
+
+                      certificates={certificates}
+
+                    />
+
+                  )}
+
+
+
+                  {activeStudentTab === "enrollments" && (
+
+                    <EnrollmentsTab enrollments={enrollments} />
+
+                  )}
+
+
+
+                  {activeStudentTab === "payments" && (
+
+                    <PaymentsTab payments={payments} />
+
+                  )}
+
+                </>
+
               )}
 
-              {submitLabel}
-            </button>
+            </div>
+
+
+
+            <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+
+              <button
+
+                type="button"
+
+                onClick={closeViewModal}
+
+                className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+
+              >
+
+                Close
+
+              </button>
+
+            </div>
+
           </div>
-        </form>
-      </div>
-    </ModalOverlay>
+
+        </ModalOverlay>
+
+      )}
+
+    </main>
+
   );
+
 }
 
-/* ============================================================
-   MODAL
-============================================================ */
 
-function ModalOverlay({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
+
+function OverviewTab({ student }: { student: Student }) {
+
   return (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
-function ModalHeader({
-  title,
-  subtitle,
-  onClose,
-}: {
-  title: string;
-  subtitle: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-      <div>
-        <h2 className="text-xl font-bold text-[#173B67]">
-          {title}
-        </h2>
-
-        <p className="mt-1 text-xs text-slate-500">
-          {subtitle}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-orange-50 hover:text-orange-500"
-      >
-        <X size={18} />
-      </button>
-    </div>
-  );
-}
-
-function ModalFooter({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex justify-end border-t border-slate-100 px-6 py-4">
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-      >
-        Close
-      </button>
-    </div>
-  );
-}
-
-/* ============================================================
-   FORM FIELD
-============================================================ */
-
-function FormField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
     <div>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
 
-        {required && (
-          <span className="ml-1 text-red-500">
-            *
-          </span>
-        )}
-      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
 
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) =>
-          onChange(e.target.value)
-        }
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-      />
-    </div>
-  );
-}
+        <DetailItem
 
-/* ============================================================
-   DETAIL ITEM
-============================================================ */
+          icon={<Users size={16} />}
 
-function DetailItem({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-        {icon}
-        {label}
+          label="Full Name"
+
+          value={student.name}
+
+        />
+
+        <DetailItem
+
+          icon={<Users size={16} />}
+
+          label="Student ID"
+
+          value={student.id || "Not assigned"}
+
+        />
+
+        <DetailItem
+
+          icon={<Mail size={16} />}
+
+          label="Email"
+
+          value={student.email || "Not provided"}
+
+        />
+
+        <DetailItem
+
+          icon={<Phone size={16} />}
+
+          label="Phone"
+
+          value={student.phone || "Not provided"}
+
+        />
+
+        <DetailItem
+
+          icon={<CalendarDays size={16} />}
+
+          label="Date of Birth"
+
+          value={student.dob ? formatDate(student.dob) : "Not provided"}
+
+        />
+
+        <DetailItem
+
+          icon={<CalendarDays size={16} />}
+
+          label="Joined Date"
+
+          value={student.joinedDate}
+
+        />
+
+        <DetailItem
+
+          icon={<MapPin size={16} />}
+
+          label="State"
+
+          value={student.state || "Not provided"}
+
+        />
+
+        <DetailItem
+
+          icon={<Users size={16} />}
+
+          label="Referral ID"
+
+          value={student.referralId || "Not provided"}
+
+        />
+
       </div>
 
-      <p className="mt-2 break-words text-sm font-medium text-slate-800">
-        {value}
-      </p>
+
+
+      <ListSection
+
+        title="Enrolled Courses"
+
+        items={student.courses}
+
+        emptyText="No courses enrolled."
+
+        tone="orange"
+
+      />
+
+
+
+      <ListSection
+
+        title="Enrolled Packages"
+
+        items={student.packages}
+
+        emptyText="No package enrolled."
+
+        tone="violet"
+
+      />
+
     </div>
+
   );
+
 }
 
-/* ============================================================
-   SUMMARY CARD
-============================================================ */
+
+
+function ProgressTab({
+
+  summary,
+
+  courses,
+
+  assessments,
+
+  certificates,
+
+}: {
+
+  summary: ProgressData["summary"];
+
+  courses: any[];
+
+  assessments: any[];
+
+  certificates: any[];
+
+}) {
+
+  return (
+
+    <div className="space-y-6">
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        <ProgressMetric
+
+          label="Overall Progress"
+
+          value={`${summary?.averageProgress ?? 0}%`}
+
+          icon={<BarChart3 size={18} />}
+
+        />
+
+        <ProgressMetric
+
+          label="Completed Courses"
+
+          value={`${summary?.completedCourses ?? 0}/${summary?.totalCourses ?? 0}`}
+
+          icon={<GraduationCap size={18} />}
+
+        />
+
+        <ProgressMetric
+
+          label="Lessons Completed"
+
+          value={`${summary?.completedLessons ?? 0}/${summary?.totalLessons ?? 0}`}
+
+          icon={<CheckCircle2 size={18} />}
+
+        />
+
+        <ProgressMetric
+
+          label="Certificates"
+
+          value={summary?.totalCertificates ?? certificates.length}
+
+          icon={<Award size={18} />}
+
+        />
+
+      </div>
+
+
+
+      <section>
+
+        <div className="mb-3">
+
+          <p className="text-sm font-semibold text-slate-700">
+
+            Course Progress
+
+          </p>
+
+          <p className="mt-0.5 text-xs text-slate-400">
+
+            Calculated from actual lesson completion records.
+
+          </p>
+
+        </div>
+
+
+
+        {courses.length ? (
+
+          <div className="space-y-3">
+
+            {courses.map((course, index) => {
+
+              const progress = Number(
+
+                course.progressPercentage ??
+
+                  course.progress ??
+
+                  0
+
+              );
+
+              const title =
+
+                course.courseTitle ||
+
+                course.title ||
+
+                course.course?.title ||
+
+                `Course ${index + 1}`;
+
+              const totalLessons =
+
+                course.totalLessons ??
+
+                course.lessonCount ??
+
+                0;
+
+              const completedLessons =
+
+                course.completedLessons ??
+
+                0;
+
+
+
+              return (
+
+                <div
+
+                  key={course.id || `${title}-${index}`}
+
+                  className="rounded-2xl border border-slate-200 p-4"
+
+                >
+
+                  <div className="flex items-center justify-between gap-4">
+
+                    <p className="text-sm font-semibold text-[#173B67]">
+
+                      {title}
+
+                    </p>
+
+                    <span className="text-sm font-bold text-orange-600">
+
+                      {progress}%
+
+                    </span>
+
+                  </div>
+
+
+
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+
+                    <div
+
+                      className="h-full rounded-full bg-orange-500"
+
+                      style={{
+
+                        width: `${Math.min(
+
+                          100,
+
+                          Math.max(0, progress)
+
+                        )}%`,
+
+                      }}
+
+                    />
+
+                  </div>
+
+
+
+                  <p className="mt-2 text-xs text-slate-400">
+
+                    {completedLessons} of {totalLessons} lessons completed
+
+                  </p>
+
+                </div>
+
+              );
+
+            })}
+
+          </div>
+
+        ) : (
+
+          <EmptyBox text="No course progress available yet." />
+
+        )}
+
+      </section>
+
+
+
+      <section>
+
+        <div className="mb-3">
+
+          <p className="text-sm font-semibold text-slate-700">
+
+            Assessments
+
+          </p>
+
+        </div>
+
+
+
+        {assessments.length ? (
+
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+
+            <table className="w-full min-w-[650px]">
+
+              <thead>
+
+                <tr className="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
+
+                  <th className="px-4 py-3">Assessment</th>
+
+                  <th className="px-4 py-3">Course</th>
+
+                  <th className="px-4 py-3">Score</th>
+
+                  <th className="px-4 py-3">Status</th>
+
+                  <th className="px-4 py-3">Submitted</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {assessments.map((item, index) => {
+
+                  const assessment =
+
+                    item.assessment || item;
+
+                  const submission =
+
+                    item.submission ||
+
+                    item.latestSubmission ||
+
+                    item;
+
+                  const title =
+
+                    assessment.title ||
+
+                    item.title ||
+
+                    `Assessment ${index + 1}`;
+
+
+
+                  return (
+
+                    <tr
+
+                      key={item.id || assessment.id || index}
+
+                      className="border-t border-slate-100"
+
+                    >
+
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">
+
+                        {title}
+
+                      </td>
+
+                      <td className="px-4 py-3 text-sm text-slate-500">
+
+                        {assessment.course?.title ||
+
+                          item.courseTitle ||
+
+                          "—"}
+
+                      </td>
+
+                      <td className="px-4 py-3 text-sm font-semibold text-[#173B67]">
+
+                        {submission.score ?? "—"}
+
+                        {assessment.totalMarks
+
+                          ? ` / ${assessment.totalMarks}`
+
+                          : ""}
+
+                      </td>
+
+                      <td className="px-4 py-3">
+
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+
+                          {submission.status || "Not submitted"}
+
+                        </span>
+
+                      </td>
+
+                      <td className="px-4 py-3 text-xs text-slate-500">
+
+                        {submission.submittedAt
+
+                          ? formatDateTime(submission.submittedAt)
+
+                          : "—"}
+
+                      </td>
+
+                    </tr>
+
+                  );
+
+                })}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        ) : (
+
+          <EmptyBox text="No assessment records available yet." />
+
+        )}
+
+      </section>
+
+
+
+      <section>
+
+        <div className="mb-3">
+
+          <p className="text-sm font-semibold text-slate-700">
+
+            Certificates & Achievements
+
+          </p>
+
+        </div>
+
+
+
+        {certificates.length ? (
+
+          <div className="grid gap-3 sm:grid-cols-2">
+
+            {certificates.map((certificate, index) => (
+
+              <div
+
+                key={certificate.id || index}
+
+                className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4"
+
+              >
+
+                <div className="flex items-start gap-3">
+
+                  <Award
+
+                    size={22}
+
+                    className="mt-1 text-amber-600"
+
+                  />
+
+                  <div>
+
+                    <p className="text-sm font-semibold text-amber-800">
+
+                      {certificate.title || "Certificate"}
+
+                    </p>
+
+                    <p className="mt-1 text-[11px] text-amber-700/70">
+
+                      {certificate.certificateNumber ||
+
+                        "Certificate number unavailable"}
+
+                    </p>
+
+                    <p className="mt-1 text-[11px] text-slate-500">
+
+                      Issued{" "}
+
+                      {formatDateTime(certificate.issuedAt)}
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+
+                {certificate.certificateUrl && (
+
+                  <a
+
+                    href={certificate.certificateUrl}
+
+                    target="_blank"
+
+                    rel="noreferrer"
+
+                    className="mt-3 inline-flex text-xs font-semibold text-[#173B67] hover:text-orange-600"
+
+                  >
+
+                    View certificate
+
+                  </a>
+
+                )}
+
+              </div>
+
+            ))}
+
+          </div>
+
+        ) : (
+
+          <EmptyBox text="No certificates issued yet." />
+
+        )}
+
+      </section>
+
+    </div>
+
+  );
+
+}
+
+
+
+function EnrollmentsTab({ enrollments }: { enrollments: any[] }) {
+
+  if (!enrollments.length) {
+
+    return <EmptyBox text="No enrollment records found." />;
+
+  }
+
+
+
+  return (
+
+    <div className="space-y-3">
+
+      {enrollments.map((enrollment, index) => {
+
+        const course =
+
+          enrollment.course?.title ||
+
+          enrollment.courseTitle ||
+
+          "Course enrollment";
+
+        const pkg =
+
+          enrollment.package?.title ||
+
+          enrollment.packageTitle;
+
+
+
+        return (
+
+          <div
+
+            key={enrollment.id || index}
+
+            className="rounded-2xl border border-slate-200 p-4"
+
+          >
+
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+
+              <div>
+
+                <p className="text-sm font-semibold text-[#173B67]">
+
+                  {pkg || course}
+
+                </p>
+
+                {pkg && (
+
+                  <p className="mt-1 text-xs text-slate-500">
+
+                    Package enrollment
+
+                  </p>
+
+                )}
+
+              </div>
+
+
+
+              <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+
+                {enrollment.status || "Active"}
+
+              </span>
+
+            </div>
+
+
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+
+              <InfoValue
+
+                label="Course"
+
+                value={course}
+
+              />
+
+              <InfoValue
+
+                label="Enrolled"
+
+                value={
+
+                  enrollment.enrolledAt
+
+                    ? formatDate(enrollment.enrolledAt)
+
+                    : "—"
+
+                }
+
+              />
+
+              <InfoValue
+
+                label="Completed"
+
+                value={
+
+                  enrollment.completedAt
+
+                    ? formatDate(enrollment.completedAt)
+
+                    : "Not completed"
+
+                }
+
+              />
+
+            </div>
+
+          </div>
+
+        );
+
+      })}
+
+    </div>
+
+  );
+
+}
+
+
+
+function PaymentsTab({ payments }: { payments: any[] }) {
+
+  if (!payments.length) {
+
+    return <EmptyBox text="No payment records found." />;
+
+  }
+
+
+
+  return (
+
+    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+
+      <table className="w-full min-w-[720px]">
+
+        <thead>
+
+          <tr className="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
+
+            <th className="px-4 py-3">Amount</th>
+
+            <th className="px-4 py-3">Method</th>
+
+            <th className="px-4 py-3">Status</th>
+
+            <th className="px-4 py-3">Payment ID</th>
+
+            <th className="px-4 py-3">Date</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {payments.map((payment, index) => (
+
+            <tr
+
+              key={payment.id || index}
+
+              className="border-t border-slate-100"
+
+            >
+
+              <td className="px-4 py-4 text-sm font-bold text-[#173B67]">
+
+                {payment.currency || "INR"}{" "}
+
+                {payment.amount ?? "—"}
+
+              </td>
+
+              <td className="px-4 py-4 text-sm text-slate-600">
+
+                {payment.method || "—"}
+
+              </td>
+
+              <td className="px-4 py-4">
+
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+
+                  {payment.status || "—"}
+
+                </span>
+
+              </td>
+
+              <td className="px-4 py-4 text-xs text-slate-500">
+
+                {payment.providerPaymentId ||
+
+                  payment.providerOrderId ||
+
+                  "—"}
+
+              </td>
+
+              <td className="px-4 py-4 text-xs text-slate-500">
+
+                {formatDateTime(
+
+                  payment.paidAt || payment.createdAt || ""
+
+                )}
+
+              </td>
+
+            </tr>
+
+          ))}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  );
+
+}
+
+
+
+function ProgressMetric({
+
+  label,
+
+  value,
+
+  icon,
+
+}: {
+
+  label: string;
+
+  value: string | number;
+
+  icon: React.ReactNode;
+
+}) {
+
+  return (
+
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+
+      <div className="flex items-center gap-3">
+
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+
+          {icon}
+
+        </div>
+
+        <div>
+
+          <p className="text-xs font-medium text-slate-400">
+
+            {label}
+
+          </p>
+
+          <p className="mt-1 text-xl font-bold text-[#173B67]">
+
+            {value}
+
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+
+
+function ListSection({
+
+  title,
+
+  items,
+
+  emptyText,
+
+  tone,
+
+}: {
+
+  title: string;
+
+  items: string[];
+
+  emptyText: string;
+
+  tone: "orange" | "violet";
+
+}) {
+
+  const styles =
+
+    tone === "orange"
+
+      ? "bg-orange-50 text-orange-600"
+
+      : "bg-violet-50 text-violet-700";
+
+
+
+  return (
+
+    <div className="mt-6">
+
+      <p className="mb-3 text-sm font-semibold text-slate-700">
+
+        {title}
+
+      </p>
+
+
+
+      <div className="rounded-xl border border-slate-200 p-4">
+
+        {items.length ? (
+
+          <div className="flex flex-wrap gap-2">
+
+            {items.map((item) => (
+
+              <span
+
+                key={item}
+
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${styles}`}
+
+              >
+
+                {item}
+
+              </span>
+
+            ))}
+
+          </div>
+
+        ) : (
+
+          <p className="text-sm text-slate-400">{emptyText}</p>
+
+        )}
+
+      </div>
+
+    </div>
+
+  );
+
+}
+
+
+
+function InfoValue({
+
+  label,
+
+  value,
+
+}: {
+
+  label: string;
+
+  value: string;
+
+}) {
+
+  return (
+
+    <div className="rounded-xl bg-slate-50 p-3">
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+
+        {label}
+
+      </p>
+
+      <p className="mt-1 text-sm font-medium text-slate-700">
+
+        {value}
+
+      </p>
+
+    </div>
+
+  );
+
+}
+
+
+
+function EmptyBox({ text }: { text: string }) {
+
+  return (
+
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+
+      {text}
+
+    </div>
+
+  );
+
+}
+
+
 
 function SummaryCard({
+
   title,
+
   value,
+
   description,
+
   icon: Icon,
+
 }: {
+
   title: string;
+
   value: number;
+
   description: string;
+
   icon: React.ComponentType<{
+
     size?: number | string;
+
     className?: string;
+
   }>;
+
 }) {
+
   return (
+
     <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+
       <div className="flex items-start justify-between">
+
         <div>
+
           <p className="text-sm font-medium text-slate-500">
+
             {title}
+
           </p>
 
           <p className="mt-2 text-3xl font-bold text-[#173B67]">
+
             {value}
+
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
+
             {description}
+
           </p>
+
         </div>
+
+
 
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 transition group-hover:bg-orange-100">
-          <Icon
-            size={21}
-            className="text-orange-500"
-          />
+
+          <Icon size={21} className="text-orange-500" />
+
         </div>
+
       </div>
+
     </div>
+
   );
+
 }
 
-/* ============================================================
-   TABLE
-============================================================ */
+
+
+function SortableTableHeader({
+
+  label,
+
+  sortKey,
+
+  activeSortKey,
+
+  direction,
+
+  onSort,
+
+}: {
+
+  label: string;
+
+  sortKey: SortKey;
+
+  activeSortKey: SortKey;
+
+  direction: SortDirection;
+
+  onSort: (key: SortKey) => void;
+
+}) {
+
+  const active = activeSortKey === sortKey;
+
+
+
+  return (
+
+    <th className="px-4 py-3.5 text-left">
+
+      <button
+
+        type="button"
+
+        onClick={() => onSort(sortKey)}
+
+        className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+
+          active
+
+            ? "text-orange-600"
+
+            : "text-slate-400 hover:text-orange-500"
+
+        }`}
+
+      >
+
+        <span>{label}</span>
+
+        <span
+
+          className={`text-[12px] ${
+
+            active ? "text-orange-500" : "text-slate-300"
+
+          }`}
+
+        >
+
+          {active
+
+            ? direction === "asc"
+
+              ? "▲"
+
+              : "▼"
+
+            : "↕"}
+
+        </span>
+
+      </button>
+
+    </th>
+
+  );
+
+}
+
+
 
 function TableHeader({
+
   children,
+
 }: {
+
   children: React.ReactNode;
+
 }) {
+
   return (
+
     <th className="px-4 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
+
       {children}
+
     </th>
+
   );
+
 }
+
+
 
 function TableCell({
+
   children,
+
 }: {
+
   children: React.ReactNode;
+
 }) {
+
   return (
-    <td className="px-4 py-4 text-sm text-slate-600">
+
+    <td className="px-4 py-4 align-top text-sm text-slate-600">
+
       {children}
+
     </td>
+
   );
+
 }
 
-/* ============================================================
-   ACTIONS
-============================================================ */
 
-function ActionButton({
+
+function ModalOverlay({
+
   children,
-  title,
-  onClick,
+
+  onClose,
+
 }: {
+
   children: React.ReactNode;
-  title: string;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+
+  onClose: () => void;
+
 }) {
+
   return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500"
+
+    <div
+
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+
+      onMouseDown={(e) => {
+
+        if (e.target === e.currentTarget) onClose();
+
+      }}
+
     >
+
       {children}
-    </button>
+
+    </div>
+
   );
+
 }
 
-function MoreMenuItem({
-  label,
-  icon,
-  onClick,
+
+
+function ModalHeader({
+
+  title,
+
+  subtitle,
+
+  onClose,
+
 }: {
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
+
+  title: string;
+
+  subtitle: string;
+
+  onClose: () => void;
+
 }) {
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-orange-50 hover:text-orange-600"
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
+
+    <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+
+      <div>
+
+        <h2 className="text-xl font-bold text-[#173B67]">
+
+          {title}
+
+        </h2>
+
+        <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+
+      </div>
+
+
+
+      <button
+
+        type="button"
+
+        onClick={onClose}
+
+        className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-orange-50 hover:text-orange-500"
+
+      >
+
+        <X size={18} />
+
+      </button>
+
+    </div>
+
   );
+
 }
 
-/* Small icon wrapper for summary card */
-function UserCheckIcon({
-  size = 20,
-  className = "",
+
+
+function TableFilterCell({
+
+  value,
+
+  onChange,
+
+  placeholder,
+
+  disabled = false,
+
 }: {
-  size?: number | string;
-  className?: string;
+
+  value: string;
+
+  onChange: (value: string) => void;
+
+  placeholder: string;
+
+  disabled?: boolean;
+
 }) {
-  return <Users size={size} className={className} />;
+
+  return (
+
+    <td className="px-3 py-2">
+
+      <input
+
+        type="text"
+
+        value={value}
+
+        disabled={disabled}
+
+        onChange={(e) => onChange(e.target.value)}
+
+        placeholder={placeholder}
+
+        className="w-full min-w-[120px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+
+      />
+
+    </td>
+
+  );
+
+}
+
+
+
+function TableFilterStatusCell({
+
+  value,
+
+  onChange,
+
+}: {
+
+  value: "All" | StudentStatus;
+
+  onChange: (value: "All" | StudentStatus) => void;
+
+}) {
+
+  return (
+
+    <td className="px-3 py-2">
+
+      <select
+
+        value={value}
+
+        onChange={(e) =>
+
+          onChange(e.target.value as "All" | StudentStatus)
+
+        }
+
+        className="w-full min-w-[105px] rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-700 outline-none focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
+
+      >
+
+        <option value="All">All</option>
+
+        <option value="Active">Active</option>
+
+        <option value="Inactive">Inactive</option>
+
+      </select>
+
+    </td>
+
+  );
+
+}
+
+
+
+function DetailItem({
+
+  icon,
+
+  label,
+
+  value,
+
+}: {
+
+  icon: React.ReactNode;
+
+  label: string;
+
+  value: string;
+
+}) {
+
+  return (
+
+    <div className="rounded-xl border border-slate-200 p-4">
+
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+
+        {icon}
+
+        {label}
+
+      </div>
+
+      <p className="mt-2 break-words text-sm font-medium text-slate-800">
+
+        {value}
+
+      </p>
+
+    </div>
+
+  );
+
 }

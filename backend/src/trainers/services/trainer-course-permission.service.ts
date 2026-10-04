@@ -9,14 +9,12 @@ export interface TrainerCoursePermissionInput {
   canTeach?: boolean;
   canManageContent?: boolean;
   canCreateAssessments?: boolean;
-  canCreateLiveSessions?: boolean;
 }
 
 export interface TrainerCoursePermissionUpdateInput {
   canTeach?: boolean;
   canManageContent?: boolean;
   canCreateAssessments?: boolean;
-  canCreateLiveSessions?: boolean;
 }
 
 export async function listTrainerCoursePermissions() {
@@ -134,8 +132,6 @@ export async function createTrainerCoursePermission(
         input.canManageContent ?? false,
       canCreateAssessments:
         input.canCreateAssessments ?? false,
-      canCreateLiveSessions:
-        input.canCreateLiveSessions ?? false,
     });
 
   const courseTitle =
@@ -155,8 +151,6 @@ export async function createTrainerCoursePermission(
         permission.canManageContent,
       canCreateAssessments:
         permission.canCreateAssessments,
-      canCreateLiveSessions:
-        permission.canCreateLiveSessions,
     }
   );
 
@@ -192,9 +186,6 @@ export async function updateTrainerCoursePermission(
     canCreateAssessments:
       input.canCreateAssessments ??
       existing.canCreateAssessments,
-    canCreateLiveSessions:
-      input.canCreateLiveSessions ??
-      existing.canCreateLiveSessions,
   };
 
   const updated =
@@ -222,8 +213,6 @@ export async function updateTrainerCoursePermission(
           existing.canManageContent,
         canCreateAssessments:
           existing.canCreateAssessments,
-        canCreateLiveSessions:
-          existing.canCreateLiveSessions,
       },
       after: nextValues,
     }
@@ -274,8 +263,6 @@ export async function deleteTrainerCoursePermission(
         existing.canManageContent,
       canCreateAssessments:
         existing.canCreateAssessments,
-      canCreateLiveSessions:
-        existing.canCreateLiveSessions,
     }
   );
 

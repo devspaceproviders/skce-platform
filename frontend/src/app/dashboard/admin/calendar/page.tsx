@@ -32,6 +32,11 @@ import {
 
   ChevronRight,
   Filter,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 
 } from "lucide-react";
 
@@ -59,16 +64,9 @@ type MeetingType =
 
 type MeetingStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
 
-type MeetingPlatform =
-  | "GOOGLE_MEET"
-  | "MICROSOFT_TEAMS"
-  | "ZOOM"
-  | "WHATSAPP"
-  | "OTHER";
+type CalendarMeetingType = MeetingType | "LIVE_CLASS";
 
-type CalendarMeetingType = MeetingType;
-
-type CalendarMeetingStatus = MeetingStatus;
+type CalendarMeetingStatus = MeetingStatus | "LIVE";
 
 interface MeetingParticipant {
 
@@ -101,8 +99,6 @@ interface Meeting {
   endAt: string;
 
   meetingUrl?: string | null;
-
-  meetingPlatform?: MeetingPlatform | null;
 
   meetingType: MeetingType;
 
@@ -148,6 +144,7 @@ interface Meeting {
 
   updatedAt?: string;
 
+  calendarSource?: "MEETING" | "LIVE_SESSION";
 
   trainer?: {
     id: number;
@@ -165,6 +162,30 @@ type CalendarMeeting = Omit<Meeting, "meetingType" | "status"> & {
   status: CalendarMeetingStatus;
 };
 
+
+interface LiveSessionOption {
+  id: number;
+  courseId: number;
+  trainerId: number;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  meetingUrl: string | null;
+  status: "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
+  isPublished: boolean;
+  course?: {
+    id: number;
+    slug: string;
+    title: string;
+  } | null;
+  trainer?: {
+    id: number;
+    userId: number;
+    name: string;
+    email: string;
+  } | null;
+}
 
 
 
@@ -281,8 +302,6 @@ interface MeetingForm {
 
   meetingUrl: string;
 
-  meetingPlatform: MeetingPlatform;
-
   courseId: string;
 
   batchId: string;
@@ -290,17 +309,27 @@ interface MeetingForm {
 }
 
 type CalendarFilters = {
+  search: string;
   meetingType: CalendarMeetingType | "";
+  organizerUserId: string;
+  studentUserId: string;
   courseId: string;
   batchId: string;
   status: CalendarMeetingStatus | "";
+  fromDate: string;
+  toDate: string;
 };
 
 const EMPTY_CALENDAR_FILTERS: CalendarFilters = {
+  search: "",
   meetingType: "",
+  organizerUserId: "",
+  studentUserId: "",
   courseId: "",
   batchId: "",
   status: "",
+  fromDate: "",
+  toDate: "",
 };
 
 
@@ -319,8 +348,6 @@ const EMPTY_FORM: MeetingForm = {
   endAt: "",
 
   meetingUrl: "",
-
-  meetingPlatform: "OTHER",
 
   courseId: "",
 
@@ -468,6 +495,10 @@ function getMeetingTypeLabel(type: CalendarMeetingType) {
 
       return "Other";
 
+    case "LIVE_CLASS":
+
+      return "Live Class";
+
     default:
 
       return type;
@@ -496,6 +527,10 @@ function getMeetingTypeIcon(type: CalendarMeetingType) {
 
       return Users;
 
+    case "LIVE_CLASS":
+
+      return Video;
+
     default:
 
       return CalendarDays;
@@ -506,29 +541,12 @@ function getMeetingTypeIcon(type: CalendarMeetingType) {
 
 
 
-function getMeetingPlatformLabel(platform?: MeetingPlatform | null) {
-  switch (platform) {
-    case "GOOGLE_MEET":
-      return "Google Meet";
-    case "MICROSOFT_TEAMS":
-      return "Microsoft Teams";
-    case "ZOOM":
-      return "Zoom";
-    case "WHATSAPP":
-      return "WhatsApp";
-    case "OTHER":
-      return "Other";
-    default:
-      return "Not specified";
-  }
-}
-
-
 function getStatusClasses(status: CalendarMeetingStatus) {
 
   switch (status) {
 
     case "SCHEDULED":
+    case "LIVE":
 
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
 
@@ -622,6 +640,7 @@ export default function AdminCalendarPage() {
 
   const [meetings, setMeetings] = useState<Meeting[]>([]);
 
+  const [liveSessions, setLiveSessions] = useState<LiveSessionOption[]>([]);
 
   const [courses, setCourses] = useState<CourseOption[]>([]);
 
@@ -653,7 +672,18 @@ export default function AdminCalendarPage() {
   const [selectedMeeting, setSelectedMeeting] =
 
     useState<CalendarMeeting | null>(null);
+  const [selectedMeetingError, setSelectedMeetingError] = useState("");
 
+  // Optional UltraViewer remote assistance. Credentials live only in
+  // transient browser state and are never sent to or stored by SKCE.
+  const [remoteAssistId, setRemoteAssistId] = useState("");
+  const [remoteAssistPassword, setRemoteAssistPassword] = useState("");
+  const [showRemoteAssistPassword, setShowRemoteAssistPassword] =
+    useState(false);
+  const [remoteAssistMessage, setRemoteAssistMessage] = useState("");
+
+  const [editingMeeting, setEditingMeeting] =
+    useState<CalendarMeeting | null>(null);
 
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -699,6 +729,35 @@ export default function AdminCalendarPage() {
 
       setMeetings(Array.isArray(meetingResult.data) ? meetingResult.data : []);
 
+      // LiveSession remains a separate backend model. We only read it here
+      // and project it into the calendar; existing Live Session functionality
+      // is not changed.
+      try {
+        const liveSessionResponse = await authenticatedFetch(
+          `${API_URL}/admin/live-sessions`
+        );
+        const liveSessionResult = await liveSessionResponse.json();
+
+        if (liveSessionResponse.ok && liveSessionResult?.success) {
+          setLiveSessions(
+            Array.isArray(liveSessionResult.data)
+              ? liveSessionResult.data
+              : []
+          );
+        } else {
+          console.warn(
+            "Live sessions could not be loaded into the calendar:",
+            liveSessionResult?.message || "Unknown error"
+          );
+          setLiveSessions([]);
+        }
+      } catch (liveSessionError) {
+        console.warn(
+          "Live sessions could not be loaded into the calendar:",
+          liveSessionError
+        );
+        setLiveSessions([]);
+      }
     } catch (err) {
       console.error("Failed to load admin calendar:", err);
       setError(
@@ -861,49 +920,141 @@ export default function AdminCalendarPage() {
 
 
 
-  const filteredMeetings = useMemo(() => {
-
-    return meetings.filter((meeting) => {
-      if (calendarFilters.meetingType && meeting.meetingType !== calendarFilters.meetingType) {
-        return false;
-      }
-      if (calendarFilters.courseId && String(meeting.courseId ?? "") !== calendarFilters.courseId) {
-        return false;
-      }
-      if (calendarFilters.batchId && String(meeting.batchId ?? "") !== calendarFilters.batchId) {
-        return false;
-      }
-      if (calendarFilters.status && meeting.status !== calendarFilters.status) {
-        return false;
-      }
-      return true;
-    });
-
-  }, [meetings, calendarFilters]);
-
-
-
   const calendarMeetings = useMemo<CalendarMeeting[]>(() => {
-    return meetings;
-  }, [meetings]);
+    const liveSessionMeetings: CalendarMeeting[] = liveSessions.map((session) => ({
+      id: -session.id,
+      organizerUserId: session.trainer?.userId ?? 0,
+      title: session.title,
+      description: session.description,
+      startAt: session.startAt,
+      endAt: session.endAt,
+      meetingUrl: session.meetingUrl,
+      meetingType: "LIVE_CLASS",
+      status: session.status,
+      courseId: session.courseId,
+      batchId: null,
+      organizer: session.trainer
+        ? {
+            id: session.trainer.userId,
+            name: session.trainer.name,
+            email: session.trainer.email,
+            role: "TRAINER",
+          }
+        : null,
+      course: session.course
+        ? {
+            id: session.course.id,
+            title: session.course.title,
+          }
+        : null,
+      batch: null,
+      participants: [],
+      calendarSource: "LIVE_SESSION",
+      trainer: session.trainer ?? null,
+    }));
+
+    return [...meetings, ...liveSessionMeetings];
+  }, [liveSessions, meetings]);
 
   const filteredCalendarMeetings = useMemo(() => {
+    const normalizedSearch = calendarFilters.search.trim().toLowerCase();
+
+    const fromTimestamp = calendarFilters.fromDate
+      ? new Date(`${calendarFilters.fromDate}T00:00:00`).getTime()
+      : null;
+
+    const toTimestamp = calendarFilters.toDate
+      ? new Date(`${calendarFilters.toDate}T23:59:59.999`).getTime()
+      : null;
+
     return calendarMeetings.filter((event) => {
-      if (calendarFilters.meetingType && event.meetingType !== calendarFilters.meetingType) {
+      if (
+        calendarFilters.meetingType &&
+        event.meetingType !== calendarFilters.meetingType
+      ) {
         return false;
       }
-      if (calendarFilters.courseId && String(event.courseId ?? "") !== calendarFilters.courseId) {
+
+      if (
+        calendarFilters.organizerUserId &&
+        String(event.organizerUserId ?? "") !== calendarFilters.organizerUserId
+      ) {
         return false;
       }
-      if (calendarFilters.batchId && String(event.batchId ?? "") !== calendarFilters.batchId) {
+
+      if (calendarFilters.studentUserId) {
+        const hasStudent = (event.participants ?? []).some(
+          (participant) =>
+            String(participant.userId) === calendarFilters.studentUserId
+        );
+
+        if (!hasStudent) {
+          return false;
+        }
+      }
+
+      if (
+        calendarFilters.courseId &&
+        String(event.courseId ?? "") !== calendarFilters.courseId
+      ) {
         return false;
       }
-      if (calendarFilters.status && event.status !== calendarFilters.status) {
+
+      if (
+        calendarFilters.batchId &&
+        String(event.batchId ?? "") !== calendarFilters.batchId
+      ) {
         return false;
       }
+
+      if (
+        calendarFilters.status &&
+        event.status !== calendarFilters.status
+      ) {
+        return false;
+      }
+
+      const eventStart = new Date(event.startAt).getTime();
+
+      if (fromTimestamp !== null && eventStart < fromTimestamp) {
+        return false;
+      }
+
+      if (toTimestamp !== null && eventStart > toTimestamp) {
+        return false;
+      }
+
+      if (normalizedSearch) {
+        const searchableText = [
+          event.title,
+          event.description,
+          event.organizer?.name,
+          event.organizer?.email,
+          event.course?.title,
+          event.batch?.name,
+          event.batch?.displayId,
+          ...(event.participants ?? []).flatMap((participant) => [
+            participant.name,
+            participant.email,
+          ]),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        if (!searchableText.includes(normalizedSearch)) {
+          return false;
+        }
+      }
+
       return true;
     });
   }, [calendarMeetings, calendarFilters]);
+
+  const filteredMeetings = useMemo(
+    () => filteredCalendarMeetings.filter((meeting) => meeting.calendarSource !== "LIVE_SESSION"),
+    [filteredCalendarMeetings]
+  );
 
   const sortedCalendarMeetings = useMemo(() => {
     return [...filteredCalendarMeetings].sort(
@@ -931,19 +1082,7 @@ export default function AdminCalendarPage() {
 
   const upcomingMeetings = useMemo(() => {
 
-    const now = Date.now();
-
-
-
-    return sortedCalendarMeetings.filter(
-
-      (meeting) =>
-
-        meeting.status === "SCHEDULED" &&
-
-        new Date(meeting.endAt).getTime() >= now
-
-    );
+    return sortedCalendarMeetings;
 
   }, [sortedCalendarMeetings]);
 
@@ -1168,6 +1307,95 @@ export default function AdminCalendarPage() {
     };
   }
 
+  type TimedMeetingLayout = {
+    column: number;
+    columns: number;
+  };
+
+  function getOverlappingMeetingLayouts(
+    dayMeetings: CalendarMeeting[]
+  ): Map<number, TimedMeetingLayout> {
+    const sorted = [...dayMeetings].sort((a, b) => {
+      const startDifference =
+        new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
+      if (startDifference !== 0) return startDifference;
+      return new Date(b.endAt).getTime() - new Date(a.endAt).getTime();
+    });
+
+    const result = new Map<number, TimedMeetingLayout>();
+    let cluster: CalendarMeeting[] = [];
+    let clusterEnd = -Infinity;
+
+    const flushCluster = () => {
+      if (cluster.length === 0) return;
+
+      const columns: CalendarMeeting[][] = [];
+
+      for (const meeting of cluster) {
+        const start = new Date(meeting.startAt).getTime();
+        let assignedColumn = -1;
+
+        for (let columnIndex = 0; columnIndex < columns.length; columnIndex += 1) {
+          const previous = columns[columnIndex][columns[columnIndex].length - 1];
+          if (new Date(previous.endAt).getTime() <= start) {
+            assignedColumn = columnIndex;
+            break;
+          }
+        }
+
+        if (assignedColumn === -1) {
+          assignedColumn = columns.length;
+          columns.push([]);
+        }
+
+        columns[assignedColumn].push(meeting);
+      }
+
+      const columnCount = Math.max(columns.length, 1);
+      columns.forEach((column, columnIndex) => {
+        column.forEach((meeting) => {
+          result.set(meeting.id, {
+            column: columnIndex,
+            columns: columnCount,
+          });
+        });
+      });
+
+      cluster = [];
+      clusterEnd = -Infinity;
+    };
+
+    for (const meeting of sorted) {
+      const start = new Date(meeting.startAt).getTime();
+      const end = new Date(meeting.endAt).getTime();
+
+      if (cluster.length > 0 && start >= clusterEnd) {
+        flushCluster();
+      }
+
+      cluster.push(meeting);
+      clusterEnd = Math.max(clusterEnd, end);
+    }
+
+    flushCluster();
+    return result;
+  }
+
+  function getOverlappingMeetingStyle(
+    meeting: CalendarMeeting,
+    layouts: Map<number, TimedMeetingLayout>,
+    sidePadding: number
+  ) {
+    const layout = layouts.get(meeting.id) ?? { column: 0, columns: 1 };
+    const width = 100 / layout.columns;
+    const left = width * layout.column;
+
+    return {
+      left: `calc(${left}% + ${sidePadding}px)`,
+      width: `calc(${width}% - ${sidePadding * 2}px)`,
+    };
+  }
+
   function getMeetingsForCalendarDay(date: Date) {
     return meetingsByCalendarDay.get(getCalendarDayKey(date)) || [];
   }
@@ -1303,7 +1531,6 @@ export default function AdminCalendarPage() {
 
 
   const filteredCalendarBatches = useMemo(() => {
-
     if (!calendarFilters.courseId) {
       return batches;
     }
@@ -1313,11 +1540,50 @@ export default function AdminCalendarPage() {
     );
   }, [batches, calendarFilters.courseId]);
 
+  const calendarOrganizerOptions = useMemo(() => {
+    const map = new Map<
+      number,
+      { id: number; name: string; email?: string | null }
+    >();
+
+    calendarMeetings.forEach((meeting) => {
+      if (!meeting.organizerUserId) {
+        return;
+      }
+
+      const name =
+        meeting.organizer?.name ||
+        meeting.organizer?.email ||
+        `User #${meeting.organizerUserId}`;
+
+      map.set(meeting.organizerUserId, {
+        id: meeting.organizerUserId,
+        name,
+        email: meeting.organizer?.email,
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [calendarMeetings]);
+
+  const calendarStudentOptions = useMemo(() => {
+    return [...students].sort((a, b) =>
+      `${a.name ?? ""}`.localeCompare(`${b.name ?? ""}`)
+    );
+  }, [students]);
+
   const hasCalendarFilters = Boolean(
-    calendarFilters.meetingType ||
+    calendarFilters.search ||
+      calendarFilters.meetingType ||
+      calendarFilters.organizerUserId ||
+      calendarFilters.studentUserId ||
       calendarFilters.courseId ||
       calendarFilters.batchId ||
-      calendarFilters.status
+      calendarFilters.status ||
+      calendarFilters.fromDate ||
+      calendarFilters.toDate
   );
 
   function updateCalendarFilter(
@@ -1326,14 +1592,38 @@ export default function AdminCalendarPage() {
   ) {
     setCalendarFilters((current) => {
       const next = { ...current, [field]: value };
+
       if (field === "courseId" && value && current.batchId) {
         const selectedBatch = batches.find(
           (batch) => String(batch.id) === current.batchId
         );
-        if (selectedBatch && String(selectedBatch.courseId) !== value) {
+
+        if (
+          selectedBatch &&
+          String(selectedBatch.courseId) !== value
+        ) {
           next.batchId = "";
         }
       }
+
+      if (
+        field === "fromDate" &&
+        value &&
+        current.toDate &&
+        value > current.toDate
+      ) {
+        next.toDate = value;
+      }
+
+      if (
+        field === "toDate" &&
+        value &&
+        current.fromDate &&
+        value < current.fromDate
+      ) {
+        next.fromDate = value;
+      }
+
       return next;
     });
   }
@@ -1362,9 +1652,70 @@ export default function AdminCalendarPage() {
 
 
 
+  function openMeetingDetails(meeting: CalendarMeeting) {
+    setSelectedMeetingError("");
+    setRemoteAssistId("");
+    setRemoteAssistPassword("");
+    setShowRemoteAssistPassword(false);
+    setRemoteAssistMessage("");
+    setSelectedMeeting(meeting);
+  }
+
+  async function copyRemoteAssistValue(value: string, label: string) {
+    if (!value.trim()) {
+      setRemoteAssistMessage(`${label} is empty.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value.trim());
+      setRemoteAssistMessage(`${label} copied.`);
+    } catch {
+      setRemoteAssistMessage(`Unable to copy ${label.toLowerCase()}.`);
+    }
+  }
+
+  async function prepareRemoteAssistance() {
+    const id = remoteAssistId.trim();
+    const password = remoteAssistPassword.trim();
+
+    if (!id) {
+      setRemoteAssistMessage(
+        "Enter the participant's current UltraViewer ID first."
+      );
+      return;
+    }
+
+    if (!password) {
+      setRemoteAssistMessage(
+        "Enter the participant's current UltraViewer password first."
+      );
+      return;
+    }
+
+    try {
+      const command = `UltraViewer_Desktop.exe -i:${id} -p:${password}`;
+      await navigator.clipboard.writeText(command);
+      setRemoteAssistMessage(
+        "UltraViewer connection command copied. Open UltraViewer, or paste the command in Windows Command Prompt if command-line support is available on the installed version."
+      );
+      window.open(
+        "https://www.ultraviewer.net/en/download.html",
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } catch {
+      setRemoteAssistMessage(
+        "Unable to prepare the UltraViewer connection command."
+      );
+    }
+  }
+
   function openCreateModal() {
 
     setError("");
+    setConflictMessage("");
+    setEditingMeeting(null);
 
 
 
@@ -1406,6 +1757,48 @@ export default function AdminCalendarPage() {
 
 
 
+  function openEditModal(meeting: CalendarMeeting) {
+    if (meeting.status !== "SCHEDULED" || meeting.calendarSource === "LIVE_SESSION") {
+      return;
+    }
+
+    setError("");
+    setConflictMessage("");
+    setSelectedMeetingError("");
+    setRemoteAssistId("");
+    setRemoteAssistPassword("");
+    setShowRemoteAssistPassword(false);
+    setRemoteAssistMessage("");
+    setSelectedMeeting(null);
+    setEditingMeeting(meeting);
+
+    setForm({
+      title: meeting.title || "",
+      description: meeting.description || "",
+      meetingType: meeting.meetingType as MeetingType,
+      startAt: toDateTimeLocalValue(new Date(meeting.startAt)),
+      endAt: toDateTimeLocalValue(new Date(meeting.endAt)),
+      meetingUrl: meeting.meetingUrl || "",
+      courseId: meeting.courseId ? String(meeting.courseId) : "",
+      batchId: meeting.batchId ? String(meeting.batchId) : "",
+    });
+
+    setSelectedParticipantUserIds(
+      meeting.participants?.map((participant) => participant.userId) || []
+    );
+
+    setShowCreateModal(true);
+
+    if (
+      courses.length === 0 ||
+      batches.length === 0 ||
+      students.length === 0 ||
+      trainers.length === 0
+    ) {
+      loadMeetingOptions();
+    }
+  }
+
   function closeCreateModal() {
 
     if (saving) {
@@ -1417,10 +1810,11 @@ export default function AdminCalendarPage() {
 
 
     setShowCreateModal(false);
-
+    setEditingMeeting(null);
     setForm(EMPTY_FORM);
-
     setSelectedParticipantUserIds([]);
+    setConflictMessage("");
+    setError("");
 
   }
 
@@ -1512,91 +1906,6 @@ export default function AdminCalendarPage() {
   function selectOneToOneParticipant(value: string) {
     setSelectedParticipantUserIds(value ? [Number(value)] : []);
   }
-
-  async function handleCancelMeeting(meeting: Meeting) {
-
-    if (meeting.status !== "SCHEDULED") {
-
-      return;
-
-    }
-
-
-
-    const confirmed = window.confirm(
-
-      `Are you sure you want to cancel meeting "${meeting.title}"?`
-
-    );
-
-
-
-    if (!confirmed) {
-
-      return;
-
-    }
-
-
-
-    try {
-
-      setSaving(true);
-
-      setError("");
-      setConflictMessage("");
-
-
-
-      const response = await authenticatedFetch(
-
-        `${API_URL}/admin/meetings/${meeting.id}/cancel`,
-
-        { method: "POST" }
-
-      );
-
-
-
-      const result = await response.json();
-
-
-
-      if (!response.ok || !result?.success) {
-
-        throw new Error(result?.message || "Unable to cancel meeting.");
-
-      }
-
-
-
-      setSelectedMeeting(
-
-        result.data ?? { ...meeting, status: "CANCELLED" }
-
-      );
-
-      await loadMeetings(true);
-
-    } catch (err) {
-
-      console.error("Cancel meeting error:", err);
-
-      setError(
-
-        err instanceof Error ? err.message : "Unable to cancel meeting."
-
-      );
-
-    } finally {
-
-      setSaving(false);
-
-    }
-
-  }
-
-
 
   async function handleCreateMeeting(
 
@@ -1779,8 +2088,6 @@ export default function AdminCalendarPage() {
 
         meetingUrl: form.meetingUrl.trim() || null,
 
-        meetingPlatform: form.meetingPlatform,
-
         meetingType: form.meetingType,
 
         status: "SCHEDULED",
@@ -1887,6 +2194,166 @@ export default function AdminCalendarPage() {
 
 
 
+  async function handleUpdateMeeting(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (!editingMeeting) {
+      return;
+    }
+
+    setError("");
+    setConflictMessage("");
+
+    const title = form.title.trim();
+
+    if (!title) {
+      setError("Meeting title is required.");
+      return;
+    }
+
+    if (!form.startAt || !form.endAt) {
+      setError("Start date/time and end date/time are required.");
+      return;
+    }
+
+    const startDate = new Date(form.startAt);
+    const endDate = new Date(form.endAt);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setError("Please provide valid start and end date/time values.");
+      return;
+    }
+
+    if (endDate.getTime() <= startDate.getTime()) {
+      setError("End time must be after start time.");
+      return;
+    }
+
+    if (form.meetingUrl.trim() && !/^https?:\/\//i.test(form.meetingUrl.trim())) {
+      setError("Meeting URL must start with http:// or https://.");
+      return;
+    }
+
+    if (form.meetingType === "BATCH_MEETING" && !form.batchId) {
+      setError("Please select a batch for a batch meeting.");
+      return;
+    }
+
+    if (form.meetingType === "ONE_TO_ONE" && selectedParticipantUserIds.length !== 1) {
+      setError("Please select exactly one student for a one-to-one meeting.");
+      return;
+    }
+
+    if (form.meetingType === "STUDENT_MEETING" && selectedParticipantUserIds.length === 0) {
+      setError("Please select at least one student for a student meeting.");
+      return;
+    }
+
+    if (form.meetingType === "INTERNAL_MEETING" && selectedParticipantUserIds.length === 0) {
+      setError("Please select at least one trainer for an internal meeting.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const payload = {
+        title,
+        description: form.description.trim() || null,
+        startAt: localDateTimeToIso(form.startAt),
+        endAt: localDateTimeToIso(form.endAt),
+        meetingUrl: form.meetingUrl.trim() || null,
+        meetingType: form.meetingType,
+        status: editingMeeting.status,
+        courseId: form.courseId ? Number(form.courseId) : null,
+        batchId: form.batchId ? Number(form.batchId) : null,
+        participantUserIds:
+          form.meetingType === "BATCH_MEETING" || form.meetingType === "OTHER"
+            ? []
+            : selectedParticipantUserIds,
+      };
+
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/meetings/${editingMeeting.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        if (response.status === 409) {
+          setConflictMessage(
+            result?.message ||
+              "The selected time conflicts with another scheduled meeting."
+          );
+          return;
+        }
+
+        throw new Error(result?.message || "Unable to update meeting.");
+      }
+
+      setShowCreateModal(false);
+      setEditingMeeting(null);
+      setForm(EMPTY_FORM);
+      setSelectedParticipantUserIds([]);
+      setConflictMessage("");
+      await loadMeetings(true);
+    } catch (err) {
+      console.error("Update meeting error:", err);
+      setError(
+        err instanceof Error ? err.message : "Unable to update meeting."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCancelMeeting(meeting: CalendarMeeting) {
+    if (meeting.status !== "SCHEDULED" || meeting.calendarSource === "LIVE_SESSION") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel meeting "${meeting.title}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setSelectedMeetingError("");
+      setError("");
+
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/meetings/${meeting.id}/cancel`,
+        { method: "POST" }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Unable to cancel meeting.");
+      }
+
+      setSelectedMeeting(result.data ?? { ...meeting, status: "CANCELLED" });
+      await loadMeetings(true);
+    } catch (err) {
+      console.error("Cancel meeting error:", err);
+      setSelectedMeetingError(
+        err instanceof Error ? err.message : "Unable to cancel meeting."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
 
     <main className="min-h-screen bg-[#F4F6FA]">
@@ -1991,35 +2458,18 @@ export default function AdminCalendarPage() {
 
       <div className="space-y-6 px-8 py-6">
 
-        {/* Error */}
-
-        {error && (
-
+        {/* Page-level errors are shown only when no modal is open. */}
+        {!showCreateModal && !selectedMeeting && error && (
           <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-
-            <span>{error}</span>
-
-
-
-            <button
-
-              type="button"
-
-              onClick={() => setError("")}
-
-              className="shrink-0 text-red-500 hover:text-red-700"
-
-            >
-
+            <div className="flex min-w-0 items-start gap-3">
+              <XCircle size={18} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button type="button" onClick={() => setError("")} className="shrink-0 text-red-500 hover:text-red-700" aria-label="Dismiss error">
               <XCircle size={18} />
-
             </button>
-
           </div>
-
         )}
-
-
 
         {/* Summary */}
 
@@ -2179,7 +2629,7 @@ export default function AdminCalendarPage() {
                 Calendar
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                View scheduled meetings by month, week, day, or agenda.
+                View scheduled meetings and live classes by month, week, day, or agenda.
               </p>
             </div>
 
@@ -2269,70 +2719,6 @@ export default function AdminCalendarPage() {
             </div>
           </div>
 
-          <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#173B67]/10 text-[#173B67]">
-                  <Filter size={17} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Calendar Filters</p>
-                  <p className="text-xs text-slate-500">Filter the Month, Week, Day, and Agenda views.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-1 flex-col gap-3 md:flex-row xl:justify-end">
-                <select value={calendarFilters.meetingType} onChange={(event) => updateCalendarFilter("meetingType", event.target.value as CalendarFilters["meetingType"])} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]" aria-label="Filter by meeting type">
-                  <option value="">All meeting types</option>
-                  <option value="BATCH_MEETING">Batch Meeting</option>
-                  <option value="STUDENT_MEETING">Student Meeting</option>
-                  <option value="INTERNAL_MEETING">Internal Meeting</option>
-                  <option value="ONE_TO_ONE">One-to-One</option>
-                  <option value="OTHER">Other</option>
-                </select>
-
-                <select value={calendarFilters.courseId} onChange={(event) => updateCalendarFilter("courseId", event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]" aria-label="Filter by course">
-                  <option value="">All courses</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>{course.title}</option>
-                  ))}
-                </select>
-
-                <select value={calendarFilters.batchId} onChange={(event) => updateCalendarFilter("batchId", event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]" aria-label="Filter by batch">
-                  <option value="">All batches</option>
-                  {filteredCalendarBatches.map((batch) => (
-                    <option key={batch.id} value={batch.id}>
-                      {batch.displayId ? `${batch.displayId} • ` : ""}{batch.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select value={calendarFilters.status} onChange={(event) => updateCalendarFilter("status", event.target.value as CalendarFilters["status"])} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]" aria-label="Filter by status">
-                  <option value="">All statuses</option>
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="LIVE">Live</option>
-                </select>
-
-                {hasCalendarFilters && (
-                  <button type="button" onClick={clearCalendarFilters} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-              <p className="text-xs text-slate-500">
-                Showing <span className="font-semibold text-slate-700">{filteredCalendarMeetings.length}</span> of {calendarMeetings.length} calendar events
-              </p>
-              {hasCalendarFilters && (
-                <span className="rounded-full bg-[#173B67]/10 px-2.5 py-1 text-[11px] font-semibold text-[#173B67]">Filters active</span>
-              )}
-            </div>
-          </div>
-
           {calendarView === "month" ? (
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-center border-b border-slate-200 px-4 py-4">
@@ -2391,7 +2777,12 @@ export default function AdminCalendarPage() {
                           <button
                             key={meeting.id}
                             type="button"
-                            onClick={() => setSelectedMeeting(meeting)}
+                            onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
                             className={`block w-full truncate rounded-md border px-2 py-1.5 text-left text-[11px] font-medium transition hover:shadow-sm ${
                               meeting.status === "CANCELLED"
                                 ? "border-red-200 bg-red-50 text-red-700"
@@ -2413,7 +2804,7 @@ export default function AdminCalendarPage() {
                         {dayMeetings.length > 3 && (
                           <button
                             type="button"
-                            onClick={() => setSelectedMeeting(dayMeetings[3])}
+                            onClick={() => openMeetingDetails(dayMeetings[3])}
                             className="px-2 text-[11px] font-semibold text-[#173B67] hover:underline"
                           >
                             +{dayMeetings.length - 3} more
@@ -2475,6 +2866,7 @@ export default function AdminCalendarPage() {
 
                     {calendarWeekDays.map((date) => {
                       const dayMeetings = getMeetingsForCalendarDay(date);
+                      const meetingLayouts = getOverlappingMeetingLayouts(dayMeetings);
                       const isToday = isSameCalendarDay(date, new Date());
 
                       return (
@@ -2505,9 +2897,21 @@ export default function AdminCalendarPage() {
                               <button
                                 key={meeting.id}
                                 type="button"
-                                onClick={() => setSelectedMeeting(meeting)}
-                                className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border px-2 py-1 text-left text-[11px] shadow-sm transition hover:z-20 hover:shadow-md ${meetingClasses}`}
-                                style={style}
+                                onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
+                                className={`absolute z-10 overflow-hidden rounded-md border px-2 py-1 text-left text-[11px] shadow-sm transition hover:z-20 hover:shadow-md ${meetingClasses}`}
+                                style={{
+                                  ...style,
+                                  ...getOverlappingMeetingStyle(
+                                    meeting,
+                                    meetingLayouts,
+                                    4
+                                  ),
+                                }}
                                 title={`${meeting.title} • ${formatTime(
                                   meeting.startAt
                                 )} – ${formatTime(meeting.endAt)}`}
@@ -2597,6 +3001,8 @@ export default function AdminCalendarPage() {
 
                       {getMeetingsForCalendarDay(calendarWeekDate).map(
                         (meeting) => {
+                          const dayMeetings = getMeetingsForCalendarDay(calendarWeekDate);
+                          const meetingLayouts = getOverlappingMeetingLayouts(dayMeetings);
                           const style = getDayMeetingStyle(meeting);
                           const meetingClasses =
                             meeting.status === "CANCELLED"
@@ -2609,9 +3015,21 @@ export default function AdminCalendarPage() {
                             <button
                               key={meeting.id}
                               type="button"
-                              onClick={() => setSelectedMeeting(meeting)}
-                              className={`absolute left-2 right-2 z-10 overflow-hidden rounded-lg border px-3 py-2 text-left shadow-sm transition hover:z-20 hover:shadow-md ${meetingClasses}`}
-                              style={style}
+                              onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
+                              className={`absolute z-10 overflow-hidden rounded-lg border px-3 py-2 text-left shadow-sm transition hover:z-20 hover:shadow-md ${meetingClasses}`}
+                              style={{
+                                ...style,
+                                ...getOverlappingMeetingStyle(
+                                  meeting,
+                                  meetingLayouts,
+                                  8
+                                ),
+                              }}
                               title={`${meeting.title} • ${formatTime(
                                 meeting.startAt
                               )} – ${formatTime(meeting.endAt)}`}
@@ -2735,7 +3153,12 @@ export default function AdminCalendarPage() {
                               <button
                                 key={meeting.id}
                                 type="button"
-                                onClick={() => setSelectedMeeting(meeting)}
+                                onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
                                 className={`flex w-full items-center gap-4 rounded-lg border px-4 py-3 text-left transition hover:shadow-sm ${meetingClasses}`}
                               >
                                 <div className="flex w-28 shrink-0 flex-col">
@@ -2883,7 +3306,12 @@ export default function AdminCalendarPage() {
 
                       type="button"
 
-                      onClick={() => setSelectedMeeting(meeting)}
+                      onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
 
                       className="flex w-full items-center gap-4 px-6 py-4 text-left transition hover:bg-slate-50"
 
@@ -2979,6 +3407,177 @@ export default function AdminCalendarPage() {
 
 
 
+          <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="flex shrink-0 items-center gap-2">
+                <Filter size={16} className="text-[#173B67]" />
+                <span className="text-sm font-semibold text-slate-900">
+                  Filters
+                </span>
+              </div>
+
+              <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                <input
+                  type="text"
+                  value={calendarFilters.search}
+                  onChange={(event) =>
+                    updateCalendarFilter("search", event.target.value)
+                  }
+                  placeholder="Search meetings..."
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#173B67] lg:col-span-2 xl:col-span-1"
+                  aria-label="Search meetings"
+                />
+
+                <select
+                  value={calendarFilters.meetingType}
+                  onChange={(event) =>
+                    updateCalendarFilter(
+                      "meetingType",
+                      event.target.value as CalendarFilters["meetingType"]
+                    )
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by meeting type"
+                >
+                  <option value="">All types</option>
+                  <option value="BATCH_MEETING">Batch</option>
+                  <option value="STUDENT_MEETING">Student</option>
+                  <option value="INTERNAL_MEETING">Internal</option>
+                  <option value="ONE_TO_ONE">One-to-One</option>
+                  <option value="OTHER">Other</option>
+                  <option value="LIVE_CLASS">Live Class</option>
+                </select>
+
+                <select
+                  value={calendarFilters.organizerUserId}
+                  onChange={(event) =>
+                    updateCalendarFilter("organizerUserId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by organizer"
+                >
+                  <option value="">All organizers</option>
+                  {calendarOrganizerOptions.map((organizer) => (
+                    <option key={organizer.id} value={organizer.id}>
+                      {organizer.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.studentUserId}
+                  onChange={(event) =>
+                    updateCalendarFilter("studentUserId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by student"
+                >
+                  <option value="">All students</option>
+                  {calendarStudentOptions.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name || student.email || `Student #${student.id}`}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.courseId}
+                  onChange={(event) =>
+                    updateCalendarFilter("courseId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by course"
+                >
+                  <option value="">All courses</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.batchId}
+                  onChange={(event) =>
+                    updateCalendarFilter("batchId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by batch"
+                >
+                  <option value="">All batches</option>
+                  {filteredCalendarBatches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.displayId ? `${batch.displayId} • ` : ""}
+                      {batch.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.status}
+                  onChange={(event) =>
+                    updateCalendarFilter(
+                      "status",
+                      event.target.value as CalendarFilters["status"]
+                    )
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by status"
+                >
+                  <option value="">All statuses</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="LIVE">Live</option>
+                </select>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <input
+                  type="date"
+                  value={calendarFilters.fromDate}
+                  onChange={(event) =>
+                    updateCalendarFilter("fromDate", event.target.value)
+                  }
+                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter from date"
+                  title="From date"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={calendarFilters.toDate}
+                  onChange={(event) =>
+                    updateCalendarFilter("toDate", event.target.value)
+                  }
+                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter to date"
+                  title="To date"
+                />
+
+                {hasCalendarFilters && (
+                  <button
+                    type="button"
+                    onClick={clearCalendarFilters}
+                    className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-end">
+              <p className="text-xs text-slate-500">
+                Showing{" "}
+                <span className="font-semibold text-slate-700">
+                  {filteredCalendarMeetings.length}
+                </span>{" "}
+                of {calendarMeetings.length} meetings
+              </p>
+            </div>
+          </div>
+
         {/* Upcoming */}
 
         <section>
@@ -2987,7 +3586,7 @@ export default function AdminCalendarPage() {
 
             <h2 className="text-lg font-semibold text-slate-900">
 
-              Upcoming Meetings
+              Meetings
 
             </h2>
 
@@ -2995,7 +3594,7 @@ export default function AdminCalendarPage() {
 
             <p className="mt-1 text-sm text-slate-500">
 
-              Your next scheduled meetings across the platform.
+              All meetings across the platform.
 
             </p>
 
@@ -3027,7 +3626,7 @@ export default function AdminCalendarPage() {
 
                 <p className="font-medium text-slate-700">
 
-                  No upcoming meetings
+                  No meetings found
 
                 </p>
 
@@ -3035,7 +3634,7 @@ export default function AdminCalendarPage() {
 
                 <p className="mt-1 text-sm text-slate-500">
 
-                  Create a meeting to start building the calendar.
+                  No meetings match the selected filters.
 
                 </p>
 
@@ -3121,7 +3720,12 @@ export default function AdminCalendarPage() {
 
                           key={meeting.id}
 
-                          onClick={() => setSelectedMeeting(meeting)}
+                          onClick={() => {
+                                setError("");
+                                setConflictMessage("");
+                                setSelectedMeetingError("");
+                                openMeetingDetails(meeting);
+                              }}
 
                           className="cursor-pointer transition hover:bg-slate-50"
 
@@ -3347,7 +3951,15 @@ export default function AdminCalendarPage() {
 
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
 
-          onClick={() => setSelectedMeeting(null)}
+          onClick={() => {
+            setSelectedMeeting(null);
+            setSelectedMeetingError("");
+            setRemoteAssistId("");
+            setRemoteAssistPassword("");
+            setShowRemoteAssistPassword(false);
+            setRemoteAssistMessage("");
+            setError("");
+          }}
 
         >
 
@@ -3365,7 +3977,9 @@ export default function AdminCalendarPage() {
 
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#F97316]">
 
-                  {`Meeting #${selectedMeeting.id}`}
+                  {selectedMeeting.calendarSource === "LIVE_SESSION"
+                    ? "Live Class"
+                    : `Meeting #${selectedMeeting.id}`}
 
                 </p>
 
@@ -3385,7 +3999,15 @@ export default function AdminCalendarPage() {
 
                 type="button"
 
-                onClick={() => setSelectedMeeting(null)}
+                onClick={() => {
+                  setSelectedMeeting(null);
+                  setSelectedMeetingError("");
+                  setRemoteAssistId("");
+                  setRemoteAssistPassword("");
+                  setShowRemoteAssistPassword(false);
+                  setRemoteAssistMessage("");
+                  setError("");
+                }}
 
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
 
@@ -3398,6 +4020,24 @@ export default function AdminCalendarPage() {
             </div>
 
 
+
+            {selectedMeetingError && (
+              <div className="mx-6 mt-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <XCircle size={18} className="mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-red-800">Unable to complete the meeting action</p>
+                  <p className="mt-1 leading-5">{selectedMeetingError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMeetingError("")}
+                  className="shrink-0 text-red-500 hover:text-red-700"
+                  aria-label="Dismiss error"
+                >
+                  <XCircle size={18} />
+                </button>
+              </div>
+            )}
 
             <div className="space-y-5 px-6 py-6">
 
@@ -3517,7 +4157,9 @@ export default function AdminCalendarPage() {
 
                 <div>
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Organizer
+                    {selectedMeeting.calendarSource === "LIVE_SESSION"
+                      ? "Trainer"
+                      : "Organizer"}
                   </p>
                   <p className="text-sm font-medium text-slate-800">
                     {selectedMeeting.trainer?.name ||
@@ -3541,7 +4183,9 @@ export default function AdminCalendarPage() {
                     Participants
                   </p>
                   <p className="text-sm font-medium text-slate-800">
-                    {selectedMeeting.participants?.length || 0}
+                    {selectedMeeting.calendarSource === "LIVE_SESSION"
+                      ? "Live session participants"
+                      : selectedMeeting.participants?.length || 0}
                   </p>
                 </div>
 
@@ -3610,6 +4254,153 @@ export default function AdminCalendarPage() {
               )}
 
 
+
+              {selectedMeeting.status === "SCHEDULED" &&
+                selectedMeeting.calendarSource !== "LIVE_SESSION" &&
+                selectedMeeting.participants &&
+                selectedMeeting.participants.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          Remote Assistance • UltraViewer
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">
+                          Use UltraViewer alongside the normal meeting when you need to work directly on a participant's Windows PC.
+                        </p>
+                      </div>
+                    </div>
+
+                    <a
+                      href="https://www.ultraviewer.net/en/download.html"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      <ExternalLink size={14} />
+                      UltraViewer App
+                    </a>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
+                      Ask the participant to open UltraViewer and share the current ID and password. Do not save the password in SKCE; it is used only for this remote connection.
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+                          UltraViewer ID
+                        </span>
+                        <div className="flex gap-2">
+                          <input
+                            value={remoteAssistId}
+                            onChange={(event) => {
+                              setRemoteAssistId(event.target.value);
+                              setRemoteAssistMessage("");
+                            }}
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="Enter current ID"
+                            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void copyRemoteAssistValue(
+                                remoteAssistId,
+                                "UltraViewer ID"
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 transition hover:bg-slate-100"
+                            title="Copy UltraViewer ID"
+                          >
+                            <Copy size={15} />
+                          </button>
+                        </div>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+                          Connection Password
+                        </span>
+                        <div className="flex gap-2">
+                          <div className="relative min-w-0 flex-1">
+                            <input
+                              type={
+                                showRemoteAssistPassword ? "text" : "password"
+                              }
+                              value={remoteAssistPassword}
+                              onChange={(event) => {
+                                setRemoteAssistPassword(event.target.value);
+                                setRemoteAssistMessage("");
+                              }}
+                              autoComplete="off"
+                              placeholder="Enter current password"
+                              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowRemoteAssistPassword((current) => !current)
+                              }
+                              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 hover:text-slate-700"
+                              aria-label={
+                                showRemoteAssistPassword
+                                  ? "Hide password"
+                                  : "Show password"
+                              }
+                            >
+                              {showRemoteAssistPassword ? (
+                                <EyeOff size={16} />
+                              ) : (
+                                <Eye size={16} />
+                              )}
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void copyRemoteAssistValue(
+                                remoteAssistPassword,
+                                "UltraViewer password"
+                              )
+                            }
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 transition hover:bg-slate-100"
+                            title="Copy UltraViewer password"
+                          >
+                            <Copy size={15} />
+                          </button>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-[11px] leading-5 text-slate-500">
+                        The browser cannot directly control the Windows application. SKCE prepares the official UltraViewer connection command; UltraViewer performs the actual remote session.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void prepareRemoteAssistance()}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        <ExternalLink size={15} />
+                        Start Remote Assistance
+                      </button>
+                    </div>
+
+                    {remoteAssistMessage && (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-5 text-blue-800">
+                        {remoteAssistMessage}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {selectedMeeting.participants &&
 
@@ -3693,17 +4484,6 @@ export default function AdminCalendarPage() {
 
 
 
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Meeting Platform
-                </p>
-                <p className="text-sm font-medium text-slate-800">
-                  {getMeetingPlatformLabel(selectedMeeting.meetingPlatform)}
-                </p>
-              </div>
-
-
-
               {selectedMeeting.meetingUrl && (
 
                 <div>
@@ -3742,46 +4522,46 @@ export default function AdminCalendarPage() {
 
 
 
-            <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky bottom-0 flex flex-col gap-3 border-t border-slate-200 bg-white px-6 py-4 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between">
 
-              <div className="flex items-center gap-2">
-
-                {selectedMeeting.status === "SCHEDULED" && (
-                    <button
-
-                      type="button"
-
-                      onClick={() => handleCancelMeeting(selectedMeeting)}
-
-                      disabled={saving}
-
-                      className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-
-                    >
-
-                      Cancel Meeting
-
-                    </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedMeeting.status === "SCHEDULED" &&
+                  selectedMeeting.calendarSource !== "LIVE_SESSION" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(selectedMeeting)}
+                        disabled={saving}
+                        className="rounded-lg bg-[#173B67] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#102E52] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Update Meeting
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelMeeting(selectedMeeting)}
+                        disabled={saving}
+                        className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Cancel Meeting
+                      </button>
+                    </>
                   )}
-
               </div>
 
-
-
               <button
-
                 type="button"
-
-                onClick={() => setSelectedMeeting(null)}
-
-                disabled={saving}
-
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-
+                onClick={() => {
+                  setSelectedMeeting(null);
+                  setSelectedMeetingError("");
+                  setRemoteAssistId("");
+                  setRemoteAssistPassword("");
+                  setShowRemoteAssistPassword(false);
+                  setRemoteAssistMessage("");
+                  setError("");
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
-
                 Close
-
               </button>
 
             </div>
@@ -3828,7 +4608,7 @@ export default function AdminCalendarPage() {
 
                 <h2 className="text-xl font-bold text-slate-900">
 
-                  Create Meeting
+                  {editingMeeting ? "Edit Meeting" : "Create Meeting"}
 
                 </h2>
 
@@ -3836,7 +4616,9 @@ export default function AdminCalendarPage() {
 
                 <p className="mt-1 text-sm text-slate-500">
 
-                  Schedule a new meeting for SKCE.
+                  {editingMeeting
+                    ? "Update the meeting details and save the changes."
+                    : "Schedule a new meeting for SKCE."}
 
                 </p>
 
@@ -3864,9 +4646,22 @@ export default function AdminCalendarPage() {
 
 
 
-            <form onSubmit={handleCreateMeeting}>
+            <form onSubmit={editingMeeting ? handleUpdateMeeting : handleCreateMeeting}>
 
               <div className="space-y-6 px-6 py-6">
+
+                {error && (
+                  <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <XCircle size={18} className="mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-red-800">Please fix the following issue</p>
+                      <p className="mt-1 leading-5">{error}</p>
+                    </div>
+                    <button type="button" onClick={() => setError("")} className="shrink-0 text-red-500 hover:text-red-700" aria-label="Dismiss form error">
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+                )}
 
                 {loadingOptions ? (
 
@@ -3877,6 +4672,38 @@ export default function AdminCalendarPage() {
                   </div>
 
                 ) : null}
+
+                {conflictMessage && (
+                  <div className="sticky top-0 z-20 rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <Clock3
+                        size={18}
+                        className="mt-0.5 shrink-0 text-red-700"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-red-900">
+                            Scheduling conflict
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setConflictMessage("")}
+                            className="shrink-0 text-red-600 transition hover:text-red-800"
+                            aria-label="Dismiss scheduling conflict"
+                          >
+                            <XCircle size={17} />
+                          </button>
+                        </div>
+                        <p className="mt-1 text-sm leading-5 text-red-800">
+                          {conflictMessage}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-red-700">
+                          Change the time, participant, or batch and try again. The meeting form will remain open until the conflict is resolved.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
 
 
@@ -4016,30 +4843,6 @@ export default function AdminCalendarPage() {
 
                     </select>
 
-                  </div>
-
-
-
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Meeting Platform
-                    </label>
-                    <select
-                      value={form.meetingPlatform}
-                      onChange={(event) =>
-                        updateForm(
-                          "meetingPlatform",
-                          event.target.value as MeetingPlatform
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
-                    >
-                      <option value="GOOGLE_MEET">Google Meet</option>
-                      <option value="MICROSOFT_TEAMS">Microsoft Teams</option>
-                      <option value="ZOOM">Zoom</option>
-                      <option value="WHATSAPP">WhatsApp</option>
-                      <option value="OTHER">Other</option>
-                    </select>
                   </div>
 
 
@@ -4419,37 +5222,6 @@ export default function AdminCalendarPage() {
                   </div>
                 )}
 
-                {conflictMessage && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                    <div className="flex items-start gap-3">
-                      <Clock3
-                        size={18}
-                        className="mt-0.5 shrink-0 text-amber-700"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-amber-900">
-                            Scheduling conflict
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setConflictMessage("")}
-                            className="shrink-0 text-amber-600 transition hover:text-amber-800"
-                            aria-label="Dismiss scheduling conflict"
-                          >
-                            <XCircle size={17} />
-                          </button>
-                        </div>
-                        <p className="mt-1 text-sm leading-5 text-amber-800">
-                          {conflictMessage}
-                        </p>
-                        <p className="mt-2 text-xs leading-5 text-amber-700">
-                          Please select a different time or change the meeting participant or batch.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {form.meetingType === "BATCH_MEETING" && (
 
@@ -4535,7 +5307,7 @@ export default function AdminCalendarPage() {
 
 
 
-                  {saving ? "Creating..." : "Create Meeting"}
+                  {saving ? (editingMeeting ? "Updating..." : "Creating...") : (editingMeeting ? "Update Meeting" : "Create Meeting")}
 
                 </button>
 

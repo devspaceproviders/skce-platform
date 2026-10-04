@@ -9,6 +9,10 @@ import {
 
 import { authenticate } from "../../auth/middleware/auth.middleware";
 import { requireRole } from "../../auth/middleware/role.middleware";
+import {
+  getAdminStudentProgressController,
+} from "../controllers/admin-student-progress.controller";
+
 
 const router = Router();
 
@@ -29,6 +33,13 @@ router.get(
   requireRole("ADMIN"),
   getStudents
 );
+
+router.get(
+  "/:studentId/progress",
+  authenticate,
+  requireRole("ADMIN"),
+  getAdminStudentProgressController
+);  
 
 router.get(
   "/:studentId",

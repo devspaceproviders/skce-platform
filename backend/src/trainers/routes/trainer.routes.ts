@@ -12,6 +12,7 @@ import {
 import {
   createAdminTrainerController,
   getAdminTrainerController,
+  getAdminTrainerEngagementsController,
   listAdminTrainersController,
   resetAdminTrainerPasswordController,
   updateAdminTrainerController,
@@ -71,6 +72,11 @@ trainerAdminRouter.get(
 trainerAdminRouter.get(
   "/:id/activity",
   getTrainerActivityController
+);
+
+trainerAdminRouter.get(
+  "/:id/engagements",
+  getAdminTrainerEngagementsController
 );
 
 trainerAdminRouter.get(

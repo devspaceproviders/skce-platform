@@ -4,7 +4,6 @@ export type TrainerCoursePermission =
   | "canTeach"
   | "canManageContent"
   | "canCreateAssessments"
-  | "canCreateLiveSessions";
 
 export async function hasTrainerCoursePermission(
   userId: number,

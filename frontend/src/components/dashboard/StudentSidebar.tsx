@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
   BookOpen,
@@ -12,6 +12,7 @@ import {
   User,
   MessageCircle,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 
 const SIDEBAR_ITEMS = [
@@ -59,6 +60,17 @@ const SIDEBAR_ITEMS = [
 
 export default function StudentSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("student");
+    localStorage.removeItem("studentId");
+
+    router.push("/login");
+  };
 
   return (
     <aside
@@ -107,6 +119,7 @@ export default function StudentSidebar() {
 
       {/* Portal Selector */}
       <button
+        type="button"
         style={{
           display: "flex",
           alignItems: "center",
@@ -187,56 +200,79 @@ export default function StudentSidebar() {
         })}
       </nav>
 
-      {/* Student Profile */}
+      {/* Student Profile + Logout */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
           paddingTop: 14,
-          borderTop:
-            "1px solid rgba(255,255,255,0.08)",
         }}
       >
+        {/* Student Profile */}
         <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "#2F6BFF",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          ST
-        </div>
-
-        <div
-          style={{
-            lineHeight: 1.3,
+            gap: 10,
           }}
         >
           <div
             style={{
-              fontSize: 13,
-              fontWeight: 600,
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "#2F6BFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 700,
+              flexShrink: 0,
             }}
           >
-            Student Name
+            ST
           </div>
 
           <div
             style={{
-              fontSize: 11.5,
-              color: "#8992AC",
+              lineHeight: 1.3,
+              minWidth: 0,
             }}
           >
-            student@skce.in
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              Student Name
+            </div>
+
+            <div
+              style={{
+                fontSize: 11.5,
+                color: "#8992AC",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              student@skce.in
+            </div>
           </div>
         </div>
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium text-[#AEB6CC] transition hover:bg-red-500/10 hover:text-red-300"
+        >
+          <LogOut size={17} strokeWidth={1.9} />
+          <span>Logout</span>
+        </button>
       </div>
     </aside>
   );

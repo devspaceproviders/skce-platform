@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import type { TrainerEngagementData } from "../../../../components/dashboard/TrainerEngagementPanel";
+
 import {
   Search,
   UserPlus,
@@ -15,6 +18,10 @@ import {
   Save,
   KeyRound,
   Activity,
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  GraduationCap,
   CheckCircle2,
   XCircle,
   Award,
@@ -22,6 +29,7 @@ import {
   RefreshCw,
   Loader2,
   Camera,
+  ShieldCheck,
 } from "lucide-react";
 
 type TrainerStatus = "Active" | "Inactive";
@@ -40,16 +48,32 @@ type Trainer = {
   profilePhotoUrl: string | null;
 };
 
-type TrainerActivity = {
+type TrainerAssessment = {
   id: number;
-  trainerId: number;
-  actorUserId: number;
-  action: string;
-  entityType: string;
-  entityId: number | null;
-  description: string;
-  metadata: string | null;
-  createdAt: string;
+  courseId: number;
+  title: string;
+  type: "ASSIGNMENT" | "QUIZ" | string;
+  approvalStatus?: string | null;
+  dueAt?: string | null;
+  totalMarks?: number | null;
+  isActive?: boolean;
+  course?: { title?: string | null } | null;
+  createdByUserId?: number | null;
+  createdByName?: string | null;
+  createdByEmail?: string | null;
+  createdByRole?: string | null;
+  createdBy?: {
+    name?: string | null;
+    fullName?: string | null;
+    email?: string | null;
+    role?: string | null;
+  } | null;
+  createdByUser?: {
+    name?: string | null;
+    fullName?: string | null;
+    email?: string | null;
+    role?: string | null;
+  } | null;
 };
 
 type TrainerForm = {
@@ -118,20 +142,29 @@ export default function TrainersPage() {
   const [showViewModal, setShowViewModal] =
     useState(false);
 
-  const [selectedTrainer, setSelectedTrainer] =
-    useState<Trainer | null>(null);
-
-  const [showActivityModal, setShowActivityModal] =
+  const [engagementLoading, setEngagementLoading] =
     useState(false);
 
-  const [activityLoading, setActivityLoading] =
-    useState(false);
-
-  const [activityError, setActivityError] =
+  const [engagementError, setEngagementError] =
     useState("");
 
-  const [activities, setActivities] =
-    useState<TrainerActivity[]>([]);
+  const [trainerAssessments, setTrainerAssessments] =
+    useState<TrainerAssessment[]>([]);
+
+  const [assignmentsLoading, setAssignmentsLoading] =
+    useState(false);
+
+  const [assignmentsError, setAssignmentsError] =
+    useState("");
+
+  const [engagementData, setEngagementData] =
+    useState<TrainerEngagementData | null>(null);
+
+  const [activeTrainerTab, setActiveTrainerTab] =
+    useState<"overview" | "engagement" | "courses" | "assignments" | "batches" | "meetings">("overview");
+
+  const [selectedTrainer, setSelectedTrainer] =
+    useState<Trainer | null>(null);
 
   const [openMenuId, setOpenMenuId] =
     useState<string | null>(null);
@@ -694,6 +727,10 @@ export default function TrainersPage() {
       trainer
     );
 
+    setActiveTrainerTab("overview");
+    setEngagementData(null);
+    setEngagementError("");
+    setEngagementLoading(false);
     setShowViewModal(true);
   };
 
@@ -705,7 +742,7 @@ export default function TrainersPage() {
       e.currentTarget.getBoundingClientRect();
 
     const menuWidth = 235;
-    const menuHeight = 170;
+    const menuHeight = 300;
     const gap = 8;
     const padding = 12;
 
@@ -757,106 +794,148 @@ export default function TrainersPage() {
     );
   };
 
+  const loadTrainerEngagement = async (
+    trainer: Trainer
+  ) => {
+    setEngagementData(null);
+    setEngagementError("");
+    setEngagementLoading(true);
+
+    try {
+      const response =
+        await authenticatedFetch(
+          `${API_URL}/admin/trainers/${trainer.profileId}/engagements`
+        );
+
+      const json =
+        await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(
+          json?.message ||
+            "Unable to load trainer engagements."
+        );
+      }
+
+      const engagement =
+        json.data as TrainerEngagementData;
+
+      setEngagementData(engagement);
+
+      void loadTrainerAssessments(
+        engagement
+      );
+    } catch (err) {
+      console.error(
+        "Load trainer engagements error:",
+        err
+      );
+
+      setEngagementError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load trainer engagements."
+      );
+    } finally {
+      setEngagementLoading(false);
+    }
+  };
+
+  const loadTrainerAssessments = async (
+    engagement: TrainerEngagementData
+  ) => {
+    setAssignmentsLoading(true);
+    setAssignmentsError("");
+
+    try {
+      const response = await authenticatedFetch(
+        `${API_URL}/admin/assessments`
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.success) {
+        throw new Error(
+          json?.message ||
+            "Unable to load trainer assessments."
+        );
+      }
+
+      const manageableCourseIds = new Set(
+        (Array.isArray(engagement.permissions)
+          ? engagement.permissions
+          : []
+        )
+          .filter((permission: any) =>
+            Boolean(permission.canCreateAssessments)
+          )
+          .map((permission: any) =>
+            Number(permission.courseId)
+          )
+          .filter((id: number) =>
+            Number.isInteger(id) && id > 0
+          )
+      );
+
+      const rows = Array.isArray(json.data)
+        ? json.data
+        : [];
+
+      setTrainerAssessments(
+        rows.filter(
+          (assessment: any) =>
+            manageableCourseIds.has(
+              Number(assessment.courseId)
+            )
+        ) as TrainerAssessment[]
+      );
+    } catch (err) {
+      console.error(
+        "Load trainer assessments error:",
+        err
+      );
+
+      setAssignmentsError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load trainer assessments."
+      );
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+
   const handleMoreAction =
     async (
       action:
         | "reset-password"
-        | "activity",
+        | "activity"
+        | "availability"
+        | "permissions"
+        | "engagements",
       trainer: Trainer
     ) => {
       setOpenMenuId(null);
 
-      if (
-        action ===
-        "activity"
-      ) {
-        setSelectedTrainer(
-          trainer
+      if (action === "engagements") {
+        setSelectedTrainer(trainer);
+        setActiveTrainerTab("engagement");
+        setShowViewModal(true);
+        void loadTrainerEngagement(trainer);
+        return;
+      }
+
+      if (action === "availability") {
+        router.push(
+          `/dashboard/admin/trainer-availability?trainerId=${trainer.profileId}`
         );
+        return;
+      }
 
-        setActivities([]);
-
-        setActivityError("");
-
-        setShowActivityModal(
-          true
+      if (action === "permissions") {
+        router.push(
+          `/dashboard/admin/trainer-permissions?trainerId=${trainer.profileId}`
         );
-
-        setActivityLoading(
-          true
-        );
-
-        try {
-          const response =
-            await authenticatedFetch(
-              `${API_URL}/admin/trainers/${trainer.profileId}/activity`
-            );
-
-          const json =
-            await response.json();
-
-          if (
-            !response.ok ||
-            !json?.success
-          ) {
-            throw new Error(
-              json?.message ||
-                "Unable to load trainer activity."
-            );
-          }
-
-          const data =
-            Array.isArray(
-              json.data
-            )
-              ? json.data
-              : [];
-
-          setActivities(
-            data.map(
-              (
-                activity: TrainerActivity
-              ) => ({
-                ...activity,
-                id: Number(
-                  activity.id
-                ),
-                trainerId: Number(
-                  activity.trainerId
-                ),
-                actorUserId:
-                  Number(
-                    activity.actorUserId
-                  ),
-                entityId:
-                  activity.entityId ===
-                    null ||
-                  activity.entityId ===
-                    undefined
-                    ? null
-                    : Number(
-                        activity.entityId
-                      ),
-              })
-            )
-          );
-        } catch (err) {
-          console.error(
-            "Load trainer activity error:",
-            err
-          );
-
-          setActivityError(
-            err instanceof Error
-              ? err.message
-              : "Unable to load trainer activity."
-          );
-        } finally {
-          setActivityLoading(
-            false
-          );
-        }
-
         return;
       }
 
@@ -1126,15 +1205,13 @@ export default function TrainersPage() {
     setShowAddModal(false);
     setShowEditModal(false);
     setShowViewModal(false);
-    setShowActivityModal(
-      false
-    );
-
+    setActiveTrainerTab("overview");
+    setEngagementData(null);
+    setEngagementError("");
+    setEngagementLoading(false);
     setSelectedTrainer(null);
     setOpenMenuId(null);
 
-    setActivityError("");
-    setActivities([]);
 
     setForm(EMPTY_FORM);
   };
@@ -1610,7 +1687,7 @@ export default function TrainersPage() {
           <p className="mt-1 text-xs leading-5 text-blue-700/80">
             Trainer accounts are stored in PostgreSQL and use the same
             authentication system as the rest of the application.
-            Batch assignment is available separately, and trainer activity history is recorded from supported trainer management actions.
+            Batch assignment is available separately.
           </p>
         </div>
       </div>
@@ -1658,10 +1735,40 @@ export default function TrainersPage() {
                       size={17}
                     />
                   }
-                  label="View Trainer Activity"
+                  label="View Engagements"
                   onClick={() =>
                     handleMoreAction(
-                      "activity",
+                      "engagements",
+                      trainer
+                    )
+                  }
+                />
+
+                <MoreMenuItem
+                  icon={
+                    <CalendarDays
+                      size={17}
+                    />
+                  }
+                  label="Manage Availability"
+                  onClick={() =>
+                    handleMoreAction(
+                      "availability",
+                      trainer
+                    )
+                  }
+                />
+
+                <MoreMenuItem
+                  icon={
+                    <ShieldCheck
+                      size={17}
+                    />
+                  }
+                  label="Manage Permissions"
+                  onClick={() =>
+                    handleMoreAction(
+                      "permissions",
                       trainer
                     )
                   }
@@ -1730,10 +1837,10 @@ export default function TrainersPage() {
           <ModalOverlay
             onClose={closeAll}
           >
-            <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
               <ModalHeader
                 title="Trainer Details"
-                subtitle="Complete trainer information."
+                subtitle="Trainer profile, engagement, courses, batches and meetings."
                 onClose={closeAll}
               />
 
@@ -1822,7 +1929,48 @@ export default function TrainersPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-100 pb-2">
+                  {(
+                    [
+                      ["overview", "Overview", Users],
+                      ["engagement", "Engagement", BarChart3],
+                      ["courses", "Courses", BookOpen],
+                      ["assignments", "Assignments", ClipboardList],
+                      ["batches", "Batches", GraduationCap],
+                      ["meetings", "Meetings", CalendarDays],
+                    ] as const
+                  ).map(([tab, label, Icon]) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setActiveTrainerTab(tab);
+
+                        if (
+                          tab !== "overview" &&
+                          !engagementData &&
+                          !engagementLoading
+                        ) {
+                          void loadTrainerEngagement(
+                            selectedTrainer
+                          );
+                        }
+                      }}
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${
+                        activeTrainerTab === tab
+                          ? "bg-[#173B67] text-white"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-[#173B67]"
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {activeTrainerTab === "overview" && (
+                  <div>
+                    <div className="grid gap-3 sm:grid-cols-2">
                   <DetailBox
                     label="Full Name"
                     value={
@@ -1890,9 +2038,9 @@ export default function TrainersPage() {
                         : "Not uploaded"
                     }
                   />
-                </div>
+                    </div>
 
-                <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50/50 p-4">
+                    <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50/50 p-4">
                   <div className="flex items-center gap-2">
                     <Award
                       size={18}
@@ -1908,183 +2056,41 @@ export default function TrainersPage() {
                     This trainer has a real SKCE login account.
                     The password is stored only as a secure bcrypt hash.
                   </p>
-                </div>
-              </div>
-
-              <ModalFooter
-                onClose={closeAll}
-              />
-            </div>
-          </ModalOverlay>
-        )}
-
-      {showActivityModal &&
-        selectedTrainer && (
-          <ModalOverlay
-            onClose={closeAll}
-          >
-            <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-              <ModalHeader
-                title="Trainer Activity"
-                subtitle={`Activity history for ${selectedTrainer.name}.`}
-                onClose={closeAll}
-              />
-
-              <div className="p-6">
-                <div className="mb-5 flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                    <Activity
-                      size={19}
-                    />
+                    </div>
                   </div>
+                )}
 
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-800">
-                      {
-                        selectedTrainer.name
-                      }
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      {
-                        selectedTrainer.id
-                      }{" "}
-                      ·{" "}
-                      {
-                        activities.length
-                      }{" "}
-                      {activities.length ===
-                      1
-                        ? "activity"
-                        : "activities"}
-                    </p>
-                  </div>
-                </div>
-
-                {activityError && (
-                  <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {
-                      activityError
+                {activeTrainerTab === "engagement" && (
+                  <TrainerEngagementTab
+                    data={engagementData}
+                    loading={engagementLoading}
+                    error={engagementError}
+                    trainer={selectedTrainer}
+                    onRetry={() =>
+                      void loadTrainerEngagement(selectedTrainer)
                     }
-                  </div>
+                  />
                 )}
 
-                {activityLoading ? (
-                  <div className="flex min-h-[280px] items-center justify-center">
-                    <div className="inline-flex items-center gap-2 text-sm text-slate-500">
-                      <Loader2
-                        size={18}
-                        className="animate-spin"
-                      />
+                {activeTrainerTab === "courses" && (
+                  <TrainerCoursesTab data={engagementData} loading={engagementLoading} error={engagementError} />
+                )}
 
-                      Loading trainer activity...
-                    </div>
-                  </div>
-                ) : activities.length ===
-                  0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 px-6 py-14 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
-                      <Activity
-                        size={24}
-                      />
-                    </div>
+                {activeTrainerTab === "assignments" && (
+                  <TrainerAssignmentsTab
+                    data={engagementData}
+                    assessments={trainerAssessments}
+                    loading={engagementLoading || assignmentsLoading}
+                    error={engagementError || assignmentsError}
+                  />
+                )}
 
-                    <h3 className="mt-4 text-sm font-semibold text-slate-800">
-                      No activity recorded yet
-                    </h3>
+                {activeTrainerTab === "batches" && (
+                  <TrainerBatchesTab data={engagementData} loading={engagementLoading} error={engagementError} />
+                )}
 
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      Trainer actions such as permission changes,
-                      assessments and live sessions will appear here
-                      as they are recorded.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {activities.map(
-                      (activity) => (
-                        <div
-                          key={
-                            activity.id
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                        >
-                          <div className="flex gap-3">
-                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
-                              <Activity
-                                size={16}
-                              />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                                <div>
-                                  <p className="text-sm font-semibold text-slate-800">
-                                    {
-                                      activity.description
-                                    }
-                                  </p>
-
-                                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                      {
-                                        activity.action
-                                      }
-                                    </span>
-
-                                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-                                      {
-                                        activity.entityType
-                                      }
-                                    </span>
-
-                                    {activity.entityId !==
-                                      null && (
-                                      <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                                        ID{" "}
-                                        {
-                                          activity.entityId
-                                        }
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <p className="shrink-0 text-[11px] text-slate-400">
-                                  {new Date(
-                                    activity.createdAt
-                                  ).toLocaleString(
-                                    "en-IN",
-                                    {
-                                      dateStyle:
-                                        "medium",
-                                      timeStyle:
-                                        "short",
-                                    }
-                                  )}
-                                </p>
-                              </div>
-
-                              <p className="mt-3 text-xs text-slate-500">
-                                Performed by user #
-                                {
-                                  activity.actorUserId
-                                }
-                              </p>
-
-                              {activity.metadata && (
-                                <ActivityDetails
-                                  metadata={
-                                    activity.metadata
-                                  }
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
+                {activeTrainerTab === "meetings" && (
+                  <TrainerMeetingsTab data={engagementData} loading={engagementLoading} error={engagementError} />
                 )}
               </div>
 
@@ -2094,8 +2100,1047 @@ export default function TrainersPage() {
             </div>
           </ModalOverlay>
         )}
+
     </main>
   );
+}
+
+/* ============================================================
+   TRAINER ENGAGEMENT TABS
+============================================================ */
+
+function TrainerEngagementTab({
+  data,
+  loading,
+  error,
+  trainer,
+  onRetry,
+}: {
+  data: TrainerEngagementData | null;
+  loading: boolean;
+  error: string;
+  trainer: Trainer;
+  onRetry: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex min-h-[280px] items-center justify-center">
+        <div className="text-center">
+          <Loader2
+            size={30}
+            className="mx-auto animate-spin text-orange-500"
+          />
+          <p className="mt-4 text-sm font-semibold text-[#173B67]">
+            Loading trainer engagement...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <p className="text-sm font-semibold text-red-800">
+          Unable to load trainer engagement
+        </p>
+        <p className="mt-1 text-xs leading-5 text-red-700">
+          {error}
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 rounded-xl bg-[#173B67] px-4 py-2 text-xs font-semibold text-white hover:bg-[#0f2f55]"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard
+          icon={<BookOpen size={20} />}
+          value={Number(data.summary?.responsibleCourses ?? data.courses?.filter((item: any) => item?.canTeach).length ?? 0)}
+          title="Courses"
+          description="Courses the trainer can teach"
+        />
+        <SummaryCard
+          icon={<GraduationCap size={20} />}
+          value={Number(data.summary?.assignedBatches ?? data.batches?.length ?? 0)}
+          title="Batches"
+          description="Responsible batches"
+        />
+        <SummaryCard
+          icon={<Users size={20} />}
+          value={Number(data.summary?.students ?? 0)}
+          title="Students"
+          description="Students across responsible batches"
+        />
+        <SummaryCard
+          icon={<CalendarDays size={20} />}
+          value={Number(data.summary?.upcomingMeetings ?? data.upcomingMeetings?.length ?? 0)}
+          title="Upcoming"
+          description="Scheduled upcoming meetings"
+        />
+        <SummaryCard
+          icon={<Activity size={20} />}
+          value={Number(data.summary?.totalMeetings ?? data.meetings?.length ?? 0)}
+          title="Meetings"
+          description="Total trainer meetings"
+        />
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-[#173B67]">
+              Permission Coverage
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Trainer permissions available from the engagement data.
+            </p>
+          </div>
+          <ShieldCheck size={20} className="text-orange-500" />
+        </div>
+
+        <div className="mt-5 space-y-4">
+          <PermissionBar
+            label="Can Teach"
+            enabled={data.permissions?.filter((item: any) => item?.canTeach).length ?? 0}
+            total={data.permissions?.length ?? 0}
+          />
+          <PermissionBar
+            label="Manage Content"
+            enabled={data.permissions?.filter((item: any) => item?.canManageContent).length ?? 0}
+            total={data.permissions?.length ?? 0}
+          />
+          <PermissionBar
+            label="Create Assessments"
+            enabled={data.permissions?.filter((item: any) => item?.canCreateAssessments).length ?? 0}
+            total={data.permissions?.length ?? 0}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center gap-2">
+          <Activity size={19} className="text-orange-500" />
+          <div>
+            <h3 className="text-base font-bold text-[#173B67]">
+              Engagement Overview
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Real engagement information for {trainer.name}.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <InfoMetric
+            label="Teaching responsibilities"
+            value={String(data.courses?.filter((item: any) => item?.canTeach).length ?? 0)}
+          />
+          <InfoMetric
+            label="Responsible batches"
+            value={String(data.batches?.length ?? 0)}
+          />
+          <InfoMetric
+            label="Students"
+            value={String(data.summary?.students ?? 0)}
+          />
+          <InfoMetric
+            label="Upcoming meetings"
+            value={String(data.upcomingMeetings?.length ?? 0)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrainerCoursesTab({
+  data,
+  loading,
+  error,
+}: {
+  data: TrainerEngagementData | null;
+  loading: boolean;
+  error: string;
+}) {
+  if (loading) return <TabLoading label="Loading courses..." />;
+  if (error) return <TabError message={error} />;
+  if (!data) return null;
+
+  const rows = Array.isArray(data.permissions) ? data.permissions : [];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      <div className="border-b border-slate-100 p-5">
+        <h3 className="text-base font-bold text-[#173B67]">Course Responsibilities</h3>
+        <p className="mt-1 text-xs text-slate-500">Course permissions assigned to this trainer.</p>
+      </div>
+      {rows.length === 0 ? (
+        <EmptyTab label="No course permissions are assigned to this trainer." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <TableHeader>Course</TableHeader>
+                <TableHeader>Can Teach</TableHeader>
+                <TableHeader>Manage Content</TableHeader>
+                <TableHeader>Create Assessments</TableHeader>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((course: any) => (
+                <tr key={course.id ?? course.courseId}>
+                  <TableCell>
+                    <div>
+                      <p className="font-semibold text-slate-800">{course.courseTitle || "Untitled course"}</p>
+                      {course.courseSlug && (
+                        <p className="mt-1 text-xs text-slate-400">{course.courseSlug}</p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell><PermissionBadge enabled={Boolean(course.canTeach)} /></TableCell>
+                  <TableCell><PermissionBadge enabled={Boolean(course.canManageContent)} /></TableCell>
+                  <TableCell><PermissionBadge enabled={Boolean(course.canCreateAssessments)} /></TableCell>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getAssessmentCourseTitle(
+  assessment: TrainerAssessment,
+  data: TrainerEngagementData
+) {
+  if (assessment.course?.title) {
+    return assessment.course.title;
+  }
+
+  const course = (Array.isArray(data.courses) ? data.courses : []).find(
+    (item: any) => Number(item.courseId) === Number(assessment.courseId)
+  );
+
+  return course?.courseTitle || "Not available";
+}
+
+function getPersonLabel(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const label = getPersonLabel(item);
+      if (label) return label;
+    }
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const person = value as Record<string, unknown>;
+
+    const name =
+      person.name ??
+      person.fullName ??
+      person.displayName ??
+      person.username;
+
+    const email = person.email;
+    const role = person.role;
+    const id = person.id ?? person.userId;
+
+    if (name !== null && name !== undefined && String(name).trim()) {
+      const roleText =
+        role !== null && role !== undefined && String(role).trim()
+          ? ` (${String(role).toUpperCase()})`
+          : "";
+
+      return `${String(name)}${roleText}`;
+    }
+
+    if (email !== null && email !== undefined && String(email).trim()) {
+      const roleText =
+        role !== null && role !== undefined && String(role).trim()
+          ? ` (${String(role).toUpperCase()})`
+          : "";
+
+      return `${String(email)}${roleText}`;
+    }
+
+    if (id !== null && id !== undefined) {
+      return `User #${String(id)}`;
+    }
+  }
+
+  return "";
+}
+
+function getAssessmentCreatorLabel(assessment: TrainerAssessment) {
+  const candidates: unknown[] = [
+    assessment.createdByName,
+    assessment.createdBy,
+    assessment.createdByUser,
+  ];
+
+  for (const candidate of candidates) {
+    const label = getPersonLabel(candidate);
+    if (label) return label;
+  }
+
+  if (assessment.createdByUserId) {
+    return `User #${assessment.createdByUserId}`;
+  }
+
+  return "Not available";
+}
+
+function TrainerAssignmentsTab({
+  data,
+  assessments,
+  loading,
+  error,
+}: {
+  data: TrainerEngagementData | null;
+  assessments: TrainerAssessment[];
+  loading: boolean;
+  error: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"All" | "ASSIGNMENT" | "QUIZ">("All");
+  const [courseFilter, setCourseFilter] = useState("All");
+  const [creatorFilter, setCreatorFilter] = useState("All");
+  const [dueDateFilter, setDueDateFilter] = useState<"All" | "Due" | "No due date">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
+
+  const courseOptions = useMemo(() => {
+    const values = new Set<string>();
+    assessments.forEach((assessment) => {
+      const title = getAssessmentCourseTitle(assessment, data as TrainerEngagementData);
+      if (title && title !== "Not available") values.add(title);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [assessments, data]);
+
+  const creatorOptions = useMemo(() => {
+    const values = new Set<string>();
+    assessments.forEach((assessment) => {
+      values.add(getAssessmentCreatorLabel(assessment));
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [assessments]);
+
+  const filteredAssessments = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return assessments.filter((assessment) => {
+      const courseTitle = getAssessmentCourseTitle(
+        assessment,
+        data as TrainerEngagementData
+      );
+      const creator = getAssessmentCreatorLabel(assessment);
+      const status = assessment.isActive === false ? "Inactive" : "Active";
+      const assessmentType = assessment.type === "QUIZ" ? "QUIZ" : "ASSIGNMENT";
+
+      const matchesSearch =
+        !query ||
+        [assessment.title, String(assessment.id), courseTitle, creator]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+
+      const matchesType =
+        typeFilter === "All" || assessmentType === typeFilter;
+
+      const matchesCourse =
+        courseFilter === "All" || courseTitle === courseFilter;
+
+      const matchesCreator =
+        creatorFilter === "All" || creator === creatorFilter;
+
+      const matchesDueDate =
+        dueDateFilter === "All" ||
+        (dueDateFilter === "Due" && Boolean(assessment.dueAt)) ||
+        (dueDateFilter === "No due date" && !assessment.dueAt);
+
+      const matchesStatus =
+        statusFilter === "All" || status === statusFilter;
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesCourse &&
+        matchesCreator &&
+        matchesDueDate &&
+        matchesStatus
+      );
+    });
+  }, [
+    assessments,
+    data,
+    search,
+    typeFilter,
+    courseFilter,
+    creatorFilter,
+    dueDateFilter,
+    statusFilter,
+  ]);
+
+  const assignments = filteredAssessments.filter(
+    (item) => item.type === "ASSIGNMENT"
+  );
+
+  const quizzes = filteredAssessments.filter(
+    (item) => item.type === "QUIZ"
+  );
+
+  const activeCount = filteredAssessments.filter(
+    (item) => item.isActive !== false
+  ).length;
+
+  const publishedCount = filteredAssessments.filter(
+    (item) => String(item.approvalStatus || "") === "PUBLISHED"
+  ).length;
+
+  function clearFilters() {
+    setSearch("");
+    setTypeFilter("All");
+    setCourseFilter("All");
+    setCreatorFilter("All");
+    setDueDateFilter("All");
+    setStatusFilter("All");
+  }
+
+  if (loading) {
+    return <TabLoading label="Loading assignments and quizzes..." />;
+  }
+
+  if (error) {
+    return <TabError message={error} />;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <InfoMetric
+          label="Total Assessments"
+          value={filteredAssessments.length}
+          icon={<ClipboardList size={17} />}
+        />
+        <InfoMetric
+          label="Assignments"
+          value={assignments.length}
+          icon={<ClipboardList size={17} />}
+        />
+        <InfoMetric
+          label="Quizzes"
+          value={quizzes.length}
+          icon={<Award size={17} />}
+        />
+        <InfoMetric
+          label="Published / Active"
+          value={`${publishedCount} / ${activeCount}`}
+          icon={<CheckCircle2 size={17} />}
+        />
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="border-b border-slate-100 p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h3 className="text-base font-bold text-[#173B67]">
+                Assignments &amp; Quizzes
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Assessments belonging to courses where this trainer has assessment-creation permission.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="w-fit rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Clear Filters
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="xl:col-span-2">
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Search
+              </label>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Title / ID / Course / Creator"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Type
+              </label>
+              <select
+                value={typeFilter}
+                onChange={(event) =>
+                  setTypeFilter(
+                    event.target.value as "All" | "ASSIGNMENT" | "QUIZ"
+                  )
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              >
+                <option value="All">All Types</option>
+                <option value="ASSIGNMENT">Assignment</option>
+                <option value="QUIZ">Quiz</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Course
+              </label>
+              <select
+                value={courseFilter}
+                onChange={(event) => setCourseFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              >
+                <option value="All">All Courses</option>
+                {courseOptions.map((course) => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Created By
+              </label>
+              <select
+                value={creatorFilter}
+                onChange={(event) => setCreatorFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              >
+                <option value="All">All Creators</option>
+                {creatorOptions.map((creator) => (
+                  <option key={creator} value={creator}>{creator}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Due Date
+              </label>
+              <select
+                value={dueDateFilter}
+                onChange={(event) =>
+                  setDueDateFilter(
+                    event.target.value as "All" | "Due" | "No due date"
+                  )
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              >
+                <option value="All">All</option>
+                <option value="Due">Has due date</option>
+                <option value="No due date">No due date</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as "All" | "Active" | "Inactive"
+                  )
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-slate-500">
+            Showing <span className="font-semibold text-slate-700">{filteredAssessments.length}</span> of {assessments.length} assessments.
+          </div>
+        </div>
+
+        {filteredAssessments.length === 0 ? (
+          <EmptyTab label="No assignments or quizzes match the selected filters." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px]">
+              <thead className="bg-slate-50">
+                <tr>
+                  <TableHeader>Title</TableHeader>
+                  <TableHeader>Course</TableHeader>
+                  <TableHeader>Type</TableHeader>
+                  <TableHeader>Created By</TableHeader>
+                  <TableHeader>Status</TableHeader>
+                  <TableHeader>Due Date</TableHeader>
+                  <TableHeader>Total Marks</TableHeader>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredAssessments.map((assessment) => (
+                  <tr key={assessment.id}>
+                    <TableCell>
+                      <span className="font-semibold text-slate-800">
+                        {assessment.title || "Untitled assessment"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {getAssessmentCourseTitle(assessment, data)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                        {assessment.type === "QUIZ" ? "Quiz" : "Assignment"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {getAssessmentCreatorLabel(assessment)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        value={
+                          assessment.approvalStatus ||
+                          (assessment.isActive === false ? "INACTIVE" : "ACTIVE")
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {assessment.dueAt
+                        ? formatTrainerDateTime(assessment.dueAt)
+                        : "No due date"}
+                    </TableCell>
+                    <TableCell>
+                      {assessment.totalMarks ?? "—"}
+                    </TableCell>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TrainerBatchesTab({
+  data,
+  loading,
+  error,
+}: {
+  data: TrainerEngagementData | null;
+  loading: boolean;
+  error: string;
+}) {
+  if (loading) return <TabLoading label="Loading batches..." />;
+  if (error) return <TabError message={error} />;
+  if (!data) return null;
+
+  const rows = Array.isArray(data.batches) ? data.batches : [];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+      <div className="border-b border-slate-100 p-5">
+        <h3 className="text-base font-bold text-[#173B67]">Responsible Batches</h3>
+        <p className="mt-1 text-xs text-slate-500">Batches associated with the trainer's teaching responsibilities.</p>
+      </div>
+      {rows.length === 0 ? (
+        <EmptyTab label="No responsible batches found." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <TableHeader>Batch</TableHeader>
+                <TableHeader>Course</TableHeader>
+                <TableHeader>Students</TableHeader>
+                <TableHeader>Dates</TableHeader>
+                <TableHeader>Mode</TableHeader>
+                <TableHeader>Status</TableHeader>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((batch: any) => (
+                <tr key={batch.id}>
+                  <TableCell><span className="font-semibold text-slate-800">{batch.name || "Unnamed batch"}</span></TableCell>
+                  <TableCell>{batch.courseTitle || "Not available"}</TableCell>
+                  <TableCell>{Number(batch.studentCount ?? 0)}</TableCell>
+                  <TableCell>
+                    <div className="text-xs leading-5">
+                      <p>{formatTrainerDate(batch.startDate)}</p>
+                      <p className="text-slate-400">to {formatTrainerDate(batch.endDate)}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{batch.mode || "Not specified"}</TableCell>
+                  <TableCell><StatusBadge value={batch.status} /></TableCell>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TrainerMeetingsTab({
+  data,
+  loading,
+  error,
+}: {
+  data: TrainerEngagementData | null;
+  loading: boolean;
+  error: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("All");
+  const [courseFilter, setCourseFilter] = useState("All");
+  const [batchFilter, setBatchFilter] = useState("All");
+  const [organizerFilter, setOrganizerFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState<"All" | "Upcoming" | "Past">("All");
+
+  const rows = Array.isArray(data?.meetings) ? data.meetings : [];
+
+  const typeOptions = useMemo(
+    () => Array.from(new Set(rows.map((meeting: any) => String(meeting.meetingType || "Not specified")))).sort(),
+    [rows]
+  );
+
+  const courseOptions = useMemo(
+    () => Array.from(new Set(rows.map((meeting: any) => String(meeting.courseTitle || "No course")))).sort(),
+    [rows]
+  );
+
+  const batchOptions = useMemo(
+    () => Array.from(new Set(rows.map((meeting: any) => String(meeting.batchName || "No batch")))).sort(),
+    [rows]
+  );
+
+  const organizerOptions = useMemo(
+    () => Array.from(new Set(rows.map((meeting: any) => getPersonLabel(meeting.organizer) || "Not available"))).sort(),
+    [rows]
+  );
+
+  const statusOptions = useMemo(
+    () => Array.from(new Set(rows.map((meeting: any) => String(meeting.status || "Not specified")))).sort(),
+    [rows]
+  );
+
+  const filteredMeetings = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const now = Date.now();
+
+    return rows.filter((meeting: any) => {
+      const course = String(meeting.courseTitle || "No course");
+      const batch = String(meeting.batchName || "No batch");
+      const type = String(meeting.meetingType || "Not specified");
+      const status = String(meeting.status || "Not specified");
+      const organizer = getPersonLabel(meeting.organizer) || "Not available";
+      const text = [meeting.title, meeting.description, course, batch, type, status, organizer]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const start = meeting.startAt ? new Date(meeting.startAt).getTime() : 0;
+
+      const matchesSearch = !query || text.includes(query);
+      const matchesType = typeFilter === "All" || type === typeFilter;
+      const matchesCourse = courseFilter === "All" || course === courseFilter;
+      const matchesBatch = batchFilter === "All" || batch === batchFilter;
+      const matchesOrganizer = organizerFilter === "All" || organizer === organizerFilter;
+      const matchesStatus = statusFilter === "All" || status === statusFilter;
+      const matchesDate =
+        dateFilter === "All" ||
+        (dateFilter === "Upcoming" && start >= now) ||
+        (dateFilter === "Past" && start < now);
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesCourse &&
+        matchesBatch &&
+        matchesOrganizer &&
+        matchesStatus &&
+        matchesDate
+      );
+    });
+  }, [rows, search, typeFilter, courseFilter, batchFilter, organizerFilter, statusFilter, dateFilter]);
+
+  function clearFilters() {
+    setSearch("");
+    setTypeFilter("All");
+    setCourseFilter("All");
+    setBatchFilter("All");
+    setOrganizerFilter("All");
+    setStatusFilter("All");
+    setDateFilter("All");
+  }
+
+  if (loading) return <TabLoading label="Loading meetings..." />;
+  if (error) return <TabError message={error} />;
+  if (!data) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="border-b border-slate-100 p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h3 className="text-base font-bold text-[#173B67]">Trainer Meetings</h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Meetings returned by the trainer engagement service. Filters operate on the complete loaded set.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="w-fit rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Clear Filters
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="xl:col-span-2">
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Search</label>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Meeting / Course / Batch / Scheduled By"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Type</label>
+              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Types</option>
+                {typeOptions.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Status</label>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Statuses</option>
+                {statusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Course</label>
+              <select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Courses</option>
+                {courseOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Batch</label>
+              <select value={batchFilter} onChange={(event) => setBatchFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Batches</option>
+                {batchOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Scheduled By</label>
+              <select value={organizerFilter} onChange={(event) => setOrganizerFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Organizers</option>
+                {organizerOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Date</label>
+              <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value as "All" | "Upcoming" | "Past")} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
+                <option value="All">All Dates</option>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Past">Past</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-slate-500">
+            Showing <span className="font-semibold text-slate-700">{filteredMeetings.length}</span> of {rows.length} meetings.
+          </div>
+        </div>
+
+        {filteredMeetings.length === 0 ? (
+          <EmptyTab label="No meetings match the selected filters." />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filteredMeetings.map((meeting: any) => (
+              <div key={meeting.id} className="p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-slate-800">{meeting.title || "Untitled meeting"}</h4>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {meeting.courseTitle || "No course"}
+                      {meeting.batchName ? ` · ${meeting.batchName}` : ""}
+                    </p>
+                    {meeting.description && (
+                      <p className="mt-3 text-xs leading-5 text-slate-500">{meeting.description}</p>
+                    )}
+                  </div>
+                  <StatusBadge value={meeting.status} />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <InfoMetric label="Start" value={formatTrainerDateTime(meeting.startAt)} />
+                  <InfoMetric label="End" value={formatTrainerDateTime(meeting.endAt)} />
+                  <InfoMetric label="Platform" value={meeting.meetingPlatform || "Not specified"} />
+                  <InfoMetric label="Scheduled By" value={getPersonLabel(meeting.organizer) || "Not available"} />
+                  <InfoMetric label="Participants" value={String(meeting.participantCount ?? 0)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PermissionBar({
+  label,
+  enabled,
+  total,
+}: {
+  label: string;
+  enabled: number;
+  total: number;
+}) {
+  const percentage = total > 0 ? Math.round((enabled / total) * 100) : 0;
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs">
+        <span className="font-semibold text-slate-600">{label}</span>
+        <span className="font-semibold text-slate-500">{enabled}/{total}</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full bg-orange-500" style={{ width: `${percentage}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function PermissionBadge({ enabled }: { enabled: boolean }) {
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+      {enabled ? "Yes" : "No"}
+    </span>
+  );
+}
+
+function StatusBadge({ value }: { value?: string | null }) {
+  const normalized = String(value || "Not specified").toUpperCase();
+  const positive = ["ACTIVE", "SCHEDULED", "COMPLETED", "CONFIRMED"].includes(normalized);
+  const negative = ["CANCELLED", "CANCELED", "INACTIVE"].includes(normalized);
+
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${positive ? "bg-emerald-50 text-emerald-700" : negative ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>
+      {String(value || "Not specified")}
+    </span>
+  );
+}
+
+function InfoMetric({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold text-slate-400">{label}</p>
+        {icon ? <span className="text-slate-500">{icon}</span> : null}
+      </div>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-700">{value}</p>
+    </div>
+  );
+}
+
+function TabLoading({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-[260px] items-center justify-center">
+      <div className="text-center">
+        <Loader2 size={28} className="mx-auto animate-spin text-orange-500" />
+        <p className="mt-3 text-sm font-semibold text-slate-600">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function TabError({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+      <p className="text-sm font-semibold text-red-800">Unable to load trainer data</p>
+      <p className="mt-1 text-xs leading-5 text-red-700">{message}</p>
+    </div>
+  );
+}
+
+function EmptyTab({ label }: { label: string }) {
+  return (
+    <div className="px-6 py-14 text-center">
+      <p className="text-sm font-semibold text-slate-700">{label}</p>
+    </div>
+  );
+}
+
+function formatTrainerDate(value: string | null | undefined) {
+  if (!value) return "Not provided";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-IN");
+}
+
+function formatTrainerDateTime(value: string | null | undefined) {
+  if (!value) return "Not provided";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 /* ============================================================
@@ -2458,500 +3503,6 @@ function ModalFooter({
       </button>
     </div>
   );
-}
-
-/* ============================================================
-   ACTIVITY DETAILS
-============================================================ */
-
-function ActivityDetails({
-  metadata,
-}: {
-  metadata: string;
-}) {
-  let parsed: Record<
-    string,
-    unknown
-  >;
-
-  try {
-    const value =
-      JSON.parse(metadata);
-
-    if (
-      !value ||
-      typeof value !== "object" ||
-      Array.isArray(value)
-    ) {
-      return null;
-    }
-
-    parsed =
-      value as Record<
-        string,
-        unknown
-      >;
-  } catch {
-    return (
-      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-        <p className="text-xs text-slate-500">
-          Activity details are unavailable.
-        </p>
-      </div>
-    );
-  }
-
-  const entries =
-    Object.entries(parsed);
-
-  if (
-    entries.length === 0
-  ) {
-    return null;
-  }
-
-  /*
-   * ==========================================================
-   * TOP-LEVEL BEFORE / AFTER SNAPSHOT
-   *
-   * Example:
-   *
-   * {
-   *   courseId: 5,
-   *   before: {
-   *     canTeach: true,
-   *     canManageContent: false
-   *   },
-   *   after: {
-   *     canTeach: true,
-   *     canManageContent: true
-   *   }
-   * }
-   * ==========================================================
-   */
-
-  const beforeValue =
-    parsed.before;
-
-  const afterValue =
-    parsed.after;
-
-  const isObjectRecord = (
-    value: unknown
-  ): value is Record<
-    string,
-    unknown
-  > =>
-    Boolean(
-      value &&
-        typeof value === "object" &&
-        !Array.isArray(value)
-    );
-
-  if (
-    isObjectRecord(
-      beforeValue
-    ) &&
-    isObjectRecord(
-      afterValue
-    )
-  ) {
-    const before =
-      beforeValue;
-
-    const after =
-      afterValue;
-
-    const permissionKeys =
-      Array.from(
-        new Set([
-          ...Object.keys(
-            before
-          ),
-          ...Object.keys(
-            after
-          ),
-        ])
-      );
-
-    const otherEntries =
-      entries.filter(
-        ([key]) =>
-          key !==
-            "before" &&
-          key !== "after"
-      );
-
-    return (
-      <details className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-        <summary className="cursor-pointer px-3 py-2.5 text-xs font-semibold text-slate-600">
-          Activity details
-        </summary>
-
-        <div className="space-y-3 border-t border-slate-200 p-3">
-          {otherEntries.map(
-            ([key, value]) => (
-              <div
-                key={key}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
-              >
-                <span className="text-xs font-medium text-slate-500">
-                  {formatActivityLabel(
-                    key
-                  )}
-                </span>
-
-                <span className="text-xs font-semibold text-slate-700">
-                  {formatActivityValue(
-                    value
-                  )}
-                </span>
-              </div>
-            )
-          )}
-
-          <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <p className="mb-3 text-xs font-semibold text-slate-700">
-              Permissions
-            </p>
-
-            <div className="space-y-2">
-              {permissionKeys.map(
-                (key) => (
-                  <div
-                    key={key}
-                    className="rounded-lg bg-slate-50 px-3 py-2"
-                  >
-                    <p className="mb-2 text-[11px] font-semibold text-slate-600">
-                      {formatActivityLabel(
-                        key
-                      )}
-                    </p>
-
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <ActivityValueBox
-                        label="Before"
-                        value={
-                          before[
-                            key
-                          ]
-                        }
-                      />
-
-                      <ActivityValueBox
-                        label="After"
-                        value={
-                          after[
-                            key
-                          ]
-                        }
-                      />
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      </details>
-    );
-  }
-
-  /*
-   * ==========================================================
-   * NORMAL ACTIVITY METADATA
-   * ==========================================================
-   */
-
-  return (
-    <details className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-      <summary className="cursor-pointer px-3 py-2.5 text-xs font-semibold text-slate-600">
-        Activity details
-      </summary>
-
-      <div className="space-y-3 border-t border-slate-200 p-3">
-        {entries.map(
-          ([key, value]) => {
-            const label =
-              formatActivityLabel(
-                key
-              );
-
-            /*
-             * Single field with:
-             * { before: ..., after: ... }
-             */
-
-            if (
-              isBeforeAfterValue(
-                value
-              )
-            ) {
-              return (
-                <div
-                  key={key}
-                  className="rounded-xl border border-slate-200 bg-white p-3"
-                >
-                  <p className="mb-2 text-xs font-semibold text-slate-700">
-                    {label}
-                  </p>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <ActivityValueBox
-                      label="Before"
-                      value={
-                        value.before
-                      }
-                    />
-
-                    <ActivityValueBox
-                      label="After"
-                      value={
-                        value.after
-                      }
-                    />
-                  </div>
-                </div>
-              );
-            }
-
-            /*
-             * Nested object
-             */
-
-            if (
-              value &&
-              typeof value ===
-                "object" &&
-              !Array.isArray(value)
-            ) {
-              const nested =
-                value as Record<
-                  string,
-                  unknown
-                >;
-
-              const nestedEntries =
-                Object.entries(
-                  nested
-                );
-
-              return (
-                <div
-                  key={key}
-                  className="rounded-xl border border-slate-200 bg-white p-3"
-                >
-                  <p className="mb-3 text-xs font-semibold text-slate-700">
-                    {label}
-                  </p>
-
-                  <div className="space-y-2">
-                    {nestedEntries.map(
-                      ([
-                        nestedKey,
-                        nestedValue,
-                      ]) => {
-                        if (
-                          isBeforeAfterValue(
-                            nestedValue
-                          )
-                        ) {
-                          return (
-                            <div
-                              key={
-                                nestedKey
-                              }
-                              className="rounded-lg bg-slate-50 px-3 py-2"
-                            >
-                              <p className="mb-1 text-[11px] font-semibold text-slate-600">
-                                {formatActivityLabel(
-                                  nestedKey
-                                )}
-                              </p>
-
-                              <div className="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                                    Before
-                                  </p>
-
-                                  <p className="mt-1 text-xs font-medium text-slate-700">
-                                    {formatActivityValue(
-                                      nestedValue.before
-                                    )}
-                                  </p>
-                                </div>
-
-                                <div>
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                                    After
-                                  </p>
-
-                                  <p className="mt-1 text-xs font-medium text-slate-700">
-                                    {formatActivityValue(
-                                      nestedValue.after
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div
-                            key={
-                              nestedKey
-                            }
-                            className="flex items-center justify-between gap-4 rounded-lg bg-slate-50 px-3 py-2"
-                          >
-                            <span className="text-[11px] font-medium text-slate-500">
-                              {formatActivityLabel(
-                                nestedKey
-                              )}
-                            </span>
-
-                            <span className="text-xs font-semibold text-slate-700">
-                              {formatActivityValue(
-                                nestedValue
-                              )}
-                            </span>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            /*
-             * Simple value
-             */
-
-            return (
-              <div
-                key={key}
-                className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <span className="text-xs font-medium text-slate-500">
-                  {label}
-                </span>
-
-                <span className="text-xs font-semibold text-slate-700">
-                  {formatActivityValue(
-                    value
-                  )}
-                </span>
-              </div>
-            );
-          }
-        )}
-      </div>
-    </details>
-  );
-}
-
-/* ============================================================
-   ACTIVITY VALUE BOX
-============================================================ */
-
-function ActivityValueBox({
-  label,
-  value,
-}: {
-  label: string;
-  value: unknown;
-}) {
-  return (
-    <div className="rounded-lg bg-slate-50 px-3 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-1 text-xs font-semibold text-slate-700">
-        {formatActivityValue(
-          value
-        )}
-      </p>
-    </div>
-  );
-}
-
-/* ============================================================
-   ACTIVITY HELPERS
-============================================================ */
-
-function isBeforeAfterValue(
-  value: unknown
-): value is {
-  before: unknown;
-  after: unknown;
-} {
-  return Boolean(
-    value &&
-      typeof value ===
-        "object" &&
-      !Array.isArray(value) &&
-      "before" in value &&
-      "after" in value
-  );
-}
-
-function formatActivityLabel(
-  value: string
-) {
-  return value
-    .replace(
-      /([a-z])([A-Z])/g,
-      "$1 $2"
-    )
-    .replace(
-      /[_-]+/g,
-      " "
-    )
-    .replace(
-      /\b\w/g,
-      (character) =>
-        character.toUpperCase()
-    );
-}
-
-function formatActivityValue(
-  value: unknown
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "Not set";
-  }
-
-  if (
-    typeof value ===
-    "boolean"
-  ) {
-    return value
-      ? "Yes"
-      : "No";
-  }
-
-  if (
-    typeof value ===
-    "number"
-  ) {
-    return String(value);
-  }
-
-  if (
-    typeof value ===
-    "string"
-  ) {
-    return value ||
-      "Not set";
-  }
-
-  return "Available";
 }
 
 /* ============================================================

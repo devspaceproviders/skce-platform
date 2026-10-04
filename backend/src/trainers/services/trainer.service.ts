@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 
 import { db } from "../../prisma/db";
+
 import {
   createTrainerActivity,
 } from "./trainer-activity.service";
@@ -127,7 +128,9 @@ export async function listPublicTrainers() {
       };
     })
     .filter(
-      (trainer): trainer is NonNullable<typeof trainer> =>
+      (
+        trainer
+      ): trainer is NonNullable<typeof trainer> =>
         trainer !== null
     )
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -167,25 +170,15 @@ async function recordTrainerManagementActivity(
 }
 
 export async function listAdminTrainers() {
-  const [profiles, users, sessions] =
+  const [profiles, users] =
     await Promise.all([
       db.orm.public.TrainerProfile.all(),
       db.orm.public.User.all(),
-      db.orm.public.LiveSession.all(),
     ]);
 
   const userMap = new Map(
     users.map((user) => [user.id, user])
   );
-
-  const sessionCounts = new Map<number, number>();
-
-  for (const session of sessions) {
-    sessionCounts.set(
-      session.trainerId,
-      (sessionCounts.get(session.trainerId) ?? 0) + 1
-    );
-  }
 
   return profiles
     .map((profile) => {
@@ -197,7 +190,6 @@ export async function listAdminTrainers() {
 
       return {
         ...trainerToResponse(profile, user),
-        sessionCount: sessionCounts.get(profile.id) ?? 0,
       };
     })
     .filter(
@@ -232,17 +224,8 @@ export async function getAdminTrainer(
     throw new Error("Trainer account not found.");
   }
 
-  const sessionCount = (
-    await db.orm.public.LiveSession
-      .where({
-        trainerId: profile.id,
-      })
-      .all()
-  ).length;
-
   return {
     ...trainerToResponse(profile, user),
-    sessionCount,
   };
 }
 

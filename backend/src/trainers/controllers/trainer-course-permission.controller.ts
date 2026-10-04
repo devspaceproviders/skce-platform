@@ -135,8 +135,7 @@ export async function createPermission(
             req.body?.canManageContent,
           canCreateAssessments:
             req.body?.canCreateAssessments,
-          canCreateLiveSessions:
-            req.body?.canCreateLiveSessions,
+
         },
         req.user.userId
       );
@@ -203,8 +202,7 @@ export async function updatePermission(
             req.body?.canManageContent,
           canCreateAssessments:
             req.body?.canCreateAssessments,
-          canCreateLiveSessions:
-            req.body?.canCreateLiveSessions,
+         
         },
         req.user.userId
       );

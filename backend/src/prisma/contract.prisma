@@ -78,14 +78,6 @@ enum AssessmentSubmissionStatus {
   GRADED      = "GRADED"
 }
 
-enum LiveSessionStatus {
-  @@type("pg/text@1")
-
-  SCHEDULED = "SCHEDULED"
-  LIVE      = "LIVE"
-  COMPLETED = "COMPLETED"
-  CANCELLED = "CANCELLED"
-}
 
 enum BatchMode {
   @@type("pg/text@1")
@@ -171,8 +163,6 @@ model User {
   createdAssessments Assessment[] @relation("AssessmentCreatedBy")
   reviewedAssessments Assessment[] @relation("AssessmentReviewedBy")
 
-  createdLiveSessions LiveSession[] @relation("LiveSessionCreatedBy")
-  reviewedLiveSessions LiveSession[] @relation("LiveSessionReviewedBy")
 
   createdCourseModules CourseModule[] @relation("CourseModuleCreatedBy")
   reviewedCourseModules CourseModule[] @relation("CourseModuleReviewedBy")
@@ -180,7 +170,6 @@ model User {
   createdLessons Lesson[] @relation("LessonCreatedBy")
   reviewedLessons Lesson[] @relation("LessonReviewedBy")
 
-  liveSessionParticipations LiveSessionParticipation[]
   trainerActivities TrainerActivity[] @relation("TrainerActivityActor")
 
   organizedMeetings   Meeting[]            @relation("MeetingOrganizer")
@@ -292,7 +281,6 @@ model TrainerProfile {
     onDelete: Cascade
   )
 
-  liveSessions LiveSession[]
   batches     Batch[]
   coursePermissions TrainerCoursePermission[]
   activities TrainerActivity[]
@@ -444,7 +432,6 @@ model Course {
   courseModules CourseModule[]
 
   assessments Assessment[]
-  liveSessions LiveSession[]
   batches     Batch[]
   trainerPermissions TrainerCoursePermission[]
   meetings Meeting[]
@@ -882,7 +869,6 @@ model TrainerCoursePermission {
   canTeach            Boolean @default(true)
   canManageContent    Boolean @default(false)
   canCreateAssessments Boolean @default(false)
-  canCreateLiveSessions Boolean @default(false)
 
   trainer TrainerProfile @relation(
     fields: [trainerId],
@@ -915,7 +901,6 @@ model TrainerCoursePermission {
 // BatchStudent.
 //
 // Batch participation is separate from daily attendance.
-// Live learning participation remains tracked on LiveSession.
 
 model Batch {
   id Int @id @default(autoincrement())
@@ -998,8 +983,6 @@ model BatchStudent {
 //
 // General scheduling entity.
 //
-// LiveSession remains separate and continues to represent
-// scheduled live classes.
 //
 // Meeting supports:
 // - Admin -> trainer meetings
@@ -1268,109 +1251,6 @@ model AssessmentSubmission {
   @@index([userId])
   @@index([assessmentId, userId])
   @@index([status])
-}
-
-
-// ============================================================
-// LIVE SESSION
-// ============================================================
-//
-// A scheduled live class for a specific course and trainer.
-// Student participation belongs to the individual session.
-// This replaces the old daily attendance concept for live
-// learning participation.
-
-model LiveSession {
-  id Int @id @default(autoincrement())
-
-  courseId  Int
-  trainerId Int
-
-  title       String
-  description String?
-
-  startAt TimestamptzString
-  endAt   TimestamptzString
-
-  meetingUrl   String?
-  recordingUrl String?
-
-  status LiveSessionStatus @default(SCHEDULED)
-  isPublished Boolean @default(false)
-
-  createdByUserId  Int?
-  reviewedByUserId Int?
-  approvalStatus   ContentApprovalStatus @default(PUBLISHED)
-  reviewedAt       TimestamptzString?
-  rejectionReason  String?
-
-  course Course @relation(
-    fields: [courseId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  trainer TrainerProfile @relation(
-    fields: [trainerId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  createdBy User? @relation("LiveSessionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  reviewedBy User? @relation("LiveSessionReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
-
-  participations LiveSessionParticipation[]
-
-  createdAt TimestamptzString       @default(now())
-  updatedAt temporal.updatedAtString()
-
-  @@index([courseId])
-  @@index([trainerId])
-  @@index([startAt])
-  @@index([status])
-  @@index([courseId, startAt])
-  @@index([approvalStatus])
-  @@index([createdByUserId])
-}
-
-
-// ============================================================
-// LIVE SESSION PARTICIPATION
-// ============================================================
-//
-// Participation is recorded per live session. There is no
-// daily Present / Absent / Late / Leave attendance record.
-
-model LiveSessionParticipation {
-  id Int @id @default(autoincrement())
-
-  sessionId Int
-  userId    Int
-
-  joinedAt TimestamptzString?
-  leftAt   TimestamptzString?
-
-  participated Boolean @default(false)
-
-  session LiveSession @relation(
-    fields: [sessionId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  user User @relation(
-    fields: [userId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  createdAt TimestamptzString       @default(now())
-  updatedAt temporal.updatedAtString()
-
-  @@unique([sessionId, userId])
-  @@index([sessionId])
-  @@index([userId])
-  @@index([sessionId, participated])
 }
 
 

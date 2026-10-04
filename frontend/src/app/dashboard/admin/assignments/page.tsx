@@ -67,6 +67,9 @@ type Assessment = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  createdByUserId: number | null;
+  createdByName: string | null;
+  createdByRole: string | null;
 };
 
 type AssessmentForm = {
@@ -292,6 +295,13 @@ function normalizeAssessment(
     isActive: Boolean(item.isActive),
     createdAt: item.createdAt ?? "",
     updatedAt: item.updatedAt ?? "",
+    createdByUserId:
+      item.createdByUserId === null ||
+      item.createdByUserId === undefined
+        ? null
+        : Number(item.createdByUserId),
+    createdByName: item.createdByName ?? null,
+    createdByRole: item.createdByRole ?? null,
   };
 }
 
@@ -303,9 +313,20 @@ export default function AssignmentsPage() {
   const [courses, setCourses] =
     useState<Course[]>([]);
 
-  const [search, setSearch] = useState("");
+  const [assessmentFilter, setAssessmentFilter] =
+    useState("");
   const [typeFilter, setTypeFilter] =
     useState<"All" | AssessmentType>("All");
+  const [courseFilter, setCourseFilter] =
+    useState("All");
+  const [creatorFilter, setCreatorFilter] =
+    useState("All");
+  const [dueDateFilter, setDueDateFilter] =
+    useState<"All" | "Due" | "No due date">("All");
+  const [questionsFilter, setQuestionsFilter] =
+    useState("");
+  const [submissionsFilter, setSubmissionsFilter] =
+    useState("");
   const [statusFilter, setStatusFilter] =
     useState<"All" | AssessmentStatus>("All");
 
@@ -360,32 +381,93 @@ export default function AssignmentsPage() {
 
   const [error, setError] = useState("");
 
+  const creatorOptions = useMemo(() => {
+    const values = new Map<string, string>();
+
+    assessments.forEach((assessment) => {
+      const name =
+        assessment.createdByName?.trim() ||
+        "Not available";
+
+      if (!values.has(name)) {
+        values.set(name, name);
+      }
+    });
+
+    return Array.from(values.keys()).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [assessments]);
+
   const filteredAssessments = useMemo(() => {
-    const query = search.toLowerCase().trim();
+    const query = assessmentFilter.toLowerCase().trim();
+    const questionQuery = questionsFilter.trim();
+    const submissionQuery = submissionsFilter.trim();
 
     return assessments.filter((assessment) => {
-      const matchesSearch =
-        !query ||
-        [
-          assessment.title,
-          String(assessment.id),
-          assessment.course,
-        ].some((value) =>
-          value.toLowerCase().includes(query)
+      const assessmentText = [
+        assessment.title,
+        String(assessment.id),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const creatorName =
+        assessment.createdByName?.trim() ||
+        "Not available";
+
+      const matchesAssessment =
+        !query || assessmentText.includes(query);
+
+      const matchesCourse =
+        courseFilter === "All" ||
+        assessment.course === courseFilter;
+
+      const matchesCreator =
+        creatorFilter === "All" ||
+        creatorName === creatorFilter;
+
+      const matchesDueDate =
+        dueDateFilter === "All" ||
+        (dueDateFilter === "Due" && Boolean(assessment.dueAt)) ||
+        (dueDateFilter === "No due date" && !assessment.dueAt);
+
+      const matchesQuestions =
+        !questionQuery ||
+        String(
+          assessment.type === "Quiz"
+            ? assessment.questionCount
+            : 0
+        ).includes(questionQuery);
+
+      const matchesSubmissions =
+        !submissionQuery ||
+        String(assessment.submissions).includes(
+          submissionQuery
         );
 
       return (
-        matchesSearch &&
+        matchesAssessment &&
         (typeFilter === "All" ||
           assessment.type === typeFilter) &&
+        matchesCourse &&
+        matchesCreator &&
+        matchesDueDate &&
+        matchesQuestions &&
+        matchesSubmissions &&
         (statusFilter === "All" ||
           assessment.status === statusFilter)
       );
     });
   }, [
     assessments,
-    search,
+    assessmentFilter,
     typeFilter,
+    courseFilter,
+    creatorFilter,
+    dueDateFilter,
+    questionsFilter,
+    submissionsFilter,
     statusFilter,
   ]);
 
@@ -470,7 +552,7 @@ export default function AssignmentsPage() {
     return response;
   }
 
-  async function handleDownloadSubmissionFile(
+  async function downloadSubmissionFile(
     submission: Submission
   ) {
     if (!submission.submissionFileUrl) {
@@ -1350,16 +1432,6 @@ export default function AssignmentsPage() {
       setSubmissions(
         json.data || []
       );
-
-      if (assessment.type === "Quiz") {
-        const detailsResponse = await authenticatedFetch(
-          `${API_URL}/admin/assessments/${assessment.id}`
-        );
-        const detailsJson = await detailsResponse.json();
-        if (detailsResponse.ok && detailsJson?.success) {
-          setSelectedDetails(detailsJson.data);
-        }
-      }
     } catch (err) {
       console.error(
         "Load submissions error:",
@@ -1560,84 +1632,189 @@ export default function AssignmentsPage() {
         </div>
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full max-w-2xl">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                placeholder="Search by title, ID or course..."
-                className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={typeFilter}
-                onChange={(event) =>
-                  setTypeFilter(
-                    event.target.value as
-                      | "All"
-                      | AssessmentType
-                  )
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
+          <div className="border-b border-slate-200 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Filter assessments
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Use the filter directly under each column.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAssessmentFilter("");
+                  setTypeFilter("All");
+                  setCourseFilter("All");
+                  setCreatorFilter("All");
+                  setDueDateFilter("All");
+                  setQuestionsFilter("");
+                  setSubmissionsFilter("");
+                  setStatusFilter("All");
+                }}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
               >
-                <option value="All">All Types</option>
-                <option value="Assignment">
-                  Assignments
-                </option>
-                <option value="Quiz">
-                  Quizzes
-                </option>
-              </select>
-
-              <select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target.value as
-                      | "All"
-                      | AssessmentStatus
-                  )
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400"
-              >
-                <option value="All">All Status</option>
-                <option value="Draft">Draft</option>
-                <option value="Published">
-                  Published
-                </option>
-              </select>
+                Clear Filters
+              </button>
             </div>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px]">
               <thead className="bg-slate-50">
                 <tr>
-                  {[
-                    "Assessment",
-                    "Type",
-                    "Course",
-                    "Due Date",
-                    "Questions",
-                    "Submissions",
-                    "Status",
-                    "Actions",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500"
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Assessment
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Type
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Course
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Created By
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Due Date
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Questions
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Submissions
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="border-b border-slate-200 px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Actions
+                  </th>
+                </tr>
+                <tr className="bg-white">
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={assessmentFilter}
+                      onChange={(event) =>
+                        setAssessmentFilter(event.target.value)
+                      }
+                      placeholder="Title / ID"
+                      className="w-full min-w-[150px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={typeFilter}
+                      onChange={(event) =>
+                        setTypeFilter(
+                          event.target.value as
+                            | "All"
+                            | AssessmentType
+                        )
+                      }
+                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400"
                     >
-                      {heading}
-                    </th>
-                  ))}
+                      <option value="All">All</option>
+                      <option value="Assignment">Assignment</option>
+                      <option value="Quiz">Quiz</option>
+                    </select>
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={courseFilter}
+                      onChange={(event) =>
+                        setCourseFilter(event.target.value)
+                      }
+                      className="w-full min-w-[170px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All Courses</option>
+                      {courses
+                        .slice()
+                        .sort((a, b) =>
+                          a.title.localeCompare(b.title)
+                        )
+                        .map((course) => (
+                          <option key={course.id} value={course.title}>
+                            {course.title}
+                          </option>
+                        ))}
+                    </select>
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={creatorFilter}
+                      onChange={(event) =>
+                        setCreatorFilter(event.target.value)
+                      }
+                      className="w-full min-w-[150px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All Creators</option>
+                      {creatorOptions.map((creator) => (
+                        <option key={creator} value={creator}>
+                          {creator}
+                        </option>
+                      ))}
+                    </select>
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={dueDateFilter}
+                      onChange={(event) =>
+                        setDueDateFilter(
+                          event.target.value as
+                            | "All"
+                            | "Due"
+                            | "No due date"
+                        )
+                      }
+                      className="w-full min-w-[130px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All</option>
+                      <option value="Due">Has due date</option>
+                      <option value="No due date">No due date</option>
+                    </select>
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={questionsFilter}
+                      onChange={(event) =>
+                        setQuestionsFilter(event.target.value)
+                      }
+                      inputMode="numeric"
+                      placeholder="Count"
+                      className="w-full min-w-[80px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <input
+                      value={submissionsFilter}
+                      onChange={(event) =>
+                        setSubmissionsFilter(event.target.value)
+                      }
+                      inputMode="numeric"
+                      placeholder="Count"
+                      className="w-full min-w-[90px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2">
+                    <select
+                      value={statusFilter}
+                      onChange={(event) =>
+                        setStatusFilter(
+                          event.target.value as
+                            | "All"
+                            | AssessmentStatus
+                        )
+                      }
+                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400"
+                    >
+                      <option value="All">All</option>
+                      <option value="Draft">Draft</option>
+                      <option value="Published">Published</option>
+                    </select>
+                  </th>
+                  <th className="border-b border-slate-200 px-3 py-2" />
                 </tr>
               </thead>
 
@@ -1645,7 +1822,7 @@ export default function AssignmentsPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-5 py-20 text-center"
                     >
                       <div className="mx-auto flex items-center justify-center gap-2 text-sm text-slate-500">
@@ -1660,7 +1837,7 @@ export default function AssignmentsPage() {
                 ) : filteredAssessments.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-5 py-20 text-center"
                     >
                       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
@@ -1701,6 +1878,18 @@ export default function AssignmentsPage() {
                         <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
                           {assessment.course ||
                             "Unknown course"}
+                        </td>
+
+                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
+                          <div className="font-medium">
+                            {assessment.createdByName ||
+                              "Not available"}
+                          </div>
+                          {assessment.createdByRole && (
+                            <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+                              {assessment.createdByRole}
+                            </div>
+                          )}
                         </td>
 
                         <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-600">
@@ -2008,7 +2197,6 @@ export default function AssignmentsPage() {
         >
           <SubmissionsPanel
             assessment={selectedAssessment}
-            quizQuestions={selectedDetails?.questions ?? []}
             submissions={submissions}
             gradingId={gradingId}
             gradeScore={gradeScore}
@@ -2020,7 +2208,6 @@ export default function AssignmentsPage() {
             saving={saving}
             onStartGrading={startGrading}
             onGrade={gradeSubmission}
-            onDownloadSubmissionFile={handleDownloadSubmissionFile}
             onCancelGrading={() => {
               setGradingId(null);
               setGradeScore("");
@@ -2690,7 +2877,6 @@ function QuestionsPanel({
 
 function SubmissionsPanel({
   assessment,
-  quizQuestions,
   submissions,
   gradingId,
   gradeScore,
@@ -2701,10 +2887,8 @@ function SubmissionsPanel({
   onStartGrading,
   onGrade,
   onCancelGrading,
-  onDownloadSubmissionFile,
 }: {
   assessment: Assessment;
-  quizQuestions: Question[];
   submissions: Submission[];
   gradingId: number | null;
   gradeScore: string;
@@ -2715,8 +2899,50 @@ function SubmissionsPanel({
   onStartGrading: (submission: Submission) => void;
   onGrade: (submissionId: number) => void | Promise<void>;
   onCancelGrading: () => void;
-  onDownloadSubmissionFile: (submission: Submission) => void | Promise<void>;
 }) {
+  const downloadSubmissionFile = async (submission: Submission) => {
+    if (!submission.submissionFileUrl) {
+      return;
+    }
+
+    try {
+      const token = getToken();
+
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const relativeUrl = submission.submissionFileUrl;
+      const fileUrl = relativeUrl.startsWith("/api/")
+        ? `${API_URL}${relativeUrl.slice(4)}`
+        : relativeUrl.startsWith("http://") || relativeUrl.startsWith("https://")
+        ? relativeUrl
+        : `${API_URL}${relativeUrl.startsWith("/") ? "" : "/"}${relativeUrl}`;
+
+      const response = await fetch(fileUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to download submission file.");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = submission.submissionFileName || "submission-file";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error("Download submission file error:", error);
+    }
+  };
+
   const submitted = submissions.filter(
     (submission) =>
       submission.status === "SUBMITTED"
@@ -2806,7 +3032,7 @@ function SubmissionsPanel({
                     <div className="mt-3">
                       <button
                         type="button"
-                        onClick={() => onDownloadSubmissionFile(submission)}
+                        onClick={() => downloadSubmissionFile(submission)}
                         className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
                       >
                         <Download size={14} />
@@ -2816,12 +3042,18 @@ function SubmissionsPanel({
                     </div>
                   )}
 
-                  {assessment.type === "Quiz" && quizQuestions.length > 0 && (
-                    <AdminQuizAnswerReview
-                      questions={quizQuestions}
-                      answersJson={submission.answers}
-                    />
-                  )}
+                  {assessment.type ===
+                    "Quiz" &&
+                    submission.answers && (
+                      <details className="mt-3 rounded-lg border border-slate-200 p-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+                          View submitted answers
+                        </summary>
+                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs leading-5 text-slate-500">
+                          {submission.answers}
+                        </pre>
+                      </details>
+                    )}
 
                   {submission.feedback && (
                     <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
@@ -2844,16 +3076,8 @@ function SubmissionsPanel({
                       : `${submission.score}/${assessment.totalMarks}`}
                   </p>
 
-                  {assessment.type === "Quiz" ? (
-                    <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-                      <p className="text-xs font-semibold text-emerald-800">
-                        Quiz graded automatically
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-emerald-700">
-                        The score was calculated automatically from the submitted answers. No manual grading is required.
-                      </p>
-                    </div>
-                  ) : gradingId === submission.id ? (
+                  {gradingId ===
+                  submission.id ? (
                     <div className="mt-4 space-y-3">
                       <Field
                         label="Score"
@@ -3246,48 +3470,6 @@ function StatusBadge({
   );
 }
 
-function AdminQuizAnswerReview({
-  questions,
-  answersJson,
-}: {
-  questions: Question[];
-  answersJson: string | null;
-}) {
-  let answers: Record<string, string> = {};
-  try {
-    const parsed = answersJson ? JSON.parse(answersJson) : {};
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      answers = Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]));
-    }
-  } catch {
-    answers = {};
-  }
-
-  return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-sm font-bold text-slate-800">Question Review</p>
-      <div className="mt-3 space-y-3">
-        {questions.map((question, index) => {
-          const selected = answers[String(question.id)]?.toUpperCase() ?? "";
-          const options: Array<[string, string | null]> = [["A", question.optionA], ["B", question.optionB], ["C", question.optionC], ["D", question.optionD]];
-          return (
-            <div key={question.id} className="rounded-lg border border-slate-200 p-3">
-              <p className="text-sm font-semibold text-slate-800">{index + 1}. {question.question}</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {options.filter(([, label]) => Boolean(label?.trim())).map(([key, label]) => {
-                  const isSelected = selected === key;
-                  const isCorrect = question.correctAnswer?.toUpperCase() === key;
-                  return <div key={key} className={`rounded-lg border-2 px-3 py-2 text-xs ${isCorrect ? "border-green-600 bg-green-50 text-green-800" : isSelected ? "border-red-600 bg-red-50 text-red-800" : "border-slate-200 bg-white text-slate-600"}`}><span className="font-bold">{key}.</span> {label}{isSelected && <span className="ml-2 font-bold">Your answer</span>}{isCorrect && <span className="ml-2 font-bold">Correct answer</span>}</div>;
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function SubmissionBadge({
   status,
 }: {
@@ -3359,9 +3541,7 @@ function ActionButton({
   children: ReactNode;
   title: string;
   ariaLabel?: string;
-  onClick: (
-    event: MouseEvent<HTMLButtonElement>
-  ) => void;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button

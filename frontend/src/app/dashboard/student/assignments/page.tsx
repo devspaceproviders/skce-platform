@@ -36,6 +36,10 @@ import {
 
   RefreshCw,
 
+  SlidersHorizontal,
+
+  RotateCcw,
+
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -289,6 +293,7 @@ const STATUS_STYLES: Record<
 
 
 type FilterType = "All" | FrontendAssessmentType;
+type StatusFilter = "All" | FrontendStatus;
 
 
 
@@ -456,7 +461,8 @@ export default function AssignmentsPage() {
   const router = useRouter();
 
   const [assessments, setAssessments] = useState<AssessmentListItem[]>([]);
-  const [filter, setFilter] = useState<FilterType>("All");
+  const [typeFilter, setTypeFilter] = useState<FilterType>("All");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [selectedAssessment, setSelectedAssessment] =
     useState<AssessmentListItem | null>(null);
 
@@ -534,14 +540,17 @@ export default function AssignmentsPage() {
   }, []);
 
   const filteredAssessments = useMemo(() => {
-    if (filter === "All") {
-      return assessments;
-    }
+    return assessments.filter((item) => {
+      const matchesType =
+        typeFilter === "All" || displayType(item.type) === typeFilter;
 
-    return assessments.filter(
-      (item) => displayType(item.type) === filter
-    );
-  }, [assessments, filter]);
+      const matchesStatus =
+        statusFilter === "All" ||
+        displayStatus(item.latestSubmission) === statusFilter;
+
+      return matchesType && matchesStatus;
+    });
+  }, [assessments, typeFilter, statusFilter]);
 
   const totalAssignments = assessments.filter(
     (item) => item.type === "ASSIGNMENT"
@@ -571,6 +580,21 @@ export default function AssignmentsPage() {
     (item) =>
       displayStatus(item.latestSubmission) === "In progress"
   ).length;
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<FrontendStatus, number> = {
+      "Not started": 0,
+      "In progress": 0,
+      Submitted: 0,
+      Graded: 0,
+    };
+
+    assessments.forEach((item) => {
+      counts[displayStatus(item.latestSubmission)] += 1;
+    });
+
+    return counts;
+  }, [assessments]);
 
   const openAssessment = (
     assessment: AssessmentListItem
@@ -735,98 +759,263 @@ export default function AssignmentsPage() {
           />
         </section>
 
-        {/* Filter bar */}
+        {/* Filters */}
         <section
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 14,
-            flexWrap: "wrap",
-            marginBottom: 14,
+            marginBottom: 16,
+            padding: 12,
+            border: "1px solid #E1E6EE",
+            borderRadius: 14,
+            background: "#FFFFFF",
+            boxShadow: "0 4px 14px rgba(15,23,42,0.025)",
           }}
         >
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 7,
+              justifyContent: "space-between",
+              gap: 14,
               flexWrap: "wrap",
+              marginBottom: 10,
             }}
           >
-            {(
-              ["All", "Assignment", "Quiz"] as FilterType[]
-            ).map((item) => {
-              const isActive = filter === item;
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                  background: "#F7EAF0",
+                  color: "#A01441",
+                  flex: "0 0 auto",
+                }}
+              >
+                <SlidersHorizontal size={15} />
+              </div>
 
-              const count =
-                item === "All"
-                  ? assessments.length
-                  : item === "Assignment"
-                    ? totalAssignments
-                    : totalQuizzes;
+              <div>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    color: "#172033",
+                  }}
+                >
+                  Filter assessments
+                </div>
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 9.5,
+                    color: "#8D97A6",
+                  }}
+                >
+                  Narrow the list by type and completion status.
+                </div>
+              </div>
+            </div>
 
-              return (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {typeFilter !== "All" || statusFilter !== "All" ? (
                 <button
-                  key={item}
                   type="button"
-                  onClick={() => setFilter(item)}
+                  onClick={() => {
+                    setTypeFilter("All");
+                    setStatusFilter("All");
+                  }}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 7,
-                    border: isActive
-                      ? "1px solid #2F6BFF"
-                      : "1px solid #D9DFE8",
-                    background: isActive
-                      ? "#2F6BFF"
-                      : "#FFFFFF",
-                    color: isActive
-                      ? "#FFFFFF"
-                      : "#4B5563",
-                    borderRadius: 999,
-                    padding: "7px 11px",
-                    fontSize: 10.5,
+                    gap: 5,
+                    border: "1px solid #E2C6D1",
+                    borderRadius: 8,
+                    padding: "7px 9px",
+                    background: "#FFF8FA",
+                    color: "#A01441",
+                    fontSize: 9.5,
                     fontWeight: 750,
                     cursor: "pointer",
                   }}
                 >
-                  {item === "All"
-                    ? "All"
-                    : item === "Assignment"
-                      ? "Assignments"
-                      : "Quizzes"}
-
-                  <span
-                    style={{
-                      minWidth: 18,
-                      padding: "2px 5px",
-                      borderRadius: 999,
-                      background: isActive
-                        ? "rgba(255,255,255,0.18)"
-                        : "#F2F4F7",
-                      color: isActive
-                        ? "#FFFFFF"
-                        : "#697386",
-                      fontSize: 9,
-                      textAlign: "center",
-                    }}
-                  >
-                    {count}
-                  </span>
+                  <RotateCcw size={12} />
+                  Clear filters
                 </button>
-              );
-            })}
+              ) : null}
+
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "#8E98A8",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Showing <strong style={{ color: "#334155" }}>{filteredAssessments.length}</strong> of {assessments.length}
+              </div>
+            </div>
           </div>
 
           <div
+            className="student-assessment-filter-row"
             style={{
-              fontSize: 10.5,
-              color: "#8E98A8",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) 210px",
+              gap: 10,
+              alignItems: "stretch",
             }}
           >
-            Showing {filteredAssessments.length} of{" "}
-            {assessments.length}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: 4,
+                border: "1px solid #E3E7EE",
+                borderRadius: 10,
+                background: "#F8FAFC",
+                overflowX: "auto",
+              }}
+            >
+              {([
+                "All",
+                "Assignment",
+                "Quiz",
+              ] as FilterType[]).map((item) => {
+                const isActive = typeFilter === item;
+                const count =
+                  item === "All"
+                    ? assessments.length
+                    : item === "Assignment"
+                      ? totalAssignments
+                      : totalQuizzes;
+
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setTypeFilter(item)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      minWidth: 0,
+                      flex: "1 1 0",
+                      border: isActive
+                        ? "1px solid #2F6BFF"
+                        : "1px solid transparent",
+                      borderRadius: 8,
+                      padding: "8px 11px",
+                      background: isActive ? "#2F6BFF" : "transparent",
+                      color: isActive ? "#FFFFFF" : "#4B5563",
+                      fontSize: 10.5,
+                      fontWeight: 750,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {item === "All"
+                      ? "All"
+                      : item === "Assignment"
+                        ? "Assignments"
+                        : "Quizzes"}
+
+                    <span
+                      style={{
+                        minWidth: 18,
+                        padding: "2px 5px",
+                        borderRadius: 999,
+                        background: isActive
+                          ? "rgba(255,255,255,0.18)"
+                          : "#EEF1F5",
+                        color: isActive ? "#FFFFFF" : "#697386",
+                        fontSize: 9,
+                        fontWeight: 800,
+                        textAlign: "center",
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minWidth: 0,
+                padding: "4px 9px 4px 11px",
+                border: "1px solid #E3E7EE",
+                borderRadius: 10,
+                background: "#FFFFFF",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  color: "#7A8595",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Status
+              </span>
+
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as StatusFilter)
+                }
+                style={{
+                  width: "100%",
+                  minWidth: 0,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  color: "#334155",
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+                aria-label="Filter by status"
+              >
+                <option value="All">All statuses ({assessments.length})</option>
+                <option value="Not started">
+                  Not started ({statusCounts["Not started"]})
+                </option>
+                <option value="In progress">
+                  In progress ({statusCounts["In progress"]})
+                </option>
+                <option value="Submitted">
+                  Submitted ({statusCounts.Submitted})
+                </option>
+                <option value="Graded">
+                  Graded ({statusCounts.Graded})
+                </option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -931,11 +1120,14 @@ export default function AssignmentsPage() {
                 color: "#374151",
               }}
             >
-              No {filter === "All"
+              No {typeFilter === "All"
                 ? "assessments"
-                : filter === "Assignment"
+                : typeFilter === "Assignment"
                   ? "assignments"
-                  : "quizzes"}{" "}
+                  : "quizzes"}
+              {statusFilter !== "All"
+                ? ` with status “${statusFilter.toLowerCase()}”`
+                : ""}{" "}
               found
             </h2>
 
@@ -1313,6 +1505,10 @@ export default function AssignmentsPage() {
         }
 
         @media (max-width: 760px) {
+          .student-assessment-filter-row {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+
           .student-assessment-card {
             grid-template-columns: minmax(0, 1fr) !important;
           }

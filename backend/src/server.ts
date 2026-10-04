@@ -1,7 +1,8 @@
-import certificateAssetRouter from "./certificates/certificate-assets.routes";
+﻿import certificateAssetRouter from "./certificates/certificate-assets.routes";
+
 import certificateRouter from "./certificates/certificate.routes";
 
-
+import adminReportsRouter from "./reports/routes/admin-reports.routes";
 
 import express from "express";
 
@@ -13,31 +14,17 @@ import dotenv from "dotenv";
 
 import path from "path";
 
-
-
 import authRoutes from "./auth/routes/auth.routes";
 
-
-
-import courseRoutes, {
-
-  adminCourseRouter,
-
-} from "./courses/routes/course.routes";
-
-
+import courseRoutes,{adminCourseRouter} from "./courses/routes/course.routes";
 
 import packageRoutes from "./packages/routes/package.routes";
 
 import packageAdminRoutes from "./packages/routes/package-admin.routes";
 
-
-
 import studentRoutes from "./students/routes/student.routes";
 
 import paymentRoutes from "./payments/routes/payment.routes";
-
-
 
 import courseContentRoutes from "./course-content/routes/course-content.routes";
 
@@ -45,107 +32,49 @@ import courseContentAdminRoutes from "./course-content/routes/course-content-adm
 
 import courseProgressRoutes from "./course-content/routes/course-progress.routes";
 
+import assessmentRoutes,{adminAssessmentRouter} from "./assessments/routes/assessment.routes";
 
+import {adminBatchRouter,trainerBatchRouter} from "./batches/routes/batch.routes";
 
-import assessmentRoutes, {
-
-  adminAssessmentRouter,
-
-} from "./assessments/routes/assessment.routes";
-
-
-
-import liveSessionRoutes, {
-
-  adminLiveSessionRouter,
-
-  trainerLiveSessionRouter,
-
-} from "./live-sessions/routes/live-session.routes";
-
-
-
-import {
-
-  adminBatchRouter,
-
-  trainerBatchRouter,
-
-} from "./batches/routes/batch.routes";
-
-import meetingRoutes, {
-  adminMeetingRouter,
-  trainerMeetingRouter,
-} from "./meetings/routes/meeting.routes";
-
-
-
-
-
+import meetingRoutes,{adminMeetingRouter,trainerMeetingRouter} from "./meetings/routes/meeting.routes";
 
 import trainerAvailabilityRouter from "./trainers/routes/trainer-availability.routes";
 
-import trainerAdminRouter, {
+import trainerAdminRouter,{publicTrainerRouter} from "./trainers/routes/trainer.routes";
 
-  publicTrainerRouter,
-
-} from "./trainers/routes/trainer.routes";
-
-
+import trainerEngagementRouter from "./trainers/routes/trainer-engagement.routes";
 
 import trainerProfileRouter from "./trainers/routes/trainer-profile.routes";
 
-
-
 import trainerCoursePermissionRouter from "./trainers/routes/trainer-course-permission.routes";
-
-
 
 import trainerCoursePermissionTrainerRouter from "./trainers/routes/trainer-course-permission-trainer.routes";
 
-
-
 import profilePhotoRouter from "./profile/profile-photo.routes";
-
-
 
 import ceoRouter from "./ceo/routes/ceo.routes";
 
 import adminCeoRouter from "./ceo/routes/admin-ceo.routes";
 
-
-
 import { db } from "./prisma/db";
-
-
 
 dotenv.config();
 
-
-
 const app = express();
-
-
 
 const PORT = process.env.PORT || 5000;
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* SECURITY
+ * SECURITY
 
- \* ============================================================
+ * ============================================================
 
  */
 
-
-
 app.use(helmet());
-
-
 
 app.use(
 
@@ -163,51 +92,49 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* PROFILE PHOTO / UPLOADS
+ * PROFILE PHOTO / UPLOADS
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* Profile photos and certificate assets are stored under:
+ * Profile photos and certificate assets are stored under:
 
- \*
+ *
 
- \* backend/uploads
+ * backend/uploads
 
- \*
+ *
 
- \* They are available through:
+ * They are available through:
 
- \*
+ *
 
- \* http://localhost:5000/uploads/\<path>
+ * http://localhost:5000/uploads/<path>
 
- \*
+ *
 
- \* Cross-Origin-Resource-Policy is explicitly set to
+ * Cross-Origin-Resource-Policy is explicitly set to
 
- \* cross-origin so the Next.js frontend on localhost:3000
+ * cross-origin so the Next.js frontend on localhost:3000
 
- \* can display images served by localhost:5000.
+ * can display images served by localhost:5000.
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
   "/uploads",
 
-  (req, res, next) => {
+  (req,res,next) => {
 
     res.setHeader(
 
@@ -217,8 +144,6 @@ app.use(
 
     );
 
-
-
     res.setHeader(
 
       "Cross-Origin-Resource-Policy",
@@ -226,8 +151,6 @@ app.use(
       "cross-origin"
 
     );
-
-
 
     next();
 
@@ -247,23 +170,17 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* BODY PARSING
+ * BODY PARSING
 
- \* ============================================================
+ * ============================================================
 
  */
 
-
-
 app.use(express.json());
-
-
 
 app.use(
 
@@ -275,19 +192,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* API ROUTES
+ * API ROUTES
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -297,29 +210,27 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* PROFILE PHOTO
+ * PROFILE PHOTO
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* POST /api/profile/photo
+ * POST /api/profile/photo
 
- \*
+ *
 
- \* Authenticated users can upload their own profile photo.
+ * Authenticated users can upload their own profile photo.
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -329,37 +240,35 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* CEO / FOUNDER PROFILE
+ * CEO / FOUNDER PROFILE
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* GET /api/ceo
+ * GET /api/ceo
 
- \*
+ *
 
- \* Public CEO information used by the website.
+ * Public CEO information used by the website.
 
- \*
+ *
 
- \* ADMIN:
+ * ADMIN:
 
- \* GET   /api/admin/ceo
+ * GET   /api/admin/ceo
 
- \* PATCH /api/admin/ceo
+ * PATCH /api/admin/ceo
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -369,8 +278,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/admin/ceo",
@@ -379,19 +286,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* PUBLIC COURSES
+ * PUBLIC COURSES
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -401,19 +304,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN COURSES
+ * ADMIN COURSES
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -423,19 +322,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* PACKAGES
+ * PACKAGES
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -445,8 +340,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/admin/packages",
@@ -455,19 +348,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* STUDENTS
+ * STUDENTS
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -477,19 +366,23 @@ app.use(
 
 );
 
+app.use(
 
+  "/api/admin/reports",
+
+  adminReportsRouter
+
+);
 
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* PAYMENTS
+ * PAYMENTS
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -499,19 +392,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* COURSE CONTENT
+ * COURSE CONTENT
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -521,19 +410,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* STUDENT COURSE PROGRESS
+ * STUDENT COURSE PROGRESS
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -543,19 +428,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN COURSE CONTENT
+ * ADMIN COURSE CONTENT
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -565,19 +446,15 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ASSESSMENTS
+ * ASSESSMENTS
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -587,8 +464,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/admin/assessments",
@@ -597,43 +472,41 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* TRAINERS
+ * TRAINERS
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* PUBLIC:
+ * PUBLIC:
 
- \* GET /api/trainers
+ * GET /api/trainers
 
- \*
+ *
 
- \* ADMIN:
+ * ADMIN:
 
- \* GET    /api/admin/trainers
+ * GET    /api/admin/trainers
 
- \* GET    /api/admin/trainers/:id
+ * GET    /api/admin/trainers/:id
 
- \* POST   /api/admin/trainers
+ * POST   /api/admin/trainers
 
- \* PATCH  /api/admin/trainers/:id
+ * PATCH  /api/admin/trainers/:id
 
- \* POST   /api/admin/trainers/:id/photo
+ * POST   /api/admin/trainers/:id/photo
 
- \* POST   /api/admin/trainers/:id/reset-password
+ * POST   /api/admin/trainers/:id/reset-password
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -643,8 +516,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/admin/trainers",
@@ -653,14 +524,21 @@ app.use(
 
 );
 
+app.use(
+
+  "/api/trainer/engagements",
+
+  trainerEngagementRouter
+
+);  
 
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN TRAINER AVAILABILITY
+ * ADMIN TRAINER AVAILABILITY
 
- \* ============================================================
+ * ============================================================
 
  */
 
@@ -672,35 +550,31 @@ app.use(
 
 );
 
-
-
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN TRAINER COURSE PERMISSIONS
+ * ADMIN TRAINER COURSE PERMISSIONS
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* GET    /api/admin/trainer-course-permissions
+ * GET    /api/admin/trainer-course-permissions
 
- \* GET    /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * GET    /api/admin/trainer-course-permissions/:trainerId/:courseId
 
- \* POST   /api/admin/trainer-course-permissions
+ * POST   /api/admin/trainer-course-permissions
 
- \* PATCH  /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * PATCH  /api/admin/trainer-course-permissions/:trainerId/:courseId
 
- \* DELETE /api/admin/trainer-course-permissions/:trainerId/:courseId
+ * DELETE /api/admin/trainer-course-permissions/:trainerId/:courseId
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -710,31 +584,29 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* TRAINER COURSE PERMISSIONS
+ * TRAINER COURSE PERMISSIONS
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* GET /api/trainer/course-permissions
+ * GET /api/trainer/course-permissions
 
- \*
+ *
 
- \* Returns only the permissions belonging to the
+ * Returns only the permissions belonging to the
 
- \* currently authenticated TRAINER.
+ * currently authenticated TRAINER.
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -744,31 +616,29 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* TRAINER PROFILE
+ * TRAINER PROFILE
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* GET   /api/trainer/profile
+ * GET   /api/trainer/profile
 
- \* PATCH /api/trainer/profile
+ * PATCH /api/trainer/profile
 
- \*
+ *
 
- \* Only authenticated TRAINER users can access these routes.
+ * Only authenticated TRAINER users can access these routes.
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -778,31 +648,29 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN CERTIFICATE ASSETS
+ * ADMIN CERTIFICATE ASSETS
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* POST /api/admin/certificate-assets/LOGO
+ * POST /api/admin/certificate-assets/LOGO
 
- \* POST /api/admin/certificate-assets/SIGNATURE
+ * POST /api/admin/certificate-assets/SIGNATURE
 
- \*
+ *
 
- \* ADMIN only.
+ * ADMIN only.
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -812,8 +680,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/certificates",
@@ -822,51 +688,49 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* ADMIN BATCHES
+ * ADMIN BATCHES
 
- \* ============================================================
+ * ============================================================
 
- \*
+ *
 
- \* GET     /api/admin/batches
+ * GET    /api/admin/batches
 
- \* GET     /api/admin/batches/options
+ * GET    /api/admin/batches/options
 
- \* GET     /api/admin/batches/:id
+ * GET    /api/admin/batches/:id
 
- \* GET     /api/admin/batches/:id/students
+ * GET    /api/admin/batches/:id/students
 
- \* POST    /api/admin/batches
+ * POST   /api/admin/batches
 
- \* POST    /api/admin/batches/:id/students
+ * POST   /api/admin/batches/:id/students
 
- \* PATCH   /api/admin/batches/:id
+ * PATCH  /api/admin/batches/:id
 
- \* DELETE  /api/admin/batches/:id
+ * DELETE /api/admin/batches/:id
 
- \* DELETE  /api/admin/batches/:id/students/:studentId
+ * DELETE /api/admin/batches/:id/students/:studentId
 
- \*
+ *
 
- \* TRAINER:
+ * TRAINER:
 
- \* GET /api/trainer/batches
+ * GET /api/trainer/batches
 
- \* GET /api/trainer/batches/:id
+ * GET /api/trainer/batches/:id
 
- \* GET /api/trainer/batches/:id/students
+ * GET /api/trainer/batches/:id/students
 
- \* ============================================================
+ *
+
+ * ============================================================
 
  */
-
-
 
 app.use(
 
@@ -876,8 +740,6 @@ app.use(
 
 );
 
-
-
 app.use(
 
   "/api/trainer/batches",
@@ -886,101 +748,14 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
-
- \* LIVE SESSIONS
-
- \* ============================================================
-
- \*
-
- \* Student:
-
- \* GET  /api/live-sessions
-
- \* GET  /api/live-sessions/:id
-
- \* POST /api/live-sessions/:id/join
-
- \* POST /api/live-sessions/:id/leave
-
- \*
-
- \* Admin:
-
- \* GET    /api/admin/live-sessions
-
- \* GET    /api/admin/live-sessions/options
-
- \* GET    /api/admin/live-sessions/:id
-
- \* GET    /api/admin/live-sessions/:id/participants
-
- \* POST   /api/admin/live-sessions
-
- \* PATCH  /api/admin/live-sessions/:id
-
- \* DELETE /api/admin/live-sessions/:id
-
- \*
-
- \* Trainer:
-
- \* GET    /api/trainer/live-sessions
-
- \* GET    /api/trainer/live-sessions/:id
-
- \* GET    /api/trainer/live-sessions/:id/participants
-
- \* POST   /api/trainer/live-sessions
-
- \* PATCH  /api/trainer/live-sessions/:id
-
- \* DELETE /api/trainer/live-sessions/:id
-
- \* ============================================================
-
- */
-
-
-
-app.use(
-
-  "/api/live-sessions",
-
-  liveSessionRoutes
-
-);
-
-
-
-app.use(
-
-  "/api/admin/live-sessions",
-
-  adminLiveSessionRouter
-
-);
-
-
-
-app.use(
-
-  "/api/trainer/live-sessions",
-
-  trainerLiveSessionRouter
-
-);
-
-
-/*
  * ============================================================
+
  * MEETINGS / CALENDAR
+
  * ============================================================
+
  */
 
 app.use(
@@ -991,7 +766,6 @@ app.use(
 
 );
 
-
 app.use(
 
   "/api/admin/meetings",
@@ -999,7 +773,6 @@ app.use(
   adminMeetingRouter
 
 );
-
 
 app.use(
 
@@ -1009,25 +782,21 @@ app.use(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* BASIC API TEST
+ * BASIC API TEST
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.get(
 
   "/api",
 
-  (_req, res) => {
+  (_req,res) => {
 
     return res.status(200).json({
 
@@ -1043,25 +812,21 @@ app.get(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* SERVER HEALTH CHECK
+ * SERVER HEALTH CHECK
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.get(
 
   "/api/health",
 
-  (_req, res) => {
+  (_req,res) => {
 
     return res.status(200).json({
 
@@ -1081,33 +846,27 @@ app.get(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* DATABASE CONNECTION TEST
+ * DATABASE CONNECTION TEST
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.get(
 
   "/api/db-test",
 
-  async (_req, res) => {
+  async (_req,res) => {
 
     try {
 
       const users =
 
         await db.orm.public.User.all();
-
-
 
       return res.status(200).json({
 
@@ -1133,8 +892,6 @@ app.get(
 
       );
 
-
-
       return res.status(500).json({
 
         success: false,
@@ -1151,19 +908,15 @@ app.get(
 
 );
 
-
-
 /*
 
- \* ============================================================
+ * ============================================================
 
- \* START SERVER
+ * START SERVER
 
- \* ============================================================
+ * ============================================================
 
  */
-
-
 
 app.listen(
 
@@ -1173,15 +926,11 @@ app.listen(
 
     console.log("");
 
-
-
     console.log(
 
       "=========================================="
 
     );
-
-
 
     console.log(
 
@@ -1189,15 +938,11 @@ app.listen(
 
     );
 
-
-
     console.log(
 
       "=========================================="
 
     );
-
-
 
     console.log(
 
@@ -1205,15 +950,11 @@ app.listen(
 
     );
 
-
-
     console.log(
 
       `API:    http://localhost:${PORT}/api`
 
     );
-
-
 
     console.log(
 
@@ -1221,15 +962,11 @@ app.listen(
 
     );
 
-
-
     console.log(
 
       `DB:     http://localhost:${PORT}/api/db-test`
 
     );
-
-
 
     console.log(
 
@@ -1237,23 +974,17 @@ app.listen(
 
     );
 
-
-
     console.log(
 
       `CEO:    http://localhost:${PORT}/api/ceo`
 
     );
 
-
-
     console.log(
 
       "=========================================="
 
     );
-
-
 
     console.log("");
 

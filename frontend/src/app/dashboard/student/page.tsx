@@ -1599,1998 +1599,1418 @@ export default function StudentDashboardPage() {
 
 
 
-  return (
-
-    <>
-
-      <main
-
-        style={{
-
-          flex: 1,
-
-          minWidth: 0,
-
-          padding: "28px 32px 36px",
-
-          background: "#f5f7fb",
-
-          boxSizing: "border-box",
-
-        }}
-
-      >
-
-        {/* ----------------------------------------------------- */}
-
-        {/* WELCOME */}
-
-        {/* ----------------------------------------------------- */}
-
-        <section
-
-          style={{
-
-            position: "relative",
-
-            overflow: "hidden",
-
-            display: "flex",
-
-            justifyContent: "space-between",
-
-            alignItems: "flex-start",
-
-            gap: 24,
-
-            minHeight: 185,
-
-            padding: "28px 30px",
-
-            marginBottom: 18,
-
-            borderRadius: 20,
-
-            background:
-
-              "linear-gradient(135deg, #10223f 0%, #173f71 62%, #245ed6 100%)",
-
-            boxShadow:
-
-              "0 12px 28px rgba(16,34,63,0.15)",
-
-            color: "#ffffff",
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              position: "absolute",
-
-              width: 260,
-
-              height: 260,
-
-              top: -155,
-
-              right: 55,
-
-              borderRadius: "50%",
-
-              background:
-
-                "rgba(255,255,255,0.07)",
-
-            }}
-
-          />
-
-
-
-          <div
-
-            style={{
-
-              position: "absolute",
-
-              width: 170,
-
-              height: 170,
-
-              bottom: -120,
-
-              right: -30,
-
-              borderRadius: "50%",
-
-              border:
-
-                "1px solid rgba(255,255,255,0.13)",
-
-            }}
-
-          />
-
-
-
-          <div
-
-            style={{
-
-              position: "relative",
-
-              zIndex: 1,
-
-              maxWidth: 760,
-
-            }}
-
-          >
-
-            <div
-
-              style={{
-
-                display: "inline-flex",
-
-                alignItems: "center",
-
-                gap: 7,
-
-                marginBottom: 10,
-
-                fontSize: 11,
-
-                fontWeight: 800,
-
-                letterSpacing: "0.08em",
-
-                textTransform: "uppercase",
-
-                color: "#dce8fb",
-
-              }}
-
-            >
-
-              <GraduationCap size={16} />
-
-              Student Portal
-
-            </div>
-
-
-
-            <h1
-
-              style={{
-
-                margin: 0,
-
-                fontSize: 32,
-
-                lineHeight: 1.2,
-
-                fontWeight: 800,
-
-                letterSpacing: "-0.02em",
-
-              }}
-
-            >
-
-              Welcome back, {dashboard.student.name} 👋
-
-            </h1>
-
-
-
-            <p
-
-              style={{
-
-                maxWidth: 650,
-
-                margin: "10px 0 0",
-
-                fontSize: 13.5,
-
-                lineHeight: 1.7,
-
-                color: "#d7e4f8",
-
-              }}
-
-            >
-
-              Your learning space is ready. Pick up where you
-
-              left off, check what needs your attention, or
-
-              explore your achievements.
-
-            </p>
-
-
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                flexWrap: "wrap",
-
-                gap: 20,
-
-                marginTop: 18,
-
-              }}
-
-            >
-
-              <InfoPair
-
-                label="Student ID"
-
-                value={dashboard.student.studentId}
-
-              />
-
-
-
-              <InfoPair
-
-                label="Account"
-
-                value={
-
-                  dashboard.student.isActive
-
-                    ? "Active"
-
-                    : "Inactive"
-
-                }
-
-              />
-
-            </div>
-
-          </div>
-
-
-
-          <div
-
-            style={{
-
-              position: "relative",
-
-              zIndex: 1,
-
-              flex: "0 0 auto",
-
-            }}
-
-          >
-
-            <button
-
-              type="button"
-
-              onClick={() => fetchDashboardData(true)}
-
-              disabled={refreshing}
-
-              style={{
-
-                ...ghostButtonStyle,
-
-                opacity: refreshing ? 0.65 : 1,
-
-              }}
-
-            >
-
-              <RefreshCw
-
-                size={15}
-
-                style={{
-
-                  animation: refreshing
-
-                    ? "studentDashboardSpin 0.8s linear infinite"
-
-                    : undefined,
-
-                }}
-
-              />
-
-              Refresh
-
-            </button>
-
-          </div>
-
-        </section>
-
-
-
-        {/* ----------------------------------------------------- */}
-
-        {/* ACTION SUMMARY */}
-
-        {/* ----------------------------------------------------- */}
-
-        <section
-
-          style={{
-
-            display: "grid",
-
-            gridTemplateColumns:
-
-              "repeat(4, minmax(0, 1fr))",
-
-            gap: 14,
-
-            marginBottom: 18,
-
-          }}
-
-        >
-
-          <SummaryTile
-
-            icon={ClipboardList}
-
-            label="Assignments"
-
-            value={pendingAssignments}
-
-            helper={
-
-              pendingAssignments > 0
-
-                ? "Ready to work"
-
-                : "Nothing pending"
-
-            }
-
-            tone="rose"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/assignments"
-
-              )
-
-            }
-
-          />
-
-
-
-          <SummaryTile
-
-            icon={BarChart3}
-
-            label="Quizzes"
-
-            value={pendingQuizzes}
-
-            helper={
-
-              pendingQuizzes > 0
-
-                ? "Available now"
-
-                : "Nothing pending"
-
-            }
-
-            tone="blue"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/assignments"
-
-              )
-
-            }
-
-          />
-
-
-
-
-
-
-          <SummaryTile
-
-            icon={Award}
-
-            label="Achievements"
-
-            value={completedCourseCount}
-
-            helper={
-
-              completedCourseCount > 0
-
-                ? "Courses completed"
-
-                : "Start your first course"
-
-            }
-
-            tone="gold"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/certificates"
-
-              )
-
-            }
-
-          />
-
-        </section>
-
-
-
-        {/* ----------------------------------------------------- */}
-
-        {/* NEXT STEP */}
-
-        {/* ----------------------------------------------------- */}
-
-        <section
-
-          style={{
-
-            display: "grid",
-
-            gridTemplateColumns:
-
-              "minmax(0, 1.7fr) minmax(300px, 0.9fr)",
-
-            gap: 18,
-
-            marginBottom: 18,
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              minWidth: 0,
-
-              padding: 22,
-
-              border:
-
-                completedAll
-
-                  ? "1px solid #eadfba"
-
-                  : "1px solid #dce6fa",
-
-              borderRadius: 18,
-
-              background:
-
-                completedAll
-
-                  ? "linear-gradient(135deg,#fffdf5 0%,#fff9e9 100%)"
-
-                  : "#ffffff",
-
-              boxShadow:
-
-                "0 4px 14px rgba(15,23,42,0.04)",
-
-            }}
-
-          >
-
-            <SectionHeader
-
-              icon={completedAll ? Award : Sparkles}
-
-              title={
-
-                completedAll
-
-                  ? "You are all caught up"
-
-                  : "Continue Learning"
-
-              }
-
-              subtitle={
-
-                completedAll
-
-                  ? "Your enrolled courses are completed."
-
-                  : "Your next learning step is here."
-
-              }
-
-            />
-
-
-
-            {completedAll ? (
-
-              <div
-
-                style={{
-
-                  display: "flex",
-
-                  flexWrap: "wrap",
-
-                  alignItems: "center",
-
-                  justifyContent: "space-between",
-
-                  gap: 18,
-
-                  marginTop: 14,
-
-                  padding: 18,
-
-                  border:
-
-                    "1px solid rgba(205,174,79,0.35)",
-
-                  borderRadius: 14,
-
-                  background: "rgba(255,255,255,0.68)",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    gap: 13,
-
-                  }}
-
-                >
-
-                  <div
-
-                    style={{
-
-                      width: 48,
-
-                      height: 48,
-
-                      display: "flex",
-
-                      alignItems: "center",
-
-                      justifyContent: "center",
-
-                      borderRadius: 14,
-
-                      background: "#fff2c9",
-
-                      color: "#b87a10",
-
-                    }}
-
-                  >
-
-                    <Award size={23} />
-
-                  </div>
-
-
-
-                  <div>
-
-                    <div
-
-                      style={{
-
-                        fontSize: 15,
-
-                        fontWeight: 800,
-
-                        color: "#3a3121",
-
-                      }}
-
-                    >
-
-                      {completedCourseCount} courses completed
-
-                    </div>
-
-
-
-                    <div
-
-                      style={{
-
-                        marginTop: 4,
-
-                        fontSize: 12,
-
-                        color: "#89785b",
-
-                      }}
-
-                    >
-
-                      {completedLessons} lessons completed.
-
-                      Your certificates are ready to view.
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-
-                <button
-
-                  type="button"
-
-                  onClick={() =>
-
-                    router.push(
-
-                      "/dashboard/student/certificates"
-
-                    )
-
-                  }
-
-                  style={{
-
-                    ...primaryButtonStyle,
-
-                    background: "#b98016",
-
-                  }}
-
-                >
-
-                  View Certificates
-
-                  <ArrowRight size={14} />
-
-                </button>
-
-              </div>
-
-            ) : incompleteCourse ? (
-
-              <button
-
-                type="button"
-
-                onClick={() =>
-
-                  router.push(
-
-                    `/dashboard/student/my-courses/${incompleteCourse.course.id}`
-
-                  )
-
-                }
-
-                style={{
-
-                  width: "100%",
-
-                  display: "flex",
-
-                  alignItems: "center",
-
-                  gap: 14,
-
-                  marginTop: 14,
-
-                  padding: 15,
-
-                  border: "1px solid #e9edf5",
-
-                  borderRadius: 14,
-
-                  background: "#ffffff",
-
-                  cursor: "pointer",
-
-                  textAlign: "left",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    width: 48,
-
-                    height: 48,
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    justifyContent: "center",
-
-                    flex: "0 0 48px",
-
-                    borderRadius: 13,
-
-                    background: "#edf3ff",
-
-                    color: "#326cf4",
-
-                  }}
-
-                >
-
-                  <BookOpen size={22} />
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    minWidth: 0,
-
-                    flex: 1,
-
-                  }}
-
-                >
-
-                  <div
-
-                    style={{
-
-                      fontSize: 15,
-
-                      fontWeight: 800,
-
-                      color: "#1f2937",
-
-                    }}
-
-                  >
-
-                    {incompleteCourse.course.title}
-
-                  </div>
-
-
-
-                  <div
-
-                    style={{
-
-                      display: "flex",
-
-                      flexWrap: "wrap",
-
-                      gap: 10,
-
-                      marginTop: 4,
-
-                      fontSize: 11,
-
-                      color: "#8791a3",
-
-                    }}
-
-                  >
-
-                    <span>
-
-                      {progressMap[
-
-                        incompleteCourse.course.id
-
-                      ]?.completedLessons ?? 0}
-
-                      /
-
-                      {progressMap[
-
-                        incompleteCourse.course.id
-
-                      ]?.totalLessons ?? 0}{" "}
-
-                      lessons completed
-
-                    </span>
-
-
-
-                    {incompleteCourse.packageName ? (
-
-                      <span>
-
-                        Package:{" "}
-
-                        {incompleteCourse.packageName}
-
-                      </span>
-
-                    ) : (
-
-                      <span>Direct enrollment</span>
-
-                    )}
-
-                  </div>
-
-
-
-                  <div
-
-                    style={{
-
-                      height: 6,
-
-                      overflow: "hidden",
-
-                      marginTop: 10,
-
-                      borderRadius: 999,
-
-                      background: "#e9edf4",
-
-                    }}
-
-                  >
-
-                    <span
-
-                      style={{
-
-                        display: "block",
-
-                        width: `${Math.min(
-
-                          Math.max(
-
-                            progressMap[
-
-                              incompleteCourse.course.id
-
-                            ]?.progressPercentage ?? 0,
-
-                            0
-
-                          ),
-
-                          100
-
-                        )}%`,
-
-                        height: "100%",
-
-                        borderRadius: 999,
-
-                        background:
-
-                          "linear-gradient(90deg,#2f6bff,#5e8eff)",
-
-                      }}
-
-                    />
-
-                  </div>
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    gap: 5,
-
-                    flex: "0 0 auto",
-
-                    color: "#2f6bff",
-
-                    fontSize: 12,
-
-                    fontWeight: 800,
-
-                  }}
-
-                >
-
-                  {Math.round(
-
-                    progressMap[
-
-                      incompleteCourse.course.id
-
-                    ]?.progressPercentage ?? 0
-
-                  )}
-
-                  %
-
-                  <ChevronRight size={17} />
-
-                </div>
-
-              </button>
-
-            ) : (
-
-              <EmptyCard
-
-                title="No active learning item"
-
-                message="Your next course will appear here when you are enrolled."
-
-              />
-
-            )}
-
-          </div>
-
-
-
-          {/* Right: Today / attention */}
-
-          <div
-
-            style={{
-
-              minWidth: 0,
-
-              padding: 22,
-
-              border: "1px solid #e5e9f0",
-
-              borderRadius: 18,
-
-              background: "#ffffff",
-
-              boxShadow:
-
-                "0 4px 14px rgba(15,23,42,0.04)",
-
-            }}
-
-          >
-
-            <SectionHeader
-
-              icon={CalendarDays}
-
-              title="Your Focus"
-
-              subtitle="A simple view of what to do next"
-
-            />
-
-
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                flexDirection: "column",
-
-                gap: 10,
-
-                marginTop: 15,
-
-              }}
-
-            >
-
-              <FocusRow
-
-                icon={ClipboardList}
-
-                label="Assignments"
-
-                value={
-
-                  pendingAssignments > 0
-
-                    ? `${pendingAssignments} waiting`
-
-                    : "All clear"
-
-                }
-
-                tone={
-
-                  pendingAssignments > 0
-
-                    ? "rose"
-
-                    : "green"
-
-                }
-
-                onClick={() =>
-
-                  router.push(
-
-                    "/dashboard/student/assignments"
-
-                  )
-
-                }
-
-              />
-
-
-
-              <FocusRow
-
-                icon={BarChart3}
-
-                label="Quizzes"
-
-                value={
-
-                  pendingQuizzes > 0
-
-                    ? `${pendingQuizzes} available`
-
-                    : "All clear"
-
-                }
-
-                tone={
-
-                  pendingQuizzes > 0
-
-                    ? "blue"
-
-                    : "green"
-
-                }
-
-                onClick={() =>
-
-                  router.push(
-
-                    "/dashboard/student/assignments"
-
-                  )
-
-                }
-
-              />
-
-
-
-
-            </div>
-
-
-
-            <div
-
-              style={{
-
-                marginTop: 14,
-
-                paddingTop: 14,
-
-                borderTop:
-
-                  "1px solid #edf0f4",
-
-                fontSize: 11,
-
-                color: "#8d96a5",
-
-              }}
-
-            >
-
-              {pendingTotal > 0
-
-                ? `${pendingTotal} learning task${
-
-                    pendingTotal === 1 ? "" : "s"
-
-                  } currently available.`
-
-                : "Nothing is waiting for your attention right now."}
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-
-        {/* ----------------------------------------------------- */}
-
-        {/* RECENT ACTIVITY + ACCOUNT */}
-
-        {/* ----------------------------------------------------- */}
-
-        <section
-
-          style={{
-
-            display: "grid",
-
-            gridTemplateColumns:
-
-              "minmax(0, 1.35fr) minmax(300px, 0.95fr)",
-
-            gap: 18,
-
-            marginBottom: 18,
-
-          }}
-
-        >
-
-          <div
-
-            style={{
-
-              minWidth: 0,
-
-              padding: 22,
-
-              border: "1px solid #e5e9f0",
-
-              borderRadius: 18,
-
-              background: "#ffffff",
-
-              boxShadow:
-
-                "0 4px 14px rgba(15,23,42,0.04)",
-
-            }}
-
-          >
-
-            <SectionHeader
-
-              icon={CheckCircle2}
-
-              title="Recent Activity"
-
-              subtitle="Your latest activity in SKCE"
-
-            />
-
-
-
-            {dashboard.recentActivity.length === 0 ? (
-
-              <EmptyCard
-
-                title="No recent activity"
-
-                message="Your learning actions will appear here as you use the portal."
-
-              />
-
-            ) : (
-
-              <div
-
-                style={{
-
-                  display: "flex",
-
-                  flexDirection: "column",
-
-                  marginTop: 5,
-
-                }}
-
-              >
-
-                {dashboard.recentActivity
-
-                  .slice(0, 5)
-
-                  .map((activity, index) => (
-
-                    <div
-
-                      key={`activity-${index}`}
-
-                      style={{
-
-                        display: "flex",
-
-                        alignItems: "flex-start",
-
-                        gap: 11,
-
-                        padding: "13px 0",
-
-                        borderBottom:
-
-                          index <
-
-                          Math.min(
-
-                            dashboard.recentActivity.length,
-
-                            5
-
-                          ) -
-
-                            1
-
-                            ? "1px solid #eef1f5"
-
-                            : "none",
-
-                      }}
-
-                    >
-
-                      <div
-
-                        style={{
-
-                          width: 32,
-
-                          height: 32,
-
-                          display: "flex",
-
-                          alignItems: "center",
-
-                          justifyContent: "center",
-
-                          flex: "0 0 32px",
-
-                          borderRadius: 9,
-
-                          background: "#eaf8f0",
-
-                          color: "#18945a",
-
-                        }}
-
-                      >
-
-                        <CheckCircle2 size={16} />
-
-                      </div>
-
-
-
-                      <div
-
-                        style={{
-
-                          minWidth: 0,
-
-                        }}
-
-                      >
-
-                        <div
-
-                          style={{
-
-                            fontSize: 12.5,
-
-                            fontWeight: 700,
-
-                            color: "#263142",
-
-                            wordBreak: "break-word",
-
-                          }}
-
-                        >
-
-                          {safeText(activity)}
-
-                        </div>
-
-
-
-                        <div
-
-                          style={{
-
-                            marginTop: 3,
-
-                            fontSize: 10.5,
-
-                            color: "#98a0ad",
-
-                          }}
-
-                        >
-
-                          Recent student activity
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  ))}
-
-              </div>
-
-            )}
-
-          </div>
-
-
-
-          <div
-
-            style={{
-
-              minWidth: 0,
-
-              padding: 22,
-
-              border: "1px solid #e5e9f0",
-
-              borderRadius: 18,
-
-              background: "#ffffff",
-
-              boxShadow:
-
-                "0 4px 14px rgba(15,23,42,0.04)",
-
-            }}
-
-          >
-
-            <SectionHeader
-
-              icon={GraduationCap}
-
-              title="My Account"
-
-              subtitle="A quick snapshot of your account"
-
-            />
-
-
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                alignItems: "center",
-
-                gap: 12,
-
-                marginTop: 15,
-
-                padding: 13,
-
-                borderRadius: 13,
-
-                background: "#f8fafc",
-
-                border: "1px solid #edf0f4",
-
-              }}
-
-            >
-
-              <div
-
-                style={{
-
-                  width: 42,
-
-                  height: 42,
-
-                  display: "flex",
-
-                  alignItems: "center",
-
-                  justifyContent: "center",
-
-                  flex: "0 0 42px",
-
-                  borderRadius: "50%",
-
-                  background: "#2f6bff",
-
-                  color: "#ffffff",
-
-                  fontSize: 12,
-
-                  fontWeight: 800,
-
-                }}
-
-              >
-
-                {initials}
-
-              </div>
-
-
-
-              <div
-
-                style={{
-
-                  minWidth: 0,
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    overflow: "hidden",
-
-                    textOverflow: "ellipsis",
-
-                    whiteSpace: "nowrap",
-
-                    fontSize: 13.5,
-
-                    fontWeight: 800,
-
-                    color: "#1f2937",
-
-                  }}
-
-                >
-
-                  {dashboard.student.name}
-
-                </div>
-
-
-
-                <div
-
-                  style={{
-
-                    overflow: "hidden",
-
-                    textOverflow: "ellipsis",
-
-                    whiteSpace: "nowrap",
-
-                    marginTop: 3,
-
-                    fontSize: 10.5,
-
-                    color: "#8d96a5",
-
-                  }}
-
-                >
-
-                  {dashboard.student.email}
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-
-            <div
-
-              style={{
-
-                display: "grid",
-
-                gridTemplateColumns:
-
-                  "repeat(2, minmax(0, 1fr))",
-
-                gap: 10,
-
-                marginTop: 11,
-
-              }}
-
-            >
-
-              <SmallAccountCard
-
-                label="Courses"
-
-                value={studentCourses.length}
-
-              />
-
-
-
-              <SmallAccountCard
-
-                label="Completed"
-
-                value={completedCourseCount}
-
-              />
-
-
-
-              <SmallAccountCard
-
-                label="Lessons"
-
-                value={`${completedLessons}/${totalLessons}`}
-
-              />
-
-
-
-              <SmallAccountCard
-
-                label="Paid"
-
-                value={formatCurrency(
-
-                  dashboard.stats.totalPaid
-
-                )}
-
-              />
-
-            </div>
-
-
-
-            {recentPayment ? (
-
-              <div
-
-                style={{
-
-                  display: "flex",
-
-                  alignItems: "center",
-
-                  justifyContent: "space-between",
-
-                  gap: 10,
-
-                  marginTop: 12,
-
-                  padding: "10px 11px",
-
-                  borderRadius: 10,
-
-                  border: "1px solid #edf0f4",
-
-                  background: "#ffffff",
-
-                }}
-
-              >
-
-                <div
-
-                  style={{
-
-                    display: "flex",
-
-                    alignItems: "center",
-
-                    gap: 8,
-
-                    minWidth: 0,
-
-                  }}
-
-                >
-
-                  <CreditCard
-
-                    size={15}
-
-                    color="#7a56d6"
-
-                  />
-
-
-
-                  <span
-
-                    style={{
-
-                      fontSize: 10.5,
-
-                      color: "#8993a4",
-
-                    }}
-
-                  >
-
-                    Latest payment
-
-                  </span>
-
-                </div>
-
-
-
-                <strong
-
-                  style={{
-
-                    flex: "0 0 auto",
-
-                    fontSize: 11.5,
-
-                    color: "#374151",
-
-                  }}
-
-                >
-
-                  {formatCurrency(
-
-                    recentPayment.amount,
-
-                    recentPayment.currency
-
-                  )}
-
-                </strong>
-
-              </div>
-
-            ) : null}
-
-
-
-            <button
-
-              type="button"
-
-              onClick={() =>
-
-                router.push(
-
-                  "/dashboard/student/profile"
-
-                )
-
-              }
-
-              style={{
-
-                width: "100%",
-
-                display: "flex",
-
-                alignItems: "center",
-
-                justifyContent: "center",
-
-                gap: 6,
-
-                marginTop: 12,
-
-                padding: "9px 12px",
-
-                border:
-
-                  "1px solid #dfe5ee",
-
-                borderRadius: 9,
-
-                background: "#ffffff",
-
-                color: "#3b6bf0",
-
-                fontSize: 11,
-
-                fontWeight: 800,
-
-                cursor: "pointer",
-
-              }}
-
-            >
-
-              View Profile
-
-              <ArrowRight size={14} />
-
-            </button>
-
-          </div>
-
-        </section>
-
-
-
-        {/* ----------------------------------------------------- */}
-
-        {/* FOOTER NAVIGATION */}
-
-        {/* ----------------------------------------------------- */}
-
-        <section
-
-          style={{
-
-            display: "grid",
-
-            gridTemplateColumns:
-
-              "repeat(4, minmax(0, 1fr))",
-
-            gap: 10,
-
-          }}
-
-        >
-
-          <FooterAction
-
-            icon={BookOpen}
-
-            title="My Courses"
-
-            description="Open your enrolled courses"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/my-courses"
-
-              )
-
-            }
-
-          />
-
-
-
-          <FooterAction
-
-            icon={ClipboardList}
-
-            title="Assignments & Quizzes"
-
-            description="Open your learning work"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/assignments"
-
-              )
-
-            }
-
-          />
-
-
-
-
-
-
-          <FooterAction
-
-            icon={Award}
-
-            title="Certificates"
-
-            description="View earned certificates"
-
-            onClick={() =>
-
-              router.push(
-
-                "/dashboard/student/certificates"
-
-              )
-
-            }
-
-          />
-
-        </section>
-
-      </main>
-
-
-
-      <style
-
-        dangerouslySetInnerHTML={{
-
-          __html: `
-
-            @keyframes studentDashboardSpin {
-
-              from { transform: rotate(0deg); }
-
-              to { transform: rotate(360deg); }
-
-            }
-
-
-
-            .skce-dashboard-hover {
-
-              transition:
-
-                transform 160ms ease,
-
-                box-shadow 160ms ease,
-
-                border-color 160ms ease;
-
-            }
-
-
-
-            .skce-dashboard-hover:hover {
-
-              transform: translateY(-1px);
-
-              box-shadow: 0 8px 18px rgba(15,23,42,0.06);
-
-            }
-
-
-
-            @media (max-width: 1200px) {
-
-              .skce-dashboard-summary {
-
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-
-              }
-
-
-
-              .skce-dashboard-main {
-
-                grid-template-columns: minmax(0, 1fr) !important;
-
-              }
-
-            }
-
-
-
-            @media (max-width: 850px) {
-
-              .skce-dashboard-shell {
-
-                padding: 20px 16px 28px !important;
-
-              }
-
-
-
-              .skce-dashboard-bottom {
-
-                grid-template-columns: minmax(0, 1fr) !important;
-
-              }
-
-
-
-              .skce-dashboard-footer {
-
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-
-              }
-
-            }
-
-
-
-            @media (max-width: 600px) {
-
-              .skce-dashboard-summary {
-
-                grid-template-columns: minmax(0, 1fr) !important;
-
-              }
-
-
-
-              .skce-dashboard-hero {
-
-                flex-direction: column !important;
-
-              }
-
-
-
-              .skce-dashboard-footer {
-
-                grid-template-columns: minmax(0, 1fr) !important;
-
-              }
-
-            }
-
-          `,
-
-        }}
-
-      />
-
-    </>
-
-  );
-
+  return (
+    <>
+      <main
+        className="skce-dashboard-page"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "26px 28px 40px",
+          background: "#F4F6FA",
+        }}
+      >
+        <div
+          className="skce-dashboard-container"
+          style={{
+            width: "100%",
+            maxWidth: 1440,
+            margin: "0 auto",
+          }}
+        >
+          <section
+            className="skce-dashboard-hero"
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) 230px",
+              alignItems: "stretch",
+              gap: 22,
+              marginBottom: 18,
+              padding: "23px 25px",
+              borderRadius: 20,
+              background:
+                "linear-gradient(135deg, #112A4D 0%, #18457B 58%, #2A63CF 100%)",
+              boxShadow: "0 12px 30px rgba(17,42,77,0.14)",
+              color: "#FFFFFF",
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: 290,
+                height: 290,
+                top: -195,
+                right: 40,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.06)",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                width: 160,
+                height: 160,
+                right: -50,
+                bottom: -95,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.14)",
+                pointerEvents: "none",
+              }}
+            />
+
+            <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  marginBottom: 8,
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: "#D9E8FB",
+                }}
+              >
+                <GraduationCap size={15} />
+                Student Portal
+              </div>
+
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(28px, 2.6vw, 36px)",
+                  lineHeight: 1.15,
+                  fontWeight: 800,
+                  letterSpacing: "-0.025em",
+                  color: "#FFFFFF",
+                }}
+              >
+                Welcome back, {dashboard.student.name} 👋
+              </h1>
+
+              <p
+                style={{
+                  maxWidth: 700,
+                  margin: "9px 0 0",
+                  fontSize: 13,
+                  lineHeight: 1.65,
+                  color: "#D5E2F4",
+                }}
+              >
+                Continue your learning, check what needs your attention,
+                and keep moving toward your course goals.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 18,
+                  marginTop: 16,
+                }}
+              >
+                <InfoPair
+                  label="Student ID"
+                  value={dashboard.student.studentId}
+                />
+                <InfoPair
+                  label="Account"
+                  value={
+                    dashboard.student.isActive ? "Active" : "Inactive"
+                  }
+                />
+                <InfoPair
+                  label="Courses"
+                  value={String(studentCourses.length)}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                position: "relative",
+                zIndex: 1,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.10)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flex: "0 0 40px",
+                      borderRadius: "50%",
+                      background: "#FFFFFF",
+                      color: "#173B67",
+                      fontSize: 11,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {initials}
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        color: "#FFFFFF",
+                      }}
+                    >
+                      {dashboard.student.name}
+                    </div>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        marginTop: 3,
+                        fontSize: 10,
+                        color: "#C9D9ED",
+                      }}
+                    >
+                      {dashboard.student.email}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: 8,
+                    marginTop: 11,
+                  }}
+                >
+                  <HeroMiniStat
+                    label="Completed"
+                    value={String(completedCourseCount)}
+                  />
+                  <HeroMiniStat
+                    label="Pending"
+                    value={String(pendingTotal)}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => fetchDashboardData(true)}
+                disabled={refreshing}
+                style={{
+                  ...ghostButtonStyle,
+                  width: "100%",
+                  marginTop: 10,
+                  opacity: refreshing ? 0.65 : 1,
+                }}
+              >
+                <RefreshCw
+                  size={14}
+                  style={{
+                    animation: refreshing
+                      ? "studentDashboardSpin 0.8s linear infinite"
+                      : undefined,
+                  }}
+                />
+                {refreshing ? "Refreshing..." : "Refresh Dashboard"}
+              </button>
+            </div>
+          </section>
+
+          <section
+            className="skce-dashboard-metrics"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+              gap: 12,
+              marginBottom: 18,
+            }}
+          >
+            <DashboardMetric
+              icon={BookOpen}
+              label="Enrolled Courses"
+              value={dashboard.stats.enrolledCourses}
+              detail={`${studentCourses.length} course${
+                studentCourses.length === 1 ? "" : "s"
+              } in your learning space`}
+              tone="blue"
+            />
+            <DashboardMetric
+              icon={GraduationCap}
+              label="Active Enrollments"
+              value={dashboard.stats.activeEnrollments}
+              detail="Currently active enrollments"
+              tone="green"
+            />
+            <DashboardMetric
+              icon={ClipboardList}
+              label="Pending Work"
+              value={pendingTotal}
+              detail={`${pendingAssignments} assignments · ${pendingQuizzes} quizzes`}
+              tone="rose"
+            />
+            <DashboardMetric
+              icon={CreditCard}
+              label="Total Paid"
+              value={formatCurrency(dashboard.stats.totalPaid)}
+              detail={`${dashboard.stats.successfulPayments} successful payment${
+                dashboard.stats.successfulPayments === 1 ? "" : "s"
+              }`}
+              tone="purple"
+            />
+          </section>
+
+          <section
+            className="skce-dashboard-main-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(0, 1.55fr) minmax(320px, 0.85fr)",
+              gap: 18,
+              marginBottom: 18,
+            }}
+          >
+            <div style={dashboardPanelStyle}>
+              <SectionHeader
+                icon={completedAll ? Award : Sparkles}
+                title={completedAll ? "Learning complete" : "Continue Learning"}
+                subtitle={
+                  completedAll
+                    ? "All enrolled courses are complete."
+                    : "Pick up where you left off."
+                }
+              />
+
+              {completedAll ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    flexWrap: "wrap",
+                    marginTop: 16,
+                    padding: 16,
+                    borderRadius: 14,
+                    border: "1px solid #EADFB8",
+                    background:
+                      "linear-gradient(135deg,#FFFDF6 0%,#FFF8E5 100%)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flex: "0 0 44px",
+                        borderRadius: 12,
+                        background: "#FFF0C7",
+                        color: "#B47A12",
+                      }}
+                    >
+                      <Award size={21} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: "#3D3424",
+                        }}
+                      >
+                        {completedCourseCount} course
+                        {completedCourseCount === 1 ? "" : "s"} completed
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 3,
+                          fontSize: 11,
+                          color: "#897A5C",
+                        }}
+                      >
+                        {completedLessons} lessons completed.
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push("/dashboard/student/certificates")
+                    }
+                    style={{
+                      ...primaryButtonStyle,
+                      background: "#B98016",
+                    }}
+                  >
+                    View Certificates
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              ) : incompleteCourse ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/student/my-courses/${incompleteCourse.course.id}`
+                    )
+                  }
+                  className="skce-dashboard-hover"
+                  style={{
+                    width: "100%",
+                    display: "grid",
+                    gridTemplateColumns: "auto minmax(0,1fr) auto",
+                    alignItems: "center",
+                    gap: 13,
+                    marginTop: 16,
+                    padding: 15,
+                    border: "1px solid #E4E9F1",
+                    borderRadius: 14,
+                    background: "#FBFCFF",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flex: "0 0 48px",
+                      borderRadius: 13,
+                      background: "#EAF0FF",
+                      color: "#316CF2",
+                    }}
+                  >
+                    <BookOpen size={21} />
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "#1F2937",
+                      }}
+                    >
+                      {incompleteCourse.course.title}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        marginTop: 4,
+                        fontSize: 10.5,
+                        color: "#8791A2",
+                      }}
+                    >
+                      <span>
+                        {progressMap[incompleteCourse.course.id]
+                          ?.completedLessons ?? 0}
+                        /
+                        {progressMap[incompleteCourse.course.id]
+                          ?.totalLessons ?? 0}{" "}
+                        lessons
+                      </span>
+                      <span>
+                        {incompleteCourse.packageName
+                          ? `Package: ${incompleteCourse.packageName}`
+                          : "Direct enrollment"}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 7,
+                        overflow: "hidden",
+                        marginTop: 10,
+                        borderRadius: 999,
+                        background: "#E7ECF4",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "block",
+                          width: `${Math.min(
+                            Math.max(
+                              progressMap[incompleteCourse.course.id]
+                                ?.progressPercentage ?? 0,
+                              0
+                            ),
+                            100
+                          )}%`,
+                          height: "100%",
+                          borderRadius: 999,
+                          background:
+                            "linear-gradient(90deg,#2F6BFF,#5E8EFF)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      color: "#316CF2",
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {Math.round(
+                      progressMap[incompleteCourse.course.id]
+                        ?.progressPercentage ?? 0
+                    )}
+                    %
+                    <ChevronRight size={16} />
+                  </div>
+                </button>
+              ) : (
+                <EmptyCard
+                  title="No active course"
+                  message="Your next course will appear here when you are enrolled."
+                />
+              )}
+            </div>
+
+            <div style={dashboardPanelStyle}>
+              <SectionHeader
+                icon={CalendarDays}
+                title="Quick Actions"
+                subtitle="Jump to a learning area"
+              />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 9,
+                  marginTop: 16,
+                }}
+              >
+                <QuickDashboardAction
+                  icon={ClipboardList}
+                  title="Assignments"
+                  value={
+                    pendingAssignments > 0
+                      ? `${pendingAssignments} pending`
+                      : "All clear"
+                  }
+                  tone="rose"
+                  onClick={() =>
+                    router.push("/dashboard/student/assignments")
+                  }
+                />
+                <QuickDashboardAction
+                  icon={BarChart3}
+                  title="Quizzes"
+                  value={
+                    pendingQuizzes > 0
+                      ? `${pendingQuizzes} pending`
+                      : "All clear"
+                  }
+                  tone="blue"
+                  onClick={() =>
+                    router.push("/dashboard/student/assignments")
+                  }
+                />
+                <QuickDashboardAction
+                  icon={Award}
+                  title="Certificates"
+                  value={
+                    completedCourseCount > 0
+                      ? `${completedCourseCount} earned`
+                      : "View achievements"
+                  }
+                  tone="gold"
+                  onClick={() =>
+                    router.push("/dashboard/student/certificates")
+                  }
+                />
+                <QuickDashboardAction
+                  icon={CalendarDays}
+                  title="Calendar"
+                  value="View meetings"
+                  tone="green"
+                  onClick={() =>
+                    router.push("/dashboard/student/calendar")
+                  }
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop: 13,
+                  padding: "11px 12px",
+                  borderRadius: 11,
+                  background: "#F8FAFC",
+                  border: "1px solid #EDF1F6",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 9.5,
+                    color: "#8A94A4",
+                  }}
+                >
+                  Course completion
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 3,
+                  }}
+                >
+                  <strong
+                    style={{
+                      fontSize: 12.5,
+                      color: "#283244",
+                    }}
+                  >
+                    {completedCourseCount} / {studentCourses.length} completed
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: "#316CF2",
+                    }}
+                  >
+                    {studentCourses.length > 0
+                      ? `${Math.round(
+                          (completedCourseCount / studentCourses.length) * 100
+                        )}%`
+                      : "0%"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="skce-dashboard-secondary-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(0, 1.45fr) minmax(300px, 0.85fr)",
+              gap: 18,
+              marginBottom: 18,
+            }}
+          >
+            <div style={dashboardPanelStyle}>
+              <SectionHeader
+                icon={BookOpen}
+                title="My Courses"
+                subtitle={`${studentCourses.length} enrolled course${
+                  studentCourses.length === 1 ? "" : "s"
+                }`}
+              />
+
+              {studentCourses.length === 0 ? (
+                <EmptyCard
+                  title="No enrolled courses"
+                  message="Your enrolled courses will appear here."
+                />
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(2, minmax(0, 1fr))",
+                    gap: 10,
+                    marginTop: 16,
+                  }}
+                >
+                  {studentCourses.slice(0, 4).map((item) => {
+                    const progress = progressMap[item.course.id];
+                    const percentage = Math.min(
+                      Math.max(progress?.progressPercentage ?? 0, 0),
+                      100
+                    );
+
+                    return (
+                      <button
+                        key={item.course.id}
+                        type="button"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/student/my-courses/${item.course.id}`
+                          )
+                        }
+                        className="skce-dashboard-hover"
+                        style={{
+                          width: "100%",
+                          minWidth: 0,
+                          padding: 13,
+                          border: "1px solid #E9EDF3",
+                          borderRadius: 13,
+                          background: "#FBFCFE",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 9,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flex: "0 0 34px",
+                              borderRadius: 9,
+                              background: "#EAF0FF",
+                              color: "#316CF2",
+                            }}
+                          >
+                            <BookOpen size={16} />
+                          </div>
+
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                fontSize: 11.5,
+                                fontWeight: 800,
+                                color: "#243042",
+                              }}
+                            >
+                              {item.course.title}
+                            </div>
+                            <div
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                marginTop: 3,
+                                fontSize: 9.5,
+                                color: "#929BAB",
+                              }}
+                            >
+                              {item.packageName ||
+                                "Direct enrollment"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 8,
+                            marginTop: 10,
+                            fontSize: 9.5,
+                            color: "#8B95A5",
+                          }}
+                        >
+                          <span>
+                            {progress?.completedLessons ?? 0}/
+                            {progress?.totalLessons ?? 0} lessons
+                          </span>
+                          <strong
+                            style={{
+                              color: "#316CF2",
+                              fontSize: 9.5,
+                            }}
+                          >
+                            {Math.round(percentage)}%
+                          </strong>
+                        </div>
+
+                        <div
+                          style={{
+                            height: 6,
+                            overflow: "hidden",
+                            marginTop: 6,
+                            borderRadius: 999,
+                            background: "#E7ECF4",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "block",
+                              width: `${percentage}%`,
+                              height: "100%",
+                              borderRadius: 999,
+                              background:
+                                "linear-gradient(90deg,#2F6BFF,#5E8EFF)",
+                            }}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {studentCourses.length > 4 ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push("/dashboard/student/my-courses")
+                  }
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 11,
+                    padding: "9px 12px",
+                    border: "1px solid #DDE4EE",
+                    borderRadius: 9,
+                    background: "#FFFFFF",
+                    color: "#316CF2",
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  View all {studentCourses.length} courses
+                  <ArrowRight size={13} />
+                </button>
+              ) : null}
+            </div>
+
+            <div style={dashboardPanelStyle}>
+              <SectionHeader
+                icon={GraduationCap}
+                title="Account Snapshot"
+                subtitle="Your current SKCE account"
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginTop: 16,
+                  padding: 12,
+                  borderRadius: 12,
+                  background: "#F8FAFC",
+                  border: "1px solid #EDF1F5",
+                }}
+              >
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flex: "0 0 40px",
+                    borderRadius: "50%",
+                    background: "#EAF0FF",
+                    color: "#316CF2",
+                    fontSize: 11,
+                    fontWeight: 800,
+                  }}
+                >
+                  {initials}
+                </div>
+
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      color: "#253043",
+                    }}
+                  >
+                    {dashboard.student.name}
+                  </div>
+                  <div
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      marginTop: 3,
+                      fontSize: 10,
+                      color: "#8B95A5",
+                    }}
+                  >
+                    {dashboard.student.email}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(2, minmax(0, 1fr))",
+                  gap: 9,
+                  marginTop: 10,
+                }}
+              >
+                <SmallAccountCard
+                  label="Successful Payments"
+                  value={dashboard.stats.successfulPayments}
+                />
+                <SmallAccountCard
+                  label="Courses Completed"
+                  value={completedCourseCount}
+                />
+                <SmallAccountCard
+                  label="Lessons Completed"
+                  value={`${completedLessons}/${totalLessons}`}
+                />
+                <SmallAccountCard
+                  label="Account"
+                  value={
+                    dashboard.student.isActive ? "Active" : "Inactive"
+                  }
+                />
+              </div>
+
+              {recentPayment ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    marginTop: 10,
+                    padding: "10px 11px",
+                    border: "1px solid #EDF1F5",
+                    borderRadius: 10,
+                    background: "#FBFCFE",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: "#8C96A5",
+                    }}
+                  >
+                    Latest payment
+                  </span>
+                  <strong
+                    style={{
+                      fontSize: 11,
+                      color: "#3A4656",
+                    }}
+                  >
+                    {formatCurrency(
+                      recentPayment.amount,
+                      recentPayment.currency
+                    )}
+                  </strong>
+                </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push("/dashboard/student/profile")
+                }
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  marginTop: 10,
+                  padding: "9px 12px",
+                  border: "1px solid #DDE4EE",
+                  borderRadius: 9,
+                  background: "#FFFFFF",
+                  color: "#316CF2",
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                View Profile
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </section>
+
+          <section
+            style={{
+              minWidth: 0,
+              padding: 22,
+              marginBottom: 18,
+              border: "1px solid #E2E7EF",
+              borderRadius: 18,
+              background: "#FFFFFF",
+              boxShadow: "0 6px 18px rgba(15,23,42,0.035)",
+            }}
+          >
+            <SectionHeader
+              icon={CheckCircle2}
+              title="Recent Activity"
+              subtitle="Your latest activity in SKCE"
+            />
+
+            {dashboard.recentActivity.length === 0 ? (
+              <EmptyCard
+                title="No recent activity"
+                message="Your learning actions will appear here as you use the portal."
+              />
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(2, minmax(0, 1fr))",
+                  columnGap: 18,
+                  marginTop: 8,
+                }}
+              >
+                {dashboard.recentActivity
+                  .slice(0, 6)
+                  .map((activity, index) => (
+                    <div
+                      key={`activity-${index}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        padding: "10px 0",
+                        borderBottom:
+                          index <
+                          Math.min(
+                            dashboard.recentActivity.length,
+                            6
+                          ) -
+                            1
+                            ? "1px solid #EEF1F5"
+                            : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flex: "0 0 30px",
+                          borderRadius: 9,
+                          background: "#EAF8F0",
+                          color: "#18945A",
+                        }}
+                      >
+                        <CheckCircle2 size={15} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            lineHeight: 1.45,
+                            fontWeight: 700,
+                            color: "#2F3949",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {safeText(activity)}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 3,
+                            fontSize: 9.5,
+                            color: "#9AA2AF",
+                          }}
+                        >
+                          Recent student activity
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
+
+          <section
+            className="skce-dashboard-footer"
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            <FooterAction
+              icon={BookOpen}
+              title="My Courses"
+              description="Open your enrolled courses"
+              onClick={() =>
+                router.push("/dashboard/student/my-courses")
+              }
+            />
+            <FooterAction
+              icon={ClipboardList}
+              title="Assignments & Quizzes"
+              description="Open your learning work"
+              onClick={() =>
+                router.push("/dashboard/student/assignments")
+              }
+            />
+            <FooterAction
+              icon={Award}
+              title="Certificates"
+              description="View earned certificates"
+              onClick={() =>
+                router.push("/dashboard/student/certificates")
+              }
+            />
+          </section>
+        </div>
+      </main>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes studentDashboardSpin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+
+            .skce-dashboard-hover {
+              transition:
+                transform 160ms ease,
+                box-shadow 160ms ease,
+                border-color 160ms ease;
+            }
+
+            .skce-dashboard-hover:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+            }
+
+            @media (max-width: 1120px) {
+              .skce-dashboard-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              }
+
+              .skce-dashboard-main-grid,
+              .skce-dashboard-secondary-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+              }
+            }
+
+            @media (max-width: 820px) {
+              .skce-dashboard-page {
+                padding: 18px 16px 28px !important;
+              }
+
+              .skce-dashboard-hero {
+                grid-template-columns: minmax(0, 1fr) !important;
+              }
+
+              .skce-dashboard-hero > div:last-child {
+                width: 100% !important;
+              }
+
+              .skce-dashboard-footer {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+              }
+            }
+
+            @media (max-width: 620px) {
+              .skce-dashboard-metrics,
+              .skce-dashboard-footer {
+                grid-template-columns: minmax(0, 1fr) !important;
+              }
+
+              .skce-dashboard-hero {
+                padding: 20px !important;
+              }
+
+              .skce-dashboard-hero h1 {
+                font-size: 27px !important;
+              }
+
+              .skce-dashboard-main-grid > div,
+              .skce-dashboard-secondary-grid > div,
+              .skce-dashboard-page section {
+                box-sizing: border-box;
+              }
+
+              .skce-dashboard-container .skce-dashboard-main-grid > div,
+              .skce-dashboard-container .skce-dashboard-secondary-grid > div {
+                padding: 18px !important;
+              }
+            }
+          `,
+        }}
+      />
+    </>
+  );
 }
 
+const dashboardPanelStyle: CSSProperties = {
+  minWidth: 0,
+  padding: 22,
+  border: "1px solid #E2E7EF",
+  borderRadius: 18,
+  background: "#FFFFFF",
+  boxShadow: "0 6px 18px rgba(15,23,42,0.035)",
+};
 
+function HeroMiniStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        padding: "8px 9px",
+        borderRadius: 9,
+        background: "rgba(255,255,255,0.08)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 9,
+          color: "#AFC4DE",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 2,
+          fontSize: 15,
+          fontWeight: 800,
+          color: "#FFFFFF",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DashboardMetric({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: ElementType;
+  label: string;
+  value: string | number;
+  detail: string;
+  tone: "blue" | "green" | "rose" | "purple";
+}) {
+  const toneMap: Record<
+    "blue" | "green" | "rose" | "purple",
+    { bg: string; fg: string }
+  > = {
+    blue: { bg: "#EAF0FF", fg: "#316CF2" },
+    green: { bg: "#EAF8F0", fg: "#18945A" },
+    rose: { bg: "#F8E8EF", fg: "#A01441" },
+    purple: { bg: "#F1EAFF", fg: "#7A56D6" },
+  };
+
+  const colors = toneMap[tone];
+
+  return (
+    <div
+      className="skce-dashboard-hover"
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 11,
+        minWidth: 0,
+        padding: 15,
+        border: "1px solid #E2E7EF",
+        borderRadius: 15,
+        background: "#FFFFFF",
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flex: "0 0 40px",
+          borderRadius: 11,
+          background: colors.bg,
+          color: colors.fg,
+        }}
+      >
+        <Icon size={18} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, color: "#8A94A4" }}>
+          {label}
+        </div>
+        <div
+          style={{
+            marginTop: 2,
+            fontSize: 19,
+            lineHeight: 1.1,
+            fontWeight: 800,
+            color: "#182233",
+          }}
+        >
+          {safeText(value)}
+        </div>
+        <div
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            marginTop: 3,
+            fontSize: 9.5,
+            color: "#9AA2AF",
+          }}
+        >
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickDashboardAction({
+  icon: Icon,
+  title,
+  value,
+  tone,
+  onClick,
+}: {
+  icon: ElementType;
+  title: string;
+  value: string;
+  tone: "rose" | "blue" | "green" | "gold";
+  onClick: () => void;
+}) {
+  const toneMap: Record<
+    "rose" | "blue" | "green" | "gold",
+    { bg: string; fg: string }
+  > = {
+    rose: { bg: "#F8E8EF", fg: "#A01441" },
+    blue: { bg: "#EAF0FF", fg: "#316CF2" },
+    green: { bg: "#EAF8F0", fg: "#18945A" },
+    gold: { bg: "#FFF4DC", fg: "#BB7A12" },
+  };
+
+  const colors = toneMap[tone];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="skce-dashboard-hover"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        minWidth: 0,
+        padding: "10px 9px",
+        border: "1px solid #E8ECF2",
+        borderRadius: 11,
+        background: "#FFFFFF",
+        cursor: "pointer",
+        textAlign: "left",
+      }}
+    >
+      <div
+        style={{
+          width: 31,
+          height: 31,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flex: "0 0 31px",
+          borderRadius: 9,
+          background: colors.bg,
+          color: colors.fg,
+        }}
+      >
+        <Icon size={15} />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: "#344052",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            marginTop: 2,
+            fontSize: 9.5,
+            color: "#969FAD",
+          }}
+        >
+          {value}
+        </div>
+      </div>
+      <ArrowRight size={13} color="#A3ACB9" />
+    </button>
+  );
+}
 
 function InfoPair({
 

@@ -1,58 +1,100 @@
 import type { Request, Response } from "express";
 
 import {
+  createPackage,
   getAdminPackageById,
+  listAdminPackages as listPackages,
   updatePackage,
 } from "../services/package-admin.service";
+
+function parseId(value: unknown) {
+  const id = Number(value);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Invalid package ID");
+  }
+
+  return id;
+}
+
+function sendError(res: Response, error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : "Package operation failed";
+
+  const status =
+    message === "Access denied"
+      ? 403
+      : message.includes("not found") ||
+          message.includes("Not found")
+        ? 404
+        : 400;
+
+  return res.status(status).json({
+    success: false,
+    message,
+  });
+}
+
+export async function listAdminPackages(
+  _req: Request,
+  res: Response
+) {
+  try {
+    const data = await listPackages();
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("List admin packages error:", error);
+    return sendError(res, error);
+  }
+}
+
+export async function createAdminPackage(
+  req: Request,
+  res: Response
+) {
+  try {
+    const body = req.body || {};
+
+    const data = await createPackage({
+      title: body.title,
+      description: body.description,
+      price: body.price,
+      courseIds: body.courseIds,
+      isActive: body.isActive,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Package created successfully.",
+      data,
+    });
+  } catch (error) {
+    console.error("Create admin package error:", error);
+    return sendError(res, error);
+  }
+}
 
 export async function getAdminPackage(
   req: Request,
   res: Response
 ) {
   try {
-    const idParam = req.params.id;
-
-    if (typeof idParam !== "string" || !idParam.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Package ID is required",
-      });
-    }
-
-    const packageId = Number(idParam);
-
-    if (!Number.isInteger(packageId) || packageId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid package ID",
-      });
-    }
-
-    const coursePackage =
-      await getAdminPackageById(packageId);
+    const packageId = parseId(req.params.id);
+    const data = await getAdminPackageById(packageId);
 
     return res.status(200).json({
       success: true,
-      message: "Package retrieved successfully",
-      data: coursePackage,
+      data,
     });
   } catch (error) {
     console.error("Get admin package error:", error);
-
-    if (
-      error instanceof Error &&
-      error.message === "Package not found"
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: "Package not found",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to retrieve package",
-    });
+    return sendError(res, error);
   }
 }
 
@@ -61,110 +103,27 @@ export async function updateAdminPackage(
   res: Response
 ) {
   try {
-    const idParam = req.params.id;
+    const packageId = parseId(req.params.id);
+    const body = req.body || {};
 
-    if (typeof idParam !== "string" || !idParam.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Package ID is required",
-      });
-    }
-
-    const packageId = Number(idParam);
-
-    if (!Number.isInteger(packageId) || packageId <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid package ID",
-      });
-    }
-
-    const body = req.body ?? {};
-
-    const input: {
-      title?: string;
-      description?: string | null;
-      price?: number;
-      courseIds?: number[];
-    } = {};
-
-    if (body.title !== undefined) {
-      input.title = body.title;
-    }
-
-    if (body.description !== undefined) {
-      input.description = body.description;
-    }
-
-    if (body.price !== undefined) {
-      input.price = Number(body.price);
-    }
-
-    if (body.courseIds !== undefined) {
-      if (!Array.isArray(body.courseIds)) {
-        return res.status(400).json({
-          success: false,
-          message: "courseIds must be an array",
-        });
-      }
-
-      input.courseIds = body.courseIds.map(
-        (courseId: unknown) => Number(courseId)
-      );
-    }
-
-    if (Object.keys(input).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No package changes were provided",
-      });
-    }
-
-    const updatedPackage = await updatePackage(
+    const data = await updatePackage(
       packageId,
-      input
+      {
+        title: body.title,
+        description: body.description,
+        price: body.price,
+        courseIds: body.courseIds,
+        isActive: body.isActive,
+      }
     );
 
     return res.status(200).json({
       success: true,
-      message: "Package updated successfully",
-      data: updatedPackage,
+      message: "Package updated successfully.",
+      data,
     });
   } catch (error) {
     console.error("Update admin package error:", error);
-
-    if (
-      error instanceof Error &&
-      error.message === "Package not found"
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: "Package not found",
-      });
-    }
-
-    if (error instanceof Error) {
-      const validationMessages = [
-        "Package title is required",
-        "Package price must be a valid positive amount",
-        "courseIds must be an array",
-        "Invalid course ID",
-      ];
-
-      if (
-        validationMessages.includes(error.message) ||
-        error.message.startsWith("Invalid or inactive course IDs:")
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-      }
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to update package",
-    });
+    return sendError(res, error);
   }
 }

@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 
 import {
 
+  ArrowRight,
+
   Award,
 
   BarChart3,
@@ -863,1376 +865,1519 @@ export default function ProgressPage() {
 
 
 
-  if (loading) {
-
-    return (
-
-      <main style={pageStyle}>
-
-        <Panel style={{ padding: "70px 25px", textAlign: "center" }}>
-
-          <div style={spinnerStyle} />
-
-          <p style={mutedTextStyle}>Loading your progress...</p>
-
-        </Panel>
-
-        <style jsx>{`
-
-          @keyframes spin {
-
-            from {
-
-              transform: rotate(0deg);
-
-            }
-
-            to {
-
-              transform: rotate(360deg);
-
-            }
-
-          }
-
-        `}</style>
-
-      </main>
-
-    );
-
-  }
-
-
-
-  if (error) {
-
-    return (
-
-      <main style={pageStyle}>
-
-        <Panel
-
-          style={{
-
-            padding: "55px 25px",
-
-            textAlign: "center",
-
-            borderColor: "#FECACA",
-
-          }}
-
-        >
-
-          <h2 style={{ margin: "0 0 8px", color: "#B91C1C", fontSize: 18 }}>
-
-            Unable to Load Progress
-
-          </h2>
-
-          <p style={{ ...mutedTextStyle, marginBottom: 18 }}>{error}</p>
-
-          <button
-
-            onClick={() => {
-
-              setRefreshing(true);
-
-              loadProgress();
-
-            }}
-
-            style={primaryButtonStyle}
-
-          >
-
-            Try Again
-
-          </button>
-
-        </Panel>
-
-      </main>
-
-    );
-
-  }
-
-
-
-  return (
-
-    <main style={pageStyle}>
-
-      <div
-
-        style={{
-
-          display: "flex",
-
-          justifyContent: "space-between",
-
-          alignItems: "flex-start",
-
-          gap: 16,
-
-          marginBottom: 24,
-
-        }}
-
-      >
-
-        <div>
-
-          <h1 style={titleStyle}>My Progress</h1>
-
-          <p style={subtitleStyle}>
-
-            Your learning journey, achievements and activity at a glance.
-
-          </p>
-
-        </div>
-
-
-
-        <button
-
-          onClick={() => {
-
-            setRefreshing(true);
-
-            loadProgress();
-
-          }}
-
-          disabled={refreshing}
-
-          style={{
-
-            ...secondaryButtonStyle,
-
-            opacity: refreshing ? 0.6 : 1,
-
-          }}
-
-        >
-
-          <RefreshCw
-
-            size={14}
-
-            style={{
-
-              animation: refreshing
-
-                ? "spin 0.8s linear infinite"
-
-                : undefined,
-
-            }}
-
-          />
-
-          Refresh
-
-        </button>
-
-      </div>
-
-
-
-      <div style={summaryGridStyle}>
-
-        <SummaryCard
-
-          icon={<BookOpen size={19} />}
-
-          label="Enrolled Courses"
-
-          value={String(analytics.totalCourses)}
-
-        />
-
-        <SummaryCard
-
-          icon={<BarChart3 size={19} />}
-
-          label="Overall Progress"
-
-          value={`${analytics.averageProgress}%`}
-
-        />
-
-        <SummaryCard
-
-          icon={<CheckCircle2 size={19} />}
-
-          label="Completed Courses"
-
-          value={`${analytics.completedCourses}/${analytics.totalCourses}`}
-
-        />
-
-        <SummaryCard
-
-          icon={<Award size={19} />}
-
-          label="Certificates"
-
-          value={String(analytics.totalCertificates)}
-
-        />
-
-      </div>
-
-
-
-      <section style={twoColumnStyle}>
-
-        <Panel>
-
-          <SectionHeader
-
-            icon={<BarChart3 size={17} />}
-
-            title="Course Status"
-
-            subtitle="Current status of your enrolled courses"
-
-          />
-
-
-
-          <div style={donutLayoutStyle}>
-
-            <DonutChart
-
-              value={
-
-                analytics.totalCourses === 0
-
-                  ? 0
-
-                  : Math.round(
-
-                      (analytics.completedCourses /
-
-                        analytics.totalCourses) *
-
-                        100
-
-                    )
-
-              }
-
-              centerLabel={`${analytics.completedCourses}`}
-
-              centerSubLabel="completed"
-
-              segments={[
-
-                {
-
-                  value: analytics.completedCourses,
-
-                  label: "Completed",
-
-                  color: "#16A34A",
-
-                },
-
-                {
-
-                  value: analytics.inProgressCourses,
-
-                  label: "In Progress",
-
-                  color: "#A01441",
-
-                },
-
-                {
-
-                  value: analytics.notStartedCourses,
-
-                  label: "Not Started",
-
-                  color: "#D1D5DB",
-
-                },
-
-              ]}
-
-            />
-
-
-
-            <div style={legendStyle}>
-
-              <LegendRow
-
-                color="#16A34A"
-
-                label="Completed"
-
-                value={analytics.completedCourses}
-
-              />
-
-              <LegendRow
-
-                color="#A01441"
-
-                label="In Progress"
-
-                value={analytics.inProgressCourses}
-
-              />
-
-              <LegendRow
-
-                color="#D1D5DB"
-
-                label="Not Started"
-
-                value={analytics.notStartedCourses}
-
-              />
-
-            </div>
-
-          </div>
-
-        </Panel>
-
-
-
-        <Panel>
-
-          <SectionHeader
-
-            icon={<GraduationCap size={17} />}
-
-            title="Lesson Completion"
-
-            subtitle="Completed versus remaining lessons"
-
-          />
-
-
-
-          <div style={donutLayoutStyle}>
-
-            <DonutChart
-
-              value={
-
-                analytics.totalLessons === 0
-
-                  ? 0
-
-                  : Math.round(
-
-                      (analytics.completedLessons /
-
-                        analytics.totalLessons) *
-
-                        100
-
-                    )
-
-              }
-
-              centerLabel={`${analytics.completedLessons}`}
-
-              centerSubLabel="completed"
-
-              segments={[
-
-                {
-
-                  value: analytics.completedLessons,
-
-                  label: "Completed",
-
-                  color: "#3B6BF0",
-
-                },
-
-                {
-
-                  value: analytics.remainingLessons,
-
-                  label: "Remaining",
-
-                  color: "#E5E7EB",
-
-                },
-
-              ]}
-
-            />
-
-
-
-            <div style={legendStyle}>
-
-              <LegendRow
-
-                color="#3B6BF0"
-
-                label="Completed Lessons"
-
-                value={analytics.completedLessons}
-
-              />
-
-              <LegendRow
-
-                color="#E5E7EB"
-
-                label="Remaining Lessons"
-
-                value={analytics.remainingLessons}
-
-              />
-
-              <div
-
-                style={{
-
-                  marginTop: 8,
-
-                  padding: "10px 12px",
-
-                  background: "#F8FAFC",
-
-                  borderRadius: 9,
-
-                  fontSize: 11,
-
-                  color: "#6B7280",
-
-                }}
-
-              >
-
-                Total lessons:{" "}
-
-                <strong style={{ color: "#111827" }}>
-
-                  {analytics.totalLessons}
-
-                </strong>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </Panel>
-
-      </section>
-
-
-
-      <Panel style={{ marginBottom: 20 }}>
-
-        <SectionHeader
-
-          icon={<BookOpen size={17} />}
-
-          title="Course Progress"
-
-          subtitle="Detailed progress without duplicating the My Courses page"
-
-        />
-
-
-
-        {courseRows.length === 0 ? (
-
-          <EmptyState
-
-            icon={<BookOpen size={30} />}
-
-            text="No enrolled courses yet."
-
-          />
-
-        ) : (
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {courseRows.map((item) => {
-
-              const percentage = Math.min(
-
-                100,
-
-                Math.max(0, item.progress.progressPercentage)
-
-              );
-
-              const completed = percentage === 100;
-
-
-
-              return (
-
-                <div key={item.course.id}>
-
-                  <div
-
-                    style={{
-
-                      display: "flex",
-
-                      justifyContent: "space-between",
-
-                      gap: 12,
-
-                      marginBottom: 6,
-
-                    }}
-
-                  >
-
-                    <div style={{ minWidth: 0 }}>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 13,
-
-                          fontWeight: 650,
-
-                          color: "#111827",
-
-                        }}
-
-                      >
-
-                        {item.course.title}
-
-                      </div>
-
-                      {item.packageName && (
-
-                        <div
-
-                          style={{
-
-                            fontSize: 10.5,
-
-                            color: "#9CA3AF",
-
-                            marginTop: 2,
-
-                          }}
-
-                        >
-
-                          From package: {item.packageName}
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-
-                    <span
-
-                      style={{
-
-                        fontSize: 12,
-
-                        fontWeight: 700,
-
-                        color: completed ? "#15803D" : "#A01441",
-
-                        flexShrink: 0,
-
-                      }}
-
-                    >
-
-                      {percentage}%
-
-                    </span>
-
-                  </div>
-
-
-
-                  <div
-
-                    style={{
-
-                      height: 9,
-
-                      borderRadius: 999,
-
-                      background: "#EEF0F4",
-
-                      overflow: "hidden",
-
-                    }}
-
-                  >
-
-                    <div
-
-                      style={{
-
-                        height: "100%",
-
-                        width: `${percentage}%`,
-
-                        borderRadius: 999,
-
-                        background: completed ? "#16A34A" : "#A01441",
-
-                        transition: "width 0.35s ease",
-
-                      }}
-
-                    />
-
-                  </div>
-
-
-
-                  <div
-
-                    style={{
-
-                      display: "flex",
-
-                      gap: 18,
-
-                      marginTop: 6,
-
-                      fontSize: 10.5,
-
-                      color: "#6B7280",
-
-                    }}
-
-                  >
-
-                    <span>
-
-                      {item.progress.completedLessons}/
-
-                      {item.progress.totalLessons} lessons completed
-
-                    </span>
-
-                    <span>
-
-                      {item.progress.remainingLessons} remaining
-
-                    </span>
-
-                    {completed && (
-
-                      <span
-
-                        style={{
-
-                          color: "#15803D",
-
-                          fontWeight: 650,
-
-                        }}
-
-                      >
-
-                        Course completed
-
-                      </span>
-
-                    )}
-
-                  </div>
-
-                </div>
-
-              );
-
-            })}
-
-          </div>
-
-        )}
-
-      </Panel>
-
-
-
-      <section style={twoColumnStyle}>
-
-        <Panel>
-
-          <SectionHeader
-
-            icon={<FileCheck2 size={17} />}
-
-            title="Assignments & Quizzes"
-
-            subtitle="Your assessment activity"
-
-          />
-
-
-
-          <div style={metricGridStyle}>
-
-            <MetricBox
-
-              label="Total"
-
-              value={analytics.totalAssessments}
-
-            />
-
-            <MetricBox
-
-              label="Attempted"
-
-              value={analytics.attemptedAssessments}
-
-            />
-
-            <MetricBox
-
-              label="Pending"
-
-              value={analytics.pendingAssessments}
-
-            />
-
-            <MetricBox
-
-              label="Average Score"
-
-              value={
-
-                analytics.averageScore === null
-
-                  ? "—"
-
-                  : `${analytics.averageScore}%`
-
-              }
-
-            />
-
-          </div>
-
-
-
-          <div style={assessmentSplitStyle}>
-
-            <SmallStat
-
-              icon={<PlayCircle size={15} />}
-
-              label="Quizzes"
-
-              value={analytics.quizCount}
-
-            />
-
-            <SmallStat
-
-              icon={<FileCheck2 size={15} />}
-
-              label="Assignments"
-
-              value={analytics.assignmentCount}
-
-            />
-
-          </div>
-
-
-
-          {assessments.length > 0 && (
-
-            <div style={{ marginTop: 16 }}>
-
-              {assessments.slice(0, 4).map((assessment) => {
-
-                const submission = assessment.latestSubmission;
-
-
-
-                return (
-
-                  <div
-
-                    key={assessment.id}
-
-                    style={{
-
-                      display: "flex",
-
-                      justifyContent: "space-between",
-
-                      gap: 12,
-
-                      padding: "10px 0",
-
-                      borderTop: "1px solid #F0F1F3",
-
-                    }}
-
-                  >
-
-                    <div style={{ minWidth: 0 }}>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 11.5,
-
-                          fontWeight: 600,
-
-                          color: "#374151",
-
-                          overflow: "hidden",
-
-                          textOverflow: "ellipsis",
-
-                          whiteSpace: "nowrap",
-
-                        }}
-
-                      >
-
-                        {assessment.title}
-
-                      </div>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 10,
-
-                          color: "#9CA3AF",
-
-                          marginTop: 2,
-
-                        }}
-
-                      >
-
-                        {assessment.type}
-
-                        {assessment.courseTitle
-
-                          ? ` · ${assessment.courseTitle}`
-
-                          : ""}
-
-                      </div>
-
-                    </div>
-
-
-
-                    <span
-
-                      style={{
-
-                        flexShrink: 0,
-
-                        fontSize: 10.5,
-
-                        fontWeight: 650,
-
-                        color: submission
-
-                          ? "#15803D"
-
-                          : "#9CA3AF",
-
-                      }}
-
-                    >
-
-                      {submission
-
-                        ? typeof submission.score === "number"
-
-                          ? `${submission.score}%`
-
-                          : "Attempted"
-
-                        : "Not attempted"}
-
-                    </span>
-
-                  </div>
-
-                );
-
-              })}
-
-            </div>
-
-          )}
-
-        </Panel>
-
-
-
-
-      </section>
-
-
-
-      <Panel style={{ marginTop: 20 }}>
-
-        <SectionHeader
-
-          icon={<Trophy size={17} />}
-
-          title="Certificates & Achievements"
-
-          subtitle="Your completed learning milestones"
-
-        />
-
-
-
-        <div style={certificateSummaryStyle}>
-
-          <div
-
-            style={{
-
-              display: "flex",
-
-              alignItems: "center",
-
-              gap: 12,
-
-            }}
-
-          >
-
-            <div style={achievementIconStyle}>
-
-              <Trophy size={20} />
-
-            </div>
-
-            <div>
-
-              <div
-
-                style={{
-
-                  fontSize: 22,
-
-                  fontWeight: 750,
-
-                  color: "#111827",
-
-                }}
-
-              >
-
-                {analytics.totalCertificates}
-
-              </div>
-
-              <div
-
-                style={{
-
-                  fontSize: 11,
-
-                  color: "#6B7280",
-
-                }}
-
-              >
-
-                Certificates earned
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-
-          <div style={certificateCountsStyle}>
-
-            <SmallStat
-
-              icon={<GraduationCap size={15} />}
-
-              label="Course"
-
-              value={analytics.courseCertificates}
-
-            />
-
-            <SmallStat
-
-              icon={<Trophy size={15} />}
-
-              label="Package"
-
-              value={analytics.packageCertificates}
-
-            />
-
-          </div>
-
-        </div>
-
-
-
-        {recentCertificates.length === 0 ? (
-
-          <EmptyState
-
-            icon={<Award size={30} />}
-
-            text="Complete a course to earn your first certificate."
-
-          />
-
-        ) : (
-
-          <div
-
-            style={{
-
-              display: "grid",
-
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-
-              gap: 10,
-
-              marginTop: 16,
-
-            }}
-
-          >
-
-            {recentCertificates.map((certificate) => {
-
-              const title =
-
-                certificate.courseTitle ||
-
-                certificate.course?.title ||
-
-                certificate.packageTitle ||
-
-                certificate.package?.title ||
-
-                (certificate.certificateType === "PACKAGE"
-
-                  ? "Package Certificate"
-
-                  : "Course Certificate");
-
-
-
-              const downloadUrl =
-
-                certificateDownloadUrl(certificate);
-
-
-
-              return (
-
-                <div
-
-                  key={certificate.id}
-
-                  style={{
-
-                    border: "1px solid #E5E7EB",
-
-                    borderRadius: 10,
-
-                    padding: "13px 14px",
-
-                    background: "#FAFBFC",
-
-                  }}
-
-                >
-
-                  <div
-
-                    style={{
-
-                      display: "flex",
-
-                      justifyContent: "space-between",
-
-                      gap: 12,
-
-                    }}
-
-                  >
-
-                    <div style={{ minWidth: 0 }}>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 12,
-
-                          fontWeight: 700,
-
-                          color: "#111827",
-
-                        }}
-
-                      >
-
-                        {title}
-
-                      </div>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 9.5,
-
-                          color: "#9CA3AF",
-
-                          marginTop: 4,
-
-                        }}
-
-                      >
-
-                        {certificate.certificateType === "PACKAGE"
-
-                          ? "Package certificate"
-
-                          : "Course certificate"}{" "}
-
-                        · {certificate.certificateNumber}
-
-                      </div>
-
-                      <div
-
-                        style={{
-
-                          fontSize: 9.5,
-
-                          color: "#9CA3AF",
-
-                          marginTop: 2,
-
-                        }}
-
-                      >
-
-                        Issued{" "}
-
-                        {new Date(
-
-                          certificate.issuedAt
-
-                        ).toLocaleDateString("en-IN")}
-
-                      </div>
-
-                    </div>
-
-
-
-                    {downloadUrl && (
-
-                      <a
-
-                        href={downloadUrl}
-
-                        target="\_blank"
-
-                        rel="noreferrer"
-
-                        style={{
-
-                          ...secondaryButtonStyle,
-
-                          padding: "7px 9px",
-
-                          fontSize: 10,
-
-                          textDecoration: "none",
-
-                          alignSelf: "center",
-
-                        }}
-
-                      >
-
-                        View
-
-                      </a>
-
-                    )}
-
-                  </div>
-
-                </div>
-
-              );
-
-            })}
-
-          </div>
-
-        )}
-
-      </Panel>
-
-
-
-      <div
-
-        style={{
-
-          marginTop: 20,
-
-          padding: "13px 15px",
-
-          borderRadius: 10,
-
-          background: "#F8FAFC",
-
-          border: "1px solid #E5E7EB",
-
-          display: "flex",
-
-          alignItems: "center",
-
-          gap: 10,
-
-          color: "#6B7280",
-
-          fontSize: 11,
-
-        }}
-
-      >
-
-        <Clock3 size={15} />
-
-        Progress is calculated from your actual course lessons, assessments,
-
-        certificates and assessment activity.
-
-      </div>
-
-
-
-      <style jsx>{`
-
-        @keyframes spin {
-
-          from {
-
-            transform: rotate(0deg);
-
-          }
-
-          to {
-
-            transform: rotate(360deg);
-
-          }
-
-        }
-
-
-
-        @media (max-width: 900px) {
-
-          main {
-
-            padding: 22px 18px !important;
-
-          }
-
-        }
-
-
-
-        @media (max-width: 700px) {
-
-          section {
-
-            grid-template-columns: 1fr !important;
-
-          }
-
-
-
-          div[style*="repeat(4, minmax(0, 1fr))"] {
-
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-
-          }
-
-
-
-          div[style*="repeat(2, minmax(0, 1fr))"] {
-
-            grid-template-columns: 1fr !important;
-
-          }
-
-        }
-
-
-
-        @media (max-width: 480px) {
-
-          div[style*="repeat(4, minmax(0, 1fr))"] {
-
-            grid-template-columns: 1fr !important;
-
-          }
-
-        }
-
-      `}</style>
-
-    </main>
-
-  );
-
+if (loading) {
+    return (
+      <main className="progress-page" style={pageStyle}>
+        <div className="progress-loading-card">
+          <div style={spinnerStyle} />
+          <p className="progress-loading-title">Loading your progress...</p>
+          <p className="progress-loading-subtitle">
+            Preparing your learning overview.
+          </p>
+        </div>
+        <style jsx global>{`
+        @keyframes progressSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .progress-page {
+          width: 100%;
+          min-height: 100%;
+          box-sizing: border-box;
+          background: #f5f7fb;
+        }
+
+        .progress-page > * {
+          box-sizing: border-box;
+        }
+
+        .progress-header-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 16px 18px;
+          margin-bottom: 12px;
+          border: 1px solid #e2e7ef;
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+        }
+
+        .progress-header-copy { min-width: 0; }
+
+        .progress-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 5px;
+          color: #a01441;
+          font-size: 9.5px;
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+        }
+
+        .progress-header-card h1 {
+          margin: 0;
+          color: #111827;
+          font-size: 24px;
+          line-height: 1.15;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+        }
+
+        .progress-header-card p {
+          margin: 5px 0 0;
+          color: #808b9b;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .progress-refresh-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          flex: 0 0 auto;
+          min-width: 92px;
+          border: 1px solid #d7dce5;
+          border-radius: 8px;
+          padding: 8px 11px;
+          background: #ffffff;
+          color: #334155;
+          font-size: 10.5px;
+          font-weight: 750;
+          cursor: pointer;
+        }
+
+        .progress-refresh-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .progress-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .progress-stat-card {
+          min-width: 0;
+          min-height: 72px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 11px 12px;
+          border: 1px solid #e2e7ef;
+          border-radius: 12px;
+          background: #ffffff;
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.02);
+        }
+
+        .progress-stat-icon {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 34px;
+          border-radius: 10px;
+        }
+
+        .progress-stat-icon.blue { background: #eaf0ff; color: #316cf2; }
+        .progress-stat-icon.rose { background: #f8e8ef; color: #a01441; }
+        .progress-stat-icon.green { background: #eaf8f0; color: #198a55; }
+        .progress-stat-icon.gold { background: #fff4db; color: #b7791a; }
+
+        .progress-stat-copy { min-width: 0; }
+        .progress-stat-label { color: #8b95a5; font-size: 9.5px; }
+        .progress-stat-value {
+          margin-top: 2px;
+          color: #172033;
+          font-size: 17px;
+          line-height: 1.1;
+          font-weight: 800;
+        }
+        .progress-stat-helper {
+          overflow: hidden;
+          margin-top: 2px;
+          color: #9aa3b0;
+          font-size: 8.8px;
+          line-height: 1.25;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .progress-overview-grid,
+        .progress-lower-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: start;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .progress-overview-grid > *,
+        .progress-lower-grid > * {
+          align-self: start;
+          min-width: 0;
+        }
+
+        .progress-overview-content {
+          display: grid;
+          grid-template-columns: 122px minmax(0, 1fr);
+          align-items: center;
+          gap: 14px;
+          min-height: 116px;
+        }
+
+        .progress-overview-legend {
+          width: 100%;
+          max-width: none;
+        }
+
+        .progress-mini-highlight {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-top: 6px;
+          padding: 8px 9px;
+          border: 1px solid #edf0f4;
+          border-radius: 8px;
+          background: #f8fafc;
+          color: #738096;
+          font-size: 9.5px;
+        }
+
+        .progress-mini-highlight strong { color: #172033; font-size: 11px; }
+
+        .course-progress-list {
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+        }
+
+        .course-progress-row {
+          padding: 10px 11px;
+          border: 1px solid #e8ecf2;
+          border-radius: 11px;
+          background: #fbfcfe;
+        }
+
+        .course-progress-topline {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .course-progress-name-wrap {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .course-progress-icon {
+          width: 31px;
+          height: 31px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 31px;
+          border-radius: 8px;
+          background: #edf3ff;
+          color: #316cf2;
+        }
+
+        .course-progress-name-block { min-width: 0; }
+        .course-progress-name {
+          overflow: hidden;
+          color: #1f2937;
+          font-size: 11.5px;
+          font-weight: 800;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .course-progress-meta {
+          overflow: hidden;
+          margin-top: 1px;
+          color: #97a0af;
+          font-size: 8.5px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .course-progress-percent {
+          flex: 0 0 auto;
+          color: #a01441;
+          font-size: 11px;
+          font-weight: 800;
+        }
+        .course-progress-percent.completed { color: #15803d; }
+
+        .course-progress-bar {
+          height: 6px;
+          overflow: hidden;
+          margin-top: 7px;
+          border-radius: 999px;
+          background: #e9edf4;
+        }
+
+        .course-progress-fill {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #a01441, #cf4d78);
+          transition: width 0.35s ease;
+        }
+        .course-progress-fill.completed {
+          background: linear-gradient(90deg, #16a34a, #43b86f);
+        }
+
+        .course-progress-bottomline {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 4px;
+          color: #8993a4;
+          font-size: 8.5px;
+        }
+        .course-completed-label { color: #15803d; font-weight: 750; }
+
+        .progress-assessment-stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 7px;
+        }
+        .progress-assessment-types {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+          margin-top: 8px;
+        }
+        .assessment-activity-list { margin-top: 8px; }
+        .assessment-activity-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 6px 0;
+          border-top: 1px solid #edf0f4;
+        }
+        .assessment-activity-main { min-width: 0; }
+        .assessment-activity-title {
+          overflow: hidden;
+          color: #374151;
+          font-size: 10.2px;
+          font-weight: 700;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .assessment-activity-meta {
+          overflow: hidden;
+          margin-top: 1px;
+          color: #a0a8b5;
+          font-size: 8.4px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .assessment-result-tag {
+          flex: 0 0 auto;
+          padding: 4px 6px;
+          border: 1px solid #e4e8ef;
+          border-radius: 999px;
+          background: #ffffff;
+          color: #98a1ae;
+          font-size: 8.5px;
+          font-weight: 750;
+        }
+        .assessment-result-tag.positive {
+          border-color: #d3eddc;
+          background: #f3fbf6;
+          color: #198a55;
+        }
+
+        .certificate-overview {
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+          gap: 7px;
+          margin-bottom: 8px;
+        }
+        .certificate-total-card {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 9px;
+          border: 1px solid #f4e2aa;
+          border-radius: 9px;
+          background: #fffaf0;
+        }
+        .certificate-total-icon {
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 32px;
+          border-radius: 9px;
+          background: #fff1c9;
+          color: #b45309;
+        }
+        .certificate-total-number {
+          color: #382b18;
+          font-size: 19px;
+          line-height: 1;
+          font-weight: 800;
+        }
+        .certificate-total-label {
+          margin-top: 2px;
+          color: #8b7a5c;
+          font-size: 8.5px;
+        }
+        .certificate-counts {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+        .certificate-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .certificate-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 8px;
+          border: 1px solid #e8ecf2;
+          border-radius: 9px;
+          background: #fbfcfe;
+        }
+        .certificate-row-icon {
+          width: 29px;
+          height: 29px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 29px;
+          border-radius: 8px;
+          background: #f2eaff;
+          color: #7a56d6;
+        }
+        .certificate-row-main { min-width: 0; flex: 1; }
+        .certificate-row-title {
+          overflow: hidden;
+          color: #374151;
+          font-size: 10px;
+          font-weight: 750;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .certificate-row-meta {
+          overflow: hidden;
+          margin-top: 1px;
+          color: #98a1ae;
+          font-size: 8.2px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .certificate-view-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          flex: 0 0 auto;
+          border: 1px solid #dbe1ea;
+          border-radius: 7px;
+          padding: 5px 7px;
+          background: #ffffff;
+          color: #4269bf;
+          font-size: 8.5px;
+          font-weight: 750;
+          text-decoration: none;
+        }
+
+        .progress-note {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-top: 10px;
+          padding: 8px 10px;
+          border: 1px solid #e5e9ef;
+          border-radius: 9px;
+          background: #fbfcfe;
+          color: #8993a4;
+          font-size: 8.8px;
+          line-height: 1.4;
+        }
+        .progress-note svg { flex: 0 0 auto; }
+
+        .progress-loading-card,
+        .progress-error-card {
+          min-height: 240px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #e2e7ef;
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.025);
+          text-align: center;
+        }
+
+        .progress-loading-title {
+          margin: 0;
+          color: #172033;
+          font-size: 15px;
+          font-weight: 800;
+        }
+        .progress-loading-subtitle {
+          margin: 5px 0 0;
+          color: #919aaa;
+          font-size: 10.5px;
+        }
+        .progress-error-card {
+          padding: 24px;
+          border-color: #f4c9c9;
+        }
+        .progress-error-icon {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          background: #fef1f1;
+          color: #b42318;
+        }
+        .progress-error-card h2 {
+          margin: 10px 0 0;
+          color: #7f1d1d;
+          font-size: 16px;
+          font-weight: 800;
+        }
+        .progress-error-card p {
+          max-width: 520px;
+          margin: 5px 0 15px;
+          color: #8c6c6c;
+          font-size: 10.5px;
+          line-height: 1.5;
+        }
+
+        @media (max-width: 1050px) {
+          .progress-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .progress-overview-grid,
+          .progress-lower-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 700px) {
+          .progress-page { padding: 16px !important; }
+          .progress-header-card { align-items: flex-start; flex-direction: column; }
+          .progress-stat-grid { grid-template-columns: 1fr; }
+          .progress-overview-content { grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
+          .progress-assessment-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .certificate-overview { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+          .progress-header-card { padding: 15px; }
+          .progress-header-card h1 { font-size: 22px; }
+          .progress-overview-content { grid-template-columns: 1fr; justify-items: center; }
+          .progress-overview-legend { width: 100%; }
+          .progress-assessment-stats,
+          .progress-assessment-types,
+          .certificate-counts { grid-template-columns: 1fr; }
+        }
+      `}</style>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="progress-page" style={pageStyle}>
+        <div className="progress-error-card">
+          <div className="progress-error-icon">
+            <Clock3 size={20} />
+          </div>
+          <h2>Unable to load progress</h2>
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setRefreshing(true);
+              loadProgress();
+            }}
+            style={primaryButtonStyle}
+          >
+            Try Again
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="progress-page" style={pageStyle}>
+      <section className="progress-header-card">
+        <div className="progress-header-copy">
+          <div className="progress-kicker">
+            <GraduationCap size={15} />
+            STUDENT LEARNING
+          </div>
+          <h1>My Progress</h1>
+          <p>
+            See how your courses, lessons, assessments and achievements are
+            progressing in one place.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setRefreshing(true);
+            loadProgress();
+          }}
+          disabled={refreshing}
+          className="progress-refresh-button"
+        >
+          <RefreshCw
+            size={15}
+            style={
+              refreshing
+                ? { animation: "progressSpin 0.8s linear infinite" }
+                : undefined
+            }
+          />
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+      </section>
+
+      <section className="progress-stat-grid">
+        <ProgressStatCard
+          icon={<BookOpen size={18} />}
+          label="Enrolled Courses"
+          value={String(analytics.totalCourses)}
+          helper={`${analytics.completedCourses} completed`}
+          tone="blue"
+        />
+        <ProgressStatCard
+          icon={<BarChart3 size={18} />}
+          label="Overall Progress"
+          value={`${analytics.averageProgress}%`}
+          helper={`${analytics.completedLessons}/${analytics.totalLessons || 0} lessons`}
+          tone="rose"
+        />
+        <ProgressStatCard
+          icon={<CheckCircle2 size={18} />}
+          label="Completed Courses"
+          value={`${analytics.completedCourses}/${analytics.totalCourses}`}
+          helper={`${analytics.inProgressCourses} in progress`}
+          tone="green"
+        />
+        <ProgressStatCard
+          icon={<Award size={18} />}
+          label="Certificates"
+          value={String(analytics.totalCertificates)}
+          helper={`${analytics.courseCertificates} course · ${analytics.packageCertificates} package`}
+          tone="gold"
+        />
+      </section>
+
+      <section className="progress-overview-grid">
+        <Panel style={{ padding: 16 }}>
+          <SectionHeader
+            icon={<BarChart3 size={17} />}
+            title="Course Overview"
+            subtitle="A quick breakdown of where your enrolled courses stand"
+          />
+
+          <div className="progress-overview-content">
+            <DonutChart
+              value={
+                analytics.totalCourses === 0
+                  ? 0
+                  : Math.round(
+                      (analytics.completedCourses / analytics.totalCourses) * 100
+                    )
+              }
+              centerLabel={`${analytics.completedCourses}`}
+              centerSubLabel="completed"
+              segments={[
+                {
+                  value: analytics.completedCourses,
+                  label: "Completed",
+                  color: "#16A34A",
+                },
+                {
+                  value: analytics.inProgressCourses,
+                  label: "In Progress",
+                  color: "#A01441",
+                },
+                {
+                  value: analytics.notStartedCourses,
+                  label: "Not Started",
+                  color: "#D7DCE5",
+                },
+              ]}
+            />
+
+            <div className="progress-overview-legend">
+              <LegendRow
+                color="#16A34A"
+                label="Completed"
+                value={analytics.completedCourses}
+              />
+              <LegendRow
+                color="#A01441"
+                label="In Progress"
+                value={analytics.inProgressCourses}
+              />
+              <LegendRow
+                color="#D7DCE5"
+                label="Not Started"
+                value={analytics.notStartedCourses}
+              />
+            </div>
+          </div>
+        </Panel>
+
+        <Panel style={{ padding: 16 }}>
+          <SectionHeader
+            icon={<GraduationCap size={17} />}
+            title="Lesson Completion"
+            subtitle="Your completed lessons across enrolled courses"
+          />
+
+          <div className="progress-overview-content">
+            <DonutChart
+              value={
+                analytics.totalLessons === 0
+                  ? 0
+                  : Math.round(
+                      (analytics.completedLessons / analytics.totalLessons) * 100
+                    )
+              }
+              centerLabel={`${analytics.completedLessons}`}
+              centerSubLabel="lessons"
+              segments={[
+                {
+                  value: analytics.completedLessons,
+                  label: "Completed",
+                  color: "#3B6BF0",
+                },
+                {
+                  value: analytics.remainingLessons,
+                  label: "Remaining",
+                  color: "#E5E7EB",
+                },
+              ]}
+            />
+
+            <div className="progress-overview-legend">
+              <LegendRow
+                color="#3B6BF0"
+                label="Completed Lessons"
+                value={analytics.completedLessons}
+              />
+              <LegendRow
+                color="#E5E7EB"
+                label="Remaining Lessons"
+                value={analytics.remainingLessons}
+              />
+              <div className="progress-mini-highlight">
+                <span>Total lessons</span>
+                <strong>{analytics.totalLessons}</strong>
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </section>
+
+      <Panel style={{ marginBottom: 12, padding: 16 }}>
+        <SectionHeader
+          icon={<BookOpen size={17} />}
+          title="Course Progress"
+          subtitle="Detailed progress for every enrolled course"
+        />
+
+        {courseRows.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen size={30} />}
+            text="No enrolled courses yet."
+          />
+        ) : (
+          <div className="course-progress-list">
+            {courseRows.map((item) => {
+              const percentage = Math.min(
+                100,
+                Math.max(0, item.progress.progressPercentage)
+              );
+              const completed = percentage === 100;
+
+              return (
+                <div className="course-progress-row" key={item.course.id}>
+                  <div className="course-progress-topline">
+                    <div className="course-progress-name-wrap">
+                      <div className="course-progress-icon">
+                        <BookOpen size={16} />
+                      </div>
+                      <div className="course-progress-name-block">
+                        <div className="course-progress-name">
+                          {item.course.title}
+                        </div>
+                        <div className="course-progress-meta">
+                          {item.packageName
+                            ? `From package: ${item.packageName}`
+                            : "Direct enrollment"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span
+                      className={
+                        completed
+                          ? "course-progress-percent completed"
+                          : "course-progress-percent"
+                      }
+                    >
+                      {percentage}%
+                    </span>
+                  </div>
+
+                  <div className="course-progress-bar">
+                    <div
+                      className={
+                        completed
+                          ? "course-progress-fill completed"
+                          : "course-progress-fill"
+                      }
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+
+                  <div className="course-progress-bottomline">
+                    <span>
+                      {item.progress.completedLessons}/
+                      {item.progress.totalLessons} lessons completed
+                    </span>
+                    <span>{item.progress.remainingLessons} remaining</span>
+                    {completed ? (
+                      <span className="course-completed-label">
+                        Course completed
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
+
+      <section className="progress-lower-grid">
+        <Panel style={{ padding: 16 }}>
+          <SectionHeader
+            icon={<FileCheck2 size={17} />}
+            title="Assignments & Quizzes"
+            subtitle="Your latest assessment activity"
+          />
+
+          <div className="progress-assessment-stats">
+            <MetricBox label="Total" value={analytics.totalAssessments} />
+            <MetricBox label="Attempted" value={analytics.attemptedAssessments} />
+            <MetricBox label="Pending" value={analytics.pendingAssessments} />
+            <MetricBox
+              label="Average Score"
+              value={
+                analytics.averageScore === null
+                  ? "—"
+                  : `${analytics.averageScore}%`
+              }
+            />
+          </div>
+
+          <div className="progress-assessment-types">
+            <SmallStat
+              icon={<PlayCircle size={15} />}
+              label="Quizzes"
+              value={analytics.quizCount}
+            />
+            <SmallStat
+              icon={<FileCheck2 size={15} />}
+              label="Assignments"
+              value={analytics.assignmentCount}
+            />
+          </div>
+
+          {assessments.length > 0 ? (
+            <div className="assessment-activity-list">
+              {assessments.slice(0, 5).map((assessment) => {
+                const submission = assessment.latestSubmission;
+                return (
+                  <div className="assessment-activity-row" key={assessment.id}>
+                    <div className="assessment-activity-main">
+                      <div className="assessment-activity-title">
+                        {assessment.title}
+                      </div>
+                      <div className="assessment-activity-meta">
+                        {assessment.type}
+                        {assessment.courseTitle
+                          ? ` · ${assessment.courseTitle}`
+                          : ""}
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        submission
+                          ? "assessment-result-tag positive"
+                          : "assessment-result-tag"
+                      }
+                    >
+                      {submission
+                        ? typeof submission.score === "number"
+                          ? `${submission.score}%`
+                          : "Attempted"
+                        : "Not attempted"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<FileCheck2 size={28} />}
+              text="No assessment activity yet."
+            />
+          )}
+        </Panel>
+
+        <Panel style={{ padding: 16 }}>
+          <SectionHeader
+            icon={<Trophy size={17} />}
+            title="Certificates & Achievements"
+            subtitle="Your earned learning milestones"
+          />
+
+          <div className="certificate-overview">
+            <div className="certificate-total-card">
+              <div className="certificate-total-icon">
+                <Trophy size={19} />
+              </div>
+              <div>
+                <div className="certificate-total-number">
+                  {analytics.totalCertificates}
+                </div>
+                <div className="certificate-total-label">
+                  Certificates earned
+                </div>
+              </div>
+            </div>
+
+            <div className="certificate-counts">
+              <SmallStat
+                icon={<GraduationCap size={15} />}
+                label="Course"
+                value={analytics.courseCertificates}
+              />
+              <SmallStat
+                icon={<Trophy size={15} />}
+                label="Package"
+                value={analytics.packageCertificates}
+              />
+            </div>
+          </div>
+
+          {recentCertificates.length === 0 ? (
+            <EmptyState
+              icon={<Award size={28} />}
+              text="Complete a course to earn your first certificate."
+            />
+          ) : (
+            <div className="certificate-list">
+              {recentCertificates.map((certificate) => {
+                const title =
+                  certificate.courseTitle ||
+                  certificate.course?.title ||
+                  certificate.packageTitle ||
+                  certificate.package?.title ||
+                  (certificate.certificateType === "PACKAGE"
+                    ? "Package Certificate"
+                    : "Course Certificate");
+
+                const downloadUrl = certificateDownloadUrl(certificate);
+
+                return (
+                  <div className="certificate-row" key={certificate.id}>
+                    <div className="certificate-row-icon">
+                      <Award size={16} />
+                    </div>
+                    <div className="certificate-row-main">
+                      <div className="certificate-row-title">{title}</div>
+                      <div className="certificate-row-meta">
+                        {certificate.certificateType === "PACKAGE"
+                          ? "Package certificate"
+                          : "Course certificate"}
+                        {certificate.certificateNumber
+                          ? ` · ${certificate.certificateNumber}`
+                          : ""}
+                        {certificate.issuedAt
+                          ? ` · ${new Date(certificate.issuedAt).toLocaleDateString("en-IN")}`
+                          : ""}
+                      </div>
+                    </div>
+                    {downloadUrl ? (
+                      <a
+                        href={downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="certificate-view-button"
+                      >
+                        View
+                        <ArrowRight size={13} />
+                      </a>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
+      </section>
+
+      <div className="progress-note">
+        <Clock3 size={15} />
+        <span>
+          Progress is calculated from your actual course lessons, assessments,
+          certificates and assessment activity.
+        </span>
+      </div>
+
+      <style jsx global>{`
+        @keyframes progressSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .progress-page {
+          width: 100%;
+          min-height: 100%;
+          background: #f5f7fb;
+          box-sizing: border-box;
+        }
+
+        .progress-header-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 22px;
+          padding: 24px 26px;
+          margin-bottom: 16px;
+          border: 1px solid #e2e7ef;
+          border-radius: 18px;
+          background: linear-gradient(135deg, #ffffff 0%, #fbfcff 100%);
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.035);
+        }
+
+        .progress-header-copy { min-width: 0; }
+
+        .progress-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 7px;
+          color: #a01441;
+          font-size: 10px;
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: 0.09em;
+        }
+
+        .progress-header-card h1 {
+          margin: 0;
+          color: #111827;
+          font-size: 28px;
+          line-height: 1.15;
+          font-weight: 800;
+          letter-spacing: -0.025em;
+        }
+
+        .progress-header-card p {
+          max-width: 720px;
+          margin: 7px 0 0;
+          color: #7c8798;
+          font-size: 12.5px;
+          line-height: 1.6;
+        }
+
+        .progress-refresh-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          flex: 0 0 auto;
+          min-width: 104px;
+          border: 1px solid #d7dce5;
+          border-radius: 9px;
+          padding: 10px 13px;
+          background: #ffffff;
+          color: #334155;
+          font-size: 11px;
+          font-weight: 750;
+          cursor: pointer;
+        }
+
+        .progress-refresh-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .progress-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .progress-stat-card {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          padding: 15px 16px;
+          border: 1px solid #e2e7ef;
+          border-radius: 14px;
+          background: #ffffff;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.025);
+        }
+
+        .progress-stat-icon {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 38px;
+          border-radius: 11px;
+        }
+
+        .progress-stat-icon.blue { background: #eaf0ff; color: #316cf2; }
+        .progress-stat-icon.rose { background: #f8e8ef; color: #a01441; }
+        .progress-stat-icon.green { background: #eaf8f0; color: #198a55; }
+        .progress-stat-icon.gold { background: #fff4db; color: #b7791a; }
+
+        .progress-stat-copy { min-width: 0; }
+        .progress-stat-label { color: #8b95a5; font-size: 10px; }
+        .progress-stat-value {
+          margin-top: 2px;
+          color: #172033;
+          font-size: 19px;
+          line-height: 1.15;
+          font-weight: 800;
+        }
+        .progress-stat-helper {
+          overflow: hidden;
+          margin-top: 3px;
+          color: #9aa3b0;
+          font-size: 9.5px;
+          line-height: 1.3;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .progress-overview-grid,
+        .progress-lower-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .progress-overview-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 26px;
+          min-height: 172px;
+        }
+
+        .progress-overview-legend {
+          width: 100%;
+          max-width: 220px;
+        }
+
+        .progress-mini-highlight {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-top: 8px;
+          padding: 9px 11px;
+          border: 1px solid #edf0f4;
+          border-radius: 9px;
+          background: #f8fafc;
+          color: #738096;
+          font-size: 10.5px;
+        }
+
+        .progress-mini-highlight strong { color: #172033; font-size: 12px; }
+
+        .course-progress-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .course-progress-row {
+          padding: 14px;
+          border: 1px solid #e8ecf2;
+          border-radius: 13px;
+          background: #fbfcfe;
+        }
+
+        .course-progress-topline,
+        .course-progress-bottomline {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .course-progress-name-wrap {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .course-progress-icon {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 34px;
+          border-radius: 9px;
+          background: #edf3ff;
+          color: #316cf2;
+        }
+
+        .course-progress-name-block { min-width: 0; }
+        .course-progress-name {
+          overflow: hidden;
+          color: #1f2937;
+          font-size: 12.5px;
+          font-weight: 800;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .course-progress-meta {
+          overflow: hidden;
+          margin-top: 2px;
+          color: #97a0af;
+          font-size: 9.5px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .course-progress-percent {
+          flex: 0 0 auto;
+          color: #a01441;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .course-progress-percent.completed { color: #15803d; }
+
+        .course-progress-bar {
+          height: 8px;
+          overflow: hidden;
+          margin-top: 11px;
+          border-radius: 999px;
+          background: #e9edf4;
+        }
+
+        .course-progress-fill {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #a01441, #cf4d78);
+          transition: width 0.35s ease;
+        }
+        .course-progress-fill.completed {
+          background: linear-gradient(90deg, #16a34a, #43b86f);
+        }
+
+        .course-progress-bottomline {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+          margin-top: 7px;
+          color: #8993a4;
+          font-size: 9.5px;
+        }
+        .course-completed-label { color: #15803d; font-weight: 750; }
+
+        .progress-assessment-stats {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .progress-assessment-types {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 9px;
+        }
+        .assessment-activity-list { margin-top: 14px; }
+        .assessment-activity-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 0;
+          border-top: 1px solid #edf0f4;
+        }
+        .assessment-activity-main { min-width: 0; }
+        .assessment-activity-title {
+          overflow: hidden;
+          color: #374151;
+          font-size: 10.8px;
+          font-weight: 700;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .assessment-activity-meta {
+          overflow: hidden;
+          margin-top: 2px;
+          color: #a0a8b5;
+          font-size: 9px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .assessment-result-tag {
+          flex: 0 0 auto;
+          padding: 5px 7px;
+          border: 1px solid #e4e8ef;
+          border-radius: 999px;
+          background: #ffffff;
+          color: #98a1ae;
+          font-size: 9px;
+          font-weight: 750;
+        }
+        .assessment-result-tag.positive {
+          border-color: #d3eddc;
+          background: #f3fbf6;
+          color: #198a55;
+        }
+
+        .certificate-overview {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .certificate-total-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          border: 1px solid #f4e2aa;
+          border-radius: 11px;
+          background: #fffaf0;
+        }
+        .certificate-total-icon {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 38px;
+          border-radius: 10px;
+          background: #fff1c9;
+          color: #b45309;
+        }
+        .certificate-total-number {
+          color: #382b18;
+          font-size: 20px;
+          line-height: 1;
+          font-weight: 800;
+        }
+        .certificate-total-label {
+          margin-top: 3px;
+          color: #8b7a5c;
+          font-size: 9.5px;
+        }
+        .certificate-counts {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .certificate-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .certificate-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px;
+          border: 1px solid #e8ecf2;
+          border-radius: 10px;
+          background: #fbfcfe;
+        }
+        .certificate-row-icon {
+          width: 32px;
+          height: 32px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 32px;
+          border-radius: 9px;
+          background: #f2eaff;
+          color: #7a56d6;
+        }
+        .certificate-row-main { min-width: 0; flex: 1; }
+        .certificate-row-title {
+          overflow: hidden;
+          color: #374151;
+          font-size: 10.8px;
+          font-weight: 750;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .certificate-row-meta {
+          overflow: hidden;
+          margin-top: 2px;
+          color: #98a1ae;
+          font-size: 8.8px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .certificate-view-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          flex: 0 0 auto;
+          border: 1px solid #dbe1ea;
+          border-radius: 8px;
+          padding: 6px 8px;
+          background: #ffffff;
+          color: #4269bf;
+          font-size: 9px;
+          font-weight: 750;
+          text-decoration: none;
+        }
+
+        .progress-note {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 16px;
+          padding: 11px 13px;
+          border: 1px solid #e5e9ef;
+          border-radius: 10px;
+          background: #fbfcfe;
+          color: #8993a4;
+          font-size: 9.5px;
+          line-height: 1.5;
+        }
+        .progress-note svg { flex: 0 0 auto; }
+
+        .progress-loading-card,
+        .progress-error-card {
+          min-height: 360px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #e2e7ef;
+          border-radius: 18px;
+          background: #ffffff;
+          box-shadow: 0 5px 18px rgba(15, 23, 42, 0.03);
+          text-align: center;
+        }
+        .progress-loading-title {
+          margin: 0;
+          color: #172033;
+          font-size: 15px;
+          font-weight: 800;
+        }
+        .progress-loading-subtitle {
+          margin: 5px 0 0;
+          color: #919aaa;
+          font-size: 10.5px;
+        }
+        .progress-error-card {
+          padding: 28px;
+          border-color: #f4c9c9;
+        }
+        .progress-error-icon {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border-radius: 11px;
+          background: #fef1f1;
+          color: #b42318;
+        }
+        .progress-error-card h2 {
+          margin: 12px 0 0;
+          color: #7f1d1d;
+          font-size: 17px;
+          font-weight: 800;
+        }
+        .progress-error-card p {
+          max-width: 520px;
+          margin: 6px 0 17px;
+          color: #8c6c6c;
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 1050px) {
+          .progress-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .progress-overview-grid,
+          .progress-lower-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 700px) {
+          .progress-page { padding: 20px 16px !important; }
+          .progress-header-card { align-items: flex-start; flex-direction: column; }
+          .progress-stat-grid { grid-template-columns: 1fr; }
+          .progress-overview-content { justify-content: flex-start; flex-wrap: wrap; }
+          .progress-assessment-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .certificate-overview { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+          .progress-header-card { padding: 19px; }
+          .progress-header-card h1 { font-size: 24px; }
+          .progress-assessment-stats,
+          .progress-assessment-types,
+          .certificate-counts { grid-template-columns: 1fr; }
+          .progress-overview-content { flex-direction: column; align-items: flex-start; }
+        }
+      `}</style>
+    </main>
+  );
 }
 
-
+function ProgressStatCard({
+  icon,
+  label,
+  value,
+  helper,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  helper: string;
+  tone: "blue" | "rose" | "green" | "gold";
+}) {
+  return (
+    <div className="progress-stat-card">
+      <div className={`progress-stat-icon ${tone}`}>{icon}</div>
+      <div className="progress-stat-copy">
+        <div className="progress-stat-label">{label}</div>
+        <div className="progress-stat-value">{value}</div>
+        <div className="progress-stat-helper">{helper}</div>
+      </div>
+    </div>
+  );
+}
 
 function DonutChart({
 
@@ -2994,7 +3139,7 @@ function EmptyState({
 
 const pageStyle: CSSProperties = {
 
-  padding: "28px 32px",
+  padding: "18px 24px 28px",
 
   flex: 1,
 
