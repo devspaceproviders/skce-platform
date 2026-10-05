@@ -8,6 +8,14 @@ enum UserRole {
   TRAINER = "TRAINER"
 }
 
+enum FeedbackStatus {
+  @@type("pg/text@1")
+
+  PENDING  = "PENDING"
+  APPROVED = "APPROVED"
+  REJECTED = "REJECTED"
+}
+
 enum CourseMode {
   @@type("pg/text@1")
 
@@ -194,6 +202,7 @@ model User {
   communityPosts    CommunityPost[]
   communityComments CommunityComment[]
   communityReactions CommunityReaction[]
+  studentFeedbacks StudentFeedback[]
 
   createdAt TimestamptzString       @default(now())
   updatedAt temporal.updatedAtString()
@@ -590,6 +599,7 @@ model CoursePackage {
   courses       PackageCourse[]
   enrollments   Enrollment[]
   certificates  Certificate[]
+  studentFeedbacks StudentFeedback[]
 
   registrationIntents RegistrationIntent[]
 
@@ -796,6 +806,80 @@ model Enrollment {
   @@index([studentId])
   @@index([courseId])
   @@index([packageId])
+}
+
+// ============================================================
+// STUDENT FEEDBACK
+// ============================================================
+//
+// Overall feedback submitted by a student for an enrolled
+// package and their overall learning experience.
+//
+// Feedback must be approved by an admin before appearing
+// publicly as a homepage testimonial.
+//
+
+model StudentFeedback {
+  id Int @id @default(autoincrement())
+
+  userId    Int
+  packageId Int
+
+  rating  Int
+  comment String
+
+  status FeedbackStatus @default(PENDING)
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  package CoursePackage @relation(
+    fields: [packageId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([userId])
+  @@index([packageId])
+  @@index([status])
+}
+
+// ============================================================
+// HOMEPAGE POPUP
+// ============================================================
+//
+// Singleton configuration for the public homepage announcement.
+// Only one homepage popup is intended to exist.
+
+enum HomepagePopupMediaType {
+  IMAGE
+  VIDEO
+}
+
+model HomepagePopup {
+  id Int @id @default(1)
+
+  title      String
+  message    String?
+
+  imageUrl   String?
+  videoUrl   String?
+
+  mediaType HomepagePopupMediaType @default(IMAGE)
+
+  buttonText String?
+  buttonLink String?
+
+  isActive Boolean @default(false)
+
+  createdAt TimestamptzString       @default(now())
+  updatedAt temporal.updatedAtString()
 }
 
 // ============================================================

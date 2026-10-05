@@ -12,7 +12,25 @@ import { getPackageBySlug } from "@/lib/api";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
 export const revalidate = 60;
+
+function getMediaUrl(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `${API_ORIGIN}${url}`;
+  }
+
+  return `${API_ORIGIN}/${url}`;
+}
 
 export async function generateMetadata({
   params,
@@ -44,9 +62,7 @@ export default async function PackageDetailPage({
 
   const courses = pkg.courses ?? [];
 
-  const packageImageUrl = pkg.imageUrl
-    ? `${API_URL.replace("/api", "")}${pkg.imageUrl}`
-    : null;
+  const packageImageUrl = getMediaUrl(pkg.imageUrl);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -67,6 +83,7 @@ export default async function PackageDetailPage({
             {/* Package Image */}
             <div className="h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-lg">
               {packageImageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={packageImageUrl}
                   alt={pkg.title}
@@ -149,6 +166,7 @@ export default async function PackageDetailPage({
             {/* Package Thumbnail */}
             <div className="mb-5 h-20 w-20 overflow-hidden rounded-xl bg-orange-100">
               {packageImageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={packageImageUrl}
                   alt={pkg.title}

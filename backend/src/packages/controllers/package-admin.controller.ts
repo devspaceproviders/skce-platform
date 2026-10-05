@@ -6,6 +6,7 @@ import {
   listAdminPackages as listPackages,
   updatePackage,
   updatePackageImage,
+  deletePackage,
 } from "../services/package-admin.service";
 
 function parseId(value: unknown) {
@@ -125,6 +126,32 @@ export async function updateAdminPackage(
     });
   } catch (error) {
     console.error("Update admin package error:", error);
+    return sendError(res, error);
+  }
+}
+
+export async function deleteAdminPackage(
+  req: Request,
+  res: Response
+) {
+  try {
+    const packageId = parseId(req.params.id);
+
+    const data = await deletePackage(
+      packageId
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Package deleted successfully.",
+      data,
+    });
+  } catch (error) {
+    console.error(
+      "Delete admin package error:",
+      error
+    );
+
     return sendError(res, error);
   }
 }

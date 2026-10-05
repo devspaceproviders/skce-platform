@@ -186,27 +186,22 @@ export async function forgotPassword(
       });
     }
 
-    const result =
-      await requestPasswordReset(
-        validation.data.email
-      );
+    await requestPasswordReset(
+      validation.data.email
+    );
 
     /*
      * Always return the same public message.
+     *
+     * The reset link is never returned to
+     * the frontend. It is sent only to the
+     * registered email address.
      */
 
     return res.status(200).json({
       success: true,
       message:
-        "If an account exists for this email, password reset instructions have been prepared.",
-      data:
-        process.env.NODE_ENV !==
-        "production"
-          ? {
-              resetUrl:
-                result.resetUrl,
-            }
-          : undefined,
+        "If an account exists for this email, a password reset link has been sent to the registered email address.",
     });
   } catch (error) {
     console.error(
@@ -216,12 +211,15 @@ export async function forgotPassword(
 
     /*
      * Do not expose internal details.
+     *
+     * Keep the same response so the API does
+     * not reveal whether an email exists.
      */
 
     return res.status(200).json({
       success: true,
       message:
-        "If an account exists for this email, password reset instructions have been prepared.",
+        "If an account exists for this email, a password reset link has been sent to the registered email address.",
     });
   }
 }

@@ -1,10 +1,32 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { getPackages, type CoursePackage } from "@/lib/api";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, "");
+
+function getImageUrl(imageUrl?: string | null) {
+  if (!imageUrl) {
+    return null;
+  }
+
+  if (
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return imageUrl;
+  }
+
+  return `${API_BASE_URL}${imageUrl}`;
+}
 
 export default function PackagesPreview() {
   const [packages, setPackages] = useState<CoursePackage[]>([]);
@@ -72,6 +94,8 @@ export default function PackagesPreview() {
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
               >
                 <div className="h-1.5 bg-gradient-to-r from-[#173B67] to-orange-500" />
+
+                <div className="h-44 animate-pulse bg-slate-100" />
 
                 <div className="p-7">
                   <div className="h-6 w-2/3 animate-pulse rounded bg-slate-200" />
@@ -142,6 +166,8 @@ export default function PackagesPreview() {
               const remainingCourses =
                 rawCourses.length - visibleCourses.length;
 
+              const imageUrl = getImageUrl(pkg.imageUrl);
+
               return (
                 <div
                   key={pkg.id}
@@ -149,6 +175,27 @@ export default function PackagesPreview() {
                 >
                   {/* Top Accent */}
                   <div className="h-1.5 bg-gradient-to-r from-[#173B67] to-orange-500" />
+
+                  {/* Package Image */}
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={pkg.title}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                        <Package
+                          size={48}
+                          strokeWidth={1.5}
+                          className="text-slate-300"
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex flex-1 flex-col p-7">
                     {/* Title */}

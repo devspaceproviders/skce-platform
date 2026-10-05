@@ -5,6 +5,27 @@ import { getCourseBySlug, getCourses } from "@/lib/api";
 import CourseDetailSidebar from "@/components/CourseDetailSidebar";
 import TopicsAccordion from "@/components/TopicsAccordion";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+function getMediaUrl(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `${API_ORIGIN}${url}`;
+  }
+
+  return `${API_ORIGIN}/${url}`;
+}
+
 export async function generateStaticParams() {
   const courses = await getCourses();
 
@@ -37,6 +58,9 @@ export default async function CourseDetailPage({
   if (!course) {
     notFound();
   }
+
+  const courseImageUrl = getMediaUrl(course.imageUrl);
+  const bannerImageUrl = getMediaUrl(course.bannerImageUrl);
 
   return (
     <>
@@ -98,11 +122,11 @@ export default async function CourseDetailPage({
           ===================================================== */}
           <div className="min-w-0">
             {/* Course Banner */}
-            {course.bannerImageUrl && (
+            {bannerImageUrl && (
               <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={course.bannerImageUrl}
+                  src={bannerImageUrl}
                   alt={course.title}
                   className="h-auto max-h-[420px] w-full object-cover"
                 />
@@ -110,16 +134,33 @@ export default async function CourseDetailPage({
             )}
 
             {/* Official Course Image */}
-            {course.imageUrl && (
-              <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={course.imageUrl}
-                  alt={course.title}
-                  className="h-auto max-h-[420px] w-full object-cover"
-                />
-              </div>
-            )}
+            <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {courseImageUrl ? (
+                <div className="relative h-[260px] w-full overflow-hidden sm:h-[340px] lg:h-[400px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={courseImageUrl}
+                    alt={course.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-[260px] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 sm:h-[340px] lg:h-[400px]">
+                  <div className="text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
+                      <BookOpen
+                        size={30}
+                        className="text-[#173B67]"
+                      />
+                    </div>
+
+                    <p className="mt-4 text-sm font-semibold text-slate-500">
+                      {course.title}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* About */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

@@ -1,8 +1,12 @@
 "use client";
 
 
-
-import { useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   useRouter,
@@ -221,7 +225,7 @@ function formatTime(minutes: number): string {
 
 
 
-export default function TrainerAvailabilityPage() {
+function TrainerAvailabilityContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2278,4 +2282,22 @@ export default function TrainerAvailabilityPage() {
 
   );
 
+}
+  
+export default function TrainerAvailabilityPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="text-sm text-slate-500">
+              Loading trainer availability...
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <TrainerAvailabilityContent />
+    </Suspense>
+  );
 }

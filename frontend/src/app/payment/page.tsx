@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  useRazorpay,
+  RazorpayOrderOptions,
+} from "react-razorpay";
+
+import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
@@ -16,6 +21,9 @@ import {
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
+
+const RAZORPAY_KEY_ID =
+  process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
 type RegistrationData = {
   registrationIntentId: number;
@@ -40,13 +48,24 @@ type RegistrationData = {
   amount: number;
 };
 
+type RazorpayPaymentResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
 export default function PaymentPage() {
+  const { Razorpay, isLoading: razorpayLoading, error: razorpayError } =
+    useRazorpay();
+
   const [registration, setRegistration] =
     useState<RegistrationData | null>(null);
 
   const [loading, setLoading] = useState(true);
+
   const [paymentLoading, setPaymentLoading] =
     useState(false);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -236,23 +255,45 @@ export default function PaymentPage() {
 
   /*
    * ==========================================================
-   * DEV PAYMENT
+   * RAZORPAY TEST PAYMENT
    * ==========================================================
    *
-   * This endpoint simulates a successful payment
-   * for development/testing.
+   * 1. Ask backend to create a Razorpay order.
+   * 2. Open Razorpay Checkout.
+   * 3. Receive Razorpay payment response.
+   * 4. Send the response to backend verification.
    *
-   * NO REAL MONEY IS INVOLVED.
-   *
-   * IMPORTANT:
-   *
-   * We send ONLY registrationIntentId.
-   *
-   * The backend must determine the authoritative
-   * package amount from CoursePackage.price.
+   * The backend remains authoritative for:
+   * - package price
+   * - payment verification
+   * - student creation
+   * - enrollment
+   * - registration completion
    */
   const handlePayment = async () => {
     if (!registration) {
+      return;
+    }
+
+    if (!RAZORPAY_KEY_ID) {
+      setError(
+        "Razorpay Key ID is not configured in the frontend."
+      );
+      return;
+    }
+
+    if (razorpayLoading) {
+      setError(
+        "Razorpay Checkout is still loading. Please try again."
+      );
+      return;
+    }
+
+    if (!Razorpay) {
+      setError(
+        razorpayError ||
+          "Razorpay Checkout could not be loaded."
+      );
       return;
     }
 
@@ -260,8 +301,18 @@ export default function PaymentPage() {
     setPaymentLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/payments/dev-complete`,
+      /*
+       * ------------------------------------------------------
+       * 1. CREATE RAZORPAY ORDER
+       * ------------------------------------------------------
+       *
+       * We send only the registration intent ID.
+       *
+       * The backend determines the authoritative package
+       * and amount from the database.
+       */
+      const orderResponse = await fetch(
+        `${API_URL}/payments/create-order`,
         {
           method: "POST",
 
@@ -276,62 +327,217 @@ export default function PaymentPage() {
         }
       );
 
-      const json =
-        await response
+      const orderJson =
+        await orderResponse
           .json()
           .catch(() => null);
 
-      if (!response.ok || !json?.success) {
+      if (
+        !orderResponse.ok ||
+        !orderJson?.success ||
+        !orderJson?.data?.order?.id
+      ) {
         throw new Error(
-          json?.message ||
-            "Unable to complete payment."
+          orderJson?.message ||
+            "Unable to create Razorpay order."
         );
       }
 
+      const razorpayOrder =
+        orderJson.data.order;
+
       /*
-       * Backend has now completed:
+       * ------------------------------------------------------
+       * 2. OPEN RAZORPAY CHECKOUT
+       * ------------------------------------------------------
        *
-       * User
-       * StudentProfile
-       * Student ID
-       * Enrollment
-       * Payment
-       *
-       * Only now remove registration data.
+       * Amount and order ID come from the backend-created
+       * Razorpay order.
        */
-      sessionStorage.removeItem(
-        "skce_registration"
+      const options: RazorpayOrderOptions = {
+        key: RAZORPAY_KEY_ID,
+
+        amount: razorpayOrder.amount,
+
+        currency:
+          razorpayOrder.currency || "INR",
+
+        name: "SK Computer Education",
+
+        description:
+          registration.packageTitle,
+
+        order_id:
+          razorpayOrder.id,
+
+        prefill: {
+          name: registration.name,
+          email: registration.email,
+          contact: registration.phone,
+        },
+
+        notes: `registration_intent_id=${registration.registrationIntentId}, package=${registration.packageSlug}`,
+
+        theme: {
+          color: "#F97316",
+        },
+
+        handler: async (
+          response: RazorpayPaymentResponse
+        ) => {
+          /*
+           * Razorpay has returned the payment response.
+           *
+           * IMPORTANT:
+           * We do NOT mark the payment successful here.
+           *
+           * The backend must verify the Razorpay signature.
+           */
+
+          try {
+            setError("");
+            setPaymentLoading(true);
+
+            const verifyResponse =
+              await fetch(
+                `${API_URL}/payments/verify`,
+                {
+                  method: "POST",
+
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
+
+                  body: JSON.stringify({
+                    razorpayOrderId:
+                      response.razorpay_order_id,
+
+                    razorpayPaymentId:
+                      response.razorpay_payment_id,
+
+                    razorpaySignature:
+                      response.razorpay_signature,
+                  }),
+                }
+              );
+
+            const verifyJson =
+              await verifyResponse
+                .json()
+                .catch(() => null);
+
+            if (
+              !verifyResponse.ok ||
+              !verifyJson?.success
+            ) {
+              throw new Error(
+                verifyJson?.message ||
+                  "Payment verification failed."
+              );
+            }
+
+            /*
+             * Backend has now completed:
+             *
+             * User
+             * StudentProfile
+             * Student ID
+             * Enrollment
+             * Payment
+             * RegistrationIntent
+             *
+             * Only now remove registration data.
+             */
+            sessionStorage.removeItem(
+              "skce_registration"
+            );
+
+            /*
+             * Save generated Student ID so
+             * the success page can display it.
+             */
+            const studentId =
+              verifyJson?.data?.student?.studentId;
+
+            if (studentId) {
+              sessionStorage.setItem(
+                "skce_student_id",
+                studentId
+              );
+            }
+
+            /*
+             * Razorpay payment has been verified
+             * and registration has completed.
+             */
+            window.location.href =
+              "/registration-success";
+          } catch (err) {
+            console.error(
+              "Razorpay payment verification error:",
+              err
+            );
+
+            setError(
+              err instanceof Error
+                ? err.message
+                : "Unable to verify payment."
+            );
+
+            setPaymentLoading(false);
+          }
+        },
+      };
+
+      /*
+       * Create the Razorpay Checkout instance
+       * and open the payment window.
+       */
+      const razorpayInstance =
+        new Razorpay(options);
+
+      /*
+       * If the customer closes Checkout without
+       * completing payment, the registration remains
+       * intact and can be attempted again.
+       */
+      razorpayInstance.on(
+        "payment.failed",
+        (response) => {
+          console.error(
+            "Razorpay payment failed:",
+            response
+          );
+
+          setError(
+            response?.error?.description ||
+              "Payment failed. Please try again."
+          );
+
+          setPaymentLoading(false);
+        }
       );
 
-      /*
-       * Save generated Student ID so
-       * the success page can display it.
-       */
-      const studentId =
-        json?.data?.student?.studentId;
-
-      if (studentId) {
-        sessionStorage.setItem(
-          "skce_student_id",
-          studentId
-        );
-      }
+      razorpayInstance.open();
 
       /*
-       * Development payment has completed.
+       * Checkout is now open.
+       *
+       * Razorpay will call the handler above after
+       * successful payment.
        */
-      window.location.href =
-        "/registration-success";
+      setPaymentLoading(false);
     } catch (err) {
       console.error(
-        "DEV payment error:",
+        "Razorpay payment error:",
         err
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to complete payment."
+          : "Unable to start payment."
       );
 
       setPaymentLoading(false);
@@ -524,8 +730,8 @@ export default function PaymentPage() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  This is currently a development
-                  payment environment.
+                  Pay securely using Razorpay Test Mode.
+                  No real money will be charged.
                 </p>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -541,7 +747,7 @@ export default function PaymentPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      Razorpay later
+                      Razorpay Test Mode
                     </p>
                   </div>
 
@@ -555,7 +761,7 @@ export default function PaymentPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      Razorpay later
+                      Razorpay Test Mode
                     </p>
                   </div>
 
@@ -566,7 +772,7 @@ export default function PaymentPage() {
                     />
 
                     <p className="mt-3 text-sm font-bold text-slate-800">
-                      DEV Mode
+                      Test Mode
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
@@ -635,17 +841,17 @@ export default function PaymentPage() {
 
               </div>
 
-              {/* DEV Notice */}
+              {/* TEST MODE Notice */}
               <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
 
                 <p className="text-xs font-bold text-[#173B67]">
-                  DEVELOPMENT MODE
+                  RAZORPAY TEST MODE
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-slate-600">
                   No real money will be charged.
-                  This button simulates a successful
-                  payment.
+                  This payment uses Razorpay's
+                  testing environment.
                 </p>
 
               </div>
@@ -657,11 +863,22 @@ export default function PaymentPage() {
                 </div>
               )}
 
+              {/* Razorpay loading error */}
+              {razorpayError && !error && (
+                <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
+                  Unable to load Razorpay Checkout.
+                  Please refresh and try again.
+                </div>
+              )}
+
               {/* Pay Button */}
               <button
                 type="button"
                 onClick={handlePayment}
-                disabled={paymentLoading}
+                disabled={
+                  paymentLoading ||
+                  razorpayLoading
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {paymentLoading ? (
@@ -672,6 +889,15 @@ export default function PaymentPage() {
                     />
 
                     Processing...
+                  </>
+                ) : razorpayLoading ? (
+                  <>
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+
+                    Loading Payment...
                   </>
                 ) : (
                   <>
@@ -701,7 +927,7 @@ export default function PaymentPage() {
                     className="text-[#173B67]"
                   />
 
-                  Backend verification
+                  Backend payment verification
                 </div>
 
               </div>
@@ -713,9 +939,8 @@ export default function PaymentPage() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-          Development payment environment.
-          Razorpay will be connected before
-          production payments are enabled.
+          Razorpay Test Mode is enabled for
+          development. No real money will be charged.
         </p>
 
       </div>

@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
 import { db } from "../../prisma/db";
+import { sendStudentWelcomeEmail } from "../../notifications/services/student-welcome-email.service";
 
 export async function verifyAndCompletePayment(
   razorpayOrderId: string,
@@ -151,15 +152,103 @@ export async function verifyAndCompletePayment(
       // ----------------------------------------------
       // Create Student Profile
       // ----------------------------------------------
+      //
+      // IMPORTANT:
+      // Keep the same registration information that
+      // the existing DEV payment flow stores.
 
       const studentProfile =
         await tx.orm.public.StudentProfile.create({
+          // ------------------------------------------------
+          // Basic student information
+          // ------------------------------------------------
+
           userId: user.id,
+
           studentId,
+
+          dateOfBirth:
+            registrationIntent.dateOfBirth ?? null,
+
+          gender:
+            registrationIntent.gender ?? null,
+
+          qualification:
+            registrationIntent.qualification ?? null,
+
+          organization:
+            registrationIntent.organization ?? null,
+
+          // ------------------------------------------------
+          // Address
+          // ------------------------------------------------
+
+          address:
+            registrationIntent.address ?? null,
+
+          city:
+            registrationIntent.city ?? null,
+
+          pin:
+            registrationIntent.pin ?? null,
+
           state:
             registrationIntent.state ?? null,
+
+          // ------------------------------------------------
+          // Parent / Guardian details
+          // ------------------------------------------------
+
+          guardianName:
+            registrationIntent.guardianName ?? null,
+
+          guardianRelationship:
+            registrationIntent.guardianRelationship ?? null,
+
+          guardianMobile:
+            registrationIntent.guardianMobile ?? null,
+
+          guardianWhatsapp:
+            registrationIntent.guardianWhatsapp ?? null,
+
+          guardianEmail:
+            registrationIntent.guardianEmail ?? null,
+
+          // ------------------------------------------------
+          // Online learning facilities
+          // ------------------------------------------------
+
+          deviceTypes:
+            registrationIntent.deviceTypes ?? null,
+
+          internetFacility:
+            registrationIntent.internetFacility ?? null,
+
+          preferredClassApp:
+            registrationIntent.preferredClassApp ?? null,
+
+          // ------------------------------------------------
+          // Referral / source
+          // ------------------------------------------------
+
           referralId:
             registrationIntent.referralId ?? null,
+
+          referralSource:
+            registrationIntent.referralSource ?? null,
+
+          referralName:
+            registrationIntent.referralName ?? null,
+
+          referralMobile:
+            registrationIntent.referralMobile ?? null,
+
+          // ------------------------------------------------
+          // Declaration
+          // ------------------------------------------------
+
+          declarationAccepted:
+            registrationIntent.declarationAccepted ?? false,
         });
 
       // ----------------------------------------------
@@ -169,7 +258,9 @@ export async function verifyAndCompletePayment(
       const enrollment =
         await tx.orm.public.Enrollment.create({
           userId: user.id,
-          studentId: studentProfile.id,
+
+          studentId:
+            studentProfile.id,
 
           courseId:
             registrationIntent.courseId ?? null,
@@ -186,6 +277,11 @@ export async function verifyAndCompletePayment(
       // ----------------------------------------------
       // Update Payment
       // ----------------------------------------------
+      //
+      // This is the REAL Razorpay payment.
+      // Do not create another payment record here.
+      // The payment record was already created when
+      // the Razorpay order was created.
 
       const updatedPayment =
         await tx.orm.public.Payment
@@ -241,16 +337,56 @@ export async function verifyAndCompletePayment(
 
       return {
         user,
+
         studentProfile,
+
         enrollment,
+
         payment: updatedPayment,
-        registrationIntent: updatedIntent,
+
+        registrationIntent:
+          updatedIntent,
       };
     }
   );
 
   // --------------------------------------------------
-  // 7. Return frontend-safe response
+  // 7. Send student welcome email
+  // --------------------------------------------------
+  //
+  // IMPORTANT:
+  // Send the email only after the database
+  // transaction has successfully committed.
+  //
+  // If email sending fails, the successful
+  // registration/payment remains successful.
+
+  try {
+    console.log(
+      "Sending student welcome email..."
+    );
+
+    console.log(
+      "Student email:",
+      result.user.email
+    );
+
+    await sendStudentWelcomeEmail(
+      result.user.id
+    );
+
+    console.log(
+      "Student welcome email sent successfully."
+    );
+  } catch (emailError) {
+    console.error(
+      "Student welcome email failed:",
+      emailError
+    );
+  }
+
+  // --------------------------------------------------
+  // 8. Return frontend-safe response
   // --------------------------------------------------
 
   return {
@@ -266,36 +402,105 @@ export async function verifyAndCompletePayment(
 
     student: {
       id: result.studentProfile.id,
+
       studentId:
         result.studentProfile.studentId,
+
+      dateOfBirth:
+        result.studentProfile.dateOfBirth,
+
+      gender:
+        result.studentProfile.gender,
+
+      qualification:
+        result.studentProfile.qualification,
+
+      organization:
+        result.studentProfile.organization,
+
+      guardianName:
+        result.studentProfile.guardianName,
+
+      guardianRelationship:
+        result.studentProfile.guardianRelationship,
+
+      guardianMobile:
+        result.studentProfile.guardianMobile,
+
+      guardianWhatsapp:
+        result.studentProfile.guardianWhatsapp,
+
+      guardianEmail:
+        result.studentProfile.guardianEmail,
+
+      deviceTypes:
+        result.studentProfile.deviceTypes,
+
+      internetFacility:
+        result.studentProfile.internetFacility,
+
+      preferredClassApp:
+        result.studentProfile.preferredClassApp,
+
+      address:
+        result.studentProfile.address,
+
+      city:
+        result.studentProfile.city,
+
+      pin:
+        result.studentProfile.pin,
+
       state:
         result.studentProfile.state,
+
       referralId:
         result.studentProfile.referralId,
+
+      referralSource:
+        result.studentProfile.referralSource,
+
+      referralName:
+        result.studentProfile.referralName,
+
+      referralMobile:
+        result.studentProfile.referralMobile,
+
+      declarationAccepted:
+        result.studentProfile.declarationAccepted,
     },
 
     enrollment: {
       id: result.enrollment.id,
+
       status:
         result.enrollment.status,
+
       courseId:
         result.enrollment.courseId,
+
       packageId:
         result.enrollment.packageId,
     },
 
     payment: {
       id: result.payment.id,
+
       amount:
         result.payment.amount,
+
       currency:
         result.payment.currency,
+
       status:
         result.payment.status,
+
       providerOrderId:
         result.payment.providerOrderId,
+
       providerPaymentId:
         result.payment.providerPaymentId,
+
       paidAt:
         result.payment.paidAt,
     },
@@ -303,6 +508,7 @@ export async function verifyAndCompletePayment(
     registrationIntent: {
       id:
         result.registrationIntent.id,
+
       status:
         result.registrationIntent.status,
     },

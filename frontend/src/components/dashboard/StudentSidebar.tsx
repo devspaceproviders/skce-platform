@@ -12,6 +12,7 @@ import {
   User,
   MessageCircle,
   ChevronDown,
+  Star,
   LogOut,
 } from "lucide-react";
 
@@ -40,6 +41,11 @@ const SIDEBAR_ITEMS = [
     href: "/dashboard/student/community",
     label: "Community",
     icon: MessageCircle,
+  },
+  {
+  href: "/dashboard/student/feedback",
+  label: "Give Feedback",
+  icon: Star,
   },
   {
     href: "/dashboard/student/progress",

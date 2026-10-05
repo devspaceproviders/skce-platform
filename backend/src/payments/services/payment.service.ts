@@ -33,17 +33,75 @@ export async function createPaymentOrder(
 
   const amount = coursePackage.price;
 
-  // 4. Create a unique Razorpay receipt
+  // 4. Check whether an internal payment already exists
+  //    for this registration intent.
+  //
+  //    Payment.registrationIntentId is unique in the database,
+  //    so we must reuse the existing payment/order instead
+  //    of creating another Payment record.
+  const existingPayment =
+    await db.orm.public.Payment.first({
+      registrationIntentId:
+        registrationIntent.id,
+    });
+
+  if (
+    existingPayment &&
+    existingPayment.status === "SUCCESS"
+  ) {
+    throw new Error(
+      "This registration has already been completed"
+    );
+  }
+
+  // 5. If a previous Razorpay order already exists,
+  //    reuse it instead of creating another Razorpay order.
+  //
+  //    This allows the student to close Checkout and try again
+  //    without creating duplicate Payment records/orders.
+  if (
+    existingPayment &&
+    existingPayment.status === "CREATED" &&
+    existingPayment.providerOrderId &&
+    registrationIntent.razorpayOrderId ===
+      existingPayment.providerOrderId
+  ) {
+    return {
+      payment: existingPayment,
+
+      order: {
+        id: existingPayment.providerOrderId,
+        amount: existingPayment.amount * 100,
+        currency: existingPayment.currency,
+      },
+
+      registrationIntent: {
+        id: registrationIntent.id,
+        name: registrationIntent.name,
+        email: registrationIntent.email,
+        phone: registrationIntent.phone,
+      },
+
+      package: {
+        id: coursePackage.id,
+        slug: coursePackage.slug,
+        title: coursePackage.title,
+        price: coursePackage.price,
+      },
+    };
+  }
+
+  // 6. Create a unique Razorpay receipt
   const receipt = `SKCE-REG-${registrationIntent.id}-${Date.now()}`;
 
-  // 5. Create Razorpay order
+  // 7. Create Razorpay order
   const razorpayOrder =
     await createRazorpayOrder(
       amount,
       receipt
     );
 
-  // 6. Store the Razorpay order against the registration intent
+  // 8. Store the Razorpay order against the registration intent
   await db.orm.public.RegistrationIntent
     .where({
       id: registrationIntent.id,
@@ -53,7 +111,10 @@ export async function createPaymentOrder(
       status: "CREATED",
     });
 
-  // 7. Create our internal payment record
+  // 9. Create our internal payment record
+  //
+  //    This happens only when there isn't already
+  //    a reusable CREATED payment.
   const payment =
     await db.orm.public.Payment.create({
       registrationIntentId:

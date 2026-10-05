@@ -6,6 +6,7 @@ import {
   getAdminPackage,
   updateAdminPackage,
   uploadPackageImageController,
+  deleteAdminPackage,
 } from "../controllers/package-admin.controller";
 
 import {
@@ -34,6 +35,11 @@ router.post("/", createAdminPackage);
 router.get("/:id", getAdminPackage);
 
 router.patch("/:id", updateAdminPackage);
+
+router.delete(
+  "/:id",
+  deleteAdminPackage
+);
 
 router.post(
   "/:id/image",

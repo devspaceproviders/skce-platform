@@ -1,0 +1,128 @@
+[
+  {
+    "id": "column.public.homepagePopup.mediaType",
+    "label": "Add column \"mediaType\" to \"homepagePopup\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "mediaType",
+        "table": "homepagePopup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"mediaType\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "homepagePopup",
+          "mediaType"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"mediaType\"",
+        "sql": "ALTER TABLE \"public\".\"homepagePopup\" ADD COLUMN \"mediaType\" text DEFAULT 'IMAGE' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"mediaType\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "homepagePopup",
+          "mediaType"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.homepagePopup.videoUrl",
+    "label": "Add column \"videoUrl\" to \"homepagePopup\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "videoUrl",
+        "table": "homepagePopup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"videoUrl\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "homepagePopup",
+          "videoUrl"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"videoUrl\"",
+        "sql": "ALTER TABLE \"public\".\"homepagePopup\" ADD COLUMN \"videoUrl\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"videoUrl\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "homepagePopup",
+          "videoUrl"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.homepagePopup.homepagePopup_mediaType_check_f6ce7902",
+    "label": "Add check constraint \"homepagePopup_mediaType_check_f6ce7902\" on \"homepagePopup\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "homepagePopup_mediaType_check_f6ce7902",
+        "table": "homepagePopup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"homepagePopup_mediaType_check_f6ce7902\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "homepagePopup_mediaType_check_f6ce7902",
+          "public",
+          "\"public\".\"homepagePopup\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"homepagePopup_mediaType_check_f6ce7902\"",
+        "sql": "ALTER TABLE \"public\".\"homepagePopup\" ADD CONSTRAINT \"homepagePopup_mediaType_check_f6ce7902\" CHECK (\"mediaType\" IN ('IMAGE', 'VIDEO'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"homepagePopup_mediaType_check_f6ce7902\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "homepagePopup_mediaType_check_f6ce7902",
+          "public",
+          "\"public\".\"homepagePopup\""
+        ]
+      }
+    ]
+  }
+]

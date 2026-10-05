@@ -1,0 +1,41 @@
+[
+  {
+    "id": "table.homepagePopup",
+    "label": "Create table \"homepagePopup\"",
+    "summary": "Creates table \"homepagePopup\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "homepagePopup"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"homepagePopup\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"homepagePopup\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"homepagePopup\"",
+        "sql": "CREATE TABLE \"public\".\"homepagePopup\" (\n  \"buttonLink\" text,\n  \"buttonText\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" int4 DEFAULT 1 NOT NULL,\n  \"imageUrl\" text,\n  \"isActive\" bool DEFAULT false NOT NULL,\n  \"message\" text,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"homepagePopup\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"homepagePopup\""
+        ]
+      }
+    ]
+  }
+]

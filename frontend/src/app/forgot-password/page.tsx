@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   MailCheck,
   ShieldCheck,
-  ExternalLink,
 } from "lucide-react";
 
 const API_URL =
@@ -16,9 +15,6 @@ const API_URL =
 type ForgotPasswordResponse = {
   success: boolean;
   message: string;
-  data?: {
-    resetUrl?: string | null;
-  };
 };
 
 export default function ForgotPasswordPage() {
@@ -34,16 +30,12 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] =
     useState(false);
 
-  const [resetUrl, setResetUrl] =
-    useState<string | null>(null);
-
   const handleSubmit = async (
     e: FormEvent
   ) => {
     e.preventDefault();
 
     setError("");
-    setResetUrl(null);
 
     if (!email.trim()) {
       setError(
@@ -83,11 +75,6 @@ export default function ForgotPasswordPage() {
         );
       }
 
-      setResetUrl(
-        json.data?.resetUrl ||
-          null
-      );
-
       setSent(true);
     } catch (err) {
       setError(
@@ -123,7 +110,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               <div className="text-xs font-medium text-orange-500">
-                Learn • Grow • Succeed
+                Learn â€¢ Grow â€¢ Succeed
               </div>
             </div>
 
@@ -158,48 +145,22 @@ export default function ForgotPasswordPage() {
               </div>
 
               <h2 className="text-lg font-bold text-slate-900">
-                Reset link ready
+                Reset link sent
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Check your email for the reset instructions.
-                The local development version also provides
-                a direct reset link below.
+                Check your registered email address
+                for the password reset instructions.
+                If you requested a reset, you will
+                receive an email with a secure link
+                to create a new password.
               </p>
-
-              {resetUrl && (
-                <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-left">
-
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#173B67]">
-                    Development Reset Link
-                  </p>
-
-                  <a
-                    href={resetUrl}
-                    className="mt-2 block break-all text-sm font-medium text-orange-600 hover:underline"
-                  >
-                    {resetUrl}
-                  </a>
-
-                  <a
-                    href={resetUrl}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#173B67] px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-500"
-                  >
-                    Open Reset Page
-                    <ExternalLink
-                      size={15}
-                    />
-                  </a>
-
-                </div>
-              )}
 
               <button
                 type="button"
                 onClick={() => {
                   setSent(false);
                   setError("");
-                  setResetUrl(null);
                 }}
                 className="mt-6 w-full rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 hover:border-[#173B67]"
               >

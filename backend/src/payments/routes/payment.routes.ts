@@ -1,22 +1,49 @@
 import { Router } from "express";
 
-import { createOrder } from "../controllers/payment.controller";
-import {
-  verifyPayment,
-} from "../controllers/payment-verification.controller";
 import {
   createRegistrationIntentController,
 } from "../controllers/registration-intent.controller";
+
+import {
+  createOrder,
+} from "../controllers/payment.controller";
+
+import {
+  verifyPayment,
+} from "../controllers/payment-verification.controller";
+
 import {
   completeDevPaymentController,
 } from "../controllers/dev-payment.controller";
 
 const router = Router();
 
+/*
+ * ==========================================================
+ * REGISTRATION INTENT
+ * ==========================================================
+ */
+
 router.post(
   "/registration-intent",
   createRegistrationIntentController
 );
+
+/*
+ * ==========================================================
+ * RAZORPAY
+ * ==========================================================
+ *
+ * Real payment flow:
+ *
+ * create-order
+ *      ↓
+ * Razorpay Checkout
+ *      ↓
+ * verify
+ *      ↓
+ * Backend signature verification
+ */
 
 router.post(
   "/create-order",
@@ -29,15 +56,25 @@ router.post(
 );
 
 /*
- * DEV ONLY
+ * ==========================================================
+ * DEV PAYMENT
+ * ==========================================================
  *
- * Simulates a successful payment so the
- * complete registration flow can be tested
- * before Razorpay onboarding is available.
+ * This endpoint exists only for local development/testing.
+ *
+ * IMPORTANT:
+ * It is intentionally NOT registered when NODE_ENV
+ * is "production".
+ *
+ * Therefore a production server cannot bypass
+ * Razorpay verification through this endpoint.
  */
-router.post(
-  "/dev-complete",
-  completeDevPaymentController
-);
+
+if (process.env.NODE_ENV !== "production") {
+  router.post(
+    "/dev-complete",
+    completeDevPaymentController
+  );
+}
 
 export default router;

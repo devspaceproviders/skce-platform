@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -131,7 +137,7 @@ function formatTime(value: number): string {
   return `${displayHour}:${minutes.toString().padStart(2, "0")} ${suffix}`;
 }
 
-export default function TrainerPermissionsPage() {
+function TrainerPermissionsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -1225,5 +1231,23 @@ export default function TrainerPermissionsPage() {
         </main>
       </div>
     </div>
+  );
+}
+ 
+export default function TrainerPermissionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="text-sm text-slate-500">
+              Loading trainer permissions...
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <TrainerPermissionsContent />
+    </Suspense>
   );
 }

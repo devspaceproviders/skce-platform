@@ -1,0 +1,332 @@
+[
+  {
+    "id": "dropConstraint.studentFeedback.studentFeedback_courseId_fkey",
+    "label": "Drop constraint \"studentFeedback_courseId_fkey\" on \"studentFeedback\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "studentFeedback_courseId_fkey",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"studentFeedback_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_courseId_fkey",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"studentFeedback_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\" DROP CONSTRAINT \"studentFeedback_courseId_fkey\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"studentFeedback_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_courseId_fkey",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropIndex.studentFeedback.studentFeedback_courseId_idx_12f72d2a",
+    "label": "Drop index \"studentFeedback_courseId_idx_12f72d2a\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "studentFeedback_courseId_idx_12f72d2a",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"studentFeedback_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"studentFeedback_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop index \"studentFeedback_courseId_idx_12f72d2a\"",
+        "sql": "DROP INDEX \"public\".\"studentFeedback_courseId_idx_12f72d2a\"",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"studentFeedback_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"studentFeedback_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropConstraint.studentFeedback.studentFeedback_userId_courseId_key",
+    "label": "Drop constraint \"studentFeedback_userId_courseId_key\" on \"studentFeedback\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "studentFeedback_userId_courseId_key",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"studentFeedback_userId_courseId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_userId_courseId_key",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop constraint \"studentFeedback_userId_courseId_key\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\" DROP CONSTRAINT \"studentFeedback_userId_courseId_key\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"studentFeedback_userId_courseId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_userId_courseId_key",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.studentFeedback.packageId",
+    "label": "Add column \"packageId\" to \"studentFeedback\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "packageId",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"packageId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentFeedback",
+          "packageId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"packageId\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\" ADD COLUMN \"packageId\" int4 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"packageId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentFeedback",
+          "packageId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.studentFeedback.courseId",
+    "label": "Drop column \"courseId\" from \"studentFeedback\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "courseId",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"courseId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentFeedback",
+          "courseId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"courseId\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\" DROP COLUMN \"courseId\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"courseId\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "studentFeedback",
+          "courseId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.studentFeedback.studentFeedback_userId_packageId_key",
+    "label": "Add unique constraint on \"studentFeedback\" (userId, packageId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "studentFeedback_userId_packageId_key",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"studentFeedback_userId_packageId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_userId_packageId_key",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"studentFeedback_userId_packageId_key\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\" ADD CONSTRAINT \"studentFeedback_userId_packageId_key\" UNIQUE (\"userId\", \"packageId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"studentFeedback_userId_packageId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_userId_packageId_key",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.studentFeedback.studentFeedback_packageId_idx_51f866f4",
+    "label": "Create index \"studentFeedback_packageId_idx_51f866f4\" on \"studentFeedback\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "studentFeedback_packageId_idx_51f866f4",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"studentFeedback_packageId_idx_51f866f4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"studentFeedback_packageId_idx_51f866f4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"studentFeedback_packageId_idx_51f866f4\"",
+        "sql": "CREATE INDEX \"studentFeedback_packageId_idx_51f866f4\" ON \"public\".\"studentFeedback\" (\"packageId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"studentFeedback_packageId_idx_51f866f4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"studentFeedback_packageId_idx_51f866f4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.studentFeedback.studentFeedback_packageId_fkey",
+    "label": "Add foreign key \"studentFeedback_packageId_fkey\" on \"studentFeedback\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "studentFeedback_packageId_fkey",
+        "table": "studentFeedback"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"studentFeedback_packageId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_packageId_fkey",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"studentFeedback_packageId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"studentFeedback\"\nADD CONSTRAINT \"studentFeedback_packageId_fkey\"\nFOREIGN KEY (\"packageId\")\nREFERENCES \"public\".\"coursePackage\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"studentFeedback_packageId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "studentFeedback_packageId_fkey",
+          "public",
+          "\"public\".\"studentFeedback\""
+        ]
+      }
+    ]
+  }
+]

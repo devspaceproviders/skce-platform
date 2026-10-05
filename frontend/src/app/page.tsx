@@ -1,3 +1,4 @@
+import HomepagePopup from "@/components/Homepagepopup";
 import Hero from "@/components/Hero";
 import StatsBar from "@/components/StatsBar";
 import CoursesPreview from "@/components/CoursesPreview";
@@ -11,16 +12,16 @@ import CEOSection from "@/components/CEOSection";
 export default function HomePage() {
   return (
     <>
+      <HomepagePopup />
       <Hero />
       <StatsBar />
       <CoursesPreview />
-       <PackagesPreview />
+      <PackagesPreview />
       <WhyChooseUs />
       <TrainersPreview />
       <TestimonialsPreview />
       <CEOSection />
       <CTASection />
-      
     </>
   );
 }

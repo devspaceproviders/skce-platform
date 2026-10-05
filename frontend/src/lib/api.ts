@@ -112,11 +112,44 @@ export async function getTrainers(): Promise<
   }
 }
 
-export const getTestimonials = () =>
-  safeFetch<Testimonial[]>(
-    "/testimonials",
-    MOCK_TESTIMONIALS
-  );
+/*
+ * ============================================================
+ * TESTIMONIALS
+ * ============================================================
+ *
+ * Testimonials come from Student Feedback moderation.
+ * Once an Admin approves new feedback, the homepage must
+ * always fetch the latest approved records.
+ *
+ * cache: "no-store" prevents Next.js from showing an older
+ * testimonial response.
+ * ============================================================
+ */
+
+export async function getTestimonials(): Promise<
+  Testimonial[]
+> {
+  try {
+    const res = await fetch(
+      `${API_URL}/testimonials`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        `Request failed: ${res.status}`
+      );
+    }
+
+    const json = await res.json();
+
+    return json.data ?? MOCK_TESTIMONIALS;
+  } catch {
+    return MOCK_TESTIMONIALS;
+  }
+}
 
 export async function getCourseBySlug(
   slug: string

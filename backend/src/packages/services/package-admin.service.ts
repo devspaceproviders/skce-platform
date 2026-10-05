@@ -425,3 +425,91 @@ export async function updatePackageImage(
       imageUrl,
     });
 }
+
+/*
+ * ============================================================
+ * DELETE PACKAGE
+ * ============================================================
+ */
+
+export async function deletePackage(
+  packageId: number
+) {
+  const coursePackage =
+    await db.orm.public.CoursePackage.first({
+      id: packageId,
+    });
+
+  if (!coursePackage) {
+    throw new Error("Package not found");
+  }
+
+  /*
+   * Do not permanently delete packages that already have
+   * student/payment/registration history.
+   *
+   * Deactivation should be used for those packages instead.
+   */
+
+  const enrollments =
+    await db.orm.public.Enrollment.all();
+
+  const packageEnrollments =
+    enrollments.filter(
+      (enrollment) =>
+        enrollment.packageId === packageId
+    );
+
+  if (packageEnrollments.length > 0) {
+    throw new Error(
+      "This package cannot be deleted because student enrollment history exists. Please deactivate the package instead."
+    );
+  }
+
+  const registrationIntents =
+    await db.orm.public.RegistrationIntent.all();
+
+  const packageRegistrationIntents =
+    registrationIntents.filter(
+      (registration) =>
+        registration.packageId === packageId
+    );
+
+  if (packageRegistrationIntents.length > 0) {
+    throw new Error(
+      "This package cannot be deleted because registration history exists. Please deactivate the package instead."
+    );
+  }
+
+  const certificates =
+    await db.orm.public.Certificate.all();
+
+  const packageCertificates =
+    certificates.filter(
+      (certificate) =>
+        certificate.packageId === packageId
+    );
+
+  if (packageCertificates.length > 0) {
+    throw new Error(
+      "This package cannot be deleted because certificate history exists. Please deactivate the package instead."
+    );
+  }
+
+  const deleted =
+    await db.orm.public.CoursePackage
+      .where({
+        id: packageId,
+      })
+      .delete();
+
+  if (!deleted) {
+    throw new Error(
+      "Package could not be deleted"
+    );
+  }
+
+  return {
+    id: packageId,
+  };
+}

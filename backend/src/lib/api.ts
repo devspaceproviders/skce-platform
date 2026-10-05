@@ -1,13 +1,72 @@
-import { Course, Trainer, Testimonial } from "@/types";
-import {
-  MOCK_COURSES,
-  MOCK_TRAINERS,
-  MOCK_TESTIMONIALS,
-} from "./mockData";
+// ============================================================
+// API HELPERS
+// ============================================================
+//
+// This file is retained for compatibility with existing code.
+// The backend does not use Next.js-specific fetch options or
+// frontend mock-data modules.
+//
+// ============================================================
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
+
+// ============================================================
+// TYPES
+// ============================================================
+
+export type Course = {
+  id?: number | string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  mode?: string;
+  durationMonths?: number;
+  duration?: string | null;
+  modules?: number;
+  price?: number | null;
+  enrolled?: number;
+  imageUrl?: string | null;
+  language?: string;
+  totalVideos?: number;
+  hasCertificate?: boolean;
+  accentColor?: string;
+  aboutLong?: string;
+  whatYouWillLearn?: string[];
+  requirements?: string[];
+  topics?: Array<{
+    title: string;
+    lessons: string[];
+  }>;
+  instructor?: {
+    name: string;
+    title?: string;
+    avatarUrl?: string;
+    bio?: string;
+  };
+};
+
+export type Trainer = {
+  id: string | number;
+  name: string;
+  yearsExperience?: number;
+  avatarUrl?: string;
+  specialty?: string;
+};
+
+export type Testimonial = {
+  id: string | number;
+  studentName: string;
+  initials?: string;
+  course?: string;
+  rating: number;
+  quote: string;
+};
+
+// ============================================================
+// SAFE FETCH
+// ============================================================
 
 async function safeFetch<T>(
   path: string,
@@ -15,12 +74,7 @@ async function safeFetch<T>(
 ): Promise<T> {
   try {
     const res = await fetch(
-      `${API_URL}${path}`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
+      `${API_URL}${path}`
     );
 
     if (!res.ok) {
@@ -33,30 +87,23 @@ async function safeFetch<T>(
 
     return json.data ?? fallback;
   } catch {
-    // Backend not reachable yet during local
-    // frontend-only development.
     return fallback;
   }
 }
 
+// ============================================================
+// COURSES
+// ============================================================
+
 export const getCourses = () =>
   safeFetch<Course[]>(
     "/courses",
-    MOCK_COURSES
+    []
   );
 
-/*
- * ============================================================
- * TRAINERS
- * ============================================================
- *
- * Trainers must always use the latest backend data because
- * profile photos can be changed by trainers/admins.
- *
- * cache: "no-store" prevents Next.js from serving an
- * older trainer response.
- * ============================================================
- */
+// ============================================================
+// TRAINERS
+// ============================================================
 
 export async function getTrainers(): Promise<
   Trainer[]
@@ -77,34 +124,32 @@ export async function getTrainers(): Promise<
 
     const json = await res.json();
 
-    return json.data ?? MOCK_TRAINERS;
+    return json.data ?? [];
   } catch {
-    return MOCK_TRAINERS;
+    return [];
   }
 }
+
+// ============================================================
+// TESTIMONIALS
+// ============================================================
 
 export const getTestimonials = () =>
   safeFetch<Testimonial[]>(
     "/testimonials",
-    MOCK_TESTIMONIALS
+    []
   );
+
+// ============================================================
+// COURSE BY SLUG
+// ============================================================
 
 export async function getCourseBySlug(
   slug: string
 ): Promise<Course | null> {
-  const fallback =
-    MOCK_COURSES.find(
-      (c) => c.slug === slug
-    ) ?? null;
-
   try {
     const res = await fetch(
-      `${API_URL}/courses/${slug}`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
+      `${API_URL}/courses/${slug}`
     );
 
     if (!res.ok) {
@@ -116,14 +161,14 @@ export async function getCourseBySlug(
     const json = await res.json();
 
     if (!json.success || !json.data) {
-      return fallback;
+      return null;
     }
 
     const data = json.data;
 
     const modeMap: Record<
       string,
-      Course["mode"]
+      string
     > = {
       ONLINE: "Online",
       OFFLINE: "Offline",
@@ -177,9 +222,13 @@ export async function getCourseBySlug(
       instructor,
     };
   } catch {
-    return fallback;
+    return null;
   }
 }
+
+// ============================================================
+// CONTACT
+// ============================================================
 
 export async function submitContactForm(
   payload: {
@@ -247,12 +296,7 @@ export async function getPackages(): Promise<
 > {
   try {
     const res = await fetch(
-      `${API_URL}/packages`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
+      `${API_URL}/packages`
     );
 
     if (!res.ok) {
@@ -284,17 +328,16 @@ export async function getPackages(): Promise<
   }
 }
 
+// ============================================================
+// PACKAGE BY SLUG
+// ============================================================
+
 export async function getPackageBySlug(
   slug: string
 ): Promise<CoursePackage | null> {
   try {
     const res = await fetch(
-      `${API_URL}/packages/${slug}`,
-      {
-        next: {
-          revalidate: 60,
-        },
-      }
+      `${API_URL}/packages/${slug}`
     );
 
     if (!res.ok) {

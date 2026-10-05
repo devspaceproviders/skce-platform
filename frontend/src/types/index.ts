@@ -56,6 +56,7 @@ export interface Testimonial {
   id: string;
   studentName: string;
   initials: string;
+  profilePhotoUrl?: string | null;
   course: string;
   rating: number;
   quote: string;

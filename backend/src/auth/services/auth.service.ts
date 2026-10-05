@@ -3,6 +3,12 @@ import crypto from "crypto";
 
 import { db } from "../../prisma/db";
 
+import { sendEmail } from "../../notifications/services/email.service";
+
+import {
+  buildPasswordResetEmail,
+} from "../../notifications/templates/password-reset.template";
+
 import type {
   LoginInput,
   RegisterInput,
@@ -478,14 +484,11 @@ export async function requestPasswordReset(
   /*
    * Do not reveal whether an email exists.
    */
-
   if (
     !user ||
     !user.passwordHash
   ) {
-    return {
-      resetUrl: null,
-    };
+    return;
   }
 
   const token =
@@ -504,40 +507,33 @@ export async function requestPasswordReset(
     )}`;
 
   /*
-   * Local development:
-   * expose the reset URL so the flow can be tested.
-   *
-   * Production:
-   * the URL should be sent through the configured
-   * email provider.
+   * Build the password reset email.
    */
+  const emailContent =
+    buildPasswordResetEmail({
+      userName:
+        user.name,
 
-  if (
-    process.env.NODE_ENV !==
-    "production"
-  ) {
-    console.log(
-      "\n================================================="
-    );
-
-    console.log(
-      "[SKCE PASSWORD RESET]"
-    );
-
-    console.log(resetUrl);
-
-    console.log(
-      "=================================================\n"
-    );
-
-    return {
       resetUrl,
-    };
-  }
+    });
 
-  return {
-    resetUrl: null,
-  };
+  /*
+   * Send the reset link only to the
+   * registered email address.
+   */
+  await sendEmail({
+    to:
+      user.email,
+
+    subject:
+      "Reset Your Password - SK Computer Education",
+
+    html:
+      emailContent.html,
+
+    text:
+      emailContent.text,
+  });
 }
 
 /* ==========================================================

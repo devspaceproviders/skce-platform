@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +21,8 @@ import {
   ChevronRight,
   UserCircle,
   MessageCircle,
+  Megaphone,
+  Star,
 } from "lucide-react";
 
 const MENU_SECTIONS = [
@@ -122,6 +124,11 @@ const MENU_SECTIONS = [
         label: "Profile",
         icon: UserCircle,
       },
+      {
+        href: "/dashboard/admin/homepage-popup",
+        label: "Homepage Popup",
+        icon: Megaphone,
+      },
     ],
   },
 ];
@@ -188,7 +195,7 @@ export default function AdminSidebar() {
       </Link>
 
       {/* NAVIGATION */}
-      <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4">
         <div className="space-y-5">
           {MENU_SECTIONS.map((section) => (
             <div key={section.label}>
@@ -256,6 +263,7 @@ export default function AdminSidebar() {
                   : "text-blue-50/80 hover:bg-white/[0.08] hover:text-white"
               }`}
             >
+
               <MessageCircle
                 size={18}
                 strokeWidth={
@@ -281,6 +289,42 @@ export default function AdminSidebar() {
                 />
               )}
             </Link>
+
+
+                      <Link
+            href="/dashboard/admin/feedback"
+            className={`group mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+              pathname.startsWith("/dashboard/admin/feedback")
+                ? "bg-orange-500 text-white shadow-md shadow-orange-950/20"
+                : "text-blue-50/80 hover:bg-white/[0.08] hover:text-white"
+            }`}
+          >
+            <Star
+              size={18}
+              strokeWidth={
+                pathname.startsWith("/dashboard/admin/feedback")
+                  ? 2.3
+                  : 1.9
+              }
+              className={
+                pathname.startsWith("/dashboard/admin/feedback")
+                  ? "text-white"
+                  : "text-blue-100/65 group-hover:text-orange-400"
+              }
+            />
+
+            <span className="flex-1">
+              Feedback
+            </span>
+
+            {pathname.startsWith("/dashboard/admin/feedback") && (
+              <ChevronRight
+                size={15}
+                className="text-white/80"
+              />
+            )}
+          </Link>
+          
           </div>
         </div>
       </nav>

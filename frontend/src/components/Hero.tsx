@@ -18,16 +18,8 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-[1500px] px-6 lg:px-10">
         <div className="grid min-h-[calc(100vh-80px)] items-center gap-4 lg:grid-cols-[52%_48%]">
-          
           {/* ================= LEFT CONTENT ================= */}
           <div className="relative z-10 py-14 sm:py-16 lg:py-12">
-            
-            {/* Admissions */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-[#173B67]">
-              <span className="h-2 w-2 rounded-full bg-orange-500" />
-              Admissions Open — 2026 Batches
-            </div>
-
             {/* Brand */}
             <div className="mt-7 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-[#173B67]">
               <span>SK Computer Education</span>
@@ -106,7 +98,6 @@ export default function Hero() {
 
           {/* ================= RIGHT VISUAL ================= */}
           <div className="relative flex min-h-[430px] items-center justify-center lg:min-h-[650px]">
-            
             {/* Soft visual background */}
             <div className="absolute right-0 top-1/2 h-[500px] w-[500px] -translate-y-1/2 rounded-full bg-blue-100/35 blur-3xl" />
 
