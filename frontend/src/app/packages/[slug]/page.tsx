@@ -9,6 +9,9 @@ import {
 
 import { getPackageBySlug } from "@/lib/api";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 export const revalidate = 60;
 
 export async function generateMetadata({
@@ -41,6 +44,10 @@ export default async function PackageDetailPage({
 
   const courses = pkg.courses ?? [];
 
+  const packageImageUrl = pkg.imageUrl
+    ? `${API_URL.replace("/api", "")}${pkg.imageUrl}`
+    : null;
+
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Hero */}
@@ -56,9 +63,20 @@ export default async function PackageDetailPage({
           </Link>
 
           {/* Package Header */}
-          <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-orange-500">
-              <Package size={30} />
+          <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
+            {/* Package Image */}
+            <div className="h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-lg">
+              {packageImageUrl ? (
+                <img
+                  src={packageImageUrl}
+                  alt={pkg.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600">
+                  <Package size={42} />
+                </div>
+              )}
             </div>
 
             <div>
@@ -128,11 +146,22 @@ export default async function PackageDetailPage({
 
           {/* Side Card */}
           <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
-              <Package
-                className="text-orange-500"
-                size={23}
-              />
+            {/* Package Thumbnail */}
+            <div className="mb-5 h-20 w-20 overflow-hidden rounded-xl bg-orange-100">
+              {packageImageUrl ? (
+                <img
+                  src={packageImageUrl}
+                  alt={pkg.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Package
+                    className="text-orange-500"
+                    size={30}
+                  />
+                </div>
+              )}
             </div>
 
             <h3 className="text-xl font-bold text-slate-900">

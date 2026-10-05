@@ -22,11 +22,20 @@ const documentDirectory = path.join(
   "documents"
 );
 
+const imageDirectory = path.join(
+  courseContentDirectory,
+  "images"
+);
+
 fs.mkdirSync(videoDirectory, {
   recursive: true,
 });
 
 fs.mkdirSync(documentDirectory, {
+  recursive: true,
+});
+
+fs.mkdirSync(imageDirectory, {
   recursive: true,
 });
 
@@ -125,13 +134,9 @@ const documentStorage = multer.diskStorage({
 
 const allowedDocumentMimeTypes = new Set([
   "application/pdf",
-
   "application/msword",
-
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-
   "application/vnd.ms-powerpoint",
-
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ]);
 
@@ -157,5 +162,67 @@ export const courseDocumentUpload = multer({
   fileFilter: documentFileFilter,
   limits: {
     fileSize: 20 * 1024 * 1024,
+  },
+});
+
+/* =========================================================
+   LESSON IMAGE UPLOAD
+========================================================= */
+
+const imageStorage = multer.diskStorage({
+  destination: (
+    _req,
+    _file,
+    cb
+  ) => {
+    cb(null, imageDirectory);
+  },
+
+  filename: (
+    _req,
+    file,
+    cb
+  ) => {
+    const extension =
+      path.extname(file.originalname)
+        .toLowerCase();
+
+    const uniqueName =
+      `lesson-${Date.now()}-${Math.round(
+        Math.random() * 1_000_000_000
+      )}${extension}`;
+
+    cb(null, uniqueName);
+  },
+});
+
+const allowedImageMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const imageFileFilter: multer.Options["fileFilter"] = (
+  _req,
+  file,
+  cb
+) => {
+  if (!allowedImageMimeTypes.has(file.mimetype)) {
+    cb(
+      new Error(
+        "Only JPG, PNG, and WEBP images are allowed."
+      )
+    );
+    return;
+  }
+
+  cb(null, true);
+};
+
+export const lessonImageUpload = multer({
+  storage: imageStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
   },
 });

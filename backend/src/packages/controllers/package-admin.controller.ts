@@ -5,6 +5,7 @@ import {
   getAdminPackageById,
   listAdminPackages as listPackages,
   updatePackage,
+  updatePackageImage,
 } from "../services/package-admin.service";
 
 function parseId(value: unknown) {
@@ -125,5 +126,92 @@ export async function updateAdminPackage(
   } catch (error) {
     console.error("Update admin package error:", error);
     return sendError(res, error);
+  }
+}
+
+/*
+ * ============================================================
+ * PACKAGE IMAGE
+ * ============================================================
+ *
+ * POST /api/admin/packages/:id/image
+ *
+ * ADMIN only.
+ *
+ * Content-Type:
+ * multipart/form-data
+ *
+ * Field name:
+ * image
+ *
+ * ============================================================
+ */
+
+export async function uploadPackageImageController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const idParam = req.params.id;
+
+    const packageId = Number(idParam);
+
+    if (
+      !Number.isInteger(packageId) ||
+      packageId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid package ID is required",
+      });
+    }
+
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Package image is required",
+      });
+    }
+
+    const imageUrl =
+      `/uploads/packages/${file.filename}`;
+
+    const coursePackage =
+      await updatePackageImage(
+        packageId,
+        imageUrl
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Package image updated successfully",
+      data: coursePackage,
+    });
+  } catch (error) {
+    console.error(
+      "Upload package image error:",
+      error
+    );
+
+    if (
+      error instanceof Error &&
+      error.message === "Package not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "Package not found",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to upload package image",
+    });
   }
 }

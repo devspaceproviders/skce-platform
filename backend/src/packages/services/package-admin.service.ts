@@ -23,7 +23,11 @@ function validateCourseIds(courseIds: number[]) {
 
   const normalized = courseIds.map((id) => Number(id));
 
-  if (normalized.some((id) => !Number.isInteger(id) || id <= 0)) {
+  if (
+    normalized.some(
+      (id) => !Number.isInteger(id) || id <= 0
+    )
+  ) {
     throw new Error("Invalid course ID");
   }
 
@@ -78,9 +82,14 @@ async function validateActiveCourses(courseIds: number[]) {
 }
 
 export async function listAdminPackages() {
-  const packages = await db.orm.public.CoursePackage.all();
-  const packageCourses = await db.orm.public.PackageCourse.all();
-  const courses = await db.orm.public.Course.all();
+  const packages =
+    await db.orm.public.CoursePackage.all();
+
+  const packageCourses =
+    await db.orm.public.PackageCourse.all();
+
+  const courses =
+    await db.orm.public.Course.all();
 
   return packages.map((coursePackage) => {
     const links = packageCourses.filter(
@@ -89,7 +98,9 @@ export async function listAdminPackages() {
 
     const selectedCourses = links
       .map((link) =>
-        courses.find((course) => course.id === link.courseId)
+        courses.find(
+          (course) => course.id === link.courseId
+        )
       )
       .filter(
         (course): course is (typeof courses)[number] =>
@@ -111,22 +122,29 @@ export async function listAdminPackages() {
       description: coursePackage.description,
       price: coursePackage.price,
       isActive: coursePackage.isActive,
+      imageUrl: coursePackage.imageUrl,
       courses: selectedCourses,
     };
   });
 }
 
-export async function getAdminPackageById(packageId: number) {
-  const coursePackage = await db.orm.public.CoursePackage.first({
-    id: packageId,
-  });
+export async function getAdminPackageById(
+  packageId: number
+) {
+  const coursePackage =
+    await db.orm.public.CoursePackage.first({
+      id: packageId,
+    });
 
   if (!coursePackage) {
     throw new Error("Package not found");
   }
 
-  const packageCourses = await db.orm.public.PackageCourse.all();
-  const courses = await db.orm.public.Course.all();
+  const packageCourses =
+    await db.orm.public.PackageCourse.all();
+
+  const courses =
+    await db.orm.public.Course.all();
 
   const links = packageCourses.filter(
     (link) => link.packageId === packageId
@@ -134,7 +152,9 @@ export async function getAdminPackageById(packageId: number) {
 
   const selectedCourses = links
     .map((link) =>
-      courses.find((course) => course.id === link.courseId)
+      courses.find(
+        (course) => course.id === link.courseId
+      )
     )
     .filter(
       (course): course is (typeof courses)[number] =>
@@ -166,13 +186,18 @@ export async function getAdminPackageById(packageId: number) {
     description: coursePackage.description,
     price: coursePackage.price,
     isActive: coursePackage.isActive,
+    imageUrl: coursePackage.imageUrl,
     courses: selectedCourses,
     availableCourses,
   };
 }
 
-export async function createPackage(input: CreatePackageInput) {
-  const title = String(input.title ?? "").trim();
+export async function createPackage(
+  input: CreatePackageInput
+) {
+  const title = String(
+    input.title ?? ""
+  ).trim();
 
   if (!title) {
     throw new Error("Package title is required");
@@ -181,7 +206,9 @@ export async function createPackage(input: CreatePackageInput) {
   const price = Number(input.price);
 
   if (!Number.isInteger(price) || price < 0) {
-    throw new Error("Package price must be a valid positive amount");
+    throw new Error(
+      "Package price must be a valid positive amount"
+    );
   }
 
   const courseIds = validateCourseIds(
@@ -215,7 +242,9 @@ export async function createPackage(input: CreatePackageInput) {
     });
   }
 
-  return getAdminPackageById(coursePackage.id);
+  return getAdminPackageById(
+    coursePackage.id
+  );
 }
 
 export async function updatePackage(
@@ -239,10 +268,14 @@ export async function updatePackage(
   } = {};
 
   if (input.title !== undefined) {
-    const title = String(input.title).trim();
+    const title = String(
+      input.title
+    ).trim();
 
     if (!title) {
-      throw new Error("Package title is required");
+      throw new Error(
+        "Package title is required"
+      );
     }
 
     updateData.title = title;
@@ -252,23 +285,32 @@ export async function updatePackage(
     const description =
       input.description === null
         ? null
-        : String(input.description).trim();
+        : String(
+            input.description
+          ).trim();
 
-    updateData.description = description || null;
+    updateData.description =
+      description || null;
   }
 
   if (input.price !== undefined) {
     const price = Number(input.price);
 
-    if (!Number.isInteger(price) || price < 0) {
-      throw new Error("Package price must be a valid positive amount");
+    if (
+      !Number.isInteger(price) ||
+      price < 0
+    ) {
+      throw new Error(
+        "Package price must be a valid positive amount"
+      );
     }
 
     updateData.price = price;
   }
 
   if (input.isActive !== undefined) {
-    updateData.isActive = Boolean(input.isActive);
+    updateData.isActive =
+      Boolean(input.isActive);
   }
 
   let updatedPackage = coursePackage;
@@ -282,32 +324,49 @@ export async function updatePackage(
         .update(updateData);
 
     if (!result) {
-      throw new Error("Package not found while updating");
+      throw new Error(
+        "Package not found while updating"
+      );
     }
 
     updatedPackage = result;
   }
 
   if (input.courseIds !== undefined) {
-    const courseIds = validateCourseIds(input.courseIds);
+    const courseIds =
+      validateCourseIds(
+        input.courseIds
+      );
 
-    await validateActiveCourses(courseIds);
+    await validateActiveCourses(
+      courseIds
+    );
 
     const existingLinks =
       await db.orm.public.PackageCourse.all();
 
-    const packageLinks = existingLinks.filter(
-      (link) => link.packageId === packageId
-    );
+    const packageLinks =
+      existingLinks.filter(
+        (link) =>
+          link.packageId === packageId
+      );
 
-    const existingCourseIds = new Set(
-      packageLinks.map((link) => link.courseId)
-    );
+    const existingCourseIds =
+      new Set(
+        packageLinks.map(
+          (link) => link.courseId
+        )
+      );
 
-    const requestedCourseIds = new Set(courseIds);
+    const requestedCourseIds =
+      new Set(courseIds);
 
     for (const link of packageLinks) {
-      if (!requestedCourseIds.has(link.courseId)) {
+      if (
+        !requestedCourseIds.has(
+          link.courseId
+        )
+      ) {
         await db.orm.public.PackageCourse
           .where({
             id: link.id,
@@ -317,14 +376,52 @@ export async function updatePackage(
     }
 
     for (const courseId of courseIds) {
-      if (!existingCourseIds.has(courseId)) {
-        await db.orm.public.PackageCourse.create({
-          packageId,
-          courseId,
-        });
+      if (
+        !existingCourseIds.has(
+          courseId
+        )
+      ) {
+        await db.orm.public.PackageCourse.create(
+          {
+            packageId,
+            courseId,
+          }
+        );
       }
     }
   }
 
-  return getAdminPackageById(updatedPackage.id);
+  return getAdminPackageById(
+    updatedPackage.id
+  );
+}
+
+/*
+ * ============================================================
+ * PACKAGE IMAGE
+ * ============================================================
+ */
+
+export async function updatePackageImage(
+  packageId: number,
+  imageUrl: string
+) {
+  const coursePackage =
+    await db.orm.public.CoursePackage.first({
+      id: packageId,
+    });
+
+  if (!coursePackage) {
+    throw new Error(
+      "Package not found"
+    );
+  }
+
+  return db.orm.public.CoursePackage
+    .where({
+      id: packageId,
+    })
+    .update({
+      imageUrl,
+    });
 }

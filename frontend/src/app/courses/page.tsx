@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Package } from "lucide-react";
+import { ArrowRight, Check, Package, BookOpen } from "lucide-react";
 import CourseCard from "@/components/CourseCard";
 import { getCourses, getPackages } from "@/lib/api";
 
@@ -89,6 +89,27 @@ export default async function CoursesPage() {
                   key={pkg.id}
                   className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-xl"
                 >
+                  {/* Package Image */}
+                  {pkg.imageUrl ? (
+                    <div className="h-48 w-full overflow-hidden bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={pkg.imageUrl}
+                        alt={pkg.title}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-48 w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200">
+                      <div className="text-center">
+                        <Package className="mx-auto mb-2 h-10 w-10 text-slate-300" />
+                        <p className="text-sm font-semibold text-slate-400">
+                          No Image
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Package Header */}
                   <div className="bg-[#173B67] p-6 text-white">
                     <div className="mb-4 flex items-center gap-3">

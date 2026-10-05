@@ -16,6 +16,12 @@ import {
 
   CheckCircle2,
 
+  ChevronDown,
+
+  ChevronUp,
+
+  ClipboardList,
+
   Eye,
 
   GraduationCap,
@@ -35,6 +41,8 @@ import {
   Users,
 
   X,
+
+  XCircle,
 
 } from "lucide-react";
 
@@ -196,7 +204,7 @@ type ProgressData = {
 
 
 
-type StudentTab = "overview" | "progress" | "enrollments" | "payments";
+type StudentTab = "overview" | "progress" | "assessments" | "enrollments" | "payments";
 
 
 
@@ -2164,6 +2172,8 @@ export default function StudentsPage() {
 
                     ["progress", "Progress", BarChart3],
 
+                    ["assessments", "Assessments", ClipboardList],
+
                     ["enrollments", "Enrollments", GraduationCap],
 
                     ["payments", "Payments", Package],
@@ -2272,6 +2282,14 @@ export default function StudentsPage() {
 
 
 
+                  {activeStudentTab === "assessments" && (
+
+                    <AssessmentsTab assessments={assessments} />
+
+                  )}
+
+
+
                   {activeStudentTab === "enrollments" && (
 
                     <EnrollmentsTab enrollments={enrollments} />
@@ -2325,6 +2343,301 @@ export default function StudentsPage() {
 }
 
 
+
+
+function AssessmentsTab({ assessments }: { assessments: any[] }) {
+  const [openAssessmentId, setOpenAssessmentId] = useState<string | null>(null);
+  const [selectedAttempt, setSelectedAttempt] = useState<Record<string, number>>({});
+
+  if (!assessments.length) {
+    return <EmptyBox text="No assessments available for this student." />;
+  }
+
+  const parseAnswers = (answers: unknown): Record<string, string> => {
+    if (!answers) return {};
+    if (typeof answers === "object" && answers !== null) {
+      return answers as Record<string, string>;
+    }
+    if (typeof answers === "string") {
+      try {
+        const parsed = JSON.parse(answers);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+
+  const normalizeAnswer = (value: unknown) =>
+    String(value ?? "").trim().toUpperCase();
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
+            <ClipboardList size={19} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-[#173B67]">Student Assessments</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              View assignments, quizzes, every submitted attempt, scores and quiz answers.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {assessments.map((assessment, index) => {
+        const key = String(assessment.assessmentId ?? assessment.id ?? index);
+        const attempts = Array.isArray(assessment.attempts)
+          ? assessment.attempts
+          : [];
+        const isOpen = openAssessmentId === key;
+        const attemptIndex = selectedAttempt[key] ?? Math.max(attempts.length - 1, 0);
+        const attempt = attempts[attemptIndex] ?? null;
+        const answers = parseAnswers(attempt?.answers);
+        const title =
+          assessment.title ||
+          assessment.assessment?.title ||
+          `Assessment ${index + 1}`;
+        const courseTitle =
+          assessment.courseTitle ||
+          assessment.course?.title ||
+          assessment.assessment?.course?.title ||
+          "—";
+        const type = assessment.type || assessment.assessment?.type || "ASSESSMENT";
+        const totalMarks =
+          assessment.totalMarks ?? assessment.assessment?.totalMarks ?? null;
+        const questions = Array.isArray(assessment.questions)
+          ? assessment.questions
+          : [];
+        const status =
+          attempt?.status ||
+          assessment.submissionStatus ||
+          "NOT_ATTEMPTED";
+
+        return (
+          <section
+            key={key}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+          >
+            <button
+              type="button"
+              onClick={() => setOpenAssessmentId(isOpen ? null : key)}
+              className="flex w-full items-center justify-between gap-4 p-4 text-left hover:bg-slate-50"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-sm font-bold text-[#173B67]">{title}</h3>
+                  <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-orange-600">
+                    {type}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span>Course: {courseTitle}</span>
+                  <span>Attempts: {assessment.attemptCount ?? attempts.length}</span>
+                  <span>
+                    Score: {attempt?.score ?? assessment.score ?? "—"}
+                    {totalMarks ? ` / ${totalMarks}` : ""}
+                  </span>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600">
+                  {String(status).replaceAll("_", " ")}
+                </span>
+                {isOpen ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+              </div>
+            </button>
+
+            {isOpen && (
+              <div className="border-t border-slate-100 p-4">
+                {attempts.length > 0 && (
+                  <div className="mb-5 flex flex-wrap gap-2">
+                    {attempts.map((item: any, attemptIdx: number) => (
+                      <button
+                        key={item.id ?? attemptIdx}
+                        type="button"
+                        onClick={() =>
+                          setSelectedAttempt((current) => ({
+                            ...current,
+                            [key]: attemptIdx,
+                          }))
+                        }
+                        className={`rounded-xl px-3 py-2 text-xs font-bold ${
+                          attemptIdx === attemptIndex
+                            ? "bg-[#173B67] text-white"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        Attempt {item.attemptNumber ?? attemptIdx + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {attempt ? (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <AssessmentInfo label="Attempt" value={String(attempt.attemptNumber ?? attemptIndex + 1)} />
+                      <AssessmentInfo
+                        label="Score"
+                        value={`${attempt.score ?? "—"}${totalMarks ? ` / ${totalMarks}` : ""}`}
+                      />
+                      <AssessmentInfo
+                        label="Status"
+                        value={String(attempt.status ?? "—").replaceAll("_", " ")}
+                      />
+                      <AssessmentInfo
+                        label="Submitted"
+                        value={attempt.submittedAt ? formatDateTime(attempt.submittedAt) : "Not submitted"}
+                      />
+                    </div>
+
+                    {attempt.feedback && (
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                        <p className="text-xs font-bold text-blue-800">Feedback</p>
+                        <p className="mt-1 text-sm text-blue-700">{attempt.feedback}</p>
+                      </div>
+                    )}
+
+                    {attempt.submissionComment && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs font-bold text-slate-600">Student Comment</p>
+                        <p className="mt-1 text-sm text-slate-600">{attempt.submissionComment}</p>
+                      </div>
+                    )}
+
+                    {attempt.submissionFileName && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs font-bold text-slate-600">Assignment File</p>
+                        <p className="mt-1 text-sm text-slate-700">{attempt.submissionFileName}</p>
+                      </div>
+                    )}
+
+                    {type === "QUIZ" && questions.length > 0 ? (
+                      <div>
+                        <div className="mb-3">
+                          <p className="text-sm font-bold text-[#173B67]">Quiz Answers</p>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            Selected answers are compared with the stored correct answers.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3">
+                          {questions.map((question: any, questionIndex: number) => {
+                            const selected = normalizeAnswer(
+                              answers[String(question.id)] ??
+                                answers[question.id] ??
+                                answers[String(questionIndex)] ??
+                                answers[questionIndex]
+                            );
+                            const correct = normalizeAnswer(question.correctAnswer);
+                            const hasAnswer = Boolean(selected);
+                            const isCorrect = hasAnswer && selected === correct;
+                            const options = [
+                              ["A", question.optionA],
+                              ["B", question.optionB],
+                              ["C", question.optionC],
+                              ["D", question.optionD],
+                            ] as const;
+
+                            return (
+                              <div key={question.id ?? questionIndex} className="rounded-xl border border-slate-200 p-4">
+                                <div className="flex items-start gap-3">
+                                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+                                    {questionIndex + 1}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold text-slate-700">{question.question}</p>
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                      {options.map(([letter, option]) =>
+                                        option ? (
+                                          <div
+                                            key={letter}
+                                            className={`rounded-lg border px-3 py-2 text-xs ${
+                                              correct === letter
+                                                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                                : selected === letter
+                                                  ? "border-red-300 bg-red-50 text-red-800"
+                                                  : "border-slate-200 bg-slate-50 text-slate-600"
+                                            }`}
+                                          >
+                                            <span className="font-bold">{letter}.</span> {option}
+                                            {selected === letter && <span className="ml-2 font-bold">— Selected</span>}
+                                            {correct === letter && <span className="ml-2 font-bold">— Correct</span>}
+                                          </div>
+                                        ) : null
+                                      )}
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                                      <span className="font-semibold text-slate-500">
+                                        Student answer: <span className="text-slate-700">{hasAnswer ? selected : "Not answered"}</span>
+                                      </span>
+                                      <span className="font-semibold text-slate-500">
+                                        Correct answer: <span className="text-emerald-700">{correct || "Not available"}</span>
+                                      </span>
+                                      <span className="font-semibold text-slate-500">
+                                        Marks: <span className="text-slate-700">{question.marks ?? "—"}</span>
+                                      </span>
+                                      {hasAnswer && isCorrect ? (
+                                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
+                                          <CheckCircle2 size={14} /> Correct
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 font-bold text-red-600">
+                                          <XCircle size={14} /> {hasAnswer ? "Incorrect" : "Not answered"}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-semibold text-slate-600">
+                          {type === "QUIZ"
+                            ? "No quiz questions are available for this assessment."
+                            : "Assignment submission details are shown above."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center">
+                    <p className="text-sm font-semibold text-slate-600">
+                      This assessment has not been attempted yet.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssessmentInfo({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-[#173B67]">{value}</p>
+    </div>
+  );
+}
 
 function OverviewTab({ student }: { student: Student }) {
 

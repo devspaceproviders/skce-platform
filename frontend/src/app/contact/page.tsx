@@ -7,7 +7,47 @@ export const metadata = {
   title: "Contact — SK Computer Education",
 };
 
-export default function ContactPage() {
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+interface ContactSettings {
+  phone: string;
+  email: string;
+  address: string;
+  workingHours: string;
+  mapUrl?: string | null;
+}
+
+async function getContactSettings(): Promise<ContactSettings> {
+  try {
+    const response = await fetch(`${API_URL}/contact/settings`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to load contact settings");
+    }
+
+    const result = await response.json();
+
+    return result.data;
+  } catch (error) {
+    console.error("Contact settings load error:", error);
+
+    return {
+      phone: "+91 98854 22483",
+      email: "admissions@skce.in",
+      address:
+        "Door NO: 22-8-215/2a, Old Grand world, Marasa Sarovar Premium, SLV Nagar, Tirupati, Andhra Pradesh 517501",
+      workingHours: "Contact us for current timings",
+      mapUrl: null,
+    };
+  }
+}
+
+export default async function ContactPage() {
+  const contact = await getContactSettings();
+
   return (
     <>
       {/* Hero */}
@@ -64,8 +104,9 @@ export default function ContactPage() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                         Phone
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-slate-900">
-                        +91 98854 22483
+                        {contact.phone}
                       </p>
                     </div>
                   </div>
@@ -80,8 +121,9 @@ export default function ContactPage() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                         Email
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-slate-900">
-                        admissions@skce.in
+                        {contact.email}
                       </p>
                     </div>
                   </div>
@@ -98,9 +140,7 @@ export default function ContactPage() {
                       </p>
 
                       <p className="mt-1 text-sm font-semibold leading-6 text-slate-900">
-                        Door NO: 22-8-215/2a, Old Grand world, Marasa
-                        Sarovar Premium, SLV Nagar, Tirupati, Andhra Pradesh
-                        517501
+                        {contact.address}
                       </p>
                     </div>
                   </div>
@@ -117,7 +157,7 @@ export default function ContactPage() {
                       </p>
 
                       <p className="mt-1 text-sm font-bold text-slate-900">
-                        Contact us for current timings
+                        {contact.workingHours}
                       </p>
                     </div>
                   </div>
@@ -126,21 +166,31 @@ export default function ContactPage() {
 
               {/* Map */}
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex h-56 items-center justify-center bg-slate-100">
-                  <div className="text-center">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                      <MapPin size={22} />
+                {contact.mapUrl ? (
+                  <iframe
+                    src={contact.mapUrl}
+                    title="SK Computer Education location"
+                    className="h-56 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="flex h-56 items-center justify-center bg-slate-100">
+                    <div className="text-center">
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+                        <MapPin size={22} />
+                      </div>
+
+                      <p className="text-sm font-bold text-[#173B67]">
+                        SKCE — SLV Nagar, Tirupati
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Tirupati, Andhra Pradesh 517501
+                      </p>
                     </div>
-
-                    <p className="text-sm font-bold text-[#173B67]">
-                      SKCE — SLV Nagar, Tirupati
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Tirupati, Andhra Pradesh 517501
-                    </p>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Quick Message */}

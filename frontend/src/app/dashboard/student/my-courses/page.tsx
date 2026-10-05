@@ -1,5 +1,4 @@
 "use client";
-
 import {
   useEffect,
   useMemo,
@@ -20,11 +19,9 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
-
 type Course = {
   id: number;
   title: string;
@@ -32,15 +29,14 @@ type Course = {
   description?: string | null;
   mode?: string | null;
   isActive?: boolean;
+  imageUrl?: string | null;
 };
-
 type PackageCourse = {
   id: number;
   packageId: number;
   courseId: number;
   course: Course | null;
 };
-
 type PackageData = {
   id: number;
   slug?: string | null;
@@ -50,7 +46,6 @@ type PackageData = {
   isActive?: boolean;
   courses: PackageCourse[];
 };
-
 type Enrollment = {
   id: number;
   userId: number;
@@ -63,7 +58,6 @@ type Enrollment = {
   course: Course | null;
   package: PackageData | null;
 };
-
 type DashboardData = {
   id: number;
   name: string;
@@ -71,7 +65,6 @@ type DashboardData = {
   studentId?: string | null;
   enrollments: Enrollment[];
 };
-
 type CourseProgress = {
   courseId: number;
   totalLessons: number;
@@ -86,24 +79,35 @@ type CourseProgress = {
     completedAt: string | null;
   }[];
 };
-
 type StudentCourse = {
   course: Course;
   enrollmentStatus: string;
   packageName: string | null;
   enrolledAt: string | null;
 };
-
 type FilterKey = "ALL" | "ACTIVE" | "COMPLETED";
-
 function getToken() {
   if (typeof window === "undefined") {
     return null;
   }
-
   return localStorage.getItem("token");
 }
+function getImageUrl(
+  imageUrl?: string | null
+) {
+  if (!imageUrl) {
+    return null;
+  }
 
+  if (
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return imageUrl;
+  }
+
+  return `${API_URL.replace("/api", "")}${imageUrl}`;
+}
 function safeText(value: unknown) {
   if (
     value === null ||
@@ -112,42 +116,33 @@ function safeText(value: unknown) {
   ) {
     return "—";
   }
-
   return String(value);
 }
-
 function formatDate(value: string | null) {
   if (!value) {
     return "—";
   }
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
-
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(date);
 }
-
 function formatStatus(value: string) {
   if (!value) {
     return "Unknown";
   }
-
   return (
     value.charAt(0).toUpperCase() +
     value.slice(1).toLowerCase()
   );
 }
-
 export default function MyCoursesPage() {
   const router = useRouter();
-
   const [courses, setCourses] =
     useState<StudentCourse[]>([]);
   const [progressMap, setProgressMap] = useState<
@@ -159,25 +154,20 @@ export default function MyCoursesPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] =
     useState<FilterKey>("ALL");
-
   async function loadCourses(showRefresh = false) {
     const token = getToken();
-
     if (!token) {
       setError("Please login again.");
       setLoading(false);
       return;
     }
-
     try {
       if (showRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
-
       setError("");
-
       const response = await fetch(
         `${API_URL}/students/me/dashboard`,
         {
@@ -189,7 +179,6 @@ export default function MyCoursesPage() {
           cache: "no-store",
         }
       );
-
       if (
         response.status === 401 ||
         response.status === 403
@@ -202,24 +191,19 @@ export default function MyCoursesPage() {
         router.push("/login");
         return;
       }
-
       const json = await response.json();
-
       if (!response.ok) {
         throw new Error(
           json?.message ||
             "Failed to load your courses."
         );
       }
-
       const dashboard: DashboardData =
         json?.data ?? json;
-
       const courseMap = new Map<
         number,
         StudentCourse
       >();
-
       for (const enrollment of dashboard?.enrollments ?? []) {
         if (enrollment.course) {
           courseMap.set(enrollment.course.id, {
@@ -230,17 +214,14 @@ export default function MyCoursesPage() {
               enrollment.enrolledAt ?? null,
           });
         }
-
         if (enrollment.package) {
           for (const packageItem of
             enrollment.package.courses ?? []) {
             if (!packageItem.course) {
               continue;
             }
-
             const courseId =
               packageItem.course.id;
-
             if (!courseMap.has(courseId)) {
               courseMap.set(courseId, {
                 course: packageItem.course,
@@ -255,13 +236,10 @@ export default function MyCoursesPage() {
           }
         }
       }
-
       const studentCourses = Array.from(
         courseMap.values()
       );
-
       setCourses(studentCourses);
-
       const progressResults = await Promise.all(
         studentCourses.map(async (item) => {
           try {
@@ -278,18 +256,14 @@ export default function MyCoursesPage() {
                   cache: "no-store",
                 }
               );
-
             if (!progressResponse.ok) {
               return null;
             }
-
             const progressJson =
               await progressResponse.json();
-
             if (!progressResponse.ok) {
               return null;
             }
-
             return (
               progressJson?.data ??
               progressJson
@@ -299,17 +273,14 @@ export default function MyCoursesPage() {
               `Progress error for course ${item.course.id}:`,
               progressError
             );
-
             return null;
           }
         })
       );
-
       const nextProgressMap: Record<
         number,
         CourseProgress
       > = {};
-
       for (const progress of progressResults) {
         if (progress?.courseId) {
           nextProgressMap[
@@ -317,14 +288,12 @@ export default function MyCoursesPage() {
           ] = progress;
         }
       }
-
       setProgressMap(nextProgressMap);
     } catch (err) {
       console.error(
         "My Courses error:",
         err
       );
-
       setError(
         err instanceof Error
           ? err.message
@@ -335,11 +304,9 @@ export default function MyCoursesPage() {
       setRefreshing(false);
     }
   }
-
   useEffect(() => {
     void loadCourses();
   }, []);
-
   const getCourseProgress = (
     courseId: number
   ): CourseProgress => {
@@ -355,46 +322,38 @@ export default function MyCoursesPage() {
       }
     );
   };
-
   const counts = useMemo(() => {
     let completed = 0;
     let active = 0;
-
     for (const item of courses) {
       const progress = getCourseProgress(
         item.course.id
       );
-
       if (progress.progressPercentage === 100) {
         completed += 1;
       } else {
         active += 1;
       }
     }
-
     return {
       total: courses.length,
       active,
       completed,
     };
   }, [courses, progressMap]);
-
   const filteredCourses = useMemo(() => {
     const normalizedSearch =
       search.trim().toLowerCase();
-
     return courses.filter((item) => {
       const progress = getCourseProgress(
         item.course.id
       );
-
       const matchesFilter =
         filter === "ALL" ||
         (filter === "COMPLETED" &&
           progress.progressPercentage === 100) ||
         (filter === "ACTIVE" &&
           progress.progressPercentage < 100);
-
       const matchesSearch =
         !normalizedSearch ||
         item.course.title
@@ -405,7 +364,6 @@ export default function MyCoursesPage() {
             ?.toLowerCase()
             .includes(normalizedSearch)
         );
-
       return matchesFilter && matchesSearch;
     });
   }, [
@@ -414,7 +372,6 @@ export default function MyCoursesPage() {
     search,
     filter,
   ]);
-
   const nextCourse = useMemo(
     () =>
       courses.find(
@@ -424,7 +381,6 @@ export default function MyCoursesPage() {
       ) ?? null,
     [courses, progressMap]
   );
-
   const totalLessons = useMemo(
     () =>
       courses.reduce(
@@ -436,7 +392,6 @@ export default function MyCoursesPage() {
       ),
     [courses, progressMap]
   );
-
   const completedLessons = useMemo(
     () =>
       courses.reduce(
@@ -448,7 +403,6 @@ export default function MyCoursesPage() {
       ),
     [courses, progressMap]
   );
-
   if (loading) {
     return (
       <>
@@ -459,15 +413,12 @@ export default function MyCoursesPage() {
             }
             refreshing
           />
-
           <LoadingState />
         </main>
-
         <GlobalStyles />
       </>
     );
   }
-
   if (error) {
     return (
       <>
@@ -478,20 +429,16 @@ export default function MyCoursesPage() {
             }
             refreshing={false}
           />
-
           <div style={errorCardStyle}>
             <div style={errorIconStyle}>
               !
             </div>
-
             <h2 style={errorTitleStyle}>
               Unable to load your courses
             </h2>
-
             <p style={errorTextStyle}>
               {error}
             </p>
-
             <button
               type="button"
               onClick={() =>
@@ -504,12 +451,10 @@ export default function MyCoursesPage() {
             </button>
           </div>
         </main>
-
         <GlobalStyles />
       </>
     );
   }
-
   return (
     <>
       <main style={pageStyle}>
@@ -519,7 +464,6 @@ export default function MyCoursesPage() {
           }
           refreshing={refreshing}
         />
-
         {/* Learning snapshot */}
         <section className="skce-course-summary">
           <SummaryCard
@@ -529,7 +473,6 @@ export default function MyCoursesPage() {
             helper="Courses available to you"
             tone="blue"
           />
-
           <SummaryCard
             icon={PlayCircle}
             label="In Progress"
@@ -537,7 +480,6 @@ export default function MyCoursesPage() {
             helper="Continue learning"
             tone="rose"
           />
-
           <SummaryCard
             icon={CheckCircle2}
             label="Completed"
@@ -545,7 +487,6 @@ export default function MyCoursesPage() {
             helper="Courses finished"
             tone="green"
           />
-
           <SummaryCard
             icon={Clock3}
             label="Lessons"
@@ -554,27 +495,22 @@ export default function MyCoursesPage() {
             tone="gold"
           />
         </section>
-
         {/* Continue learning hero */}
         {nextCourse ? (
           <section style={continueCardStyle}>
             <div style={continueDecorOneStyle} />
-
             <div style={continueContentStyle}>
               <div style={continueEyebrowStyle}>
                 <Sparkles size={13} />
                 CONTINUE LEARNING
               </div>
-
               <h2 style={continueTitleStyle}>
                 {nextCourse.course.title}
               </h2>
-
               <p style={continueDescriptionStyle}>
                 {nextCourse.course.description ||
                   "Pick up your learning journey where you left off."}
               </p>
-
               <div style={continueMetaStyle}>
                 <span>
                   <BookOpen size={13} />
@@ -587,7 +523,6 @@ export default function MyCoursesPage() {
                   ).totalLessons}{" "}
                   lessons
                 </span>
-
                 {nextCourse.packageName ? (
                   <span>
                     <Package size={13} />
@@ -600,7 +535,6 @@ export default function MyCoursesPage() {
                 )}
               </div>
             </div>
-
             <div style={continueActionStyle}>
               <div style={continuePercentStyle}>
                 {Math.round(
@@ -610,7 +544,6 @@ export default function MyCoursesPage() {
                 )}
                 %
               </div>
-
               <div style={continueProgressTrackStyle}>
                 <span
                   style={{
@@ -627,7 +560,6 @@ export default function MyCoursesPage() {
                   }}
                 />
               </div>
-
               <button
                 type="button"
                 onClick={() =>
@@ -647,19 +579,16 @@ export default function MyCoursesPage() {
             <div style={completedBannerIconStyle}>
               <CheckCircle2 size={24} />
             </div>
-
             <div style={{ minWidth: 0 }}>
               <h2 style={completedBannerTitleStyle}>
                 All enrolled courses are completed
               </h2>
-
               <p style={completedBannerTextStyle}>
                 You have completed every course currently
                 available in your account. Your certificates
                 are ready to view.
               </p>
             </div>
-
             <button
               type="button"
               onClick={() =>
@@ -674,27 +603,23 @@ export default function MyCoursesPage() {
             </button>
           </section>
         )}
-
         {/* Library controls */}
         <section style={libraryHeaderStyle}>
           <div>
             <h2 style={libraryTitleStyle}>
               Course Library
             </h2>
-
             <p style={librarySubtitleStyle}>
               Open a course to access its lessons and learning
               content.
             </p>
           </div>
-
           <div style={controlsStyle}>
             <div style={courseSearchStyle}>
               <Search
                 size={15}
                 color="#8b95a4"
               />
-
               <input
                 value={search}
                 onChange={(event) =>
@@ -704,7 +629,6 @@ export default function MyCoursesPage() {
                 style={courseSearchInputStyle}
               />
             </div>
-
             <div style={filterGroupStyle}>
               <FilterButton
                 label="All"
@@ -714,7 +638,6 @@ export default function MyCoursesPage() {
                   setFilter("ALL")
                 }
               />
-
               <FilterButton
                 label="In Progress"
                 count={counts.active}
@@ -723,7 +646,6 @@ export default function MyCoursesPage() {
                   setFilter("ACTIVE")
                 }
               />
-
               <FilterButton
                 label="Completed"
                 count={counts.completed}
@@ -737,7 +659,6 @@ export default function MyCoursesPage() {
             </div>
           </div>
         </section>
-
         {/* Course cards */}
         {filteredCourses.length === 0 ? (
           <div style={emptyCardStyle}>
@@ -745,11 +666,9 @@ export default function MyCoursesPage() {
               size={25}
               color="#96a0ae"
             />
-
             <strong style={emptyTitleStyle}>
               No courses found
             </strong>
-
             <span style={emptyTextStyle}>
               {courses.length === 0
                 ? "Your enrolled courses will appear here."
@@ -783,7 +702,6 @@ export default function MyCoursesPage() {
             ))}
           </section>
         )}
-
         {/* Bottom learning note */}
         <div style={bottomNoteStyle}>
           <BookOpen size={15} />
@@ -794,12 +712,10 @@ export default function MyCoursesPage() {
           </span>
         </div>
       </main>
-
       <GlobalStyles />
     </>
   );
 }
-
 function PageHeading({
   onRefresh,
   refreshing,
@@ -813,17 +729,14 @@ function PageHeading({
         <div style={eyebrowStyle}>
           STUDENT LEARNING
         </div>
-
         <h1 style={titleStyle}>
           My Courses
         </h1>
-
         <p style={subtitleStyle}>
           Your enrolled courses, learning content and
           continuation points in one place.
         </p>
       </div>
-
       <button
         type="button"
         onClick={onRefresh}
@@ -848,7 +761,6 @@ function PageHeading({
     </div>
   );
 }
-
 function SummaryCard({
   icon: Icon,
   label,
@@ -882,9 +794,7 @@ function SummaryCard({
       fg: "#b97911",
     },
   };
-
   const palette = tones[tone];
-
   return (
     <div style={summaryCardStyle}>
       <div
@@ -896,16 +806,13 @@ function SummaryCard({
       >
         <Icon size={19} />
       </div>
-
       <div style={{ minWidth: 0 }}>
         <span style={summaryLabelStyle}>
           {label}
         </span>
-
         <strong style={summaryValueStyle}>
           {safeText(value)}
         </strong>
-
         <span style={summaryHelperStyle}>
           {helper}
         </span>
@@ -913,7 +820,6 @@ function SummaryCard({
     </div>
   );
 }
-
 function FilterButton({
   label,
   count,
@@ -950,7 +856,6 @@ function FilterButton({
     </button>
   );
 }
-
 function CourseCard({
   course,
   progress,
@@ -968,23 +873,33 @@ function CourseCard({
 }) {
   const completed =
     progress.progressPercentage === 100;
-
   const started =
     progress.startedLessons > 0;
-
   const statusText = completed
     ? "Completed"
     : started
     ? "In Progress"
     : "Not Started";
-
   return (
     <article className="skce-course-card" style={courseCardStyle}>
       <div style={courseCardTopStyle}>
         <div style={courseBadgeStyle}>
-          <BookOpen size={19} />
+          {getImageUrl(course.imageUrl) ? (
+            <img
+              src={getImageUrl(course.imageUrl) ?? ""}
+              alt={course.title}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                borderRadius: 11,
+                display: "block",
+              }}
+            />
+          ) : (
+            <BookOpen size={19} />
+          )}
         </div>
-
         <span
           style={{
             ...courseStatusStyle,
@@ -1001,16 +916,13 @@ function CourseCard({
           {statusText}
         </span>
       </div>
-
       <h3 style={courseTitleStyle}>
         {course.title}
       </h3>
-
       <div style={courseMetaStyle}>
         {course.mode ? (
           <span>{course.mode}</span>
         ) : null}
-
         {packageName ? (
           <span style={packageMetaStyle}>
             <Package size={11} />
@@ -1020,7 +932,6 @@ function CourseCard({
           <span>Direct enrollment</span>
         )}
       </div>
-
       {course.description ? (
         <p style={courseDescriptionStyle}>
           {course.description}
@@ -1031,7 +942,6 @@ function CourseCard({
           from here.
         </p>
       )}
-
       <div style={progressSectionStyle}>
         <div style={progressHeaderStyle}>
           <span>Learning progress</span>
@@ -1042,7 +952,6 @@ function CourseCard({
             %
           </strong>
         </div>
-
         <div style={progressTrackStyle}>
           <span
             style={{
@@ -1062,26 +971,22 @@ function CourseCard({
             }}
           />
         </div>
-
         <div style={lessonStatsStyle}>
           <span>
             {progress.completedLessons}/
             {progress.totalLessons} lessons
           </span>
-
           <span>
             {progress.remainingLessons} remaining
           </span>
         </div>
       </div>
-
       <div style={courseFooterStyle}>
         <div style={courseEnrollmentStyle}>
           <span>
             Enrolled{" "}
             {formatDate(enrolledAt)}
           </span>
-
           {enrollmentStatus ? (
             <span>
               {formatStatus(
@@ -1090,7 +995,6 @@ function CourseCard({
             </span>
           ) : null}
         </div>
-
         <button
           type="button"
           onClick={onOpen}
@@ -1107,7 +1011,6 @@ function CourseCard({
     </article>
   );
 }
-
 function LoadingState() {
   return (
     <div style={loadingCardStyle}>
@@ -1119,18 +1022,15 @@ function LoadingState() {
             "studentCoursesSpin 0.8s linear infinite",
         }}
       />
-
       <strong style={loadingTitleStyle}>
         Loading your courses
       </strong>
-
       <span style={loadingTextStyle}>
         Fetching your enrolled learning content.
       </span>
     </div>
   );
 }
-
 const pageStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
@@ -1139,7 +1039,6 @@ const pageStyle: CSSProperties = {
   padding: "28px 32px 36px",
   background: "#f5f7fb",
 };
-
 const headingStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
@@ -1147,7 +1046,6 @@ const headingStyle: CSSProperties = {
   gap: 20,
   marginBottom: 18,
 };
-
 const eyebrowStyle: CSSProperties = {
   marginBottom: 5,
   fontSize: 10.5,
@@ -1155,7 +1053,6 @@ const eyebrowStyle: CSSProperties = {
   letterSpacing: "0.11em",
   color: "#a01441",
 };
-
 const titleStyle: CSSProperties = {
   margin: 0,
   fontSize: 27,
@@ -1164,7 +1061,6 @@ const titleStyle: CSSProperties = {
   letterSpacing: "-0.02em",
   color: "#111827",
 };
-
 const subtitleStyle: CSSProperties = {
   maxWidth: 700,
   margin: "6px 0 0",
@@ -1172,7 +1068,6 @@ const subtitleStyle: CSSProperties = {
   lineHeight: 1.6,
   color: "#818b9b",
 };
-
 const refreshButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1188,7 +1083,6 @@ const refreshButtonStyle: CSSProperties = {
   cursor: "pointer",
   flex: "0 0 auto",
 };
-
 const summaryCardStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1201,7 +1095,6 @@ const summaryCardStyle: CSSProperties = {
   boxShadow:
     "0 4px 12px rgba(15,23,42,0.035)",
 };
-
 const summaryIconStyle: CSSProperties = {
   width: 41,
   height: 41,
@@ -1211,13 +1104,11 @@ const summaryIconStyle: CSSProperties = {
   flex: "0 0 41px",
   borderRadius: 11,
 };
-
 const summaryLabelStyle: CSSProperties = {
   display: "block",
   fontSize: 10.5,
   color: "#8c95a5",
 };
-
 const summaryValueStyle: CSSProperties = {
   display: "block",
   marginTop: 2,
@@ -1225,14 +1116,12 @@ const summaryValueStyle: CSSProperties = {
   lineHeight: 1.15,
   color: "#111827",
 };
-
 const summaryHelperStyle: CSSProperties = {
   display: "block",
   marginTop: 3,
   fontSize: 9.5,
   color: "#9aa2af",
 };
-
 const continueCardStyle: CSSProperties = {
   position: "relative",
   overflow: "hidden",
@@ -1250,7 +1139,6 @@ const continueCardStyle: CSSProperties = {
   boxShadow:
     "0 12px 28px rgba(16,34,63,0.13)",
 };
-
 const continueDecorOneStyle: CSSProperties = {
   position: "absolute",
   width: 250,
@@ -1261,14 +1149,12 @@ const continueDecorOneStyle: CSSProperties = {
   background:
     "rgba(255,255,255,0.07)",
 };
-
 const continueContentStyle: CSSProperties = {
   position: "relative",
   zIndex: 1,
   minWidth: 0,
   flex: 1,
 };
-
 const continueEyebrowStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1279,14 +1165,12 @@ const continueEyebrowStyle: CSSProperties = {
   letterSpacing: "0.1em",
   color: "#d8e7fc",
 };
-
 const continueTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: 22,
   lineHeight: 1.25,
   fontWeight: 800,
 };
-
 const continueDescriptionStyle: CSSProperties = {
   maxWidth: 650,
   margin: "7px 0 0",
@@ -1298,7 +1182,6 @@ const continueDescriptionStyle: CSSProperties = {
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 };
-
 const continueMetaStyle: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
@@ -1307,7 +1190,6 @@ const continueMetaStyle: CSSProperties = {
   fontSize: 10,
   color: "#d2e1f5",
 };
-
 const continueActionStyle: CSSProperties = {
   position: "relative",
   zIndex: 2,
@@ -1318,12 +1200,10 @@ const continueActionStyle: CSSProperties = {
   gap: 8,
   minWidth: 210,
 };
-
 const continuePercentStyle: CSSProperties = {
   fontSize: 22,
   fontWeight: 850,
 };
-
 const continueProgressTrackStyle: CSSProperties = {
   width: "100%",
   maxWidth: 210,
@@ -1332,14 +1212,12 @@ const continueProgressTrackStyle: CSSProperties = {
   borderRadius: 999,
   background: "rgba(255,255,255,0.2)",
 };
-
 const continueProgressFillStyle: CSSProperties = {
   display: "block",
   height: "100%",
   borderRadius: 999,
   background: "#ffffff",
 };
-
 const continueButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1355,7 +1233,6 @@ const continueButtonStyle: CSSProperties = {
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
-
 const completedBannerStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1367,7 +1244,6 @@ const completedBannerStyle: CSSProperties = {
   background:
     "linear-gradient(135deg,#fffdf7 0%,#fff8e6 100%)",
 };
-
 const completedBannerIconStyle: CSSProperties = {
   width: 46,
   height: 46,
@@ -1379,21 +1255,18 @@ const completedBannerIconStyle: CSSProperties = {
   background: "#fff1c8",
   color: "#b97911",
 };
-
 const completedBannerTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: 14.5,
   fontWeight: 800,
   color: "#3c3324",
 };
-
 const completedBannerTextStyle: CSSProperties = {
   margin: "4px 0 0",
   fontSize: 10.5,
   lineHeight: 1.5,
   color: "#806f51",
 };
-
 const secondaryGoldButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1410,7 +1283,6 @@ const secondaryGoldButtonStyle: CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
 };
-
 const libraryHeaderStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
@@ -1418,20 +1290,17 @@ const libraryHeaderStyle: CSSProperties = {
   gap: 18,
   marginBottom: 12,
 };
-
 const libraryTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: 17,
   fontWeight: 800,
   color: "#172033",
 };
-
 const librarySubtitleStyle: CSSProperties = {
   margin: "3px 0 0",
   fontSize: 10.5,
   color: "#98a1af",
 };
-
 const controlsStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1439,7 +1308,6 @@ const controlsStyle: CSSProperties = {
   flexWrap: "wrap",
   justifyContent: "flex-end",
 };
-
 const courseSearchStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1450,7 +1318,6 @@ const courseSearchStyle: CSSProperties = {
   borderRadius: 8,
   background: "#ffffff",
 };
-
 const courseSearchInputStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
@@ -1460,14 +1327,12 @@ const courseSearchInputStyle: CSSProperties = {
   color: "#374151",
   fontSize: 10.5,
 };
-
 const filterGroupStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 5,
   flexWrap: "wrap",
 };
-
 const filterButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1481,13 +1346,11 @@ const filterButtonStyle: CSSProperties = {
   fontWeight: 750,
   cursor: "pointer",
 };
-
 const filterButtonActiveStyle: CSSProperties = {
   borderColor: "#2f6bff",
   background: "#2f6bff",
   color: "#ffffff",
 };
-
 const filterCountStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1500,12 +1363,10 @@ const filterCountStyle: CSSProperties = {
   color: "#657184",
   fontSize: 8.5,
 };
-
 const filterCountActiveStyle: CSSProperties = {
   background: "rgba(255,255,255,0.2)",
   color: "#ffffff",
 };
-
 const courseCardStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -1518,14 +1379,12 @@ const courseCardStyle: CSSProperties = {
   boxShadow:
     "0 4px 12px rgba(15,23,42,0.03)",
 };
-
 const courseCardTopStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 10,
 };
-
 const courseBadgeStyle: CSSProperties = {
   width: 41,
   height: 41,
@@ -1537,7 +1396,6 @@ const courseBadgeStyle: CSSProperties = {
   background: "#f8e8ef",
   color: "#a01441",
 };
-
 const courseStatusStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1548,22 +1406,18 @@ const courseStatusStyle: CSSProperties = {
   fontWeight: 850,
   whiteSpace: "nowrap",
 };
-
 const courseCompletedStyle: CSSProperties = {
   background: "#eaf8f0",
   color: "#168452",
 };
-
 const courseActiveStyle: CSSProperties = {
   background: "#edf3ff",
   color: "#316cf2",
 };
-
 const courseNotStartedStyle: CSSProperties = {
   background: "#fff4df",
   color: "#aa7416",
 };
-
 const courseTitleStyle: CSSProperties = {
   margin: "13px 0 0",
   fontSize: 15,
@@ -1571,7 +1425,6 @@ const courseTitleStyle: CSSProperties = {
   fontWeight: 800,
   color: "#182133",
 };
-
 const courseMetaStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1581,13 +1434,11 @@ const courseMetaStyle: CSSProperties = {
   fontSize: 9.5,
   color: "#8a94a4",
 };
-
 const packageMetaStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 4,
 };
-
 const courseDescriptionStyle: CSSProperties = {
   minHeight: 42,
   margin: "10px 0 0",
@@ -1599,11 +1450,9 @@ const courseDescriptionStyle: CSSProperties = {
   WebkitBoxOrient: "vertical",
   overflow: "hidden",
 };
-
 const progressSectionStyle: CSSProperties = {
   marginTop: 13,
 };
-
 const progressHeaderStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1612,7 +1461,6 @@ const progressHeaderStyle: CSSProperties = {
   fontSize: 9.5,
   color: "#8a94a4",
 };
-
 const progressTrackStyle: CSSProperties = {
   height: 7,
   overflow: "hidden",
@@ -1620,7 +1468,6 @@ const progressTrackStyle: CSSProperties = {
   borderRadius: 999,
   background: "#e9edf3",
 };
-
 const progressFillStyle: CSSProperties = {
   display: "block",
   height: "100%",
@@ -1628,7 +1475,6 @@ const progressFillStyle: CSSProperties = {
   background: "linear-gradient(90deg,#2f6bff,#5e8eff)",
   transition: "width 250ms ease",
 };
-
 const lessonStatsStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1638,7 +1484,6 @@ const lessonStatsStyle: CSSProperties = {
   fontSize: 9,
   color: "#99a1ae",
 };
-
 const courseFooterStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-end",
@@ -1648,7 +1493,6 @@ const courseFooterStyle: CSSProperties = {
   paddingTop: 14,
   borderTop: "1px solid #eef1f5",
 };
-
 const courseEnrollmentStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -1657,7 +1501,6 @@ const courseEnrollmentStyle: CSSProperties = {
   fontSize: 8.5,
   color: "#9aa2af",
 };
-
 const courseActionStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1674,7 +1517,6 @@ const courseActionStyle: CSSProperties = {
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
-
 const bottomNoteStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1687,7 +1529,6 @@ const bottomNoteStyle: CSSProperties = {
   color: "#8a94a4",
   fontSize: 9.5,
 };
-
 const emptyCardStyle: CSSProperties = {
   minHeight: 260,
   display: "flex",
@@ -1700,14 +1541,12 @@ const emptyCardStyle: CSSProperties = {
   background: "#fbfcfd",
   textAlign: "center",
 };
-
 const emptyTitleStyle: CSSProperties = {
   marginTop: 9,
   fontSize: 13,
   fontWeight: 800,
   color: "#4b5565",
 };
-
 const emptyTextStyle: CSSProperties = {
   maxWidth: 340,
   marginTop: 4,
@@ -1715,7 +1554,6 @@ const emptyTextStyle: CSSProperties = {
   lineHeight: 1.5,
   color: "#9aa2af",
 };
-
 const loadingCardStyle: CSSProperties = {
   minHeight: 340,
   display: "flex",
@@ -1729,18 +1567,15 @@ const loadingCardStyle: CSSProperties = {
   background: "#ffffff",
   textAlign: "center",
 };
-
 const loadingTitleStyle: CSSProperties = {
   marginTop: 5,
   fontSize: 14,
   color: "#374151",
 };
-
 const loadingTextStyle: CSSProperties = {
   fontSize: 10.5,
   color: "#969fac",
 };
-
 const errorCardStyle: CSSProperties = {
   minHeight: 310,
   display: "flex",
@@ -1754,7 +1589,6 @@ const errorCardStyle: CSSProperties = {
   background: "#ffffff",
   textAlign: "center",
 };
-
 const errorIconStyle: CSSProperties = {
   width: 44,
   height: 44,
@@ -1767,13 +1601,11 @@ const errorIconStyle: CSSProperties = {
   fontSize: 20,
   fontWeight: 850,
 };
-
 const errorTitleStyle: CSSProperties = {
   margin: "6px 0 0",
   fontSize: 17,
   color: "#374151",
 };
-
 const errorTextStyle: CSSProperties = {
   maxWidth: 460,
   margin: "2px 0 10px",
@@ -1781,7 +1613,6 @@ const errorTextStyle: CSSProperties = {
   lineHeight: 1.55,
   color: "#808b9a",
 };
-
 const primaryButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1796,7 +1627,6 @@ const primaryButtonStyle: CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
 };
-
 function GlobalStyles() {
   return (
     <style
@@ -1808,41 +1638,34 @@ function GlobalStyles() {
             gap: 13px;
             margin-bottom: 1px;
           }
-
           .skce-course-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 13px;
           }
-
           .skce-course-card {
             transition:
               transform 160ms ease,
               box-shadow 160ms ease,
               border-color 160ms ease;
           }
-
           .skce-course-card:hover {
             transform: translateY(-2px);
             border-color: #dce2eb !important;
             box-shadow: 0 9px 20px rgba(15,23,42,0.06) !important;
           }
-
           @keyframes studentCoursesSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
-
           @media (max-width: 1200px) {
             .skce-course-summary {
               grid-template-columns: repeat(2, minmax(0, 1fr));
             }
-
             .skce-course-grid {
               grid-template-columns: repeat(2, minmax(0, 1fr));
             }
           }
-
           @media (max-width: 850px) {
             .skce-course-grid {
               grid-template-columns: minmax(0, 1fr);

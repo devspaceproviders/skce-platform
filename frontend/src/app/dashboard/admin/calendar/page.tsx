@@ -64,6 +64,13 @@ type MeetingType =
 
 type MeetingStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
 
+type MeetingPlatform =
+  | "GOOGLE_MEET"
+  | "MICROSOFT_TEAMS"
+  | "ZOOM"
+  | "WHATSAPP"
+  | "OTHER";
+
 type CalendarMeetingType = MeetingType | "LIVE_CLASS";
 
 type CalendarMeetingStatus = MeetingStatus | "LIVE";
@@ -99,6 +106,8 @@ interface Meeting {
   endAt: string;
 
   meetingUrl?: string | null;
+
+  meetingPlatform?: MeetingPlatform | null;
 
   meetingType: MeetingType;
 
@@ -296,6 +305,8 @@ interface MeetingForm {
 
   meetingType: MeetingType;
 
+  meetingPlatform: MeetingPlatform;
+
   startAt: string;
 
   endAt: string;
@@ -342,6 +353,8 @@ const EMPTY_FORM: MeetingForm = {
   description: "",
 
   meetingType: "OTHER",
+
+  meetingPlatform: "OTHER",
 
   startAt: "",
 
@@ -1776,6 +1789,7 @@ export default function AdminCalendarPage() {
       title: meeting.title || "",
       description: meeting.description || "",
       meetingType: meeting.meetingType as MeetingType,
+      meetingPlatform: meeting.meetingPlatform || "OTHER",
       startAt: toDateTimeLocalValue(new Date(meeting.startAt)),
       endAt: toDateTimeLocalValue(new Date(meeting.endAt)),
       meetingUrl: meeting.meetingUrl || "",
@@ -2088,6 +2102,8 @@ export default function AdminCalendarPage() {
 
         meetingUrl: form.meetingUrl.trim() || null,
 
+        meetingPlatform: form.meetingPlatform,
+
         meetingType: form.meetingType,
 
         status: "SCHEDULED",
@@ -2265,6 +2281,7 @@ export default function AdminCalendarPage() {
         startAt: localDateTimeToIso(form.startAt),
         endAt: localDateTimeToIso(form.endAt),
         meetingUrl: form.meetingUrl.trim() || null,
+        meetingPlatform: form.meetingPlatform,
         meetingType: form.meetingType,
         status: editingMeeting.status,
         courseId: form.courseId ? Number(form.courseId) : null,
@@ -4667,7 +4684,7 @@ export default function AdminCalendarPage() {
 
                   <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
 
-                    Loading courses and batches...
+                    Loading courses, batches, students, and trainers...
 
                   </div>
 
@@ -4846,6 +4863,32 @@ export default function AdminCalendarPage() {
                   </div>
 
 
+
+                  <div>
+
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+
+                      Meeting Platform
+
+                    </label>
+
+                    <select
+                      value={form.meetingPlatform}
+                      onChange={(event) =>
+                        updateForm(
+                          "meetingPlatform",
+                          event.target.value as MeetingPlatform
+                        )
+                      }
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
+                    >
+                      <option value="GOOGLE_MEET">Google Meet</option>
+                      <option value="MICROSOFT_TEAMS">Microsoft Teams</option>
+                      <option value="ZOOM">Zoom</option>
+                      <option value="WHATSAPP">WhatsApp</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
 
                   <div>
 

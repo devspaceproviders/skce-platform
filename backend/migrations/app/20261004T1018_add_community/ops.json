@@ -1,0 +1,722 @@
+[
+  {
+    "id": "table.communityComment",
+    "label": "Create table \"communityComment\"",
+    "summary": "Creates table \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"communityComment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"communityComment\"",
+        "sql": "CREATE TABLE \"public\".\"communityComment\" (\n  \"authorId\" int4 NOT NULL,\n  \"content\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"communityComment\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.communityPost",
+    "label": "Create table \"communityPost\"",
+    "summary": "Creates table \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"communityPost\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"communityPost\"",
+        "sql": "CREATE TABLE \"public\".\"communityPost\" (\n  \"authorId\" int4 NOT NULL,\n  \"content\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"isPinned\" bool DEFAULT false NOT NULL,\n  \"title\" text NOT NULL,\n  \"topic\" text DEFAULT 'General Discussion' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"communityPost\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.communityReaction",
+    "label": "Create table \"communityReaction\"",
+    "summary": "Creates table \"communityReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"communityReaction\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"communityReaction\"",
+        "sql": "CREATE TABLE \"public\".\"communityReaction\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"postId\" int4 NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"communityReaction\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.communityReaction.communityReaction_postId_userId_key",
+    "label": "Add unique constraint on \"communityReaction\" (postId, userId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "communityReaction_postId_userId_key",
+        "table": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"communityReaction_postId_userId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_postId_userId_key",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"communityReaction_postId_userId_key\"",
+        "sql": "ALTER TABLE \"public\".\"communityReaction\" ADD CONSTRAINT \"communityReaction_postId_userId_key\" UNIQUE (\"postId\", \"userId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"communityReaction_postId_userId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_postId_userId_key",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityComment.communityComment_authorId_idx_e47547ed",
+    "label": "Create index \"communityComment_authorId_idx_e47547ed\" on \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityComment_authorId_idx_e47547ed",
+        "table": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityComment_authorId_idx_e47547ed\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_authorId_idx_e47547ed\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityComment_authorId_idx_e47547ed\"",
+        "sql": "CREATE INDEX \"communityComment_authorId_idx_e47547ed\" ON \"public\".\"communityComment\" (\"authorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityComment_authorId_idx_e47547ed\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_authorId_idx_e47547ed\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityComment.communityComment_createdAt_idx_9575dbd7",
+    "label": "Create index \"communityComment_createdAt_idx_9575dbd7\" on \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityComment_createdAt_idx_9575dbd7",
+        "table": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityComment_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityComment_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"communityComment_createdAt_idx_9575dbd7\" ON \"public\".\"communityComment\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityComment_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityComment.communityComment_postId_idx_a7a72715",
+    "label": "Create index \"communityComment_postId_idx_a7a72715\" on \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityComment_postId_idx_a7a72715",
+        "table": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityComment_postId_idx_a7a72715\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_postId_idx_a7a72715\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityComment_postId_idx_a7a72715\"",
+        "sql": "CREATE INDEX \"communityComment_postId_idx_a7a72715\" ON \"public\".\"communityComment\" (\"postId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityComment_postId_idx_a7a72715\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityComment_postId_idx_a7a72715\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityPost.communityPost_authorId_idx_e47547ed",
+    "label": "Create index \"communityPost_authorId_idx_e47547ed\" on \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityPost_authorId_idx_e47547ed",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityPost_authorId_idx_e47547ed\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_authorId_idx_e47547ed\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityPost_authorId_idx_e47547ed\"",
+        "sql": "CREATE INDEX \"communityPost_authorId_idx_e47547ed\" ON \"public\".\"communityPost\" (\"authorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityPost_authorId_idx_e47547ed\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_authorId_idx_e47547ed\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityPost.communityPost_createdAt_idx_9575dbd7",
+    "label": "Create index \"communityPost_createdAt_idx_9575dbd7\" on \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityPost_createdAt_idx_9575dbd7",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityPost_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityPost_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"communityPost_createdAt_idx_9575dbd7\" ON \"public\".\"communityPost\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityPost_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityPost.communityPost_isPinned_idx_1286002d",
+    "label": "Create index \"communityPost_isPinned_idx_1286002d\" on \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityPost_isPinned_idx_1286002d",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityPost_isPinned_idx_1286002d\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_isPinned_idx_1286002d\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityPost_isPinned_idx_1286002d\"",
+        "sql": "CREATE INDEX \"communityPost_isPinned_idx_1286002d\" ON \"public\".\"communityPost\" (\"isPinned\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityPost_isPinned_idx_1286002d\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_isPinned_idx_1286002d\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityPost.communityPost_topic_idx_655aa1bc",
+    "label": "Create index \"communityPost_topic_idx_655aa1bc\" on \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityPost_topic_idx_655aa1bc",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityPost_topic_idx_655aa1bc\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_topic_idx_655aa1bc\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityPost_topic_idx_655aa1bc\"",
+        "sql": "CREATE INDEX \"communityPost_topic_idx_655aa1bc\" ON \"public\".\"communityPost\" (\"topic\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityPost_topic_idx_655aa1bc\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityPost_topic_idx_655aa1bc\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityReaction.communityReaction_postId_idx_a7a72715",
+    "label": "Create index \"communityReaction_postId_idx_a7a72715\" on \"communityReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityReaction_postId_idx_a7a72715",
+        "table": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityReaction_postId_idx_a7a72715\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction_postId_idx_a7a72715\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityReaction_postId_idx_a7a72715\"",
+        "sql": "CREATE INDEX \"communityReaction_postId_idx_a7a72715\" ON \"public\".\"communityReaction\" (\"postId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityReaction_postId_idx_a7a72715\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction_postId_idx_a7a72715\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.communityReaction.communityReaction_userId_idx_a489d58a",
+    "label": "Create index \"communityReaction_userId_idx_a489d58a\" on \"communityReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "communityReaction_userId_idx_a489d58a",
+        "table": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"communityReaction_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"communityReaction_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"communityReaction_userId_idx_a489d58a\" ON \"public\".\"communityReaction\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"communityReaction_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"communityReaction_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.communityComment.communityComment_postId_fkey",
+    "label": "Add foreign key \"communityComment_postId_fkey\" on \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "communityComment_postId_fkey",
+        "table": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"communityComment_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityComment_postId_fkey",
+          "public",
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"communityComment_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"communityComment\"\nADD CONSTRAINT \"communityComment_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"communityPost\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"communityComment_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityComment_postId_fkey",
+          "public",
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.communityComment.communityComment_authorId_fkey",
+    "label": "Add foreign key \"communityComment_authorId_fkey\" on \"communityComment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "communityComment_authorId_fkey",
+        "table": "communityComment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"communityComment_authorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityComment_authorId_fkey",
+          "public",
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"communityComment_authorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"communityComment\"\nADD CONSTRAINT \"communityComment_authorId_fkey\"\nFOREIGN KEY (\"authorId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"communityComment_authorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityComment_authorId_fkey",
+          "public",
+          "\"public\".\"communityComment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.communityPost.communityPost_authorId_fkey",
+    "label": "Add foreign key \"communityPost_authorId_fkey\" on \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "communityPost_authorId_fkey",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"communityPost_authorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityPost_authorId_fkey",
+          "public",
+          "\"public\".\"communityPost\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"communityPost_authorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"communityPost\"\nADD CONSTRAINT \"communityPost_authorId_fkey\"\nFOREIGN KEY (\"authorId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"communityPost_authorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityPost_authorId_fkey",
+          "public",
+          "\"public\".\"communityPost\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.communityReaction.communityReaction_postId_fkey",
+    "label": "Add foreign key \"communityReaction_postId_fkey\" on \"communityReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "communityReaction_postId_fkey",
+        "table": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"communityReaction_postId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_postId_fkey",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"communityReaction_postId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"communityReaction\"\nADD CONSTRAINT \"communityReaction_postId_fkey\"\nFOREIGN KEY (\"postId\")\nREFERENCES \"public\".\"communityPost\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"communityReaction_postId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_postId_fkey",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.communityReaction.communityReaction_userId_fkey",
+    "label": "Add foreign key \"communityReaction_userId_fkey\" on \"communityReaction\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "communityReaction_userId_fkey",
+        "table": "communityReaction"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"communityReaction_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_userId_fkey",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"communityReaction_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"communityReaction\"\nADD CONSTRAINT \"communityReaction_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"communityReaction_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "communityReaction_userId_fkey",
+          "public",
+          "\"public\".\"communityReaction\""
+        ]
+      }
+    ]
+  }
+]

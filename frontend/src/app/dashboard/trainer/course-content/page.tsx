@@ -34,6 +34,7 @@ type Course = {
   description?: string | null;
   mode?: string | null;
   duration?: string | null;
+  imageUrl?: string | null;
   isActive?: boolean;
 };
 
@@ -45,6 +46,7 @@ type Lesson = {
   content?: string | null;
   videoUrl?: string | null;
   documentUrl?: string | null;
+  imageUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
 };
@@ -91,6 +93,7 @@ const EMPTY_LESSON_FORM: LessonForm = {
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
 const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
+const MAX_LESSON_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function getToken() {
   if (typeof window === "undefined") {
@@ -163,6 +166,11 @@ export default function TrainerCourseContentPage() {
   const [
     selectedDocumentFile,
     setSelectedDocumentFile,
+  ] = useState<File | null>(null);
+
+  const [
+    selectedLessonImageFile,
+    setSelectedLessonImageFile,
   ] = useState<File | null>(null);
 
   const [actionError, setActionError] = useState("");
@@ -345,6 +353,8 @@ export default function TrainerCourseContentPage() {
             mode: item.mode ?? null,
             duration:
               item.duration ?? null,
+            imageUrl:
+              item.imageUrl ?? null,
             isActive:
               Boolean(item.isActive),
           })
@@ -527,6 +537,7 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
+    setSelectedLessonImageFile(null);
 
     setActionError("");
   }
@@ -578,6 +589,7 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
+    setSelectedLessonImageFile(null);
 
     setShowLessonFormForModuleId(
       moduleId
@@ -612,6 +624,7 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
+    setSelectedLessonImageFile(null);
 
     setExpandedModules((current) =>
       current.includes(
@@ -646,6 +659,7 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
+    setSelectedLessonImageFile(null);
   }
 
   function validateVideoFile(
@@ -756,6 +770,48 @@ export default function TrainerCourseContentPage() {
     setSelectedDocumentFile(file);
   }
 
+  function validateLessonImageFile(file: File) {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setActionError(
+        "Only JPG, PNG, and WEBP image files are allowed."
+      );
+      return false;
+    }
+
+    if (file.size > MAX_LESSON_IMAGE_SIZE) {
+      setActionError(
+        "Lesson image must be 5 MB or smaller."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleLessonImageFileChange(
+    file: File | null
+  ) {
+    setActionError("");
+
+    if (!file) {
+      setSelectedLessonImageFile(null);
+      return;
+    }
+
+    if (!validateLessonImageFile(file)) {
+      setSelectedLessonImageFile(null);
+      return;
+    }
+
+    setSelectedLessonImageFile(file);
+  }
+
   async function uploadLessonVideo(
     lessonId: number,
     file: File
@@ -846,12 +902,58 @@ export default function TrainerCourseContentPage() {
     return result;
   }
 
+  async function uploadLessonImage(
+    lessonId: number,
+    file: File
+  ) {
+    const formData = new FormData();
+
+    formData.append(
+      "image",
+      file
+    );
+
+    const response =
+      await authenticatedFetch(
+        `${API_URL}/admin/course-content/lessons/${lessonId}/image`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+    const result =
+      await parseResponse(response);
+
+    if (
+      response.status === 403
+    ) {
+      throw new Error(
+        result?.message ||
+          "You do not have permission to manage content for this course."
+      );
+    }
+
+    if (
+      !response.ok ||
+      !result?.success
+    ) {
+      throw new Error(
+        result?.message ||
+          "Failed to upload lesson image."
+      );
+    }
+
+    return result;
+  }
+
   async function uploadSelectedLessonFiles(
     lessonId: number
   ) {
     if (
       !selectedVideoFile &&
-      !selectedDocumentFile
+      !selectedDocumentFile &&
+      !selectedLessonImageFile
     ) {
       return;
     }
@@ -870,6 +972,13 @@ export default function TrainerCourseContentPage() {
         await uploadLessonDocument(
           lessonId,
           selectedDocumentFile
+        );
+      }
+
+      if (selectedLessonImageFile) {
+        await uploadLessonImage(
+          lessonId,
+          selectedLessonImageFile
         );
       }
     } finally {
@@ -1269,7 +1378,8 @@ export default function TrainerCourseContentPage() {
       if (
         createdLesson?.id &&
         (selectedVideoFile ||
-          selectedDocumentFile)
+          selectedDocumentFile ||
+          selectedLessonImageFile)
       ) {
         await uploadSelectedLessonFiles(
           createdLesson.id
@@ -1280,7 +1390,8 @@ export default function TrainerCourseContentPage() {
 
       setSuccess(
         selectedVideoFile ||
-          selectedDocumentFile
+          selectedDocumentFile ||
+          selectedLessonImageFile
           ? "Lesson created and selected files uploaded successfully."
           : result?.message ||
               "Lesson created successfully."
@@ -1376,7 +1487,8 @@ export default function TrainerCourseContentPage() {
 
       if (
         selectedVideoFile ||
-        selectedDocumentFile
+        selectedDocumentFile ||
+        selectedLessonImageFile
       ) {
         await uploadSelectedLessonFiles(
           lessonId
@@ -1387,7 +1499,8 @@ export default function TrainerCourseContentPage() {
 
       setSuccess(
         selectedVideoFile ||
-          selectedDocumentFile
+          selectedDocumentFile ||
+          selectedLessonImageFile
           ? "Lesson updated and selected files uploaded successfully."
           : result?.message ||
               "Lesson updated successfully."
@@ -1920,9 +2033,44 @@ export default function TrainerCourseContentPage() {
           </div>
         </div>
 
+        <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <div className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-slate-600" />
+
+            <span className="text-sm font-semibold text-slate-800">
+              Lesson Image
+            </span>
+          </div>
+
+          <p className="mt-1 text-xs text-slate-500">
+            JPG, PNG or WEBP. Maximum 5 MB.
+          </p>
+
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) =>
+              handleLessonImageFileChange(
+                event.target.files?.[0] || null
+              )
+            }
+            className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
+          />
+
+          {selectedLessonImageFile && (
+            <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+              Selected:{" "}
+              <span className="font-medium text-slate-900">
+                {selectedLessonImageFile.name}
+              </span>
+            </div>
+          )}
+        </div>
+
         {(uploading ||
           selectedVideoFile ||
-          selectedDocumentFile) && (
+          selectedDocumentFile ||
+          selectedLessonImageFile) && (
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
             {uploading ? (
               <span className="inline-flex items-center gap-2">
@@ -2118,20 +2266,41 @@ export default function TrainerCourseContentPage() {
             {course && (
               <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Course
-                    </p>
-
-                    <h2 className="mt-1 text-xl font-bold text-slate-900">
-                      {course.title}
-                    </h2>
-
-                    {course.description && (
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                        {course.description}
-                      </p>
+                  <div className="flex min-w-0 items-start gap-4">
+                    {course.imageUrl ? (
+                      <img
+                        src={
+                          course.imageUrl.startsWith("http")
+                            ? course.imageUrl
+                            : `${API_URL.replace(
+                                "/api",
+                                ""
+                              )}${course.imageUrl}`
+                        }
+                        alt={course.title}
+                        className="h-20 w-28 shrink-0 rounded-xl border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-medium text-slate-400">
+                        No Image
+                      </div>
                     )}
+
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Course
+                      </p>
+
+                      <h2 className="mt-1 text-xl font-bold text-slate-900">
+                        {course.title}
+                      </h2>
+
+                      {course.description && (
+                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                          {course.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -2424,10 +2593,25 @@ export default function TrainerCourseContentPage() {
                                       >
                                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                           <div className="flex min-w-0 gap-3">
-                                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-600">
-                                              {lessonIndex +
-                                                1}
-                                            </div>
+                                            {lesson.imageUrl ? (
+                                              <img
+                                                src={
+                                                  lesson.imageUrl.startsWith("http")
+                                                    ? lesson.imageUrl
+                                                    : `${API_URL.replace(
+                                                        "/api",
+                                                        ""
+                                                      )}${lesson.imageUrl}`
+                                                }
+                                                alt={lesson.title}
+                                                className="h-16 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
+                                              />
+                                            ) : (
+                                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-600">
+                                                {lessonIndex +
+                                                  1}
+                                              </div>
+                                            )}
 
                                             <div className="min-w-0">
                                               <h5 className="font-medium text-slate-900">
@@ -2445,6 +2629,12 @@ export default function TrainerCourseContentPage() {
                                               )}
 
                                               <div className="mt-2 flex flex-wrap gap-2">
+                                                {lesson.imageUrl && (
+                                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                                                    Image
+                                                  </span>
+                                                )}
+
                                                 {lesson.videoUrl && (
                                                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
                                                     <Video className="h-3.5 w-3.5" />

@@ -1,0 +1,554 @@
+[
+  {
+    "id": "table.contactMessage",
+    "label": "Create table \"contactMessage\"",
+    "summary": "Creates table \"contactMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contactMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contactMessage\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contactMessage\"",
+        "sql": "CREATE TABLE \"public\".\"contactMessage\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"message\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"phone\" text NOT NULL,\n  \"status\" text DEFAULT 'NEW' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"contactMessage_status_check_94699d1b\" CHECK (\"status\" IN ('NEW', 'READ', 'REPLIED', 'CLOSED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contactMessage\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.contactSetting",
+    "label": "Create table \"contactSetting\"",
+    "summary": "Creates table \"contactSetting\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contactSetting"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contactSetting\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactSetting\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contactSetting\"",
+        "sql": "CREATE TABLE \"public\".\"contactSetting\" (\n  \"address\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"mapUrl\" text,\n  \"phone\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"workingHours\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contactSetting\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactSetting\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.demoRequest",
+    "label": "Create table \"demoRequest\"",
+    "summary": "Creates table \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"demoRequest\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"demoRequest\"",
+        "sql": "CREATE TABLE \"public\".\"demoRequest\" (\n  \"courseId\" int4,\n  \"courseSlug\" text,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text,\n  \"id\" SERIAL NOT NULL,\n  \"message\" text,\n  \"name\" text NOT NULL,\n  \"phone\" text NOT NULL,\n  \"status\" text DEFAULT 'NEW' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"demoRequest_status_check_29850ba0\" CHECK (\"status\" IN ('NEW', 'CONTACTED', 'IN_PROGRESS', 'CONVERTED', 'CLOSED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"demoRequest\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.communityPost.imageUrl",
+    "label": "Add column \"imageUrl\" to \"communityPost\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "imageUrl",
+        "table": "communityPost"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"imageUrl\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "communityPost",
+          "imageUrl"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"imageUrl\"",
+        "sql": "ALTER TABLE \"public\".\"communityPost\" ADD COLUMN \"imageUrl\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"imageUrl\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "communityPost",
+          "imageUrl"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contactMessage.contactMessage_createdAt_idx_9575dbd7",
+    "label": "Create index \"contactMessage_createdAt_idx_9575dbd7\" on \"contactMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contactMessage_createdAt_idx_9575dbd7",
+        "table": "contactMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contactMessage_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contactMessage_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"contactMessage_createdAt_idx_9575dbd7\" ON \"public\".\"contactMessage\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contactMessage_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contactMessage.contactMessage_email_idx_46df9cad",
+    "label": "Create index \"contactMessage_email_idx_46df9cad\" on \"contactMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contactMessage_email_idx_46df9cad",
+        "table": "contactMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contactMessage_email_idx_46df9cad\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_email_idx_46df9cad\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contactMessage_email_idx_46df9cad\"",
+        "sql": "CREATE INDEX \"contactMessage_email_idx_46df9cad\" ON \"public\".\"contactMessage\" (\"email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contactMessage_email_idx_46df9cad\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_email_idx_46df9cad\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contactMessage.contactMessage_phone_idx_8db23f45",
+    "label": "Create index \"contactMessage_phone_idx_8db23f45\" on \"contactMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contactMessage_phone_idx_8db23f45",
+        "table": "contactMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contactMessage_phone_idx_8db23f45\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_phone_idx_8db23f45\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contactMessage_phone_idx_8db23f45\"",
+        "sql": "CREATE INDEX \"contactMessage_phone_idx_8db23f45\" ON \"public\".\"contactMessage\" (\"phone\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contactMessage_phone_idx_8db23f45\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_phone_idx_8db23f45\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contactMessage.contactMessage_status_idx_e98638ab",
+    "label": "Create index \"contactMessage_status_idx_e98638ab\" on \"contactMessage\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contactMessage_status_idx_e98638ab",
+        "table": "contactMessage"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contactMessage_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contactMessage_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"contactMessage_status_idx_e98638ab\" ON \"public\".\"contactMessage\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contactMessage_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contactMessage_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.demoRequest.demoRequest_courseId_idx_12f72d2a",
+    "label": "Create index \"demoRequest_courseId_idx_12f72d2a\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "demoRequest_courseId_idx_12f72d2a",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"demoRequest_courseId_idx_12f72d2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_courseId_idx_12f72d2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"demoRequest_courseId_idx_12f72d2a\"",
+        "sql": "CREATE INDEX \"demoRequest_courseId_idx_12f72d2a\" ON \"public\".\"demoRequest\" (\"courseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"demoRequest_courseId_idx_12f72d2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_courseId_idx_12f72d2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.demoRequest.demoRequest_createdAt_idx_9575dbd7",
+    "label": "Create index \"demoRequest_createdAt_idx_9575dbd7\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "demoRequest_createdAt_idx_9575dbd7",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"demoRequest_createdAt_idx_9575dbd7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"demoRequest_createdAt_idx_9575dbd7\"",
+        "sql": "CREATE INDEX \"demoRequest_createdAt_idx_9575dbd7\" ON \"public\".\"demoRequest\" (\"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"demoRequest_createdAt_idx_9575dbd7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_createdAt_idx_9575dbd7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.demoRequest.demoRequest_email_idx_46df9cad",
+    "label": "Create index \"demoRequest_email_idx_46df9cad\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "demoRequest_email_idx_46df9cad",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"demoRequest_email_idx_46df9cad\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_email_idx_46df9cad\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"demoRequest_email_idx_46df9cad\"",
+        "sql": "CREATE INDEX \"demoRequest_email_idx_46df9cad\" ON \"public\".\"demoRequest\" (\"email\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"demoRequest_email_idx_46df9cad\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_email_idx_46df9cad\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.demoRequest.demoRequest_phone_idx_8db23f45",
+    "label": "Create index \"demoRequest_phone_idx_8db23f45\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "demoRequest_phone_idx_8db23f45",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"demoRequest_phone_idx_8db23f45\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_phone_idx_8db23f45\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"demoRequest_phone_idx_8db23f45\"",
+        "sql": "CREATE INDEX \"demoRequest_phone_idx_8db23f45\" ON \"public\".\"demoRequest\" (\"phone\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"demoRequest_phone_idx_8db23f45\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_phone_idx_8db23f45\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.demoRequest.demoRequest_status_idx_e98638ab",
+    "label": "Create index \"demoRequest_status_idx_e98638ab\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "demoRequest_status_idx_e98638ab",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"demoRequest_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"demoRequest_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"demoRequest_status_idx_e98638ab\" ON \"public\".\"demoRequest\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"demoRequest_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"demoRequest_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.demoRequest.demoRequest_courseId_fkey",
+    "label": "Add foreign key \"demoRequest_courseId_fkey\" on \"demoRequest\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "demoRequest_courseId_fkey",
+        "table": "demoRequest"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"demoRequest_courseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "demoRequest_courseId_fkey",
+          "public",
+          "\"public\".\"demoRequest\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"demoRequest_courseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"demoRequest\"\nADD CONSTRAINT \"demoRequest_courseId_fkey\"\nFOREIGN KEY (\"courseId\")\nREFERENCES \"public\".\"course\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"demoRequest_courseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "demoRequest_courseId_fkey",
+          "public",
+          "\"public\".\"demoRequest\""
+        ]
+      }
+    ]
+  }
+]

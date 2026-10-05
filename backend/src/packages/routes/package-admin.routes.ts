@@ -5,7 +5,12 @@ import {
   createAdminPackage,
   getAdminPackage,
   updateAdminPackage,
+  uploadPackageImageController,
 } from "../controllers/package-admin.controller";
+
+import {
+  packageImageUpload,
+} from "../middleware/package-image.upload";
 
 import {
   authenticate,
@@ -29,5 +34,11 @@ router.post("/", createAdminPackage);
 router.get("/:id", getAdminPackage);
 
 router.patch("/:id", updateAdminPackage);
+
+router.post(
+  "/:id/image",
+  packageImageUpload.single("image"),
+  uploadPackageImageController
+);
 
 export default router;

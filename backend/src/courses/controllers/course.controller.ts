@@ -8,6 +8,7 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  updateCourseImage,
 } from "../services/course.service";
 
 /*
@@ -432,6 +433,93 @@ export async function deleteCourseController(
         error instanceof Error
           ? error.message
           : "Unable to delete course",
+    });
+  }
+}
+
+/*
+ * ============================================================
+ * COURSE IMAGE
+ * ============================================================
+ *
+ * POST /api/admin/courses/:id/image
+ *
+ * ADMIN only.
+ *
+ * Content-Type:
+ * multipart/form-data
+ *
+ * Field name:
+ * image
+ *
+ * ============================================================
+ */
+
+export async function uploadCourseImageController(
+  req: Request,
+  res: Response
+) {
+  try {
+    const idParam = req.params.id;
+
+    const courseId = Number(idParam);
+
+    if (
+      !Number.isInteger(courseId) ||
+      courseId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid course ID is required",
+      });
+    }
+
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Course image is required",
+      });
+    }
+
+    const imageUrl =
+      `/uploads/courses/${file.filename}`;
+
+    const course =
+      await updateCourseImage(
+        courseId,
+        imageUrl
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Course image updated successfully",
+      data: course,
+    });
+  } catch (error) {
+    console.error(
+      "Upload course image error:",
+      error
+    );
+
+    if (
+      error instanceof Error &&
+      error.message === "Course not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unable to upload course image",
     });
   }
 }

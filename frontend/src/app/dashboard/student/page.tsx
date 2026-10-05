@@ -4,15 +4,15 @@
 
 import {
 
-  useEffect,
+  useEffect,
 
-  useMemo,
+  useMemo,
 
-  useState,
+  useState,
 
-  type CSSProperties,
+  type CSSProperties,
 
-  type ElementType,
+  type ElementType,
 
 } from "react";
 
@@ -20,29 +20,29 @@ import { useRouter } from "next/navigation";
 
 import {
 
-  ArrowRight,
+  ArrowRight,
 
-  Award,
+  Award,
 
-  BarChart3,
+  BarChart3,
 
-  BookOpen,
+  BookOpen,
 
-  CalendarDays,
+  CalendarDays,
 
-  CheckCircle2,
+  CheckCircle2,
 
-  ChevronRight,
+  ChevronRight,
 
-  ClipboardList,
+  ClipboardList,
 
-  CreditCard,
+  CreditCard,
 
-  GraduationCap,
+  GraduationCap,
 
-  RefreshCw,
+  RefreshCw,
 
-  Sparkles,
+  Sparkles,
 
 
 } from "lucide-react";
@@ -51,33 +51,68 @@ import {
 
 const API_URL =
 
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+
+
+function getImageUrl(imageUrl?: string | null): string | null {
+
+  if (!imageUrl) {
+
+    return null;
+
+  }
+
+
+
+  if (
+
+    imageUrl.startsWith("http://") ||
+
+    imageUrl.startsWith("https://")
+
+  ) {
+
+    return imageUrl;
+
+  }
+
+
+
+  return `${API_URL.replace("/api", "")}${
+
+    imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`
+
+  }`;
+
+}
 
 
 
 type CourseData = {
 
-  id: number;
+  id: number;
 
-  slug: string;
+  slug: string;
 
-  title: string;
+  title: string;
 
-  description?: string | null;
+  description?: string | null;
 
-  mode?: string | null;
+  mode?: string | null;
 
+  imageUrl?: string | null;
 };
 
 
 
 type PackageCourse = {
 
-  id?: number;
+  id?: number;
 
-  courseId?: number;
+  courseId?: number;
 
-  course?: CourseData | null;
+  course?: CourseData | null;
 
 };
 
@@ -85,15 +120,15 @@ type PackageCourse = {
 
 type PackageData = {
 
-  id: number;
+  id: number;
 
-  slug: string;
+  slug: string;
 
-  title: string;
+  title: string;
 
-  price?: number | null;
+  price?: number | null;
 
-  courses: PackageCourse[];
+  courses: PackageCourse[];
 
 };
 
@@ -101,15 +136,15 @@ type PackageData = {
 
 type EnrollmentData = {
 
-  id: number;
+  id: number;
 
-  status: string;
+  status: string;
 
-  enrolledAt: string;
+  enrolledAt: string;
 
-  package: PackageData | null;
+  package: PackageData | null;
 
-  course: CourseData | null;
+  course: CourseData | null;
 
 };
 
@@ -117,19 +152,19 @@ type EnrollmentData = {
 
 type PaymentData = {
 
-  id: number;
+  id: number;
 
-  amount: number;
+  amount: number;
 
-  currency: string;
+  currency: string;
 
-  method: string;
+  method: string;
 
-  status: string;
+  status: string;
 
-  createdAt: string;
+  createdAt: string;
 
-  paidAt?: string | null;
+  paidAt?: string | null;
 
 };
 
@@ -137,50 +172,50 @@ type PaymentData = {
 
 type DashboardData = {
 
-  student: {
+  student: {
 
-    id: number;
+    id: number;
 
-    studentId: string;
+    studentId: string;
 
-    name: string;
+    name: string;
 
-    email: string;
+    email: string;
 
-    phone: string | null;
+    phone: string | null;
 
-    state: string | null;
+    state: string | null;
 
-    referralId: string | null;
+    referralId: string | null;
 
-    isActive: boolean;
+    isActive: boolean;
 
-  };
+  };
 
-  stats: {
+  stats: {
 
-    enrolledCourses: number;
+    enrolledCourses: number;
 
-    activeEnrollments: number;
+    activeEnrollments: number;
 
-    successfulPayments: number;
+    successfulPayments: number;
 
-    totalPaid: number;
+    totalPaid: number;
 
-  };
+  };
 
-  enrollments: EnrollmentData[];
+  enrollments: EnrollmentData[];
 
-  payments: PaymentData[];
+  payments: PaymentData[];
 
-  assignments: unknown[];
+  assignments: unknown[];
 
-  quizzes: unknown[];
+  quizzes: unknown[];
 
 
-  recentActivity: unknown[];
+  recentActivity: unknown[];
 
-  certificates: unknown[];
+  certificates: unknown[];
 
 };
 
@@ -188,17 +223,17 @@ type DashboardData = {
 
 type CourseProgress = {
 
-  courseId: number;
+  courseId: number;
 
-  totalLessons: number;
+  totalLessons: number;
 
-  completedLessons: number;
+  completedLessons: number;
 
-  startedLessons: number;
+  startedLessons: number;
 
-  remainingLessons: number;
+  remainingLessons: number;
 
-  progressPercentage: number;
+  progressPercentage: number;
 
 };
 
@@ -206,11 +241,11 @@ type CourseProgress = {
 
 type StudentCourse = {
 
-  course: CourseData;
+  course: CourseData;
 
-  packageName: string | null;
+  packageName: string | null;
 
-  enrollmentStatus: string;
+  enrollmentStatus: string;
 
 };
 
@@ -218,55 +253,55 @@ type StudentCourse = {
 
 function safeText(value: unknown): string {
 
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined) {
 
-    return "—";
+    return "—";
 
-  }
-
-
-
-  if (typeof value === "string") {
-
-    return value;
-
-  }
+  }
 
 
 
-  if (typeof value === "number" || typeof value === "boolean") {
+  if (typeof value === "string") {
 
-    return String(value);
+    return value;
 
-  }
-
-
-
-  if (typeof value === "object") {
-
-    const objectValue = value as Record<string, unknown>;
+  }
 
 
 
-    for (const key of ["title", "name", "label", "message", "description"]) {
+  if (typeof value === "number" || typeof value === "boolean") {
 
-      if (typeof objectValue[key] === "string") {
+    return String(value);
 
-        return objectValue[key] as string;
-
-      }
-
-    }
+  }
 
 
 
-    return JSON.stringify(value);
+  if (typeof value === "object") {
 
-  }
+    const objectValue = value as Record<string, unknown>;
 
 
 
-  return String(value);
+    for (const key of ["title", "name", "label", "message", "description"]) {
+
+      if (typeof objectValue[key] === "string") {
+
+        return objectValue[key] as string;
+
+      }
+
+    }
+
+
+
+    return JSON.stringify(value);
+
+  }
+
+
+
+  return String(value);
 
 }
 
@@ -274,29 +309,29 @@ function safeText(value: unknown): string {
 
 function formatCurrency(
 
-  amount: number,
+  amount: number,
 
-  currency = "INR"
+  currency = "INR"
 
 ): string {
 
-  try {
+  try {
 
-    return new Intl.NumberFormat("en-IN", {
+    return new Intl.NumberFormat("en-IN", {
 
-      style: "currency",
+      style: "currency",
 
-      currency,
+      currency,
 
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 0,
 
-    }).format(Number(amount) || 0);
+    }).format(Number(amount) || 0);
 
-  } catch {
+  } catch {
 
-    return `₹${Number(amount) || 0}`;
+    return `₹${Number(amount) || 0}`;
 
-  }
+  }
 
 }
 
@@ -304,35 +339,35 @@ function formatCurrency(
 
 function formatDate(value: string | null | undefined): string {
 
-  if (!value) {
+  if (!value) {
 
-    return "—";
+    return "—";
 
-  }
-
-
-
-  const date = new Date(value);
+  }
 
 
 
-  if (Number.isNaN(date.getTime())) {
-
-    return "—";
-
-  }
+  const date = new Date(value);
 
 
 
-  return new Intl.DateTimeFormat("en-IN", {
+  if (Number.isNaN(date.getTime())) {
 
-    day: "2-digit",
+    return "—";
 
-    month: "short",
+  }
 
-    year: "numeric",
 
-  }).format(date);
+
+  return new Intl.DateTimeFormat("en-IN", {
+
+    day: "2-digit",
+
+    month: "short",
+
+    year: "numeric",
+
+  }).format(date);
 
 }
 
@@ -340,21 +375,21 @@ function formatDate(value: string | null | undefined): string {
 
 function formatStatus(value: string | null | undefined): string {
 
-  if (!value) {
+  if (!value) {
 
-    return "Unknown";
+    return "Unknown";
 
-  }
+  }
 
 
 
-  return (
+  return (
 
-    value.charAt(0).toUpperCase() +
+    value.charAt(0).toUpperCase() +
 
-    value.slice(1).toLowerCase()
+    value.slice(1).toLowerCase()
 
-  );
+  );
 
 }
 
@@ -362,55 +397,65 @@ function formatStatus(value: string | null | undefined): string {
 
 function normalizeCourse(raw: any): CourseData | null {
 
-  if (!raw) {
+  if (!raw) {
 
-    return null;
+    return null;
 
-  }
-
-
-
-  const course = raw.course ?? raw;
+  }
 
 
 
-  if (!course?.id) {
-
-    return null;
-
-  }
+  const course = raw.course ?? raw;
 
 
 
-  return {
+  if (!course?.id) {
 
-    id: Number(course.id),
+    return null;
 
-    slug: safeText(course.slug),
+  }
 
-    title: safeText(course.title),
 
-    description:
 
-      course.description === null ||
+  return {
 
-      course.description === undefined
+    id: Number(course.id),
 
-        ? null
+    slug: safeText(course.slug),
 
-        : safeText(course.description),
+    title: safeText(course.title),
 
-    mode:
+    description:
 
-      course.mode === null ||
+      course.description === null ||
 
-      course.mode === undefined
+      course.description === undefined
 
-        ? null
+        ? null
 
-        : safeText(course.mode),
+        : safeText(course.description),
 
-  };
+    mode:
+
+      course.mode === null ||
+
+      course.mode === undefined
+
+        ? null
+
+        : safeText(course.mode),
+
+    imageUrl:
+
+      course.imageUrl === null ||
+
+      course.imageUrl === undefined
+
+        ? null
+
+        : safeText(course.imageUrl),
+
+  };
 
 }
 
@@ -418,91 +463,91 @@ function normalizeCourse(raw: any): CourseData | null {
 
 function normalizePackage(raw: any): PackageData | null {
 
-  if (!raw) {
+  if (!raw) {
 
-    return null;
+    return null;
 
-  }
-
-
-
-  const packageValue = raw.package ?? raw;
+  }
 
 
 
-  if (!packageValue?.id) {
-
-    return null;
-
-  }
+  const packageValue = raw.package ?? raw;
 
 
 
-  const courses: PackageCourse[] = Array.isArray(
+  if (!packageValue?.id) {
 
-    packageValue.courses
+    return null;
 
-  )
-
-    ? packageValue.courses
-
-        .map((item: any) => {
-
-          const course = normalizeCourse(item);
+  }
 
 
 
-          return course
+  const courses: PackageCourse[] = Array.isArray(
 
-            ? {
+    packageValue.courses
 
-                id: item?.id ? Number(item.id) : undefined,
+  )
 
-                courseId: course.id,
+    ? packageValue.courses
 
-                course,
+        .map((item: any) => {
 
-              }
-
-            : null;
-
-        })
-
-        .filter(
-
-          (
-
-            item: PackageCourse | null
-
-          ): item is PackageCourse => item !== null
-
-        )
-
-    : [];
+          const course = normalizeCourse(item);
 
 
 
-  return {
+          return course
 
-    id: Number(packageValue.id),
+            ? {
 
-    slug: safeText(packageValue.slug),
+                id: item?.id ? Number(item.id) : undefined,
 
-    title: safeText(packageValue.title),
+                courseId: course.id,
 
-    price:
+                course,
 
-      packageValue.price === null ||
+              }
 
-      packageValue.price === undefined
+            : null;
 
-        ? null
+        })
 
-        : Number(packageValue.price) || 0,
+        .filter(
 
-    courses,
+          (
 
-  };
+            item: PackageCourse | null
+
+          ): item is PackageCourse => item !== null
+
+        )
+
+    : [];
+
+
+
+  return {
+
+    id: Number(packageValue.id),
+
+    slug: safeText(packageValue.slug),
+
+    title: safeText(packageValue.title),
+
+    price:
+
+      packageValue.price === null ||
+
+      packageValue.price === undefined
+
+        ? null
+
+        : Number(packageValue.price) || 0,
+
+    courses,
+
+  };
 
 }
 
@@ -510,19 +555,19 @@ function normalizePackage(raw: any): PackageData | null {
 
 function normalizeEnrollment(raw: any): EnrollmentData {
 
-  return {
+  return {
 
-    id: Number(raw?.id) || 0,
+    id: Number(raw?.id) || 0,
 
-    status: safeText(raw?.status),
+    status: safeText(raw?.status),
 
-    enrolledAt: safeText(raw?.enrolledAt),
+    enrolledAt: safeText(raw?.enrolledAt),
 
-    package: normalizePackage(raw?.package),
+    package: normalizePackage(raw?.package),
 
-    course: normalizeCourse(raw?.course),
+    course: normalizeCourse(raw?.course),
 
-  };
+  };
 
 }
 
@@ -530,31 +575,31 @@ function normalizeEnrollment(raw: any): EnrollmentData {
 
 function normalizePayment(raw: any): PaymentData {
 
-  return {
+  return {
 
-    id: Number(raw?.id) || 0,
+    id: Number(raw?.id) || 0,
 
-    amount: Number(raw?.amount) || 0,
+    amount: Number(raw?.amount) || 0,
 
-    currency: safeText(raw?.currency || "INR"),
+    currency: safeText(raw?.currency || "INR"),
 
-    method: safeText(raw?.method),
+    method: safeText(raw?.method),
 
-    status: safeText(raw?.status),
+    status: safeText(raw?.status),
 
-    createdAt: safeText(raw?.createdAt),
+    createdAt: safeText(raw?.createdAt),
 
-    paidAt:
+    paidAt:
 
-      raw?.paidAt === null ||
+      raw?.paidAt === null ||
 
-      raw?.paidAt === undefined
+      raw?.paidAt === undefined
 
-        ? null
+        ? null
 
-        : safeText(raw?.paidAt),
+        : safeText(raw?.paidAt),
 
-  };
+  };
 
 }
 
@@ -562,132 +607,132 @@ function normalizePayment(raw: any): PaymentData {
 
 function normalizeDashboard(raw: any): DashboardData {
 
-  const rawStudent = raw?.student ?? {};
+  const rawStudent = raw?.student ?? {};
 
-  const rawStats = raw?.stats ?? {};
+  const rawStats = raw?.stats ?? {};
 
 
 
-  return {
+  return {
 
-    student: {
+    student: {
 
-      id: Number(rawStudent.id) || 0,
+      id: Number(rawStudent.id) || 0,
 
-      studentId: safeText(rawStudent.studentId),
+      studentId: safeText(rawStudent.studentId),
 
-      name: safeText(rawStudent.name),
+      name: safeText(rawStudent.name),
 
-      email: safeText(rawStudent.email),
+      email: safeText(rawStudent.email),
 
-      phone:
+      phone:
 
-        rawStudent.phone === null ||
+        rawStudent.phone === null ||
 
-        rawStudent.phone === undefined
+        rawStudent.phone === undefined
 
-          ? null
+          ? null
 
-          : safeText(rawStudent.phone),
+          : safeText(rawStudent.phone),
 
-      state:
+      state:
 
-        rawStudent.state === null ||
+        rawStudent.state === null ||
 
-        rawStudent.state === undefined
+        rawStudent.state === undefined
 
-          ? null
+          ? null
 
-          : safeText(rawStudent.state),
+          : safeText(rawStudent.state),
 
-      referralId:
+      referralId:
 
-        rawStudent.referralId === null ||
+        rawStudent.referralId === null ||
 
-        rawStudent.referralId === undefined
+        rawStudent.referralId === undefined
 
-          ? null
+          ? null
 
-          : safeText(rawStudent.referralId),
+          : safeText(rawStudent.referralId),
 
-      isActive: Boolean(rawStudent.isActive),
+      isActive: Boolean(rawStudent.isActive),
 
-    },
+    },
 
 
 
-    stats: {
+    stats: {
 
-      enrolledCourses:
+      enrolledCourses:
 
-        Number(rawStats.enrolledCourses) || 0,
+        Number(rawStats.enrolledCourses) || 0,
 
-      activeEnrollments:
+      activeEnrollments:
 
-        Number(rawStats.activeEnrollments) || 0,
+        Number(rawStats.activeEnrollments) || 0,
 
-      successfulPayments:
+      successfulPayments:
 
-        Number(rawStats.successfulPayments) || 0,
+        Number(rawStats.successfulPayments) || 0,
 
-      totalPaid:
+      totalPaid:
 
-        Number(rawStats.totalPaid) || 0,
+        Number(rawStats.totalPaid) || 0,
 
-    },
+    },
 
 
 
-    enrollments: Array.isArray(raw?.enrollments)
+    enrollments: Array.isArray(raw?.enrollments)
 
-      ? raw.enrollments.map(normalizeEnrollment)
+      ? raw.enrollments.map(normalizeEnrollment)
 
-      : [],
+      : [],
 
 
 
-    payments: Array.isArray(raw?.payments)
+    payments: Array.isArray(raw?.payments)
 
-      ? raw.payments.map(normalizePayment)
+      ? raw.payments.map(normalizePayment)
 
-      : [],
+      : [],
 
 
 
-    assignments: Array.isArray(raw?.assignments)
+    assignments: Array.isArray(raw?.assignments)
 
-      ? raw.assignments
+      ? raw.assignments
 
-      : [],
+      : [],
 
 
 
-    quizzes: Array.isArray(raw?.quizzes)
+    quizzes: Array.isArray(raw?.quizzes)
 
-      ? raw.quizzes
+      ? raw.quizzes
 
-      : [],
+      : [],
 
 
 
 
 
 
-    recentActivity: Array.isArray(raw?.recentActivity)
+    recentActivity: Array.isArray(raw?.recentActivity)
 
-      ? raw.recentActivity
+      ? raw.recentActivity
 
-      : [],
+      : [],
 
 
 
-    certificates: Array.isArray(raw?.certificates)
+    certificates: Array.isArray(raw?.certificates)
 
-      ? raw.certificates
+      ? raw.certificates
 
-      : [],
+      : [],
 
-  };
+  };
 
 }
 
@@ -695,907 +740,907 @@ function normalizeDashboard(raw: any): DashboardData {
 
 export default function StudentDashboardPage() {
 
-  const router = useRouter();
+  const router = useRouter();
 
 
 
-  const [dashboard, setDashboard] =
+  const [dashboard, setDashboard] =
 
-    useState<DashboardData | null>(null);
+    useState<DashboardData | null>(null);
 
 
 
-  const [progressMap, setProgressMap] = useState<
+  const [progressMap, setProgressMap] = useState<
 
-    Record<number, CourseProgress>
+    Record<number, CourseProgress>
 
-  >({});
+  >({});
 
 
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState("");
 
 
 
-  async function fetchDashboardData(showRefresh = false) {
+  async function fetchDashboardData(showRefresh = false) {
 
-    try {
+    try {
 
-      if (showRefresh) {
+      if (showRefresh) {
 
-        setRefreshing(true);
+        setRefreshing(true);
 
-      } else {
+      } else {
 
-        setLoading(true);
+        setLoading(true);
 
-      }
+      }
 
 
 
-      setError("");
+      setError("");
 
 
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
 
 
-      if (!token) {
+      if (!token) {
 
-        setError(
+        setError(
 
-          "Your session has expired. Please login again."
+          "Your session has expired. Please login again."
 
-        );
+        );
 
-        return;
+        return;
 
-      }
+      }
 
 
 
-      const response = await fetch(
+      const response = await fetch(
 
-        `${API_URL}/students/me/dashboard`,
+        `${API_URL}/students/me/dashboard`,
 
-        {
+        {
 
-          method: "GET",
+          method: "GET",
 
-          headers: {
+          headers: {
 
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
 
-            "Content-Type": "application/json",
+            "Content-Type": "application/json",
 
-          },
+          },
 
-          cache: "no-store",
+          cache: "no-store",
 
-        }
+        }
 
-      );
+      );
 
 
 
-      const result = await response.json();
+      const result = await response.json();
 
 
 
-      if (
+      if (
 
-        !response.ok ||
+        !response.ok ||
 
-        !result?.success ||
+        !result?.success ||
 
-        !result?.data
+        !result?.data
 
-      ) {
+      ) {
 
-        throw new Error(
+        throw new Error(
 
-          result?.message ||
+          result?.message ||
 
-            "Unable to load your dashboard."
+            "Unable to load your dashboard."
 
-        );
+        );
 
-      }
+      }
 
 
 
-      const normalized =
+      const normalized =
 
-        normalizeDashboard(result.data);
+        normalizeDashboard(result.data);
 
 
 
-      setDashboard(normalized);
+      setDashboard(normalized);
 
 
 
-      const courseMap = new Map<
+      const courseMap = new Map<
 
-        number,
+        number,
 
-        StudentCourse
+        StudentCourse
 
-      >();
+      >();
 
 
 
-      for (const enrollment of normalized.enrollments) {
+      for (const enrollment of normalized.enrollments) {
 
-        if (enrollment.course) {
+        if (enrollment.course) {
 
-          courseMap.set(enrollment.course.id, {
+          courseMap.set(enrollment.course.id, {
 
-            course: enrollment.course,
+            course: enrollment.course,
 
-            packageName: null,
+            packageName: null,
 
-            enrollmentStatus: enrollment.status,
+            enrollmentStatus: enrollment.status,
 
-          });
+          });
 
-        }
+        }
 
 
 
-        if (enrollment.package) {
+        if (enrollment.package) {
 
-          for (const packageItem of enrollment.package
+          for (const packageItem of enrollment.package
 
-            .courses) {
+            .courses) {
 
-            if (!packageItem.course) {
+            if (!packageItem.course) {
 
-              continue;
+              continue;
 
-            }
+            }
 
 
 
-            if (!courseMap.has(packageItem.course.id)) {
+            if (!courseMap.has(packageItem.course.id)) {
 
-              courseMap.set(packageItem.course.id, {
+              courseMap.set(packageItem.course.id, {
 
-                course: packageItem.course,
+                course: packageItem.course,
 
-                packageName:
+                packageName:
 
-                  enrollment.package.title,
+                  enrollment.package.title,
 
-                enrollmentStatus:
+                enrollmentStatus:
 
-                  enrollment.status,
+                  enrollment.status,
 
-              });
+              });
 
-            }
+            }
 
-          }
+          }
 
-        }
+        }
 
-      }
+      }
 
 
 
-      const studentCourses = Array.from(
+      const studentCourses = Array.from(
 
-        courseMap.values()
+        courseMap.values()
 
-      );
+      );
 
 
 
-      const progressResults = await Promise.all(
+      const progressResults = await Promise.all(
 
-        studentCourses.map(async (item) => {
+        studentCourses.map(async (item) => {
 
-          try {
+          try {
 
-            const progressResponse =
+            const progressResponse =
 
-              await fetch(
+              await fetch(
 
-                `${API_URL}/course-progress/courses/${item.course.id}/progress`,
+                `${API_URL}/course-progress/courses/${item.course.id}/progress`,
 
-                {
+                {
 
-                  method: "GET",
+                  method: "GET",
 
-                  headers: {
+                  headers: {
 
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
 
-                    "Content-Type":
+                    "Content-Type":
 
-                      "application/json",
+                      "application/json",
 
-                  },
+                  },
 
-                }
+                }
 
-              );
+              );
 
 
 
-            if (!progressResponse.ok) {
+            if (!progressResponse.ok) {
 
-              return null;
+              return null;
 
-            }
+            }
 
 
 
-            const progressJson =
+            const progressJson =
 
-              await progressResponse.json();
+              await progressResponse.json();
 
 
 
-            const progress =
+            const progress =
 
-              progressJson?.data ??
+              progressJson?.data ??
 
-              progressJson;
+              progressJson;
 
 
 
-            return {
+            return {
 
-              courseId: Number(
+              courseId: Number(
 
-                progress?.courseId
+                progress?.courseId
 
-              ),
+              ),
 
-              totalLessons:
+              totalLessons:
 
-                Number(
+                Number(
 
-                  progress?.totalLessons
+                  progress?.totalLessons
 
-                ) || 0,
+                ) || 0,
 
-              completedLessons:
+              completedLessons:
 
-                Number(
+                Number(
 
-                  progress?.completedLessons
+                  progress?.completedLessons
 
-                ) || 0,
+                ) || 0,
 
-              startedLessons:
+              startedLessons:
 
-                Number(
+                Number(
 
-                  progress?.startedLessons
+                  progress?.startedLessons
 
-                ) || 0,
+                ) || 0,
 
-              remainingLessons:
+              remainingLessons:
 
-                Number(
+                Number(
 
-                  progress?.remainingLessons
+                  progress?.remainingLessons
 
-                ) || 0,
+                ) || 0,
 
-              progressPercentage:
+              progressPercentage:
 
-                Number(
+                Number(
 
-                  progress?.progressPercentage
+                  progress?.progressPercentage
 
-                ) || 0,
+                ) || 0,
 
-            } as CourseProgress;
+            } as CourseProgress;
 
-          } catch {
+          } catch {
 
-            return null;
+            return null;
 
-          }
+          }
 
-        })
+        })
 
-      );
+      );
 
 
 
-      const nextProgress: Record<
+      const nextProgress: Record<
 
-        number,
+        number,
 
-        CourseProgress
+        CourseProgress
 
-      > = {};
+      > = {};
 
 
 
-      for (const progress of progressResults) {
+      for (const progress of progressResults) {
 
-        if (progress?.courseId) {
+        if (progress?.courseId) {
 
-          nextProgress[
+          nextProgress[
 
-            progress.courseId
+            progress.courseId
 
-          ] = progress;
+          ] = progress;
 
-        }
+        }
 
-      }
+      }
 
 
 
-      setProgressMap(nextProgress);
+      setProgressMap(nextProgress);
 
-    } catch (err) {
+    } catch (err) {
 
-      console.error(
+      console.error(
 
-        "Student dashboard error:",
+        "Student dashboard error:",
 
-        err
+        err
 
-      );
+      );
 
 
 
-      setError(
+      setError(
 
-        err instanceof Error
+        err instanceof Error
 
-          ? err.message
+          ? err.message
 
-          : "Unable to load your dashboard."
+          : "Unable to load your dashboard."
 
-      );
+      );
 
-    } finally {
+    } finally {
 
-      setLoading(false);
+      setLoading(false);
 
-      setRefreshing(false);
+      setRefreshing(false);
 
-    }
+    }
 
-  }
+  }
 
 
 
-  useEffect(() => {
+  useEffect(() => {
 
-    fetchDashboardData();
+    fetchDashboardData();
 
-  }, []);
+  }, []);
 
 
 
-  const studentCourses = useMemo(() => {
+  const studentCourses = useMemo(() => {
 
-    if (!dashboard) {
+    if (!dashboard) {
 
-      return [];
+      return [];
 
-    }
+    }
 
 
 
-    const courseMap = new Map<
+    const courseMap = new Map<
 
-      number,
+      number,
 
-      StudentCourse
+      StudentCourse
 
-    >();
+    >();
 
 
 
-    for (const enrollment of dashboard.enrollments) {
+    for (const enrollment of dashboard.enrollments) {
 
-      if (enrollment.course) {
+      if (enrollment.course) {
 
-        courseMap.set(enrollment.course.id, {
+        courseMap.set(enrollment.course.id, {
 
-          course: enrollment.course,
+          course: enrollment.course,
 
-          packageName: null,
+          packageName: null,
 
-          enrollmentStatus: enrollment.status,
+          enrollmentStatus: enrollment.status,
 
-        });
+        });
 
-      }
+      }
 
 
 
-      if (enrollment.package) {
+      if (enrollment.package) {
 
-        for (const packageItem of enrollment.package
+        for (const packageItem of enrollment.package
 
-          .courses) {
+          .courses) {
 
-          if (!packageItem.course) {
+          if (!packageItem.course) {
 
-            continue;
+            continue;
 
-          }
+          }
 
 
 
-          if (!courseMap.has(packageItem.course.id)) {
+          if (!courseMap.has(packageItem.course.id)) {
 
-            courseMap.set(packageItem.course.id, {
+            courseMap.set(packageItem.course.id, {
 
-              course: packageItem.course,
+              course: packageItem.course,
 
-              packageName:
+              packageName:
 
-                enrollment.package.title,
+                enrollment.package.title,
 
-              enrollmentStatus:
+              enrollmentStatus:
 
-                enrollment.status,
+                enrollment.status,
 
-            });
+            });
 
-          }
+          }
 
-        }
+        }
 
-      }
+      }
 
-    }
+    }
 
 
 
-    return Array.from(courseMap.values());
+    return Array.from(courseMap.values());
 
-  }, [dashboard]);
+  }, [dashboard]);
 
 
 
-  const incompleteCourse = useMemo(
+  const incompleteCourse = useMemo(
 
-    () =>
+    () =>
 
-      studentCourses.find(
+      studentCourses.find(
 
-        (item) =>
+        (item) =>
 
-          (progressMap[item.course.id]
+          (progressMap[item.course.id]
 
-            ?.progressPercentage ?? 0) < 100
+            ?.progressPercentage ?? 0) < 100
 
-      ) ?? null,
+      ) ?? null,
 
-    [studentCourses, progressMap]
+    [studentCourses, progressMap]
 
-  );
+  );
 
 
 
-  const completedCourseCount = useMemo(
+  const completedCourseCount = useMemo(
 
-    () =>
+    () =>
 
-      studentCourses.filter(
+      studentCourses.filter(
 
-        (item) =>
+        (item) =>
 
-          (progressMap[item.course.id]
+          (progressMap[item.course.id]
 
-            ?.progressPercentage ?? 0) === 100
+            ?.progressPercentage ?? 0) === 100
 
-      ).length,
+      ).length,
 
-    [studentCourses, progressMap]
+    [studentCourses, progressMap]
 
-  );
+  );
 
 
 
-  const totalLessons = useMemo(
+  const totalLessons = useMemo(
 
-    () =>
+    () =>
 
-      Object.values(progressMap).reduce(
+      Object.values(progressMap).reduce(
 
-        (sum, item) =>
+        (sum, item) =>
 
-          sum + item.totalLessons,
+          sum + item.totalLessons,
 
-        0
+        0
 
-      ),
+      ),
 
-    [progressMap]
+    [progressMap]
 
-  );
+  );
 
 
 
-  const completedLessons = useMemo(
+  const completedLessons = useMemo(
 
-    () =>
+    () =>
 
-      Object.values(progressMap).reduce(
+      Object.values(progressMap).reduce(
 
-        (sum, item) =>
+        (sum, item) =>
 
-          sum + item.completedLessons,
+          sum + item.completedLessons,
 
-        0
+        0
 
-      ),
+      ),
 
-    [progressMap]
+    [progressMap]
 
-  );
+  );
 
 
 
-  const recentPayment = useMemo(
+  const recentPayment = useMemo(
 
-    () =>
+    () =>
 
-      [...(dashboard?.payments ?? [])].sort(
+      [...(dashboard?.payments ?? [])].sort(
 
-        (a, b) =>
+        (a, b) =>
 
-          new Date(b.createdAt).getTime() -
+          new Date(b.createdAt).getTime() -
 
-          new Date(a.createdAt).getTime()
+          new Date(a.createdAt).getTime()
 
-      )[0] ?? null,
+      )[0] ?? null,
 
-    [dashboard]
+    [dashboard]
 
-  );
+  );
 
 
 
-  const initials = useMemo(() => {
+  const initials = useMemo(() => {
 
-    const name = dashboard?.student.name || "Student";
+    const name = dashboard?.student.name || "Student";
 
 
 
-    return name
+    return name
 
-      .split(/\s+/)
+      .split(/\s+/)
 
-      .filter(Boolean)
+      .filter(Boolean)
 
-      .map((part) => part[0])
+      .map((part) => part[0])
 
-      .join("")
+      .join("")
 
-      .slice(0, 2)
+      .slice(0, 2)
 
-      .toUpperCase();
+      .toUpperCase();
 
-  }, [dashboard]);
+  }, [dashboard]);
 
 
 
-  if (loading) {
+  if (loading) {
 
-    return (
+    return (
 
-      <>
+      <>
 
-        <main
+        <main
 
-          style={{
+          style={{
 
-            flex: 1,
+            flex: 1,
 
-            minWidth: 0,
+            minWidth: 0,
 
-            padding: "28px 32px",
+            padding: "28px 32px",
 
-            background: "#f5f7fb",
+            background: "#f5f7fb",
 
-          }}
+          }}
 
-        >
+        >
 
-          <div
+          <div
 
-            style={{
+            style={{
 
-              minHeight: 360,
+              minHeight: 360,
 
-              display: "flex",
+              display: "flex",
 
-              flexDirection: "column",
+              flexDirection: "column",
 
-              alignItems: "center",
+              alignItems: "center",
 
-              justifyContent: "center",
+              justifyContent: "center",
 
-              border: "1px solid #e5e9f0",
+              border: "1px solid #e5e9f0",
 
-              borderRadius: 18,
+              borderRadius: 18,
 
-              background: "#ffffff",
+              background: "#ffffff",
 
-            }}
+            }}
 
-          >
+          >
 
-            <RefreshCw
+            <RefreshCw
 
-              size={26}
+              size={26}
 
-              color="#2f6bff"
+              color="#2f6bff"
 
-              style={{
+              style={{
 
-                animation:
+                animation:
 
-                  "studentDashboardSpin 0.8s linear infinite",
+                  "studentDashboardSpin 0.8s linear infinite",
 
-              }}
+              }}
 
-            />
+            />
 
-            <div
+            <div
 
-              style={{
+              style={{
 
-                marginTop: 14,
+                marginTop: 14,
 
-                fontSize: 17,
+                fontSize: 17,
 
-                fontWeight: 700,
+                fontWeight: 700,
 
-                color: "#111827",
+                color: "#111827",
 
-              }}
+              }}
 
-            >
+            >
 
-              Loading your dashboard
+              Loading your dashboard
 
-            </div>
+            </div>
 
-            <div
+            <div
 
-              style={{
+              style={{
 
-                marginTop: 6,
+                marginTop: 6,
 
-                fontSize: 13,
+                fontSize: 13,
 
-                color: "#7b8495",
+                color: "#7b8495",
 
-              }}
+              }}
 
-            >
+            >
 
-              Preparing your learning home page.
+              Preparing your learning home page.
 
-            </div>
+            </div>
 
-          </div>
+          </div>
 
-        </main>
+        </main>
 
 
 
-        <style
+        <style
 
-          dangerouslySetInnerHTML={{
+          dangerouslySetInnerHTML={{
 
-            __html: `
+            __html: `
 
-              @keyframes studentDashboardSpin {
+              @keyframes studentDashboardSpin {
 
-                from { transform: rotate(0deg); }
+                from { transform: rotate(0deg); }
 
-                to { transform: rotate(360deg); }
+                to { transform: rotate(360deg); }
 
-              }
+              }
 
-            `,
+            `,
 
-          }}
+          }}
 
-        />
+        />
 
-      </>
+      </>
 
-    );
+    );
 
-  }
+  }
 
 
 
-  if (error || !dashboard) {
+  if (error || !dashboard) {
 
-    return (
+    return (
 
-      <main
+      <main
 
-        style={{
+        style={{
 
-          flex: 1,
+          flex: 1,
 
-          minWidth: 0,
+          minWidth: 0,
 
-          padding: "28px 32px",
+          padding: "28px 32px",
 
-          background: "#f5f7fb",
+          background: "#f5f7fb",
 
-        }}
+        }}
 
-      >
+      >
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            minHeight: 360,
+            minHeight: 360,
 
-            display: "flex",
+            display: "flex",
 
-            flexDirection: "column",
+            flexDirection: "column",
 
-            alignItems: "center",
+            alignItems: "center",
 
-            justifyContent: "center",
+            justifyContent: "center",
 
-            padding: 30,
+            padding: 30,
 
-            border: "1px solid #f1d4d4",
+            border: "1px solid #f1d4d4",
 
-            borderRadius: 18,
+            borderRadius: 18,
 
-            background: "#ffffff",
+            background: "#ffffff",
 
-            textAlign: "center",
+            textAlign: "center",
 
-          }}
+          }}
 
-        >
+        >
 
-          <div
+          <div
 
-            style={{
+            style={{
 
-              width: 48,
+              width: 48,
 
-              height: 48,
+              height: 48,
 
-              display: "flex",
+              display: "flex",
 
-              alignItems: "center",
+              alignItems: "center",
 
-              justifyContent: "center",
+              justifyContent: "center",
 
-              borderRadius: 13,
+              borderRadius: 13,
 
-              background: "#fdeceb",
+              background: "#fdeceb",
 
-              color: "#cf433f",
+              color: "#cf433f",
 
-            }}
+            }}
 
-          >
+          >
 
-            <BellFallback />
+            <BellFallback />
 
-          </div>
+          </div>
 
 
 
-          <h2
+          <h2
 
-            style={{
+            style={{
 
-              margin: "14px 0 0",
+              margin: "14px 0 0",
 
-              fontSize: 18,
+              fontSize: 18,
 
-              fontWeight: 750,
+              fontWeight: 750,
 
-              color: "#111827",
+              color: "#111827",
 
-            }}
+            }}
 
-          >
+          >
 
-            Unable to load dashboard
+            Unable to load dashboard
 
-          </h2>
+          </h2>
 
 
 
-          <p
+          <p
 
-            style={{
+            style={{
 
-              maxWidth: 480,
+              maxWidth: 480,
 
-              margin: "7px 0 18px",
+              margin: "7px 0 18px",
 
-              fontSize: 13,
+              fontSize: 13,
 
-              lineHeight: 1.6,
+              lineHeight: 1.6,
 
-              color: "#7b8495",
+              color: "#7b8495",
 
-            }}
+            }}
 
-          >
+          >
 
-            {error || "Something went wrong."}
+            {error || "Something went wrong."}
 
-          </p>
+          </p>
 
 
 
-          <button
+          <button
 
-            type="button"
+            type="button"
 
-            onClick={() => fetchDashboardData(true)}
+            onClick={() => fetchDashboardData(true)}
 
-            style={primaryButtonStyle}
+            style={primaryButtonStyle}
 
-          >
+          >
 
-            <RefreshCw size={15} />
+            <RefreshCw size={15} />
 
-            Try Again
+            Try Again
 
-          </button>
+          </button>
 
-        </div>
+        </div>
 
-      </main>
+      </main>
 
-    );
+    );
 
-  }
+  }
 
 
 
-  const pendingAssignments =
+  const pendingAssignments =
 
-    dashboard.assignments.length;
+    dashboard.assignments.length;
 
 
 
-  const pendingQuizzes =
+  const pendingQuizzes =
 
-    dashboard.quizzes.length;
+    dashboard.quizzes.length;
 
 
 
-  const pendingTotal =
+  const pendingTotal =
 
-    pendingAssignments + pendingQuizzes;
+    pendingAssignments + pendingQuizzes;
 
 
 
-  const completedAll =
+  const completedAll =
 
-    studentCourses.length > 0 &&
+    studentCourses.length > 0 &&
 
-    completedCourseCount === studentCourses.length;
+    completedCourseCount === studentCourses.length;
 
 
 
@@ -2004,6 +2049,7 @@ export default function StudentDashboardPage() {
                     style={{
                       width: 48,
                       height: 48,
+                      overflow: "hidden",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2013,7 +2059,23 @@ export default function StudentDashboardPage() {
                       color: "#316CF2",
                     }}
                   >
-                    <BookOpen size={21} />
+                    {getImageUrl(incompleteCourse.course.imageUrl) ? (
+                      <img
+                        src={
+                          getImageUrl(
+                            incompleteCourse.course.imageUrl
+                          ) ?? ""
+                        }
+                        alt={incompleteCourse.course.title}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <BookOpen size={21} />
+                    )}
                   </div>
 
                   <div style={{ minWidth: 0 }}>
@@ -2297,6 +2359,7 @@ export default function StudentDashboardPage() {
                             style={{
                               width: 34,
                               height: 34,
+                              overflow: "hidden",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -2306,7 +2369,23 @@ export default function StudentDashboardPage() {
                               color: "#316CF2",
                             }}
                           >
-                            <BookOpen size={16} />
+                            {getImageUrl(item.course.imageUrl) ? (
+                              <img
+                                src={
+                                  getImageUrl(
+                                    item.course.imageUrl
+                                  ) ?? ""
+                                }
+                                alt={item.course.title}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            ) : (
+                              <BookOpen size={16} />
+                            )}
                           </div>
 
                           <div style={{ minWidth: 0, flex: 1 }}>
@@ -3014,71 +3093,71 @@ function QuickDashboardAction({
 
 function InfoPair({
 
-  label,
+  label,
 
-  value,
+  value,
 
 }: {
 
-  label: string;
+  label: string;
 
-  value: string;
+  value: string;
 
 }) {
 
-  return (
+  return (
 
-    <div
+    <div
 
-      style={{
+      style={{
 
-        display: "flex",
+        display: "flex",
 
-        flexDirection: "column",
+        flexDirection: "column",
 
-        gap: 3,
+        gap: 3,
 
-      }}
+      }}
 
-    >
+    >
 
-      <span
+      <span
 
-        style={{
+        style={{
 
-          fontSize: 10.5,
+          fontSize: 10.5,
 
-          color: "#b7c7df",
+          color: "#b7c7df",
 
-        }}
+        }}
 
-      >
+      >
 
-        {label}
+        {label}
 
-      </span>
+      </span>
 
 
 
-      <strong
+      <strong
 
-        style={{
+        style={{
 
-          fontSize: 12.5,
+          fontSize: 12.5,
 
-          color: "#ffffff",
+          color: "#ffffff",
 
-        }}
+        }}
 
-      >
+      >
 
-        {value}
+        {value}
 
-      </strong>
+      </strong>
 
-    </div>
+    </div>
 
-  );
+  );
 
 }
 
@@ -3086,251 +3165,251 @@ function InfoPair({
 
 function SummaryTile({
 
-  icon: Icon,
+  icon: Icon,
 
-  label,
+  label,
 
-  value,
+  value,
 
-  helper,
+  helper,
 
-  tone,
+  tone,
 
-  onClick,
+  onClick,
 
 }: {
 
-  icon: ElementType;
+  icon: ElementType;
 
-  label: string;
+  label: string;
 
-  value: string | number;
+  value: string | number;
 
-  helper: string;
+  helper: string;
 
-  tone: "rose" | "blue" | "green" | "gold";
+  tone: "rose" | "blue" | "green" | "gold";
 
-  onClick: () => void;
+  onClick: () => void;
 
 }) {
 
-  const toneMap: Record<
+  const toneMap: Record<
 
-    string,
+    string,
 
-    { bg: string; fg: string }
+    { bg: string; fg: string }
 
-  > = {
+  > = {
 
-    rose: {
+    rose: {
 
-      bg: "#f8e8ef",
+      bg: "#f8e8ef",
 
-      fg: "#a01441",
+      fg: "#a01441",
 
-    },
+    },
 
-    blue: {
+    blue: {
 
-      bg: "#eaf0ff",
+      bg: "#eaf0ff",
 
-      fg: "#316cf2",
+      fg: "#316cf2",
 
-    },
+    },
 
-    green: {
+    green: {
 
-      bg: "#eaf8f0",
+      bg: "#eaf8f0",
 
-      fg: "#18945a",
+      fg: "#18945a",
 
-    },
+    },
 
-    gold: {
+    gold: {
 
-      bg: "#fff4dc",
+      bg: "#fff4dc",
 
-      fg: "#bb7a12",
+      fg: "#bb7a12",
 
-    },
+    },
 
-  };
+  };
 
 
 
-  const colors = toneMap[tone];
+  const colors = toneMap[tone];
 
 
 
-  return (
+  return (
 
-    <button
+    <button
 
-      type="button"
+      type="button"
 
-      onClick={onClick}
+      onClick={onClick}
 
-      className="skce-dashboard-hover"
+      className="skce-dashboard-hover"
 
-      style={{
+      style={{
 
-        display: "flex",
+        display: "flex",
 
-        alignItems: "center",
+        alignItems: "center",
 
-        gap: 12,
+        gap: 12,
 
-        width: "100%",
+        width: "100%",
 
-        minWidth: 0,
+        minWidth: 0,
 
-        padding: 16,
+        padding: 16,
 
-        border:
+        border:
 
-          "1px solid #e4e8ef",
+          "1px solid #e4e8ef",
 
-        borderRadius: 15,
+        borderRadius: 15,
 
-        background: "#ffffff",
+        background: "#ffffff",
 
-        cursor: "pointer",
+        cursor: "pointer",
 
-        textAlign: "left",
+        textAlign: "left",
 
-      }}
+      }}
 
-    >
+    >
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          width: 42,
+          width: 42,
 
-          height: 42,
+          height: 42,
 
-          display: "flex",
+          display: "flex",
 
-          alignItems: "center",
+          alignItems: "center",
 
-          justifyContent: "center",
+          justifyContent: "center",
 
-          flex: "0 0 42px",
+          flex: "0 0 42px",
 
-          borderRadius: 12,
+          borderRadius: 12,
 
-          background: colors.bg,
+          background: colors.bg,
 
-          color: colors.fg,
+          color: colors.fg,
 
-        }}
+        }}
 
-      >
+      >
 
-        <Icon size={19} />
+        <Icon size={19} />
 
-      </div>
+      </div>
 
 
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          minWidth: 0,
+          minWidth: 0,
 
-          flex: 1,
+          flex: 1,
 
-        }}
+        }}
 
-      >
+      >
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            fontSize: 11,
+            fontSize: 11,
 
-            color: "#8b95a6",
+            color: "#8b95a6",
 
-          }}
+          }}
 
-        >
+        >
 
-          {label}
+          {label}
 
-        </div>
+        </div>
 
 
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            marginTop: 3,
+            marginTop: 3,
 
-            fontSize: 19,
+            fontSize: 19,
 
-            fontWeight: 800,
+            fontWeight: 800,
 
-            color: "#111827",
+            color: "#111827",
 
-          }}
+          }}
 
-        >
+        >
 
-          {safeText(value)}
+          {safeText(value)}
 
-        </div>
+        </div>
 
 
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            overflow: "hidden",
+            overflow: "hidden",
 
-            textOverflow: "ellipsis",
+            textOverflow: "ellipsis",
 
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap",
 
-            marginTop: 2,
+            marginTop: 2,
 
-            fontSize: 10,
+            fontSize: 10,
 
-            color: "#9aa2af",
+            color: "#9aa2af",
 
-          }}
+          }}
 
-        >
+        >
 
-          {helper}
+          {helper}
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
 
 
-      <ChevronRight
+      <ChevronRight
 
-        size={16}
+        size={16}
 
-        color="#a4adba"
+        color="#a4adba"
 
-        style={{
+        style={{
 
-          flex: "0 0 auto",
+          flex: "0 0 auto",
 
-        }}
+        }}
 
-      />
+      />
 
-    </button>
+    </button>
 
-  );
+  );
 
 }
 
@@ -3338,127 +3417,127 @@ function SummaryTile({
 
 function SectionHeader({
 
-  icon: Icon,
+  icon: Icon,
 
-  title,
+  title,
 
-  subtitle,
+  subtitle,
 
 }: {
 
-  icon: ElementType;
+  icon: ElementType;
 
-  title: string;
+  title: string;
 
-  subtitle: string;
+  subtitle: string;
 
 }) {
 
-  return (
+  return (
 
-    <div
+    <div
 
-      style={{
+      style={{
 
-        display: "flex",
+        display: "flex",
 
-        alignItems: "center",
+        alignItems: "center",
 
-        gap: 10,
+        gap: 10,
 
-      }}
+      }}
 
-    >
+    >
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          width: 38,
+          width: 38,
 
-          height: 38,
+          height: 38,
 
-          display: "flex",
+          display: "flex",
 
-          alignItems: "center",
+          alignItems: "center",
 
-          justifyContent: "center",
+          justifyContent: "center",
 
-          flex: "0 0 38px",
+          flex: "0 0 38px",
 
-          borderRadius: 10,
+          borderRadius: 10,
 
-          background: "#f8e8ef",
+          background: "#f8e8ef",
 
-          color: "#a01441",
+          color: "#a01441",
 
-        }}
+        }}
 
-      >
+      >
 
-        <Icon size={18} />
+        <Icon size={18} />
 
-      </div>
-
-
-
-      <div
-
-        style={{
-
-          minWidth: 0,
-
-        }}
-
-      >
-
-        <h2
-
-          style={{
-
-            margin: 0,
-
-            fontSize: 16,
-
-            lineHeight: 1.3,
-
-            fontWeight: 800,
-
-            color: "#111827",
-
-          }}
-
-        >
-
-          {title}
-
-        </h2>
+      </div>
 
 
 
-        <p
+      <div
 
-          style={{
+        style={{
 
-            margin: "3px 0 0",
+          minWidth: 0,
 
-            fontSize: 11,
+        }}
 
-            color: "#919aaa",
+      >
 
-          }}
+        <h2
 
-        >
+          style={{
 
-          {subtitle}
+            margin: 0,
 
-        </p>
+            fontSize: 16,
 
-      </div>
+            lineHeight: 1.3,
 
-    </div>
+            fontWeight: 800,
 
-  );
+            color: "#111827",
+
+          }}
+
+        >
+
+          {title}
+
+        </h2>
+
+
+
+        <p
+
+          style={{
+
+            margin: "3px 0 0",
+
+            fontSize: 11,
+
+            color: "#919aaa",
+
+          }}
+
+        >
+
+          {subtitle}
+
+        </p>
+
+      </div>
+
+    </div>
+
+  );
 
 }
 
@@ -3466,227 +3545,227 @@ function SectionHeader({
 
 function FocusRow({
 
-  icon: Icon,
+  icon: Icon,
 
-  label,
+  label,
 
-  value,
+  value,
 
-  tone,
+  tone,
 
-  onClick,
+  onClick,
 
 }: {
 
-  icon: ElementType;
+  icon: ElementType;
 
-  label: string;
+  label: string;
 
-  value: string;
+  value: string;
 
-  tone: "rose" | "blue" | "green" | "purple" | "gray";
+  tone: "rose" | "blue" | "green" | "purple" | "gray";
 
-  onClick: () => void;
+  onClick: () => void;
 
 }) {
 
-  const tones: Record<
+  const tones: Record<
 
-    string,
+    string,
 
-    { bg: string; fg: string }
+    { bg: string; fg: string }
 
-  > = {
+  > = {
 
-    rose: {
+    rose: {
 
-      bg: "#f8e8ef",
+      bg: "#f8e8ef",
 
-      fg: "#a01441",
+      fg: "#a01441",
 
-    },
+    },
 
-    blue: {
+    blue: {
 
-      bg: "#eaf0ff",
+      bg: "#eaf0ff",
 
-      fg: "#316cf2",
+      fg: "#316cf2",
 
-    },
+    },
 
-    green: {
+    green: {
 
-      bg: "#eaf8f0",
+      bg: "#eaf8f0",
 
-      fg: "#18945a",
+      fg: "#18945a",
 
-    },
+    },
 
-    purple: {
+    purple: {
 
-      bg: "#f1eaff",
+      bg: "#f1eaff",
 
-      fg: "#7a56d6",
+      fg: "#7a56d6",
 
-    },
+    },
 
-    gray: {
+    gray: {
 
-      bg: "#f2f4f7",
+      bg: "#f2f4f7",
 
-      fg: "#8c96a6",
+      fg: "#8c96a6",
 
-    },
+    },
 
-  };
+  };
 
 
 
-  const colors = tones[tone];
+  const colors = tones[tone];
 
 
 
-  return (
+  return (
 
-    <button
+    <button
 
-      type="button"
+      type="button"
 
-      onClick={onClick}
+      onClick={onClick}
 
-      className="skce-dashboard-hover"
+      className="skce-dashboard-hover"
 
-      style={{
+      style={{
 
-        display: "flex",
+        display: "flex",
 
-        alignItems: "center",
+        alignItems: "center",
 
-        gap: 10,
+        gap: 10,
 
-        width: "100%",
+        width: "100%",
 
-        padding: "10px 11px",
+        padding: "10px 11px",
 
-        border:
+        border:
 
-          "1px solid #edf0f4",
+          "1px solid #edf0f4",
 
-        borderRadius: 11,
+        borderRadius: 11,
 
-        background: "#ffffff",
+        background: "#ffffff",
 
-        cursor: "pointer",
+        cursor: "pointer",
 
-        textAlign: "left",
+        textAlign: "left",
 
-      }}
+      }}
 
-    >
+    >
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          width: 34,
+          width: 34,
 
-          height: 34,
+          height: 34,
 
-          display: "flex",
+          display: "flex",
 
-          alignItems: "center",
+          alignItems: "center",
 
-          justifyContent: "center",
+          justifyContent: "center",
 
-          flex: "0 0 34px",
+          flex: "0 0 34px",
 
-          borderRadius: 9,
+          borderRadius: 9,
 
-          background: colors.bg,
+          background: colors.bg,
 
-          color: colors.fg,
+          color: colors.fg,
 
-        }}
+        }}
 
-      >
+      >
 
-        <Icon size={16} />
+        <Icon size={16} />
 
-      </div>
+      </div>
 
 
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          minWidth: 0,
+          minWidth: 0,
 
-          flex: 1,
+          flex: 1,
 
-        }}
+        }}
 
-      >
+      >
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            fontSize: 11.5,
+            fontSize: 11.5,
 
-            fontWeight: 750,
+            fontWeight: 750,
 
-            color: "#354052",
+            color: "#354052",
 
-          }}
+          }}
 
-        >
+        >
 
-          {label}
+          {label}
 
-        </div>
+        </div>
 
 
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            overflow: "hidden",
+            overflow: "hidden",
 
-            textOverflow: "ellipsis",
+            textOverflow: "ellipsis",
 
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap",
 
-            marginTop: 2,
+            marginTop: 2,
 
-            fontSize: 10,
+            fontSize: 10,
 
-            color: "#969fad",
+            color: "#969fad",
 
-          }}
+          }}
 
-        >
+        >
 
-          {value}
+          {value}
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
 
 
-      <ChevronRight
+      <ChevronRight
 
-        size={15}
+        size={15}
 
-        color="#adb5c2"
+        color="#adb5c2"
 
-      />
+      />
 
-    </button>
+    </button>
 
-  );
+  );
 
 }
 
@@ -3694,79 +3773,79 @@ function FocusRow({
 
 function SmallAccountCard({
 
-  label,
+  label,
 
-  value,
+  value,
 
 }: {
 
-  label: string;
+  label: string;
 
-  value: string | number;
+  value: string | number;
 
 }) {
 
-  return (
+  return (
 
-    <div
+    <div
 
-      style={{
+      style={{
 
-        padding: "10px 11px",
+        padding: "10px 11px",
 
-        border:
+        border:
 
-          "1px solid #edf0f4",
+          "1px solid #edf0f4",
 
-        borderRadius: 10,
+        borderRadius: 10,
 
-        background: "#fafbfc",
+        background: "#fafbfc",
 
-      }}
+      }}
 
-    >
+    >
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          fontSize: 10,
+          fontSize: 10,
 
-          color: "#969fad",
+          color: "#969fad",
 
-        }}
+        }}
 
-      >
+      >
 
-        {label}
+        {label}
 
-      </div>
+      </div>
 
 
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          marginTop: 3,
+          marginTop: 3,
 
-          fontSize: 14,
+          fontSize: 14,
 
-          fontWeight: 800,
+          fontWeight: 800,
 
-          color: "#283244",
+          color: "#283244",
 
-        }}
+        }}
 
-      >
+      >
 
-        {safeText(value)}
+        {safeText(value)}
 
-      </div>
+      </div>
 
-    </div>
+    </div>
 
-  );
+  );
 
 }
 
@@ -3774,175 +3853,175 @@ function SmallAccountCard({
 
 function FooterAction({
 
-  icon: Icon,
+  icon: Icon,
 
-  title,
+  title,
 
-  description,
+  description,
 
-  onClick,
+  onClick,
 
 }: {
 
-  icon: ElementType;
+  icon: ElementType;
 
-  title: string;
+  title: string;
 
-  description: string;
+  description: string;
 
-  onClick: () => void;
+  onClick: () => void;
 
 }) {
 
-  return (
+  return (
 
-    <button
+    <button
 
-      type="button"
+      type="button"
 
-      onClick={onClick}
+      onClick={onClick}
 
-      className="skce-dashboard-hover"
+      className="skce-dashboard-hover"
 
-      style={{
+      style={{
 
-        display: "flex",
+        display: "flex",
 
-        alignItems: "center",
+        alignItems: "center",
 
-        gap: 10,
+        gap: 10,
 
-        width: "100%",
+        width: "100%",
 
-        minWidth: 0,
+        minWidth: 0,
 
-        padding: "12px 13px",
+        padding: "12px 13px",
 
-        border:
+        border:
 
-          "1px solid #e4e8ef",
+          "1px solid #e4e8ef",
 
-        borderRadius: 13,
+        borderRadius: 13,
 
-        background: "#ffffff",
+        background: "#ffffff",
 
-        cursor: "pointer",
+        cursor: "pointer",
 
-        textAlign: "left",
+        textAlign: "left",
 
-      }}
+      }}
 
-    >
+    >
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          width: 34,
+          width: 34,
 
-          height: 34,
+          height: 34,
 
-          display: "flex",
+          display: "flex",
 
-          alignItems: "center",
+          alignItems: "center",
 
-          justifyContent: "center",
+          justifyContent: "center",
 
-          flex: "0 0 34px",
+          flex: "0 0 34px",
 
-          borderRadius: 9,
+          borderRadius: 9,
 
-          background: "#eef2ff",
+          background: "#eef2ff",
 
-          color: "#396bf1",
+          color: "#396bf1",
 
-        }}
+        }}
 
-      >
+      >
 
-        <Icon size={16} />
+        <Icon size={16} />
 
-      </div>
+      </div>
 
 
 
-      <div
+      <div
 
-        style={{
+        style={{
 
-          minWidth: 0,
+          minWidth: 0,
 
-          flex: 1,
+          flex: 1,
 
-        }}
+        }}
 
-      >
+      >
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            overflow: "hidden",
+            overflow: "hidden",
 
-            textOverflow: "ellipsis",
+            textOverflow: "ellipsis",
 
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap",
 
-            fontSize: 11.5,
+            fontSize: 11.5,
 
-            fontWeight: 800,
+            fontWeight: 800,
 
-            color: "#313b4b",
+            color: "#313b4b",
 
-          }}
+          }}
 
-        >
+        >
 
-          {title}
+          {title}
 
-        </div>
+        </div>
 
 
 
-        <div
+        <div
 
-          style={{
+          style={{
 
-            overflow: "hidden",
+            overflow: "hidden",
 
-            textOverflow: "ellipsis",
+            textOverflow: "ellipsis",
 
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap",
 
-            marginTop: 2,
+            marginTop: 2,
 
-            fontSize: 9.5,
+            fontSize: 9.5,
 
-            color: "#9aa2af",
+            color: "#9aa2af",
 
-          }}
+          }}
 
-        >
+        >
 
-          {description}
+          {description}
 
-        </div>
+        </div>
 
-      </div>
+      </div>
 
 
 
-      <ArrowRight
+      <ArrowRight
 
-        size={14}
+        size={14}
 
-        color="#98a2b2"
+        color="#98a2b2"
 
-      />
+      />
 
-    </button>
+    </button>
 
-  );
+  );
 
 }
 
@@ -3950,107 +4029,107 @@ function FooterAction({
 
 function EmptyCard({
 
-  title,
+  title,
 
-  message,
+  message,
 
 }: {
 
-  title: string;
+  title: string;
 
-  message: string;
+  message: string;
 
 }) {
 
-  return (
+  return (
 
-    <div
+    <div
 
-      style={{
+      style={{
 
-        minHeight: 120,
+        minHeight: 120,
 
-        display: "flex",
+        display: "flex",
 
-        flexDirection: "column",
+        flexDirection: "column",
 
-        alignItems: "center",
+        alignItems: "center",
 
-        justifyContent: "center",
+        justifyContent: "center",
 
-        padding: 20,
+        padding: 20,
 
-        marginTop: 12,
+        marginTop: 12,
 
-        border:
+        border:
 
-          "1px dashed #dfe4eb",
+          "1px dashed #dfe4eb",
 
-        borderRadius: 13,
+        borderRadius: 13,
 
-        background: "#fbfcfd",
+        background: "#fbfcfd",
 
-        textAlign: "center",
+        textAlign: "center",
 
-      }}
+      }}
 
-    >
+    >
 
-      <BookOpen
+      <BookOpen
 
-        size={20}
+        size={20}
 
-        color="#a1a9b6"
+        color="#a1a9b6"
 
-      />
-
-
-
-      <strong
-
-        style={{
-
-          marginTop: 8,
-
-          fontSize: 12.5,
-
-          color: "#4a5565",
-
-        }}
-
-      >
-
-        {title}
-
-      </strong>
+      />
 
 
 
-      <span
+      <strong
 
-        style={{
+        style={{
 
-          maxWidth: 380,
+          marginTop: 8,
 
-          marginTop: 4,
+          fontSize: 12.5,
 
-          fontSize: 10.5,
+          color: "#4a5565",
 
-          lineHeight: 1.5,
+        }}
 
-          color: "#9aa2af",
+      >
 
-        }}
+        {title}
 
-      >
+      </strong>
 
-        {message}
 
-      </span>
 
-    </div>
+      <span
 
-  );
+        style={{
+
+          maxWidth: 380,
+
+          marginTop: 4,
+
+          fontSize: 10.5,
+
+          lineHeight: 1.5,
+
+          color: "#9aa2af",
+
+        }}
+
+      >
+
+        {message}
+
+      </span>
+
+    </div>
+
+  );
 
 }
 
@@ -4058,25 +4137,25 @@ function EmptyCard({
 
 function BellFallback() {
 
-  return (
+  return (
 
-    <span
+    <span
 
-      style={{
+      style={{
 
-        fontSize: 20,
+        fontSize: 20,
 
-        fontWeight: 800,
+        fontWeight: 800,
 
-      }}
+      }}
 
-    >
+    >
 
-      !
+      !
 
-    </span>
+    </span>
 
-  );
+  );
 
 }
 
@@ -4084,29 +4163,29 @@ function BellFallback() {
 
 const primaryButtonStyle: CSSProperties = {
 
-  display: "inline-flex",
+  display: "inline-flex",
 
-  alignItems: "center",
+  alignItems: "center",
 
-  justifyContent: "center",
+  justifyContent: "center",
 
-  gap: 7,
+  gap: 7,
 
-  border: 0,
+  border: 0,
 
-  borderRadius: 9,
+  borderRadius: 9,
 
-  padding: "9px 13px",
+  padding: "9px 13px",
 
-  background: "#2f6bff",
+  background: "#2f6bff",
 
-  color: "#ffffff",
+  color: "#ffffff",
 
-  fontSize: 11,
+  fontSize: 11,
 
-  fontWeight: 800,
+  fontWeight: 800,
 
-  cursor: "pointer",
+  cursor: "pointer",
 
 };
 
@@ -4114,32 +4193,32 @@ const primaryButtonStyle: CSSProperties = {
 
 const ghostButtonStyle: CSSProperties = {
 
-  display: "inline-flex",
+  display: "inline-flex",
 
-  alignItems: "center",
+  alignItems: "center",
 
-  justifyContent: "center",
+  justifyContent: "center",
 
-  gap: 7,
+  gap: 7,
 
-  border:
+  border:
 
-    "1px solid rgba(255,255,255,0.25)",
+    "1px solid rgba(255,255,255,0.25)",
 
-  borderRadius: 9,
+  borderRadius: 9,
 
-  padding: "9px 12px",
+  padding: "9px 12px",
 
-  background:
+  background:
 
-    "rgba(255,255,255,0.11)",
+    "rgba(255,255,255,0.11)",
 
-  color: "#ffffff",
+  color: "#ffffff",
 
-  fontSize: 11,
+  fontSize: 11,
 
-  fontWeight: 800,
+  fontWeight: 800,
 
-  cursor: "pointer",
+  cursor: "pointer",
 
 };

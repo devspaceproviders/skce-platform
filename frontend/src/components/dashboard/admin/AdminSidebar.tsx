@@ -188,7 +188,7 @@ export default function AdminSidebar() {
       </Link>
 
       {/* NAVIGATION */}
-      <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4">
+      <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-5">
           {MENU_SECTIONS.map((section) => (
             <div key={section.label}>

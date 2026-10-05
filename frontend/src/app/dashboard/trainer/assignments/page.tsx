@@ -80,9 +80,6 @@ type Assessment = {
   submissionCount: number;
   createdAt: string;
   updatedAt: string;
-  createdByUserId: number | null;
-  createdByName: string | null;
-  createdByRole: string | null;
 };
 
 type AssessmentDetails =
@@ -295,24 +292,6 @@ export default function TrainerAssignmentsPage() {
     useState<"All" | AssessmentType>(
       "All"
     );
-
-  const [courseFilter, setCourseFilter] =
-    useState("All");
-
-  const [creatorFilter, setCreatorFilter] =
-    useState("All");
-
-  const [dueDateFilter, setDueDateFilter] =
-    useState<"All" | "Due" | "No due date">("All");
-
-  const [questionsFilter, setQuestionsFilter] =
-    useState("");
-
-  const [submissionsFilter, setSubmissionsFilter] =
-    useState("");
-
-  const [statusFilter, setStatusFilter] =
-    useState<"All" | "Active" | "Inactive">("All");
 
   const [view, setView] =
     useState<View>("list");
@@ -532,15 +511,6 @@ export default function TrainerAssignmentsPage() {
               Boolean(
                 item.isActive
               ),
-            createdByUserId:
-              item.createdByUserId === null ||
-              item.createdByUserId === undefined
-                ? null
-                : Number(item.createdByUserId),
-            createdByName:
-              item.createdByName ?? null,
-            createdByRole:
-              item.createdByRole ?? null,
           })
         )
       );
@@ -594,99 +564,30 @@ export default function TrainerAssignmentsPage() {
     void loadPage();
   }, []);
 
-  const creatorOptions = useMemo(() => {
-    const values = new Map<string, string>();
-
-    assessments.forEach((assessment) => {
-      const name =
-        assessment.createdByName?.trim() ||
-        "Not available";
-
-      if (!values.has(name)) {
-        values.set(name, name);
-      }
-    });
-
-    return Array.from(values.keys()).sort((a, b) =>
-      a.localeCompare(b)
-    );
-  }, [assessments]);
-
   const filteredAssessments =
     useMemo(() => {
       const query =
         search.trim().toLowerCase();
-      const questionQuery =
-        questionsFilter.trim();
-      const submissionQuery =
-        submissionsFilter.trim();
 
       return assessments.filter(
         (assessment) => {
-          const assessmentText = [
-            assessment.title,
-            String(assessment.id),
-          ]
-            .join(" ")
-            .toLowerCase();
-
-          const creatorName =
-            assessment.createdByName?.trim() ||
-            "Not available";
-
-          const matchesAssessment =
+          const matchesSearch =
             !query ||
-            assessmentText.includes(query) ||
+            assessment.title
+              .toLowerCase()
+              .includes(query) ||
             assessment.courseTitle
               .toLowerCase()
               .includes(query);
 
-          const matchesCourse =
-            courseFilter === "All" ||
-            assessment.courseTitle ===
-              courseFilter;
-
-          const matchesCreator =
-            creatorFilter === "All" ||
-            creatorName === creatorFilter;
-
-          const matchesDueDate =
-            dueDateFilter === "All" ||
-            (dueDateFilter === "Due" &&
-              Boolean(assessment.dueAt)) ||
-            (dueDateFilter === "No due date" &&
-              !assessment.dueAt);
-
-          const matchesQuestions =
-            !questionQuery ||
-            String(assessment.questionCount)
-              .includes(questionQuery);
-
-          const matchesSubmissions =
-            !submissionQuery ||
-            String(assessment.submissionCount)
-              .includes(submissionQuery);
-
-          const matchesStatus =
-            statusFilter === "All" ||
-            (statusFilter === "Active" &&
-              assessment.isActive) ||
-            (statusFilter === "Inactive" &&
-              !assessment.isActive);
-
           const matchesType =
             filterType === "All" ||
-            assessment.type === filterType;
+            assessment.type ===
+              filterType;
 
           return (
-            matchesAssessment &&
-            matchesType &&
-            matchesCourse &&
-            matchesCreator &&
-            matchesDueDate &&
-            matchesQuestions &&
-            matchesSubmissions &&
-            matchesStatus
+            matchesSearch &&
+            matchesType
           );
         }
       );
@@ -694,12 +595,6 @@ export default function TrainerAssignmentsPage() {
       assessments,
       search,
       filterType,
-      courseFilter,
-      creatorFilter,
-      dueDateFilter,
-      questionsFilter,
-      submissionsFilter,
-      statusFilter,
     ]);
 
   const totalAssignments =
@@ -895,7 +790,7 @@ export default function TrainerAssignmentsPage() {
 
   async function openSubmissions(
     assessment: Assessment
-  ) {
+  ): Promise<Submission[]> {
     setError("");
     setSuccessMessage("");
     setSelectedAssessment(
@@ -913,31 +808,48 @@ export default function TrainerAssignmentsPage() {
     );
 
     try {
-      const response =
-        await authenticatedFetch(
-          `${API_URL}/assessments/${assessment.id}/submissions`
-        );
+      const [submissionsResponse, detailsResponse] =
+        await Promise.all([
+          authenticatedFetch(
+            `${API_URL}/assessments/${assessment.id}/submissions`
+          ),
+          authenticatedFetch(
+            `${API_URL}/assessments/${assessment.id}`
+          ),
+        ]);
 
-      const json =
-        await response.json();
+      const submissionsJson = await submissionsResponse.json();
+      const detailsJson = await detailsResponse.json();
 
       if (
-        !response.ok ||
-        !json?.success
+        !submissionsResponse.ok ||
+        !submissionsJson?.success
       ) {
         throw new Error(
-          json?.message ||
+          submissionsJson?.message ||
             "Unable to load submissions."
         );
       }
 
-      setSubmissions(
-        Array.isArray(
-          json.data
-        )
-          ? json.data
-          : []
-      );
+      if (
+        !detailsResponse.ok ||
+        !detailsJson?.success
+      ) {
+        throw new Error(
+          detailsJson?.message ||
+            "Unable to load assessment questions."
+        );
+      }
+
+      const rows: Submission[] = Array.isArray(
+        submissionsJson.data
+      )
+        ? submissionsJson.data
+        : [];
+
+      setSubmissions(rows);
+      setAssessmentDetails(detailsJson.data);
+      return rows;
     } catch (err) {
       console.error(
         "Load submissions error:",
@@ -949,6 +861,7 @@ export default function TrainerAssignmentsPage() {
           ? err.message
           : "Unable to load submissions."
       );
+      return [];
     }
   }
 
@@ -1033,44 +946,25 @@ export default function TrainerAssignmentsPage() {
         );
       }
 
-      await openSubmissions(
+      const refreshedRows = await openSubmissions(
         selectedAssessment
       );
 
-      const refreshedSubmission =
-        Array.isArray(
-          json.data
-        )
-          ? null
-          : json.data;
+      const updated = refreshedRows.find(
+        (submission) =>
+          submission.id === selectedSubmission.id
+      );
 
-      if (
-        refreshedSubmission?.id
-      ) {
-        const updated =
-          refreshedSubmission as Submission;
-
-        setSelectedSubmission(
-          updated
-        );
-
+      if (updated) {
+        setSelectedSubmission(updated);
         setGradeScore(
-          updated.score ===
-            null
+          updated.score === null
             ? ""
-            : String(
-                updated.score
-              )
+            : String(updated.score)
         );
-
-        setGradeFeedback(
-          updated.feedback ||
-            ""
-        );
+        setGradeFeedback(updated.feedback || "");
       } else {
-        setSelectedSubmission(
-          null
-        );
+        setSelectedSubmission(null);
       }
 
       setSuccessMessage(
@@ -1368,6 +1262,7 @@ export default function TrainerAssignmentsPage() {
         submissions={
           submissions
         }
+        assessmentDetails={assessmentDetails}
         error={error}
         onBack={resetViewState}
         onGrade={
@@ -1393,6 +1288,7 @@ export default function TrainerAssignmentsPage() {
         onSaveGrade={
           gradeSubmission
         }
+        onOpenFile={openFile}
       />
     );
   }
@@ -1522,365 +1418,134 @@ export default function TrainerAssignmentsPage() {
           />
         </div>
 
-        {/* FILTERS + LIST */}
-        <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-800">
-                  Filter assessments
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Use the filters to find assignments and quizzes by the same criteria available in the Admin portal.
-                </p>
-              </div>
+        {/* FILTERS */}
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setFilterType("All");
-                  setCourseFilter("All");
-                  setCreatorFilter("All");
-                  setDueDateFilter("All");
-                  setQuestionsFilter("");
-                  setSubmissionsFilter("");
-                  setStatusFilter("All");
-                }}
-                className="w-fit rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                Clear Filters
-              </button>
+              <input
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Search assignments or quizzes by title or course..."
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
+              />
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px]">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Assessment
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Type
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Course
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Created By
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Due Date
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Questions
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Submissions
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Status
-                  </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Actions
-                  </th>
-                </tr>
+            <select
+              value={filterType}
+              onChange={(event) =>
+                setFilterType(
+                  event.target.value as
+                    | "All"
+                    | AssessmentType
+                )
+              }
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 outline-none focus:border-orange-400"
+            >
+              <option value="All">
+                All Types
+              </option>
+              <option value="ASSIGNMENT">
+                Assignments
+              </option>
+              <option value="QUIZ">
+                Quizzes
+              </option>
+            </select>
 
-                <tr className="bg-white">
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <input
-                      value={search}
-                      onChange={(event) =>
-                        setSearch(event.target.value)
-                      }
-                      placeholder="Title / ID / Course"
-                      className="w-full min-w-[170px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    />
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <select
-                      value={filterType}
-                      onChange={(event) =>
-                        setFilterType(
-                          event.target.value as
-                            | "All"
-                            | AssessmentType
-                        )
-                      }
-                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    >
-                      <option value="All">All</option>
-                      <option value="ASSIGNMENT">Assignment</option>
-                      <option value="QUIZ">Quiz</option>
-                    </select>
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <select
-                      value={courseFilter}
-                      onChange={(event) =>
-                        setCourseFilter(event.target.value)
-                      }
-                      className="w-full min-w-[170px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    >
-                      <option value="All">All Courses</option>
-                      {courses
-                        .slice()
-                        .sort((a, b) =>
-                          a.title.localeCompare(b.title)
-                        )
-                        .map((course) => (
-                          <option
-                            key={course.id}
-                            value={course.title}
-                          >
-                            {course.title}
-                          </option>
-                        ))}
-                    </select>
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <select
-                      value={creatorFilter}
-                      onChange={(event) =>
-                        setCreatorFilter(event.target.value)
-                      }
-                      className="w-full min-w-[150px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    >
-                      <option value="All">All Creators</option>
-                      {creatorOptions.map((creator) => (
-                        <option key={creator} value={creator}>
-                          {creator}
-                        </option>
-                      ))}
-                    </select>
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <select
-                      value={dueDateFilter}
-                      onChange={(event) =>
-                        setDueDateFilter(
-                          event.target.value as
-                            | "All"
-                            | "Due"
-                            | "No due date"
-                        )
-                      }
-                      className="w-full min-w-[130px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    >
-                      <option value="All">All</option>
-                      <option value="Due">Has due date</option>
-                      <option value="No due date">No due date</option>
-                    </select>
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <input
-                      value={questionsFilter}
-                      onChange={(event) =>
-                        setQuestionsFilter(event.target.value)
-                      }
-                      inputMode="numeric"
-                      placeholder="Count"
-                      className="w-full min-w-[80px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    />
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <input
-                      value={submissionsFilter}
-                      onChange={(event) =>
-                        setSubmissionsFilter(event.target.value)
-                      }
-                      inputMode="numeric"
-                      placeholder="Count"
-                      className="w-full min-w-[90px] rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    />
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2">
-                    <select
-                      value={statusFilter}
-                      onChange={(event) =>
-                        setStatusFilter(
-                          event.target.value as
-                            | "All"
-                            | "Active"
-                            | "Inactive"
-                        )
-                      }
-                      className="w-full min-w-[110px] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-normal text-slate-700 outline-none focus:border-orange-400"
-                    >
-                      <option value="All">All</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </th>
-
-                  <th className="border-b border-slate-200 px-3 py-2" />
-                </tr>
-              </thead>
-
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={9} className="px-5 py-20 text-center">
-                      <div className="mx-auto flex items-center justify-center gap-2 text-sm text-slate-500">
-                        <RefreshCw size={17} className="animate-spin" />
-                        Loading assessments...
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredAssessments.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-5 py-20 text-center">
-                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
-                        <ClipboardList size={27} />
-                      </div>
-                      <h3 className="text-lg font-semibold text-slate-800">
-                        No assessments found
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Try changing the filters or create an assignment or quiz.
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAssessments.map((assessment) => {
-                    const canManage =
-                      canManageAssessment(assessment.courseId);
-
-                    return (
-                      <tr
-                        key={assessment.id}
-                        className="transition hover:bg-slate-50/70"
-                      >
-                        <td className="border-b border-slate-100 px-4 py-4">
-                          <div className="font-semibold text-slate-800">
-                            {assessment.title}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-400">
-                            ASM-{String(assessment.id).padStart(4, "0")}
-                          </div>
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${typeClasses(
-                              assessment.type
-                            )}`}
-                          >
-                            {typeLabel(assessment.type)}
-                          </span>
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
-                          {assessment.courseTitle || "Unknown course"}
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-700">
-                          <div className="font-medium">
-                            {assessment.createdByName || "Not available"}
-                          </div>
-                          {assessment.createdByRole && (
-                            <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
-                              {assessment.createdByRole}
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-sm text-slate-600">
-                          {formatDate(assessment.dueAt)}
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-sm font-medium text-slate-700">
-                          {assessment.type === "QUIZ"
-                            ? assessment.questionCount
-                            : "—"}
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-sm font-medium text-slate-700">
-                          {assessment.submissionCount}
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                              assessment.isActive
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            {assessment.isActive
-                              ? "Active"
-                              : "Inactive"}
-                          </span>
-                        </td>
-
-                        <td className="border-b border-slate-100 px-4 py-4 text-right">
-                          {canManage ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void openSubmissions(assessment)
-                                }
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#123052]"
-                              >
-                                <Eye size={15} />
-                                {assessment.type === "ASSIGNMENT"
-                                  ? "Submissions"
-                                  : "View Results"}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void openEdit(assessment)
-                                }
-                                title="Edit"
-                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                              >
-                                <Pencil size={15} />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void deleteAssessment(assessment)
-                                }
-                                title="Delete"
-                                disabled={deletingId === assessment.id}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {deletingId === assessment.id ? (
-                                  <Loader2
-                                    size={15}
-                                    className="animate-spin"
-                                  />
-                                ) : (
-                                  <Trash2 size={15} />
-                                )}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
-                              No assessment management permission
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+            <button
+              type="button"
+              onClick={() =>
+                void loadPage(
+                  true
+                )
+              }
+              disabled={
+                loading ||
+                refreshing
+              }
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw
+                size={16}
+                className={
+                  refreshing
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+              Refresh
+            </button>
           </div>
         </section>
+
+        {/* LIST */}
+        {loading ? (
+          <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+              <Loader2
+                size={18}
+                className="animate-spin"
+              />
+              Loading assignments and quizzes...
+            </div>
+          </div>
+        ) : filteredAssessments.length ===
+          0 ? (
+          <EmptyState
+            search={search}
+            filterType={
+              filterType
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            {filteredAssessments.map(
+              (assessment) => (
+                <AssessmentCard
+                  key={
+                    assessment.id
+                  }
+                  assessment={
+                    assessment
+                  }
+                  canManage={
+                    canManageAssessment(
+                      assessment.courseId
+                    )
+                  }
+                  deleting={
+                    deletingId ===
+                    assessment.id
+                  }
+                  onView={() =>
+                    void openSubmissions(
+                      assessment
+                    )
+                  }
+                  onEdit={() =>
+                    void openEdit(
+                      assessment
+                    )
+                  }
+                  onDelete={() =>
+                    void deleteAssessment(
+                      assessment
+                    )
+                  }
+                />
+              )
+            )}
+          </div>
+        )}
 
         {/* CREATE CHOICE */}
         {showCreateChoice && (
@@ -2484,16 +2149,14 @@ function AssessmentFormPage({
               (option) =>
                 !option.trim()
             ) ||
-            !["A", "B", "C", "D"].includes(
-              question.correctAnswer.trim().toUpperCase()
-            ) ||
+            !question.correctAnswer ||
             !question.marks ||
             question.marks <= 0
         );
 
       if (invalidQuestion) {
         setError(
-          "Please complete every quiz question, all four options, select a correct answer (A, B, C or D), and enter valid marks."
+          "Please complete every quiz question, all four options, the correct answer and marks."
         );
         return;
       }
@@ -3228,18 +2891,21 @@ function QuestionEditor({
 
           {question.options.map(
             (option, optionIndex) => {
-              const answerLetter =
+              if (!option.trim()) {
+                return null;
+              }
+
+              const answerKey =
                 String.fromCharCode(
                   65 + optionIndex
                 );
 
               return (
                 <option
-                  key={`${index}-${optionIndex}`}
-                  value={answerLetter}
-                  disabled={!option.trim()}
+                  key={`${answerKey}-${option}`}
+                  value={answerKey}
                 >
-                  {answerLetter}. {option || `Option ${answerLetter}`}
+                  {answerKey}. {option}
                 </option>
               );
             }
@@ -3295,363 +2961,242 @@ function SubmissionsPage({
   error: string;
   successMessage: string;
   onBack: () => void;
-  onSelectSubmission: (
-    submission: Submission
-  ) => void;
-  onScoreChange: (
-    value: string
-  ) => void;
-  onFeedbackChange: (
-    value: string
-  ) => void;
+  onSelectSubmission: (submission: Submission) => void;
+  onScoreChange: (value: string) => void;
+  onFeedbackChange: (value: string) => void;
   onGrade: () => Promise<void>;
-  onOpenFile: (
-    submission: Submission
-  ) => void;
+  onOpenFile: (submission: Submission) => void;
 }) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, Submission[]>();
+
+    for (const submission of submissions) {
+      const key = String(submission.userId);
+      const current = map.get(key) ?? [];
+      current.push(submission);
+      map.set(key, current);
+    }
+
+    return Array.from(map.values()).map((items) =>
+      items.sort((a, b) => a.attemptNumber - b.attemptNumber)
+    );
+  }, [submissions]);
+
+  const pending = submissions.filter(
+    (submission) => submission.status === "SUBMITTED" || submission.score === null
+  ).length;
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
-        <button
-          type="button"
-          onClick={
-            onBack
-          }
-          className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#173B67]"
-        >
-          <ArrowLeft
-            size={16}
-          />
-          Back to Assignments
+        <button type="button" onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#173B67]">
+          <ArrowLeft size={16} /> Back to Assignments
         </button>
 
-        {error && (
-          <ErrorBanner
-            error={error}
-          />
-        )}
-
-        {successMessage && (
-          <SuccessBanner
-            message={successMessage}
-          />
-        )}
+        {error && <ErrorBanner error={error} />}
+        {successMessage && <SuccessBanner message={successMessage} />}
 
         <div className="mb-6 rounded-2xl bg-[#173B67] p-5 text-white sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
-            Assignment Submissions
-          </p>
-
-          <h1 className="mt-1 text-2xl font-bold">
-            {
-              assessment.title
-            }
-          </h1>
-
+          <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">Assignment Submissions</p>
+          <h1 className="mt-1 text-2xl font-bold">{assessment.title}</h1>
           <p className="mt-1 text-sm text-blue-100">
-            {assessment.courseTitle ||
-              "Course unavailable"}{" "}
-            · Total Marks:{" "}
-            {
-              assessment.totalMarks
-            }
+            {assessment.courseTitle || "Course unavailable"} · Total Marks: {assessment.totalMarks}
           </p>
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ResultCard icon={<Users size={18} />} label="Students" value={grouped.length} />
+          <ResultCard icon={<ClipboardList size={18} />} label="Attempts" value={submissions.length} />
+          <ResultCard icon={<Clock3 size={18} />} label="Pending Review" value={pending} />
+          <ResultCard icon={<CheckCircle2 size={18} />} label="Graded" value={submissions.length - pending} />
         </div>
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,1fr)]">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="font-bold text-slate-900">
-                Student Submissions
-              </h2>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Select a submission to review and grade.
-              </p>
+              <h2 className="font-bold text-slate-900">Students &amp; Attempts</h2>
+              <p className="mt-1 text-xs text-slate-500">Every student is shown once, with all attempts kept separately.</p>
             </div>
 
-            {submissions.length ===
-            0 ? (
+            {grouped.length === 0 ? (
               <div className="px-6 py-16 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
-                  <Users
-                    size={25}
-                  />
-                </div>
-
-                <h3 className="mt-4 text-base font-semibold text-[#173B67]">
-                  No submissions
-                </h3>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  No students have submitted this assignment yet.
-                </p>
+                <Users size={25} className="mx-auto text-slate-300" />
+                <h3 className="mt-4 text-base font-semibold text-[#173B67]">No submissions</h3>
+                <p className="mt-1 text-sm text-slate-500">No students have submitted this assignment yet.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {submissions.map(
-                  (
-                    submission
-                  ) => (
-                    <button
-                      type="button"
-                      key={
-                        submission.id
-                      }
-                      onClick={() =>
-                        onSelectSubmission(
-                          submission
-                        )
-                      }
-                      className={`w-full p-4 text-left transition hover:bg-slate-50 ${
-                        selectedSubmission?.id ===
-                        submission.id
-                          ? "bg-orange-50/60"
-                          : "bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
+                {grouped.map((attempts) => {
+                  const student = attempts[0];
+                  return (
+                    <div key={student.userId} className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
-                            {
-                              submission.studentName
-                            }
-                          </p>
-
-                          <p className="mt-1 truncate text-xs text-slate-500">
-                            {submission.studentId ||
-                              submission.studentEmail}
-                          </p>
-
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            Submitted:{" "}
-                            {formatDateTime(
-                              submission.submittedAt
-                            )}
-                          </p>
+                          <p className="font-semibold text-slate-900">{student.studentName}</p>
+                          <p className="mt-1 text-xs text-slate-500">{student.studentEmail}</p>
                         </div>
-
-                        <div className="shrink-0 text-right">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${submissionStatusClasses(
-                              submission.status
-                            )}`}
-                          >
-                            {submissionStatusLabel(
-                              submission.status
-                            )}
-                          </span>
-
-                          <p className="mt-1 text-xs font-semibold text-slate-700">
-                            {submission.score ===
-                            null
-                              ? "Not graded"
-                              : `${submission.score}/${assessment.totalMarks}`}
-                          </p>
-                        </div>
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                          {attempts.length} {attempts.length === 1 ? "attempt" : "attempts"}
+                        </span>
                       </div>
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-          </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            {!selectedSubmission ? (
-              <div className="flex min-h-[350px] items-center justify-center text-center">
-                <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                    <ClipboardList
-                      size={25}
-                    />
-                  </div>
-
-                  <h3 className="mt-4 text-base font-semibold text-[#173B67]">
-                    Select a submission
-                  </h3>
-
-                  <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                    Choose a student submission from the left to review the work and save a grade.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-[#173B67]">
-                      {
-                        selectedSubmission.studentName
-                      }
-                    </h2>
-
-                    <p className="mt-1 text-sm text-slate-500">
-                      {
-                        selectedSubmission.studentEmail
-                      }
-                    </p>
-                  </div>
-
-                  <span
-                    className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-semibold ${submissionStatusClasses(
-                      selectedSubmission.status
-                    )}`}
-                  >
-                    {submissionStatusLabel(
-                      selectedSubmission.status
-                    )}
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <DetailBox
-                    label="Submitted"
-                    value={formatDateTime(
-                      selectedSubmission.submittedAt
-                    )}
-                  />
-
-                  <DetailBox
-                    label="Attempt"
-                    value={String(
-                      selectedSubmission.attemptNumber
-                    )}
-                  />
-                </div>
-
-                {selectedSubmission.submissionComment && (
-                  <div className="mt-5 rounded-xl bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Student Comment
-                    </p>
-
-                    <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                      {
-                        selectedSubmission.submissionComment
-                      }
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-5">
-                  {selectedSubmission.submissionFileUrl ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onOpenFile(
-                          selectedSubmission
-                        )
-                      }
-                      className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
-                    >
-                      <Download
-                        size={17}
-                      />
-                      Open Submission File
-                    </button>
-                  ) : (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                      No uploaded submission file.
+                      <div className="mt-4 space-y-2">
+                        {attempts.map((submission) => (
+                          <button
+                            key={submission.id}
+                            type="button"
+                            onClick={() => onSelectSubmission(submission)}
+                            className={`flex w-full items-center justify-between gap-4 rounded-xl border p-3 text-left transition ${selectedSubmission?.id === submission.id ? "border-orange-300 bg-orange-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#173B67] text-xs font-bold text-white">
+                                {submission.attemptNumber}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">Attempt {submission.attemptNumber}</p>
+                                <p className="mt-0.5 text-[11px] text-slate-400">{formatDateTime(submission.submittedAt)}</p>
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${submissionStatusClasses(submission.status)}`}>
+                                {submissionStatusLabel(submission.status)}
+                              </span>
+                              <p className="mt-1 text-xs font-semibold text-slate-700">
+                                {submission.score === null ? `Not graded / ${assessment.totalMarks}` : `${submission.score}/${assessment.totalMarks}`}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-6 border-t border-slate-100 pt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Trainer Feedback
-                  </label>
-
-                  <textarea
-                    value={
-                      gradeFeedback
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      onFeedbackChange(
-                        event
-                          .target
-                          .value
-                      )
-                    }
-                    rows={5}
-                    placeholder="Enter feedback for the student..."
-                    className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Marks
-                  </label>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max={
-                        assessment.totalMarks
-                      }
-                      value={
-                        gradeScore
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        onScoreChange(
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    />
-
-                    <span className="text-sm text-slate-500">
-                      /{" "}
-                      {
-                        assessment.totalMarks
-                      }
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    void onGrade()
-                  }
-                  disabled={
-                    saving
-                  }
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? (
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <Save size={17} />
-                  )}
-
-                  {saving
-                    ? "Saving Grade..."
-                    : "Save Grade"}
-                </button>
-              </>
+                  );
+                })}
+              </div>
             )}
           </section>
+
+          <SubmissionGradePanel
+            assessment={assessment}
+            selectedSubmission={selectedSubmission}
+            gradeScore={gradeScore}
+            gradeFeedback={gradeFeedback}
+            saving={saving}
+            onScoreChange={onScoreChange}
+            onFeedbackChange={onFeedbackChange}
+            onGrade={onGrade}
+            onOpenFile={onOpenFile}
+          />
         </div>
       </div>
     </main>
   );
 }
 
+function SubmissionGradePanel({
+  assessment,
+  selectedSubmission,
+  gradeScore,
+  gradeFeedback,
+  saving,
+  onScoreChange,
+  onFeedbackChange,
+  onGrade,
+  onOpenFile,
+}: {
+  assessment: Assessment;
+  selectedSubmission: Submission | null;
+  gradeScore: string;
+  gradeFeedback: string;
+  saving: boolean;
+  onScoreChange: (value: string) => void;
+  onFeedbackChange: (value: string) => void;
+  onGrade: () => Promise<void>;
+  onOpenFile: (submission: Submission) => void;
+}) {
+  if (!selectedSubmission) {
+    return (
+      <section className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <div>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><ClipboardList size={25} /></div>
+          <h3 className="mt-4 text-base font-semibold text-[#173B67]">Select an attempt</h3>
+          <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">Choose Attempt 1, 2 or 3 to review and save its grade independently.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Attempt {selectedSubmission.attemptNumber}</p>
+          <h2 className="mt-1 text-lg font-bold text-[#173B67]">{selectedSubmission.studentName}</h2>
+          <p className="mt-1 text-sm text-slate-500">{selectedSubmission.studentEmail}</p>
+        </div>
+        <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${submissionStatusClasses(selectedSubmission.status)}`}>
+          {submissionStatusLabel(selectedSubmission.status)}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <DetailBox label="Attempt" value={`${selectedSubmission.attemptNumber}`} />
+        <DetailBox label="Submitted" value={formatDateTime(selectedSubmission.submittedAt)} />
+        <DetailBox label="Current Score" value={selectedSubmission.score === null ? `Not graded / ${assessment.totalMarks}` : `${selectedSubmission.score}/${assessment.totalMarks}`} />
+      </div>
+
+      {selectedSubmission.submissionFileName ? (
+        <button type="button" onClick={() => onOpenFile(selectedSubmission)} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#173B67] hover:bg-slate-50">
+          <Download size={14} /> Open submitted file
+        </button>
+      ) : null}
+
+      {selectedSubmission.submissionComment ? (
+        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Student Comment</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{selectedSubmission.submissionComment}</p>
+        </div>
+      ) : null}
+
+      <div className="mt-5">
+        <label className="mb-2 block text-sm font-semibold text-slate-700">Trainer Feedback</label>
+        <textarea value={gradeFeedback} onChange={(event) => onFeedbackChange(event.target.value)} rows={5} className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100" placeholder="Enter feedback..." />
+      </div>
+
+      <div className="mt-5">
+        <label className="mb-2 block text-sm font-semibold text-slate-700">Score</label>
+        <div className="flex items-center gap-3">
+          <input type="number" min="0" max={assessment.totalMarks} value={gradeScore} onChange={(event) => onScoreChange(event.target.value)} className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+          <span className="text-sm text-slate-500">/ {assessment.totalMarks}</span>
+        </div>
+      </div>
+
+      <button type="button" disabled={saving} onClick={() => void onGrade()} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60">
+        {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
+        {saving ? "Saving Grade..." : `Save Attempt ${selectedSubmission.attemptNumber} Grade`}
+      </button>
+    </section>
+  );
+}
+
+function MiniStat({
+  value,
+  label,
+}: {
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-bold text-[#173B67]">{value}</p>
+    </div>
+  );
+}
+
 function QuizResultsPage({
   assessment,
   submissions,
+  assessmentDetails,
   error,
   onBack,
   onGrade,
@@ -3663,491 +3208,530 @@ function QuizResultsPage({
   onScoreChange,
   onFeedbackChange,
   onSaveGrade,
+  onOpenFile,
 }: {
   assessment: Assessment;
   submissions: Submission[];
+  assessmentDetails: AssessmentDetails | null;
   error: string;
   successMessage: string;
   onBack: () => void;
-  onGrade: (
-    submission: Submission
-  ) => void;
+  onGrade: (submission: Submission) => void;
   selectedSubmission: Submission | null;
   gradeScore: string;
   gradeFeedback: string;
   saving: boolean;
-  onScoreChange: (
-    value: string
-  ) => void;
-  onFeedbackChange: (
-    value: string
-  ) => void;
+  onScoreChange: (value: string) => void;
+  onFeedbackChange: (value: string) => void;
   onSaveGrade: () => Promise<void>;
+  onOpenFile: (submission: Submission) => void;
 }) {
-  const scored =
-    submissions.filter(
-      (submission) =>
-        submission.score !==
-        null
+  const grouped = useMemo(() => {
+    const map = new Map<number, Submission[]>();
+
+    for (const submission of submissions) {
+      const current = map.get(submission.userId) ?? [];
+      current.push(submission);
+      map.set(submission.userId, current);
+    }
+
+    return Array.from(map.values()).map((items) =>
+      items.sort((a, b) => a.attemptNumber - b.attemptNumber)
     );
+  }, [submissions]);
 
-  const totalMarks =
-    assessment.totalMarks ||
-    1;
+  const [expandedStudents, setExpandedStudents] = useState<Set<number>>(
+    () => new Set(grouped.length > 0 ? [grouped[0][0].userId] : [])
+  );
+  const [selectedAttemptByStudent, setSelectedAttemptByStudent] = useState<
+    Map<number, number>
+  >(
+    () =>
+      new Map(
+        grouped.length > 0
+          ? [[grouped[0][0].userId, grouped[0][0].id]]
+          : []
+      )
+  );
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<number | null>(null);
 
-  const average =
-    scored.length === 0
-      ? 0
-      : (
-          scored.reduce(
-            (sum, submission) =>
-              sum +
-              Number(
-                submission.score ||
-                  0
-              ),
-            0
-          ) /
-          scored.length
-        ).toFixed(1);
+  useEffect(() => {
+    const firstSelections = new Map<number, number>();
+    for (const attempts of grouped) {
+      if (attempts.length > 0) {
+        firstSelections.set(attempts[0].userId, attempts[0].id);
+      }
+    }
 
-  const highest =
-    scored.length === 0
-      ? 0
-      : Math.max(
-          ...scored.map(
-            (submission) =>
-              Number(
-                submission.score ||
-                  0
-              )
-          )
-        );
+    setExpandedStudents(
+      grouped.length > 0 ? new Set([grouped[0][0].userId]) : new Set()
+    );
+    setSelectedAttemptByStudent(firstSelections);
+    setGradingSubmissionId(null);
+  }, [grouped]);
 
-  const pending =
-    submissions.filter(
-      (submission) =>
-        submission.status ===
-          "SUBMITTED" ||
-        submission.score ===
-          null
-    ).length;
+  const scored = submissions.filter((submission) => submission.score !== null);
+  const totalMarks = assessment.totalMarks || 1;
+  const average = scored.length
+    ? (
+        scored.reduce(
+          (sum, submission) => sum + Number(submission.score || 0),
+          0
+        ) / scored.length
+      ).toFixed(1)
+    : "0.0";
+  const pending = submissions.filter(
+    (submission) =>
+      submission.status === "SUBMITTED" || submission.score === null
+  ).length;
+
+  function toggleStudent(userId: number, attempts: Submission[]) {
+    setExpandedStudents((current) => {
+      const next = new Set(current);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+        setSelectedAttemptByStudent((selected) => {
+          const nextSelected = new Map(selected);
+          if (!nextSelected.has(userId) && attempts.length > 0) {
+            nextSelected.set(userId, attempts[0].id);
+          }
+          return nextSelected;
+        });
+      }
+      return next;
+    });
+  }
+
+  function selectAttempt(userId: number, submissionId: number) {
+    setSelectedAttemptByStudent((current) => {
+      const next = new Map(current);
+      next.set(userId, submissionId);
+      return next;
+    });
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
         <button
           type="button"
-          onClick={
-            onBack
-          }
+          onClick={onBack}
           className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#173B67]"
         >
-          <ArrowLeft
-            size={16}
-          />
-          Back to Assignments
+          <ArrowLeft size={17} /> Back to Assignments
         </button>
 
-        {error && (
-          <ErrorBanner
-            error={error}
-          />
-        )}
-
-        {successMessage && (
-          <SuccessBanner
-            message={successMessage}
-          />
-        )}
-
-        <div className="mb-6 rounded-2xl bg-[#173B67] p-5 text-white sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
+        <section className="rounded-2xl bg-[#173B67] p-6 text-white shadow-sm sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-300">
             Quiz Results
           </p>
-
-          <h1 className="mt-1 text-2xl font-bold">
-            {
-              assessment.title
-            }
-          </h1>
-
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{assessment.title}</h1>
           <p className="mt-1 text-sm text-blue-100">
-            {assessment.courseTitle ||
-              "Course unavailable"}{" "}
-            ·{" "}
-            {assessment.totalMarks}{" "}
-            marks
-            {assessment.durationMinutes &&
-              ` · ${assessment.durationMinutes} minutes`}
+            {assessment.courseTitle} · Total Marks: {assessment.totalMarks}
+            {assessment.durationMinutes ? ` · ${assessment.durationMinutes} minutes` : ""}
           </p>
+        </section>
+
+        {error ? (
+          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {successMessage}
+          </div>
+        ) : null}
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat value={String(new Set(submissions.map((s) => s.userId)).size)} label="Students" />
+          <MiniStat value={String(submissions.length)} label="Attempts" />
+          <MiniStat value={String(pending)} label="Pending Review" />
+          <MiniStat value={`${average}/${totalMarks}`} label="Average Score" />
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <ResultCard
-            icon={
-              <Users size={18} />
-            }
-            label="Submissions"
-            value={
-              submissions.length
-            }
-          />
+        <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <h2 className="text-lg font-bold text-slate-900">Students &amp; Attempts</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Expand a student, then select a particular attempt to review its submitted answers.
+            </p>
+          </div>
 
-          <ResultCard
-            icon={
-              <CheckCircle2
-                size={18}
-              />
-            }
-            label="Average Score"
-            value={`${average} / ${totalMarks}`}
-          />
-
-          <ResultCard
-            icon={
-              <FileText size={18} />
-            }
-            label="Highest Score"
-            value={`${highest} / ${totalMarks}`}
-          />
-
-          <ResultCard
-            icon={
-              <Clock3 size={18} />
-            }
-            label="Pending Review"
-            value={pending}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,1fr)]">
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="font-bold text-slate-900">
-                Student Results
-              </h2>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Review actual quiz submissions and scores.
+          {grouped.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <Users size={25} className="mx-auto text-slate-300" />
+              <h3 className="mt-4 font-semibold text-[#173B67]">No submissions</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                No students have submitted this quiz yet.
               </p>
             </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {grouped.map((attempts) => {
+                const student = attempts[0];
+                const studentExpanded = expandedStudents.has(student.userId);
+                const selectedId = selectedAttemptByStudent.get(student.userId);
+                const selectedAttempt =
+                  attempts.find((attempt) => attempt.id === selectedId) ?? attempts[0];
 
-            {submissions.length ===
-            0 ? (
-              <div className="px-6 py-16 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                  <HelpCircle
-                    size={25}
-                  />
-                </div>
+                return (
+                  <div key={student.userId}>
+                    <button
+                      type="button"
+                      onClick={() => toggleStudent(student.userId, attempts)}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-slate-50 sm:px-6"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-slate-900">
+                            {student.studentName || "Student"}
+                          </span>
+                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                            {attempts.length} attempt{attempts.length === 1 ? "" : "s"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {student.studentId || "No student ID"}
+                          {student.studentEmail ? ` • ${student.studentEmail}` : ""}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-slate-400">{studentExpanded ? "⌃" : "⌄"}</span>
+                    </button>
 
-                <h3 className="mt-4 text-base font-semibold text-[#173B67]">
-                  No quiz submissions
-                </h3>
+                    {studentExpanded && selectedAttempt ? (
+                      <div className="border-t border-slate-100 bg-slate-50/40 p-4 sm:p-5">
+                        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                          <div className="border-b border-slate-100 p-4 sm:p-5">
+                            <div className="flex flex-wrap gap-2">
+                              {attempts.map((attempt) => {
+                                const active = attempt.id === selectedAttempt.id;
+                                return (
+                                  <button
+                                    key={attempt.id}
+                                    type="button"
+                                    onClick={() => selectAttempt(student.userId, attempt.id)}
+                                    className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                                      active
+                                        ? "bg-[#173B67] text-white"
+                                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    Attempt {attempt.attemptNumber}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  No students have submitted this quiz yet.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px]">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <TableHeader>
-                        Student
-                      </TableHeader>
-
-                      <TableHeader>
-                        Score
-                      </TableHeader>
-
-                      <TableHeader>
-                        Percentage
-                      </TableHeader>
-
-                      <TableHeader>
-                        Status
-                      </TableHeader>
-
-                      <TableHeader>
-                        Action
-                      </TableHeader>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {submissions.map(
-                      (
-                        submission
-                      ) => {
-                        const score =
-                          submission.score;
-
-                        const percentage =
-                          score ===
-                          null
-                            ? "—"
-                            : `${Math.round(
-                                (Number(
-                                  score
-                                ) /
-                                  totalMarks) *
-                                  100
-                              )}%`;
-
-                        return (
-                          <tr
-                            key={
-                              submission.id
-                            }
-                            className="border-t border-slate-100"
-                          >
-                            <TableCell>
+                          <div className="p-4 sm:p-5">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                               <div>
-                                <p className="font-semibold text-slate-800">
-                                  {
-                                    submission.studentName
-                                  }
-                                </p>
-
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {
-                                    submission.studentEmail
-                                  }
-                                </p>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attempt</p>
+                                <p className="mt-1 text-lg font-bold text-[#173B67]">{selectedAttempt.attemptNumber}</p>
                               </div>
-                            </TableCell>
-
-                            <TableCell>
-                              {score ===
-                              null
-                                ? "—"
-                                : `${score}/${totalMarks}`}
-                            </TableCell>
-
-                            <TableCell>
-                              {
-                                percentage
-                              }
-                            </TableCell>
-
-                            <TableCell>
-                              <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${submissionStatusClasses(
-                                  submission.status
-                                )}`}
-                              >
-                                {submissionStatusLabel(
-                                  submission.status
-                                )}
-                              </span>
-                            </TableCell>
-
-                            <TableCell>
+                              <div className="grid gap-3 sm:grid-cols-3">
+                                <DetailBox
+                                  label="Score"
+                                  value={selectedAttempt.score === null ? `0 / ${totalMarks}` : `${selectedAttempt.score} / ${totalMarks}`}
+                                />
+                                <DetailBox
+                                  label="Status"
+                                  value={submissionStatusLabel(selectedAttempt.status)}
+                                />
+                                <DetailBox
+                                  label="Submitted"
+                                  value={formatDateTime(selectedAttempt.submittedAt)}
+                                />
+                              </div>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  onGrade(
-                                    submission
-                                  )
-                                }
-                                className="rounded-lg bg-[#173B67] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#123052]"
+                                onClick={() => {
+                                  onGrade(selectedAttempt);
+                                  setGradingSubmissionId(selectedAttempt.id);
+                                }}
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#173B67] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#123052]"
                               >
-                                {score ===
-                                  null ||
-                                submission.status ===
-                                  "SUBMITTED"
-                                  ? "Review"
-                                  : "Update Grade"}
+                                <CheckCircle2 size={16} />
+                                Grade Submission
                               </button>
-                            </TableCell>
-                          </tr>
-                        );
-                      }
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+                            </div>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            {!selectedSubmission ? (
-              <div className="flex min-h-[320px] items-center justify-center text-center">
-                <div>
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                    <Eye
-                      size={25}
-                    />
+                            {selectedAttempt.submissionComment ? (
+                              <div className="mt-5 rounded-xl bg-slate-50 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Student Comment</p>
+                                <p className="mt-2 text-sm leading-6 text-slate-700">{selectedAttempt.submissionComment}</p>
+                              </div>
+                            ) : null}
+
+                            {selectedAttempt.submissionFileName ? (
+                              <div className="mt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenFile(selectedAttempt)}
+                                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#173B67] hover:bg-slate-50"
+                                >
+                                  <Download size={14} /> Open submitted file
+                                </button>
+                              </div>
+                            ) : null}
+
+                            {assessmentDetails ? (
+                              <QuizSubmittedAnswers
+                                details={assessmentDetails}
+                                submission={selectedAttempt}
+                              />
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
 
-                  <h3 className="mt-4 text-base font-semibold text-[#173B67]">
-                    Select a result
-                  </h3>
+      {gradingSubmissionId !== null && selectedSubmission ? (
+        <GradeSubmissionModal
+          assessment={assessment}
+          submission={selectedSubmission}
+          gradeScore={gradeScore}
+          gradeFeedback={gradeFeedback}
+          saving={saving}
+          onScoreChange={onScoreChange}
+          onFeedbackChange={onFeedbackChange}
+          onSave={async () => {
+            await onSaveGrade();
+            setGradingSubmissionId(null);
+          }}
+          onClose={() => setGradingSubmissionId(null)}
+        />
+      ) : null}
+    </main>
+  );
+}
 
-                  <p className="mt-1 max-w-sm text-sm leading-6 text-slate-500">
-                    Select a student to review or update the recorded score and feedback.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-[#173B67]">
-                      {
-                        selectedSubmission.studentName
-                      }
-                    </h2>
+function QuizSubmittedAnswers({
+  details,
+  submission,
+}: {
+  details: AssessmentDetails;
+  submission: Submission;
+}) {
+  let answers: Record<string, string> = {};
+  try {
+    answers = submission.answers ? JSON.parse(submission.answers) : {};
+  } catch {
+    answers = {};
+  }
 
-                    <p className="mt-1 text-sm text-slate-500">
-                      {
-                        selectedSubmission.studentEmail
-                      }
-                    </p>
-                  </div>
-
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${submissionStatusClasses(
-                      selectedSubmission.status
-                    )}`}
-                  >
-                    {submissionStatusLabel(
-                      selectedSubmission.status
-                    )}
-                  </span>
-                </div>
-
-                <div className="mt-5 rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Submission
-                  </p>
-
-                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                    <DetailBox
-                      label="Submitted"
-                      value={formatDateTime(
-                        selectedSubmission.submittedAt
-                      )}
-                    />
-
-                    <DetailBox
-                      label="Current Score"
-                      value={
-                        selectedSubmission.score ===
-                        null
-                          ? `Not graded / ${totalMarks}`
-                          : `${selectedSubmission.score}/${totalMarks}`
-                      }
-                    />
-                  </div>
-                </div>
-
-                {selectedSubmission.answers && (
-                  <details className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">
-                      View submitted answers
-                    </summary>
-
-                    <pre className="mt-3 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                      {
-                        selectedSubmission.answers
-                      }
-                    </pre>
-                  </details>
-                )}
-
-                <div className="mt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Trainer Feedback
-                  </label>
-
-                  <textarea
-                    value={
-                      gradeFeedback
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      onFeedbackChange(
-                        event
-                          .target
-                          .value
-                      )
-                    }
-                    rows={5}
-                    className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    placeholder="Enter feedback..."
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Score
-                  </label>
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max={
-                        totalMarks
-                      }
-                      value={
-                        gradeScore
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        onScoreChange(
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    />
-
-                    <span className="text-sm text-slate-500">
-                      /{" "}
-                      {
-                        totalMarks
-                      }
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={
-                    saving
-                  }
-                  onClick={() =>
-                    void onSaveGrade()
-                  }
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {saving ? (
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <Save size={17} />
-                  )}
-
-                  {saving
-                    ? "Saving Grade..."
-                    : "Save Grade"}
-                </button>
-              </>
-            )}
-          </section>
+  return (
+    <div className="mt-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Submitted Answers</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Green indicates the correct answer. Red indicates a selected incorrect answer.
+          </p>
         </div>
       </div>
-    </main>
+
+      <div className="mt-3 space-y-3">
+        {details.questions.map((question, index) => {
+          const selected = String(answers[String(question.id)] ?? "").toUpperCase();
+          const correct = String(question.correctAnswer ?? "").toUpperCase();
+          const options = [
+            ["A", question.optionA],
+            ["B", question.optionB],
+            ["C", question.optionC],
+            ["D", question.optionD],
+          ].filter(
+            (item): item is [string, string] => Boolean(item[1]?.trim())
+          );
+
+          const answeredCorrectly = Boolean(selected && correct && selected === correct);
+
+          return (
+            <div key={question.id} className="rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-800">
+                  {index + 1}. {question.question}
+                </p>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+                  {question.marks} marks
+                </span>
+              </div>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {options.map(([letter, label]) => {
+                  const isSelected = selected === letter;
+                  const isCorrect = correct === letter;
+                  const classes =
+                    isSelected && isCorrect
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                      : isSelected
+                        ? "border-red-300 bg-red-50 text-red-800"
+                        : isCorrect
+                          ? "border-emerald-200 bg-emerald-50/60 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-600";
+
+                  return (
+                    <div
+                      key={letter}
+                      className={`rounded-lg border px-3 py-2.5 text-xs ${classes}`}
+                    >
+                      <span className="mr-2 font-bold">{letter}.</span>
+                      {label}
+                      {isSelected && (
+                        <span className="ml-2 font-bold">Selected</span>
+                      )}
+                      {isCorrect && (
+                        <span className="ml-2 font-bold">Correct answer</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600">
+                <span>
+                  Student answer: <strong>{selected || "Not answered"}</strong>
+                </span>
+                <span>
+                  Correct answer: <strong>{correct || "—"}</strong>
+                </span>
+                <span>
+                  Marks: <strong>{question.marks}</strong>
+                </span>
+                {selected && correct && (
+                  <span
+                    className={
+                      answeredCorrectly
+                        ? "font-bold text-emerald-600"
+                        : "font-bold text-red-600"
+                    }
+                  >
+                    {answeredCorrectly ? "✓ Correct" : "✕ Incorrect"}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GradeSubmissionModal({
+  assessment,
+  submission,
+  gradeScore,
+  gradeFeedback,
+  saving,
+  onScoreChange,
+  onFeedbackChange,
+  onSave,
+  onClose,
+}: {
+  assessment: Assessment;
+  submission: Submission;
+  gradeScore: string;
+  gradeFeedback: string;
+  saving: boolean;
+  onScoreChange: (value: string) => void;
+  onFeedbackChange: (value: string) => void;
+  onSave: () => Promise<void>;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">
+              Grade Submission
+            </p>
+            <h2 className="mt-1 text-xl font-bold text-[#173B67]">
+              Attempt {submission.attemptNumber}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {submission.studentName} · {assessment.title}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 disabled:opacity-50"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
+            Score
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min="0"
+              max={assessment.totalMarks}
+              value={gradeScore}
+              onChange={(event) => onScoreChange(event.target.value)}
+              className="h-11 w-28 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+            />
+            <span className="text-sm text-slate-500">
+              / {assessment.totalMarks}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
+            Trainer Feedback
+          </label>
+          <textarea
+            value={gradeFeedback}
+            onChange={(event) => onFeedbackChange(event.target.value)}
+            rows={5}
+            className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+            placeholder="Enter feedback..."
+          />
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void onSave()}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+            {saving ? "Saving..." : "Save Grade"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -8,12 +8,17 @@ import {
   createCourseController,
   updateCourseController,
   deleteCourseController,
+  uploadCourseImageController,
 } from "../controllers/course.controller";
 
 import {
   authenticate,
   requireRole,
 } from "../../auth/middleware/auth.middleware";
+
+import {
+  courseImageUpload,
+} from "../middleware/course-image.upload";
 
 const router = Router();
 
@@ -66,6 +71,28 @@ adminCourseRouter.patch(
 adminCourseRouter.delete(
   "/:id",
   deleteCourseController
+);
+
+/*
+ * ============================================================
+ * ADMIN COURSE IMAGE
+ * ============================================================
+ *
+ * POST /api/admin/courses/:id/image
+ *
+ * Content-Type:
+ * multipart/form-data
+ *
+ * Field name:
+ * image
+ *
+ * ============================================================
+ */
+
+adminCourseRouter.post(
+  "/:id/image",
+  courseImageUpload.single("image"),
+  uploadCourseImageController
 );
 
 export default router;

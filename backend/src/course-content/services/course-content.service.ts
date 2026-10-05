@@ -140,6 +140,7 @@ export async function getCourseContentForStudent(
           content: lesson.content,
           videoUrl: lesson.videoUrl,
           documentUrl: lesson.documentUrl,
+          imageUrl: lesson.imageUrl,
           sortOrder: lesson.sortOrder,
           isActive: lesson.isActive,
         })),
@@ -163,6 +164,7 @@ export async function getCourseContentForStudent(
       mode: course.mode,
       duration: course.duration,
       modules: course.modules,
+      imageUrl: course.imageUrl,
       isActive: course.isActive,
     },
 

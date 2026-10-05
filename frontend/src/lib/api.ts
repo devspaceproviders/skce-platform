@@ -1,4 +1,4 @@
-import { Course, Trainer, Testimonial } from "@/types";
+﻿import { Course, Trainer, Testimonial } from "@/types";
 import {
   MOCK_COURSES,
   MOCK_TRAINERS,
@@ -8,6 +8,29 @@ import {
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
+
+const BACKEND_BASE_URL = API_URL.replace(/\/api\/?$/, "");
+
+function resolveMediaUrl(
+  url?: string | null
+): string | null {
+  if (!url) {
+    return null;
+  }
+
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  ) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `${BACKEND_BASE_URL}${url}`;
+  }
+
+  return url;
+}
 
 async function safeFetch<T>(
   path: string,
@@ -39,11 +62,17 @@ async function safeFetch<T>(
   }
 }
 
-export const getCourses = () =>
-  safeFetch<Course[]>(
+export async function getCourses(): Promise<Course[]> {
+  const courses = await safeFetch<Course[]>(
     "/courses",
     MOCK_COURSES
   );
+
+  return courses.map((course) => ({
+    ...course,
+    imageUrl: resolveMediaUrl(course.imageUrl),
+  }));
+}
 
 /*
  * ============================================================
@@ -130,9 +159,6 @@ export async function getCourseBySlug(
       HYBRID: "Hybrid",
     };
 
-    const backendBaseUrl =
-      API_URL.replace(/\/api\/?$/, "");
-
     const instructor =
       data.instructor
         ? {
@@ -142,13 +168,15 @@ export async function getCourseBySlug(
               data.instructor.avatarUrl.startsWith(
                 "/"
               )
-                ? `${backendBaseUrl}${data.instructor.avatarUrl}`
+                ? `${BACKEND_BASE_URL}${data.instructor.avatarUrl}`
                 : data.instructor.avatarUrl || "",
           }
         : undefined;
 
     return {
       ...data,
+
+      imageUrl: resolveMediaUrl(data.imageUrl),
 
       mode:
         modeMap[data.mode] ??
@@ -212,6 +240,7 @@ export async function submitContactForm(
 // ============================================================
 // PACKAGES
 // ============================================================
+
 export type CoursePackageCourse = {
   id: number;
   slug: string;
@@ -226,6 +255,7 @@ export type CoursePackage = {
   title: string;
   description: string | null;
   price: number;
+  imageUrl: string | null;
   isActive: boolean;
   courses: CoursePackageCourse[];
 };
@@ -271,7 +301,10 @@ export async function getPackages(): Promise<
       );
     }
 
-    return json.data;
+    return json.data.map((pkg) => ({
+      ...pkg,
+      imageUrl: resolveMediaUrl(pkg.imageUrl),
+    }));
   } catch (error) {
     console.error(
       "Failed to load packages:",
@@ -311,7 +344,12 @@ export async function getPackageBySlug(
       return null;
     }
 
-    return json.data;
+    return {
+      ...json.data,
+      imageUrl: resolveMediaUrl(
+        json.data.imageUrl
+      ),
+    };
   } catch (error) {
     console.error(
       "Failed to load package:",

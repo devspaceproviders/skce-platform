@@ -35,6 +35,7 @@ export async function getAllPackages() {
         description: coursePackage.description,
         price: coursePackage.price,
         isActive: coursePackage.isActive,
+        imageUrl: coursePackage.imageUrl,
         courses: packageCourseList,
       };
     });
@@ -81,6 +82,7 @@ export async function getPackageBySlug(slug: string) {
     description: coursePackage.description,
     price: coursePackage.price,
     isActive: coursePackage.isActive,
+    imageUrl: coursePackage.imageUrl,
     courses: packageCourseList,
   };
 }

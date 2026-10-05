@@ -93,18 +93,28 @@ export default async function CourseDetailPage({
       ========================================================= */}
       <section className="bg-slate-50 px-6 py-12 sm:py-16">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:grid-cols-[1fr_360px]">
-          
           {/* =====================================================
               LEFT CONTENT
           ===================================================== */}
           <div className="min-w-0">
-            
             {/* Course Banner */}
             {course.bannerImageUrl && (
               <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={course.bannerImageUrl}
+                  alt={course.title}
+                  className="h-auto max-h-[420px] w-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* Official Course Image */}
+            {course.imageUrl && (
+              <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={course.imageUrl}
                   alt={course.title}
                   className="h-auto max-h-[420px] w-full object-cover"
                 />

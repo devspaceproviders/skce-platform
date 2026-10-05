@@ -1409,26 +1409,34 @@ export default function AssignmentsPage() {
   ) {
     setOpenMenu(null);
     setSelectedAssessment(assessment);
+    setSelectedDetails(null);
     setSubmissions([]);
     setShowSubmissionsModal(true);
     setError("");
 
     try {
-      const response =
-        await authenticatedFetch(
-          `${API_URL}/admin/assessments/${assessment.id}/submissions`
-        );
+      const [details, submissionsResponse] =
+        await Promise.all([
+          loadAssessmentDetails(assessment.id),
+          authenticatedFetch(
+            `${API_URL}/admin/assessments/${assessment.id}/submissions`
+          ),
+        ]);
 
       const json =
-        await response.json();
+        await submissionsResponse.json();
 
-      if (!response.ok || !json?.success) {
+      if (
+        !submissionsResponse.ok ||
+        !json?.success
+      ) {
         throw new Error(
           json?.message ||
             "Unable to load submissions."
         );
       }
 
+      setSelectedDetails(details);
       setSubmissions(
         json.data || []
       );
@@ -2197,6 +2205,7 @@ export default function AssignmentsPage() {
         >
           <SubmissionsPanel
             assessment={selectedAssessment}
+            questions={selectedDetails?.questions ?? []}
             submissions={submissions}
             gradingId={gradingId}
             gradeScore={gradeScore}
@@ -2875,8 +2884,211 @@ function QuestionsPanel({
   );
 }
 
+type ParsedAnswers = Record<string, string>;
+
+function parseSubmissionAnswers(
+  value: string | null
+): ParsedAnswers {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ) {
+      return Object.fromEntries(
+        Object.entries(parsed).map(([key, answer]) => [
+          key,
+          String(answer ?? ""),
+        ])
+      );
+    }
+  } catch {
+    // Keep the UI usable if an older submission contains malformed JSON.
+  }
+
+  return {};
+}
+
+function getQuestionOption(
+  question: Question,
+  answer: string | undefined
+) {
+  if (!answer) {
+    return null;
+  }
+
+  const key = answer.trim().toUpperCase();
+
+  if (key === "A") return question.optionA;
+  if (key === "B") return question.optionB;
+  if (key === "C") return question.optionC;
+  if (key === "D") return question.optionD;
+
+  return answer;
+}
+
+function QuizAnswersPanel({
+  questions,
+  answers,
+}: {
+  questions: Question[];
+  answers: string;
+}) {
+  const parsedAnswers = parseSubmissionAnswers(answers);
+
+  if (questions.length === 0) {
+    return (
+      <details className="mt-3 rounded-lg border border-slate-200 p-3">
+        <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+          View submitted answers
+        </summary>
+        <p className="mt-2 text-xs text-slate-500">
+          Quiz questions are not available for this submission.
+        </p>
+      </details>
+    );
+  }
+
+  return (
+    <details className="mt-3 rounded-lg border border-slate-200 p-3">
+      <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+        View submitted answers
+      </summary>
+
+      <div className="mt-3 space-y-3">
+        {questions
+          .slice()
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((question, index) => {
+            const selectedAnswer =
+              parsedAnswers[String(question.id)] ??
+              "";
+            const normalizedSelected =
+              selectedAnswer.trim().toUpperCase();
+            const normalizedCorrect =
+              (question.correctAnswer ?? "")
+                .trim()
+                .toUpperCase();
+            const isCorrect =
+              normalizedSelected !== "" &&
+              normalizedSelected === normalizedCorrect;
+            const selectedText = getQuestionOption(
+              question,
+              selectedAnswer
+            );
+            const correctText = getQuestionOption(
+              question,
+              question.correctAnswer ?? undefined
+            );
+
+            return (
+              <div
+                key={question.id}
+                className="rounded-xl border border-slate-200 bg-white p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {index + 1}. {question.question}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {question.marks} {question.marks === 1 ? "mark" : "marks"}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                      isCorrect
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {isCorrect ? "Correct" : "Incorrect"}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {[
+                    ["A", question.optionA],
+                    ["B", question.optionB],
+                    ["C", question.optionC],
+                    ["D", question.optionD],
+                  ].map(([key, text]) => {
+                    if (!text) return null;
+
+                    const isSelected =
+                      normalizedSelected === key;
+                    const isAnswer =
+                      normalizedCorrect === key;
+
+                    return (
+                      <div
+                        key={key}
+                        className={`rounded-lg border px-3 py-2 text-xs ${
+                          isAnswer
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                            : isSelected
+                            ? "border-red-200 bg-red-50 text-red-800"
+                            : "border-slate-200 bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        <span className="font-bold">{key}.</span>{" "}
+                        {text}
+                        {isSelected && (
+                          <span className="ml-2 font-semibold">
+                            Selected
+                          </span>
+                        )}
+                        {isAnswer && (
+                          <span className="ml-2 font-semibold">
+                            Correct answer
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg bg-slate-50 p-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      Student answer
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-slate-700">
+                      {selectedAnswer
+                        ? `${selectedAnswer.toUpperCase()}${selectedText ? ` — ${selectedText}` : ""}`
+                        : "Not answered"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg bg-emerald-50 p-2.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
+                      Correct answer
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-emerald-800">
+                      {question.correctAnswer
+                        ? `${question.correctAnswer.toUpperCase()}${correctText ? ` — ${correctText}` : ""}`
+                        : "Not configured"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    </details>
+  );
+}
+
 function SubmissionsPanel({
   assessment,
+  questions,
   submissions,
   gradingId,
   gradeScore,
@@ -2889,6 +3101,7 @@ function SubmissionsPanel({
   onCancelGrading,
 }: {
   assessment: Assessment;
+  questions: Question[];
   submissions: Submission[];
   gradingId: number | null;
   gradeScore: string;
@@ -3045,14 +3258,10 @@ function SubmissionsPanel({
                   {assessment.type ===
                     "Quiz" &&
                     submission.answers && (
-                      <details className="mt-3 rounded-lg border border-slate-200 p-3">
-                        <summary className="cursor-pointer text-xs font-semibold text-slate-600">
-                          View submitted answers
-                        </summary>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap text-xs leading-5 text-slate-500">
-                          {submission.answers}
-                        </pre>
-                      </details>
+                      <QuizAnswersPanel
+                        questions={questions}
+                        answers={submission.answers}
+                      />
                     )}
 
                   {submission.feedback && (

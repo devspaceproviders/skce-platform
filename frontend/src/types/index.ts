@@ -29,6 +29,7 @@ export interface Course {
   bannerImageUrl?: string;
   videoThumbnailUrl?: string;
   videoUrl?: string;
+  imageUrl?: string | null;
 
   language?: string;
   totalVideos?: number;
