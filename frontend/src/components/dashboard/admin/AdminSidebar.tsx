@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Megaphone,
   Star,
+  Contact,
 } from "lucide-react";
 
 const MENU_SECTIONS = [
@@ -108,6 +109,16 @@ const MENU_SECTIONS = [
         href: "/dashboard/admin/reports",
         label: "Reports",
         icon: BarChart3,
+      },
+    ],
+  },
+  {
+    label: "Contact",
+    items: [
+      {
+        href: "/dashboard/admin/contact",
+        label: "contact",
+        icon: Contact,
       },
     ],
   },

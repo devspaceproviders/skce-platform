@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type ElementType,
+  type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -23,6 +24,9 @@ import {
   RefreshCw,
   Sparkles,
   UserCircle,
+  X,
+  ChevronDown,
+  Package,
 } from "lucide-react";
 
 const API_URL =
@@ -350,6 +354,26 @@ function buildStudentCourses(
   return Array.from(courseMap.values());
 }
 
+type MetricKey = "courses" | "active" | "pending" | "paid";
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 function clampPercent(value: number | undefined): number {
   return Math.min(Math.max(value ?? 0, 0), 100);
 }
@@ -369,6 +393,17 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [hoverMetric, setHoverMetric] = useState<MetricKey | null>(null);
+  const [pinnedMetric, setPinnedMetric] = useState<MetricKey | null>(null);
+  const [lastMetric, setLastMetric] = useState<MetricKey>("courses");
+  const [quickHint, setQuickHint] = useState<string | null>(null);
+  const shownMetric = hoverMetric ?? pinnedMetric;
+
+  useEffect(() => {
+    if (shownMetric) {
+      setLastMetric(shownMetric);
+    }
+  }, [shownMetric]);
 
   async function fetchDashboardData(showRefresh = false) {
     try {
@@ -598,6 +633,218 @@ export default function StudentDashboardPage() {
   const overallLessonPercent =
     totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
 
+  const togglePin = (key: MetricKey) =>
+    setPinnedMetric((prev) => (prev === key ? null : key));
+
+  const sortedPayments = [...dashboard.payments].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const metricMeta: Record<
+    MetricKey,
+    { icon: ElementType; title: string; subtitle: string }
+  > = {
+    courses: {
+      icon: BookOpen,
+      title: "Enrolled Courses",
+      subtitle: `${studentCourses.length} course${
+        studentCourses.length === 1 ? "" : "s"
+      } in your learning space`,
+    },
+    active: {
+      icon: GraduationCap,
+      title: "Active Enrollments",
+      subtitle: `${dashboard.stats.activeEnrollments} currently active`,
+    },
+    pending: {
+      icon: ClipboardList,
+      title: "Pending Work",
+      subtitle: `${pendingAssignments} assignments · ${pendingQuizzes} quizzes`,
+    },
+    paid: {
+      icon: CreditCard,
+      title: "Payments",
+      subtitle: `${formatCurrency(dashboard.stats.totalPaid)} paid in total`,
+    },
+  };
+
+  let metricBody: ReactNode = null;
+
+  if (lastMetric === "courses") {
+    metricBody =
+      studentCourses.length === 0 ? (
+        <EmptyCard
+          title="No enrolled courses"
+          message="Your enrolled courses will appear here."
+        />
+      ) : (
+        <>
+          <div className="sd-drows">
+            {studentCourses.slice(0, 6).map((item) => {
+              const p = progressMap[item.course.id];
+              const img = getImageUrl(item.course.imageUrl);
+
+              return (
+                <button
+                  key={item.course.id}
+                  type="button"
+                  className="sd-drow"
+                  onClick={() =>
+                    router.push(`/dashboard/student/my-courses/${item.course.id}`)
+                  }
+                >
+                  <div className="sd-thumb">
+                    {img ? (
+                      <img src={img} alt={item.course.title} />
+                    ) : (
+                      <BookOpen size={16} />
+                    )}
+                  </div>
+                  <div className="sd-min0 sd-grow">
+                    <div className="sd-course-title">{item.course.title}</div>
+                    <div className="sd-course-pkg">
+                      {item.packageName || "Direct enrollment"} ·{" "}
+                      {p?.completedLessons ?? 0}/{p?.totalLessons ?? 0} lessons
+                    </div>
+                  </div>
+                  <b className="sd-next-pct">
+                    {Math.round(p?.progressPercentage ?? 0)}%
+                  </b>
+                  <ChevronRight size={16} className="sd-arrow" />
+                </button>
+              );
+            })}
+          </div>
+          {studentCourses.length > 6 ? (
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/student/my-courses")}
+              className="sd-btn sd-btn-secondary sd-btn-block"
+            >
+              View all {studentCourses.length} courses
+              <ArrowRight size={15} />
+            </button>
+          ) : null}
+        </>
+      );
+  } else if (lastMetric === "active") {
+    metricBody =
+      dashboard.enrollments.length === 0 ? (
+        <EmptyCard
+          title="No enrollments yet"
+          message="Your enrollments will appear here."
+        />
+      ) : (
+        <div className="sd-drows">
+          {dashboard.enrollments.slice(0, 6).map((enrollment, index) => {
+            const isPackage = Boolean(enrollment.package);
+            const name =
+              enrollment.package?.title ?? enrollment.course?.title ?? "Enrollment";
+            const isActive = enrollment.status.toUpperCase().includes("ACTIVE");
+
+            return (
+              <div key={`${enrollment.id}-${index}`} className="sd-drow sd-drow-static">
+                <div className="sd-icon sd-icon-sm sd-tone-green">
+                  {isPackage ? <Package size={16} /> : <BookOpen size={16} />}
+                </div>
+                <div className="sd-min0 sd-grow">
+                  <div className="sd-course-title">{name}</div>
+                  <div className="sd-course-pkg">
+                    {isPackage ? "Package" : "Course"} · Enrolled{" "}
+                    {formatDate(enrollment.enrolledAt)}
+                  </div>
+                </div>
+                <span className={`sd-badge${isActive ? "" : " sd-badge-warn"}`}>
+                  {formatStatus(enrollment.status)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+  } else if (lastMetric === "pending") {
+    metricBody =
+      pendingTotal === 0 ? (
+        <EmptyCard
+          title="You're all caught up"
+          message="No assignments or quizzes are waiting for you right now."
+        />
+      ) : (
+        <>
+          <div className="sd-pend">
+            <div className="sd-pend-box">
+              <ClipboardList size={18} />
+              <b>{pendingAssignments}</b>
+              <span>Assignments</span>
+            </div>
+            <div className="sd-pend-box">
+              <BarChart3 size={18} />
+              <b>{pendingQuizzes}</b>
+              <span>Quizzes</span>
+            </div>
+          </div>
+          <div className="sd-drows">
+            {[...dashboard.assignments, ...dashboard.quizzes]
+              .slice(0, 6)
+              .map((item, index) => (
+                <div key={`pending-${index}`} className="sd-drow sd-drow-static">
+                  <div className="sd-icon sd-icon-sm sd-tone-orange">
+                    <ClipboardList size={16} />
+                  </div>
+                  <div className="sd-min0 sd-grow">
+                    <div className="sd-course-title">{safeText(item)}</div>
+                    <div className="sd-course-pkg">Waiting for you</div>
+                  </div>
+                </div>
+              ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/student/assignments")}
+            className="sd-btn sd-btn-primary sd-btn-block"
+          >
+            Open Assignments & Quizzes
+            <ArrowRight size={15} />
+          </button>
+        </>
+      );
+  } else {
+    metricBody =
+      sortedPayments.length === 0 ? (
+        <EmptyCard
+          title="No payments yet"
+          message="Your payment history will appear here."
+        />
+      ) : (
+        <div className="sd-drows">
+          {sortedPayments.slice(0, 6).map((payment, index) => {
+            const ok = /SUCCESS|PAID|COMPLETED/i.test(payment.status);
+
+            return (
+              <div key={`${payment.id}-${index}`} className="sd-drow sd-drow-static">
+                <div className="sd-icon sd-icon-sm sd-tone-navy">
+                  <CreditCard size={16} />
+                </div>
+                <div className="sd-min0 sd-grow">
+                  <div className="sd-course-title">
+                    {formatCurrency(payment.amount, payment.currency)}
+                  </div>
+                  <div className="sd-course-pkg">
+                    {payment.method} · {formatDate(payment.paidAt ?? payment.createdAt)}
+                  </div>
+                </div>
+                <span className={`sd-badge${ok ? "" : " sd-badge-warn"}`}>
+                  {formatStatus(payment.status)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+  }
+
+  const MetricDetailIcon = metricMeta[lastMetric].icon;
+
   const otherCourses = studentCourses
     .filter(
       (item) =>
@@ -675,46 +922,97 @@ export default function StudentDashboardPage() {
             </button>
           </section>
 
-          {/* METRICS */}
-          <section className="sd-metrics">
-            <DashboardMetric
-              index={1}
-              icon={BookOpen}
-              label="Enrolled Courses"
-              value={dashboard.stats.enrolledCourses}
-              detail={`${studentCourses.length} course${
-                studentCourses.length === 1 ? "" : "s"
-              } in your learning space`}
-              tone="blue"
-            />
-            <DashboardMetric
-              index={2}
-              icon={GraduationCap}
-              label="Active Enrollments"
-              value={dashboard.stats.activeEnrollments}
-              detail="Currently active enrollments"
-              tone="green"
-            />
-            <DashboardMetric
-              index={3}
-              icon={ClipboardList}
-              label="Pending Work"
-              value={pendingTotal}
-              detail={`${pendingAssignments} assignments · ${pendingQuizzes} quizzes`}
-              tone="orange"
-            />
-            <DashboardMetric
-              index={4}
-              icon={CreditCard}
-              label="Total Paid"
-              value={dashboard.stats.totalPaid}
-              format={(n) => formatCurrency(n)}
-              detail={`${dashboard.stats.successfulPayments} successful payment${
-                dashboard.stats.successfulPayments === 1 ? "" : "s"
-              }`}
-              tone="navy"
-            />
-          </section>
+          {/* METRICS + DETAIL (hover to preview, click to pin) */}
+          <div
+            className="sd-metric-zone"
+            onMouseLeave={() => setHoverMetric(null)}
+          >
+            <section className="sd-metrics">
+              <DashboardMetric
+                index={1}
+                icon={BookOpen}
+                label="Enrolled Courses"
+                value={dashboard.stats.enrolledCourses}
+                detail={`${studentCourses.length} course${
+                  studentCourses.length === 1 ? "" : "s"
+                } in your learning space`}
+                tone="blue"
+                active={shownMetric === "courses"}
+                pinned={pinnedMetric === "courses"}
+                onEnter={() => setHoverMetric("courses")}
+                onToggle={() => togglePin("courses")}
+              />
+              <DashboardMetric
+                index={2}
+                icon={GraduationCap}
+                label="Active Enrollments"
+                value={dashboard.stats.activeEnrollments}
+                detail="Currently active enrollments"
+                tone="green"
+                active={shownMetric === "active"}
+                pinned={pinnedMetric === "active"}
+                onEnter={() => setHoverMetric("active")}
+                onToggle={() => togglePin("active")}
+              />
+              <DashboardMetric
+                index={3}
+                icon={ClipboardList}
+                label="Pending Work"
+                value={pendingTotal}
+                detail={`${pendingAssignments} assignments · ${pendingQuizzes} quizzes`}
+                tone="orange"
+                active={shownMetric === "pending"}
+                pinned={pinnedMetric === "pending"}
+                onEnter={() => setHoverMetric("pending")}
+                onToggle={() => togglePin("pending")}
+              />
+              <DashboardMetric
+                index={4}
+                icon={CreditCard}
+                label="Total Paid"
+                value={dashboard.stats.totalPaid}
+                format={(n) => formatCurrency(n)}
+                detail={`${dashboard.stats.successfulPayments} successful payment${
+                  dashboard.stats.successfulPayments === 1 ? "" : "s"
+                }`}
+                tone="navy"
+                active={shownMetric === "paid"}
+                pinned={pinnedMetric === "paid"}
+                onEnter={() => setHoverMetric("paid")}
+                onToggle={() => togglePin("paid")}
+              />
+            </section>
+
+            <div className={`sd-detail${shownMetric ? " is-open" : ""}`}>
+              <div className="sd-detail-inner">
+                <div className="sd-detail-card" key={lastMetric}>
+                  <div className="sd-detail-head">
+                    <SectionHeader
+                      icon={MetricDetailIcon}
+                      title={metricMeta[lastMetric].title}
+                      subtitle={metricMeta[lastMetric].subtitle}
+                    />
+                    {pinnedMetric === lastMetric ? (
+                      <button
+                        type="button"
+                        className="sd-pinchip"
+                        onClick={() => setPinnedMetric(null)}
+                        aria-label="Close details"
+                      >
+                        Pinned
+                        <X size={13} />
+                      </button>
+                    ) : (
+                      <span className="sd-detail-hint">
+                        Click the card to keep this open
+                      </span>
+                    )}
+                  </div>
+                  {metricBody}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* CONTINUE + QUICK ACTIONS */}
           <section className="sd-grid sd-grid-a">
@@ -903,10 +1201,16 @@ export default function StudentDashboardPage() {
                 subtitle="Jump to a learning area"
               />
 
+              <div className={`sd-quick-hint${quickHint ? " is-on" : ""}`} key={quickHint ?? "idle"}>
+                {quickHint ?? "Hover an action to see what's inside"}
+              </div>
+
               <div className="sd-quick-grid">
                 <QuickDashboardAction
                   icon={BookOpen}
                   title="My Courses"
+                  hint={"Open your enrolled courses and keep learning"}
+                  onHint={setQuickHint}
                   value={`${studentCourses.length} enrolled`}
                   tone="blue"
                   onClick={() => router.push("/dashboard/student/my-courses")}
@@ -914,6 +1218,8 @@ export default function StudentDashboardPage() {
                 <QuickDashboardAction
                   icon={ClipboardList}
                   title="Assignments"
+                  hint={pendingAssignments > 0 ? `${pendingAssignments} assignment${pendingAssignments === 1 ? "" : "s"} waiting for you` : "No assignments pending. You are all caught up"}
+                  onHint={setQuickHint}
                   value={
                     pendingAssignments > 0
                       ? `${pendingAssignments} pending`
@@ -925,6 +1231,8 @@ export default function StudentDashboardPage() {
                 <QuickDashboardAction
                   icon={BarChart3}
                   title="Quizzes"
+                  hint={pendingQuizzes > 0 ? `${pendingQuizzes} quiz${pendingQuizzes === 1 ? "" : "zes"} waiting for you` : "No quizzes pending. You are all caught up"}
+                  onHint={setQuickHint}
                   value={
                     pendingQuizzes > 0 ? `${pendingQuizzes} pending` : "All clear"
                   }
@@ -934,6 +1242,8 @@ export default function StudentDashboardPage() {
                 <QuickDashboardAction
                   icon={Award}
                   title="Certificates"
+                  hint={completedCourseCount > 0 ? `${completedCourseCount} certificate${completedCourseCount === 1 ? "" : "s"} earned so far` : "Finish a course to earn your certificate"}
+                  onHint={setQuickHint}
                   value={
                     completedCourseCount > 0
                       ? `${completedCourseCount} earned`
@@ -945,6 +1255,8 @@ export default function StudentDashboardPage() {
                 <QuickDashboardAction
                   icon={CalendarDays}
                   title="Calendar"
+                  hint={"See your upcoming live sessions and meetings"}
+                  onHint={setQuickHint}
                   value="View meetings"
                   tone="green"
                   onClick={() => router.push("/dashboard/student/calendar")}
@@ -952,6 +1264,8 @@ export default function StudentDashboardPage() {
                 <QuickDashboardAction
                   icon={UserCircle}
                   title="Profile"
+                  hint={"Update your personal details and account settings"}
+                  onHint={setQuickHint}
                   value="Manage account"
                   tone="navy"
                   onClick={() => router.push("/dashboard/student/profile")}
@@ -1186,6 +1500,10 @@ function DashboardMetric({
   format,
   detail,
   tone,
+  active,
+  pinned,
+  onEnter,
+  onToggle,
 }: {
   index: number;
   icon: ElementType;
@@ -1194,20 +1512,35 @@ function DashboardMetric({
   format?: (n: number) => string;
   detail: string;
   tone: Tone;
+  active: boolean;
+  pinned: boolean;
+  onEnter: () => void;
+  onToggle: () => void;
 }) {
   return (
-    <div className="sd-metric sd-reveal" style={reveal(index)}>
+    <button
+      type="button"
+      className={`sd-metric sd-reveal${active ? " is-active" : ""}${
+        pinned ? " is-pinned" : ""
+      }`}
+      style={reveal(index)}
+      onMouseEnter={onEnter}
+      onFocus={onEnter}
+      onClick={onToggle}
+      aria-pressed={pinned}
+    >
       <div className={`sd-icon sd-tone-${tone}`}>
         <Icon size={20} />
       </div>
-      <div className="sd-min0">
+      <div className="sd-min0 sd-grow">
         <div className="sd-metric-label">{label}</div>
         <div className="sd-metric-value">
           <CountUp value={value} format={format} />
         </div>
         <div className="sd-metric-detail">{detail}</div>
       </div>
-    </div>
+      <ChevronDown size={17} className="sd-metric-caret" />
+    </button>
   );
 }
 
@@ -1216,16 +1549,28 @@ function QuickDashboardAction({
   title,
   value,
   tone,
+  hint,
+  onHint,
   onClick,
 }: {
   icon: ElementType;
   title: string;
   value: string;
   tone: Tone;
+  hint: string;
+  onHint: (hint: string | null) => void;
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="sd-quick">
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => onHint(hint)}
+      onMouseLeave={() => onHint(null)}
+      onFocus={() => onHint(hint)}
+      onBlur={() => onHint(null)}
+      className="sd-quick"
+    >
       <div className={`sd-icon sd-icon-sm sd-tone-${tone}`}>
         <Icon size={17} />
       </div>
@@ -1463,6 +1808,44 @@ const dashboardCss = `
 .sd-activity-item:hover{background:#F5F8FD}
 .sd-activity-icon{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--green-tint);color:var(--green)}
 .sd-activity-text{min-width:0;font-size:14px;line-height:1.45;font-weight:500;color:var(--navy);word-break:break-word}
+
+/* ---------- Hover preview / click to pin ---------- */
+@keyframes sd-swap{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sd-metric-zone{margin-bottom:20px}
+.sd-metric-zone .sd-metrics{margin-bottom:0}
+button.sd-metric{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.sd-metric:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.sd-metric.is-active{transform:translateY(-4px);border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.14),0 14px 28px rgba(15,47,95,.1)}
+.sd-metric.is-pinned{background:#FBFCFF}
+.sd-metric.is-pinned::after{content:"";position:absolute}
+.sd-metric-caret{flex:0 0 auto;align-self:center;color:var(--soft);transition:transform .3s var(--ease),color .2s ease}
+.sd-metric.is-active .sd-metric-caret{transform:rotate(180deg);color:var(--orange)}
+.sd-metric{position:relative}
+.sd-detail{display:grid;grid-template-rows:0fr;margin-top:0;transition:grid-template-rows .4s var(--ease),margin-top .4s var(--ease)}
+.sd-detail.is-open{grid-template-rows:1fr;margin-top:14px}
+.sd-detail-inner{min-height:0;overflow:hidden;padding:0 2px}
+.sd-detail-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,47,95,.08);animation:sd-swap .35s var(--ease) both}
+.sd-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.sd-detail-hint{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;font-weight:600}
+.sd-pinchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--orange-tint);color:var(--orange-2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,transform .2s var(--ease)}
+.sd-pinchip:hover{background:#FFE3CD;transform:translateY(-1px)}
+.sd-drows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sd-drow{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:inherit;animation:sd-swap .35s var(--ease) both}
+button.sd-drow{cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease)}
+button.sd-drow:hover{border-color:#9DBBEA;box-shadow:0 8px 18px rgba(15,47,95,.1);transform:translateX(4px)}
+button.sd-drow:hover .sd-arrow{transform:translateX(4px);color:var(--orange)}
+button.sd-drow:hover .sd-thumb img{transform:scale(1.12)}
+.sd-drow:nth-child(2){animation-delay:40ms}.sd-drow:nth-child(3){animation-delay:80ms}.sd-drow:nth-child(4){animation-delay:120ms}.sd-drow:nth-child(5){animation-delay:160ms}.sd-drow:nth-child(6){animation-delay:200ms}
+.sd-badge{flex:0 0 auto;padding:3px 9px;border-radius:6px;background:var(--green-tint);color:var(--green);font-size:11.5px;font-weight:600}
+.sd-badge-warn{background:var(--orange-tint);color:var(--orange-2)}
+.sd-pend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.sd-pend-box{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--orange-tint);color:var(--orange-2)}
+.sd-pend-box b{font-size:22px;color:var(--navy)}
+.sd-pend-box span{font-size:13px;color:var(--muted)}
+.sd-quick-hint{min-height:42px;display:flex;align-items:center;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;background:#F8FAFD;font-size:13px;color:var(--muted);animation:sd-swap .3s var(--ease) both;transition:background .2s ease,color .2s ease}
+.sd-quick-hint.is-on{background:var(--blue-tint);border-color:#CFE0FA;color:var(--navy)}
+@media (max-width:820px){.sd-drows,.sd-pend{grid-template-columns:minmax(0,1fr)}.sd-detail-hint{display:none}}
+@media (prefers-reduced-motion:reduce){.sd-detail{transition:none}.sd-detail-card,.sd-drow,.sd-quick-hint{animation:none!important}}
 
 /* ---------- Overview (fills Continue panel) ---------- */
 @keyframes sd-ring{from{stroke-dashoffset:226.2}}

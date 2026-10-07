@@ -22,6 +22,8 @@ import {
   X,
   AlertCircle,
   MousePointerClick,
+  Pin,
+  ChevronDown,
 } from "lucide-react";
 
 const API_URL =
@@ -98,6 +100,7 @@ type StudentCourse = {
 };
 
 type FilterKey = "ALL" | "ACTIVE" | "COMPLETED";
+type TileKey = "total" | "active" | "completed" | "lessons";
 
 function getToken() {
   if (typeof window === "undefined") {
@@ -165,7 +168,18 @@ export default function MyCoursesPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("ALL");
-  const [featuredId, setFeaturedId] = useState<number | null>(null);
+  const [hoverId, setHoverId] = useState<number | null>(null);
+  const [pinnedId, setPinnedId] = useState<number | null>(null);
+  const [hoverTile, setHoverTile] = useState<TileKey | null>(null);
+  const [pinnedTile, setPinnedTile] = useState<TileKey | null>(null);
+  const [lastTile, setLastTile] = useState<TileKey>("total");
+  const shownTile = hoverTile ?? pinnedTile;
+
+  useEffect(() => {
+    if (shownTile) {
+      setLastTile(shownTile);
+    }
+  }, [shownTile]);
 
   async function loadCourses(showRefresh = false) {
     const token = getToken();
@@ -380,10 +394,13 @@ export default function MyCoursesPage() {
     );
   }, [courses, progressMap]);
 
+  /* Hover = preview, click = pin. Falls back to the smart default. */
   const featured = useMemo(
     () =>
-      courses.find((item) => item.course.id === featuredId) ?? defaultFeatured,
-    [courses, featuredId, defaultFeatured]
+      courses.find((item) => item.course.id === hoverId) ??
+      courses.find((item) => item.course.id === pinnedId) ??
+      defaultFeatured,
+    [courses, hoverId, pinnedId, defaultFeatured]
   );
 
   const totalLessons = useMemo(
@@ -408,6 +425,24 @@ export default function MyCoursesPage() {
     setSearch("");
     setFilter("ALL");
   }
+
+  function toggleTile(key: TileKey) {
+    if (pinnedTile === key) {
+      setPinnedTile(null);
+      setFilter("ALL");
+      return;
+    }
+
+    setPinnedTile(key);
+    setFilter(key === "active" ? "ACTIVE" : key === "completed" ? "COMPLETED" : "ALL");
+  }
+
+  const tileProps = (key: TileKey) => ({
+    active: shownTile === key,
+    pinned: pinnedTile === key,
+    onEnter: () => setHoverTile(key),
+    onToggle: () => toggleTile(key),
+  });
 
   if (loading) {
     return (
@@ -465,6 +500,32 @@ export default function MyCoursesPage() {
   const featuredProgress = featured
     ? getCourseProgress(featured.course.id)
     : null;
+  const tileMeta: Record<TileKey, { icon: ComponentType<{ size?: number | string }>; title: string; subtitle: string }> = {
+    total: { icon: BookOpen, title: "All courses", subtitle: `${counts.total} available to you` },
+    active: { icon: PlayCircle, title: "Courses in progress", subtitle: `${counts.active} to continue` },
+    completed: { icon: CheckCircle2, title: "Completed courses", subtitle: `${counts.completed} finished` },
+    lessons: { icon: Clock3, title: "Lessons by course", subtitle: `${completedLessons} of ${totalLessons} lessons completed` },
+  };
+
+  const tileList = courses.filter((item) => {
+    const p = getCourseProgress(item.course.id);
+
+    if (lastTile === "active") return p.progressPercentage < 100;
+    if (lastTile === "completed") return p.progressPercentage === 100;
+    if (lastTile === "lessons") return p.totalLessons > 0;
+
+    return true;
+  });
+
+  const TileIcon = tileMeta[lastTile].icon;
+
+  const heroMode: "preview" | "pinned" | "auto" =
+    hoverId !== null && featured?.course.id === hoverId
+      ? "preview"
+      : pinnedId !== null && featured?.course.id === pinnedId
+      ? "pinned"
+      : "auto";
+
   const featuredCompleted = featuredProgress?.progressPercentage === 100;
   const featuredStarted = (featuredProgress?.startedLessons ?? 0) > 0;
   const featuredImage = featured ? getImageUrl(featured.course.imageUrl) : null;
@@ -488,42 +549,133 @@ export default function MyCoursesPage() {
             refreshing={refreshing}
           />
 
-          {/* Summary */}
-          <section className="mc-summary">
-            <SummaryCard
-              index={1}
-              icon={BookOpen}
-              label="My Courses"
-              value={counts.total}
-              helper="Courses available to you"
-              tone="blue"
-            />
-            <SummaryCard
-              index={2}
-              icon={PlayCircle}
-              label="In Progress"
-              value={counts.active}
-              helper="Continue learning"
-              tone="orange"
-            />
-            <SummaryCard
-              index={3}
-              icon={CheckCircle2}
-              label="Completed"
-              value={counts.completed}
-              helper="Courses finished"
-              tone="green"
-            />
-            <SummaryCard
-              index={4}
-              icon={Clock3}
-              label="Lessons"
-              value={completedLessons}
-              suffix={`/${totalLessons}`}
-              helper="Completed lessons"
-              tone="navy"
-            />
-          </section>
+          {/* Summary + detail (hover to preview, click to pin) */}
+          <div
+            className="mc-tile-zone"
+            onMouseLeave={() => {
+              setHoverTile(null);
+              setHoverId(null);
+            }}
+          >
+            <section className="mc-summary">
+              <SummaryCard
+                index={1}
+                icon={BookOpen}
+                label="My Courses"
+                value={counts.total}
+                helper="Courses available to you"
+                tone="blue"
+                {...tileProps("total")}
+              />
+              <SummaryCard
+                index={2}
+                icon={PlayCircle}
+                label="In Progress"
+                value={counts.active}
+                helper="Continue learning"
+                tone="orange"
+                {...tileProps("active")}
+              />
+              <SummaryCard
+                index={3}
+                icon={CheckCircle2}
+                label="Completed"
+                value={counts.completed}
+                helper="Courses finished"
+                tone="green"
+                {...tileProps("completed")}
+              />
+              <SummaryCard
+                index={4}
+                icon={Clock3}
+                label="Lessons"
+                value={completedLessons}
+                suffix={`/${totalLessons}`}
+                helper="Completed lessons"
+                tone="navy"
+                {...tileProps("lessons")}
+              />
+            </section>
+
+            <div className={`mc-detail${shownTile ? " is-open" : ""}`}>
+              <div className="mc-detail-inner">
+                <div className="mc-detail-card" key={lastTile}>
+                  <div className="mc-detail-head">
+                    <div className="mc-detail-title">
+                      <div className="mc-icon mc-tone-blue">
+                        <TileIcon size={19} />
+                      </div>
+                      <div className="mc-min0">
+                        <h3>{tileMeta[lastTile].title}</h3>
+                        <p>{tileMeta[lastTile].subtitle}</p>
+                      </div>
+                    </div>
+                    {pinnedTile === lastTile ? (
+                      <button
+                        type="button"
+                        className="mc-pin-chip mc-pin-chip-dark"
+                        onClick={() => {
+                          setPinnedTile(null);
+                          setFilter("ALL");
+                        }}
+                        aria-label="Close details"
+                      >
+                        <Pin size={11} /> Pinned <X size={12} />
+                      </button>
+                    ) : (
+                      <span className="mc-detail-hint">Click the card to keep this open</span>
+                    )}
+                  </div>
+
+                  {tileList.length === 0 ? (
+                    <p className="mc-detail-empty">Nothing here yet.</p>
+                  ) : (
+                    <div className="mc-trows">
+                      {tileList.slice(0, 8).map((item) => {
+                        const p = getCourseProgress(item.course.id);
+                        const img = getImageUrl(item.course.imageUrl);
+
+                        return (
+                          <button
+                            key={item.course.id}
+                            type="button"
+                            className="mc-trow"
+                            onMouseEnter={() => setHoverId(item.course.id)}
+                            onFocus={() => setHoverId(item.course.id)}
+                            onClick={() =>
+                              router.push(`/dashboard/student/my-courses/${item.course.id}`)
+                            }
+                          >
+                            <span className="mc-trow-thumb">
+                              {img ? (
+                                <img src={img} alt={item.course.title} />
+                              ) : (
+                                <BookOpen size={16} />
+                              )}
+                            </span>
+                            <span className="mc-min0 mc-grow">
+                              <span className="mc-trow-title">{item.course.title}</span>
+                              <span className="mc-trow-sub">
+                                {p.completedLessons}/{p.totalLessons} lessons
+                              </span>
+                            </span>
+                            <b>{Math.round(p.progressPercentage)}%</b>
+                            <ArrowRight size={15} className="mc-trow-arrow" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {tileList.length > 8 ? (
+                    <p className="mc-detail-more">
+                      +{tileList.length - 8} more. Use the filters below to see them all.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Spotlight: follows the hovered / clicked course */}
           {featured && featuredProgress ? (
@@ -550,6 +702,18 @@ export default function MyCoursesPage() {
                         <Sparkles size={14} />
                       )}
                       {featuredLabel}
+                      {heroMode === "pinned" ? (
+                        <button
+                          type="button"
+                          className="mc-pin-chip"
+                          onClick={() => setPinnedId(null)}
+                          aria-label="Unpin course"
+                        >
+                          <Pin size={11} /> Pinned <X size={12} />
+                        </button>
+                      ) : heroMode === "preview" ? (
+                        <span className="mc-pin-chip is-soft">Previewing</span>
+                      ) : null}
                     </div>
                     <h2>{featured.course.title}</h2>
                     <p>
@@ -617,7 +781,7 @@ export default function MyCoursesPage() {
               </div>
               <div className="mc-hero-hint">
                 <MousePointerClick size={13} />
-                Hover or tap any course below to preview it here
+                Hover a course to preview it here. Click a course to pin it.
               </div>
             </section>
           ) : null}
@@ -696,7 +860,11 @@ export default function MyCoursesPage() {
               ) : null}
             </div>
           ) : (
-            <section className="mc-grid" key={`${filter}-${search}`}>
+            <section
+              className="mc-grid"
+              key={`${filter}-${search}`}
+              onMouseLeave={() => setHoverId(null)}
+            >
               {filteredCourses.map((item, index) => (
                 <CourseCard
                   key={item.course.id}
@@ -706,8 +874,14 @@ export default function MyCoursesPage() {
                   enrollmentStatus={item.enrollmentStatus}
                   packageName={item.packageName}
                   enrolledAt={item.enrolledAt}
-                  selected={featured?.course.id === item.course.id}
-                  onPreview={() => setFeaturedId(item.course.id)}
+                  previewing={hoverId === item.course.id}
+                  pinned={pinnedId === item.course.id}
+                  onPreview={() => setHoverId(item.course.id)}
+                  onTogglePin={() =>
+                    setPinnedId((prev) =>
+                      prev === item.course.id ? null : item.course.id
+                    )
+                  }
                   onOpen={() =>
                     router.push(`/dashboard/student/my-courses/${item.course.id}`)
                   }
@@ -805,6 +979,10 @@ function SummaryCard({
   suffix,
   helper,
   tone,
+  active,
+  pinned,
+  onEnter,
+  onToggle,
 }: {
   index: number;
   icon: ComponentType<{ size?: number | string }>;
@@ -813,20 +991,33 @@ function SummaryCard({
   suffix?: string;
   helper: string;
   tone: "blue" | "orange" | "green" | "navy";
+  active: boolean;
+  pinned: boolean;
+  onEnter: () => void;
+  onToggle: () => void;
 }) {
   return (
-    <div className="mc-tile mc-reveal" style={reveal(index)}>
+    <button
+      type="button"
+      className={`mc-tile mc-reveal${active ? " is-active" : ""}${pinned ? " is-pinned" : ""}`}
+      style={reveal(index)}
+      onMouseEnter={onEnter}
+      onFocus={onEnter}
+      onClick={onToggle}
+      aria-pressed={pinned}
+    >
       <div className={`mc-icon mc-tone-${tone}`}>
         <Icon size={20} />
       </div>
-      <div className="mc-min0">
+      <div className="mc-min0 mc-grow">
         <span className="mc-tile-label">{label}</span>
         <strong className="mc-tile-value">
           <CountUp value={value} suffix={suffix} />
         </strong>
         <span className="mc-tile-helper">{helper}</span>
       </div>
-    </div>
+      <ChevronDown size={17} className="mc-tile-caret" />
+    </button>
   );
 }
 
@@ -862,8 +1053,10 @@ function CourseCard({
   enrollmentStatus,
   packageName,
   enrolledAt,
-  selected,
+  previewing,
+  pinned,
   onPreview,
+  onTogglePin,
   onOpen,
 }: {
   index: number;
@@ -872,8 +1065,10 @@ function CourseCard({
   enrollmentStatus: string;
   packageName: string | null;
   enrolledAt: string | null;
-  selected: boolean;
+  previewing: boolean;
+  pinned: boolean;
   onPreview: () => void;
+  onTogglePin: () => void;
   onOpen: () => void;
 }) {
   const completed = progress.progressPercentage === 100;
@@ -885,11 +1080,11 @@ function CourseCard({
 
   return (
     <article
-      className={`mc-card mc-reveal${selected ? " is-selected" : ""}`}
+      className={`mc-card mc-reveal${previewing ? " is-previewing" : ""}${pinned ? " is-pinned" : ""}`}
       style={reveal(Math.min(index, 8) + 7)}
       onMouseEnter={onPreview}
       onFocus={onPreview}
-      onClick={onPreview}
+      onClick={onTogglePin}
     >
       <div className="mc-cover">
         {image ? (
@@ -899,6 +1094,18 @@ function CourseCard({
             <BookOpen size={30} />
           </div>
         )}
+        <button
+          type="button"
+          className={`mc-pin-btn${pinned ? " is-on" : ""}`}
+          aria-pressed={pinned}
+          aria-label={pinned ? "Unpin course" : "Pin course to the top"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onTogglePin();
+          }}
+        >
+          <Pin size={14} />
+        </button>
         <span className={`mc-status ${statusClass}`}>
           {completed ? <CheckCircle2 size={12} /> : null}
           {statusText}
@@ -955,7 +1162,14 @@ function CourseCard({
             <span>Enrolled {formatDate(enrolledAt)}</span>
             {enrollmentStatus ? <span>{formatStatus(enrollmentStatus)}</span> : null}
           </div>
-          <button type="button" onClick={onOpen} className="mc-btn mc-btn-primary mc-btn-sm">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen();
+            }}
+            className="mc-btn mc-btn-primary mc-btn-sm"
+          >
             {completed ? "Review Course" : started ? "Continue" : "Start Learning"}
             <ArrowRight size={14} />
           </button>
@@ -1075,9 +1289,10 @@ const myCoursesCss = `
 
 /* Course grid & cards */
 .mc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.mc-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);cursor:default;transition:transform .3s var(--ease),box-shadow .3s ease,border-color .3s ease}
+.mc-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);cursor:pointer;transition:transform .3s var(--ease),box-shadow .3s ease,border-color .3s ease}
 .mc-card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(15,47,95,.13);border-color:#9DBBEA}
-.mc-card.is-selected{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.16),0 12px 26px rgba(15,47,95,.1)}
+.mc-card.is-previewing{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.16),0 12px 26px rgba(15,47,95,.1)}
+.mc-card.is-pinned{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,0,.2),0 12px 26px rgba(15,47,95,.1)}
 .mc-cover{position:relative;height:150px;overflow:hidden;background:linear-gradient(135deg,var(--blue-tint),#F4F8FF)}
 .mc-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease)}
 .mc-card:hover .mc-cover img{transform:scale(1.08)}
@@ -1101,6 +1316,53 @@ const myCoursesCss = `
 .mc-card-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--line-2)}
 .mc-card-body .mc-progress{margin-bottom:16px}
 .mc-enrolled{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;color:var(--soft)}
+
+/* Hover preview / click to pin */
+@keyframes mc-swap2{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+button.mc-tile{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;position:relative}
+button.mc-tile:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.mc-grow{flex:1}
+.mc-tile.is-active{transform:translateY(-4px);border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.14),0 14px 28px rgba(15,47,95,.1)}
+.mc-tile-caret{flex:0 0 auto;align-self:center;color:var(--soft);transition:transform .3s var(--ease),color .2s ease}
+.mc-tile.is-active .mc-tile-caret{transform:rotate(180deg);color:var(--orange)}
+.mc-tile-zone{margin-bottom:20px}
+.mc-tile-zone .mc-summary{margin-bottom:0}
+.mc-detail{display:grid;grid-template-rows:0fr;margin-top:0;transition:grid-template-rows .4s var(--ease),margin-top .4s var(--ease)}
+.mc-detail.is-open{grid-template-rows:1fr;margin-top:14px}
+.mc-detail-inner{min-height:0;overflow:hidden;padding:0 2px}
+.mc-detail-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,47,95,.08);animation:mc-swap2 .35s var(--ease) both}
+.mc-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.mc-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
+.mc-detail-title h3{margin:0;font-size:17px;font-weight:700;color:var(--navy)}
+.mc-detail-title p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.mc-detail-hint{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;font-weight:600}
+.mc-detail-empty,.mc-detail-more{margin:0;font-size:13px;color:var(--muted)}
+.mc-detail-more{margin-top:12px}
+.mc-trows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mc-trow{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;animation:mc-swap2 .35s var(--ease) both;transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease)}
+.mc-trow:nth-child(2){animation-delay:40ms}.mc-trow:nth-child(3){animation-delay:80ms}.mc-trow:nth-child(4){animation-delay:120ms}.mc-trow:nth-child(5){animation-delay:160ms}.mc-trow:nth-child(6){animation-delay:200ms}
+.mc-trow:hover{border-color:#9DBBEA;box-shadow:0 8px 18px rgba(15,47,95,.1);transform:translateX(4px)}
+.mc-trow-thumb{width:38px;height:38px;flex:0 0 38px;overflow:hidden;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--blue-tint);color:var(--blue)}
+.mc-trow-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
+.mc-trow:hover .mc-trow-thumb img{transform:scale(1.12)}
+.mc-trow-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--navy)}
+.mc-trow-sub{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+.mc-trow b{font-size:13px;color:var(--blue)}
+.mc-trow-arrow{flex:0 0 auto;color:#A3B0C4;transition:transform .25s var(--ease),color .2s ease}
+.mc-trow:hover .mc-trow-arrow{transform:translateX(4px);color:var(--orange)}
+.mc-pin-chip{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 9px;border:0;border-radius:999px;background:var(--orange);color:#fff;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;animation:mc-swap2 .3s var(--ease) both;transition:background .2s ease}
+.mc-pin-chip:hover{background:var(--orange-2)}
+.mc-pin-chip.is-soft{background:rgba(255,255,255,.18);cursor:default}
+.mc-pin-chip-dark{margin-left:0;flex:0 0 auto;height:30px;padding:0 10px;background:var(--orange-tint);color:var(--orange-2)}
+.mc-pin-chip-dark:hover{background:#FFE3CD}
+.mc-pin-btn{position:absolute;top:12px;left:12px;z-index:2;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:var(--navy);box-shadow:0 2px 8px rgba(15,47,95,.18);cursor:pointer;opacity:0;transform:scale(.85);transition:opacity .2s ease,transform .25s var(--ease),background .2s ease,color .2s ease}
+.mc-card:hover .mc-pin-btn,.mc-pin-btn:focus-visible,.mc-pin-btn.is-on{opacity:1;transform:scale(1)}
+.mc-pin-btn.is-on{background:var(--orange);color:#fff}
+.mc-pin-btn:hover{background:var(--blue-tint)}
+.mc-pin-btn.is-on:hover{background:var(--orange-2)}
+@media (hover:none){.mc-pin-btn{opacity:1;transform:none}}
+@media (max-width:820px){.mc-trows{grid-template-columns:minmax(0,1fr)}.mc-detail-hint{display:none}}
+@media (prefers-reduced-motion:reduce){.mc-detail{transition:none}.mc-detail-card,.mc-trow,.mc-pin-chip{animation:none!important}.mc-pin-btn{transition:none}}
 
 /* Empty / error / note */
 .mc-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:28px;border:1px dashed #CBD6E6;border-radius:16px;background:#FAFBFE;text-align:center;animation:mc-rise 420ms var(--ease) both}

@@ -25,6 +25,8 @@ import {
   PlayCircle,
   RefreshCw,
   X,
+  Video,
+  Image as ImageIcon,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -105,6 +107,8 @@ type CourseProgress = {
   lessons: LessonProgress[];
 };
 
+type StatKey = "total" | "completed" | "started" | "remaining";
+
 function getStudentStorageId(token: string | null) {
   if (!token) {
     return "student";
@@ -154,6 +158,18 @@ export default function StudentCoursePage() {
   );
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [shakeId, setShakeId] = useState<number | null>(null);
+  const [hoverLesson, setHoverLesson] = useState<number | null>(null);
+  const [hoverStat, setHoverStat] = useState<StatKey | null>(null);
+  const [pinnedStat, setPinnedStat] = useState<StatKey | null>(null);
+  const [lastStat, setLastStat] = useState<StatKey>("total");
+  const mainRef = useRef<HTMLElement | null>(null);
+  const shownStat = hoverStat ?? pinnedStat;
+
+  useEffect(() => {
+    if (shownStat) {
+      setLastStat(shownStat);
+    }
+  }, [shownStat]);
 
   const videoMaxWatchedTimeRef = useRef(0);
   const videoLastSavedTimeRef = useRef(0);
@@ -805,6 +821,37 @@ export default function StudentCoursePage() {
   const lessonCompleted = currentLessonProgress?.status === "COMPLETED";
   const videoLocked = Boolean(selectedLesson?.videoUrl) && !videoWatchedOnce;
 
+  const statMeta: Record<StatKey, { title: string; subtitle: string }> = {
+    total: { title: "All lessons", subtitle: `${progress?.totalLessons ?? allLessons.length} lessons in this course` },
+    completed: { title: "Completed lessons", subtitle: `${progress?.completedLessons ?? 0} finished` },
+    started: { title: "Started lessons", subtitle: `${progress?.startedLessons ?? 0} opened so far` },
+    remaining: { title: "Remaining lessons", subtitle: `${progress?.remainingLessons ?? 0} still to go` },
+  };
+
+  const statLessons = allLessons.filter((lesson) => {
+    const lp = getLessonProgress(lesson.id);
+    const done = lp?.status === "COMPLETED";
+
+    if (lastStat === "completed") return done;
+    if (lastStat === "started") return Boolean(lp?.startedAt) || lp?.status === "IN_PROGRESS" || done;
+    if (lastStat === "remaining") return !done;
+
+    return true;
+  });
+
+  const togglePinStat = (key: StatKey) =>
+    setPinnedStat((prev) => (prev === key ? null : key));
+
+  const goToLesson = async (lesson: Lesson) => {
+    const unlocked = isLessonUnlocked(lesson.id);
+
+    await handleSelectLesson(lesson);
+
+    if (unlocked) {
+      mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <>
       <main className="lp-page">
@@ -993,12 +1040,17 @@ export default function StudentCoursePage() {
                                   );
                                   const number =
                                     globalIndex >= 0 ? globalIndex + 1 : lessonIndex + 1;
+                                  const expanded = hoverLesson === lesson.id || isSelected;
 
                                   return (
                                     <button
                                       key={lesson.id}
                                       type="button"
                                       onClick={() => handleSelectLesson(lesson)}
+                                      onMouseEnter={() => setHoverLesson(lesson.id)}
+                                      onMouseLeave={() => setHoverLesson(null)}
+                                      onFocus={() => setHoverLesson(lesson.id)}
+                                      onBlur={() => setHoverLesson(null)}
                                       aria-disabled={isLocked}
                                       aria-current={isSelected ? "true" : undefined}
                                       title={
@@ -1028,11 +1080,34 @@ export default function StudentCoursePage() {
                                         <span className="lp-lesson-title">
                                           {lesson.title}
                                         </span>
-                                        {lesson.description ? (
-                                          <span className="lp-lesson-desc">
-                                            {lesson.description}
+                                        <span className={`lp-lesson-more${expanded ? " is-open" : ""}`}>
+                                          <span className="lp-lesson-more-inner">
+                                            {lesson.description ? (
+                                              <span className="lp-lesson-desc">
+                                                {lesson.description}
+                                              </span>
+                                            ) : null}
+                                            <span className="lp-lesson-tags">
+                                              {lesson.videoUrl ? (
+                                                <span><Video size={12} /> Video</span>
+                                              ) : null}
+                                              {lesson.content ? (
+                                                <span><BookOpen size={12} /> Reading</span>
+                                              ) : null}
+                                              {lesson.documentUrl ? (
+                                                <span><FileText size={12} /> Document</span>
+                                              ) : null}
+                                              {lesson.imageUrl ? (
+                                                <span><ImageIcon size={12} /> Image</span>
+                                              ) : null}
+                                              {isLocked ? (
+                                                <span className="is-lock">
+                                                  <Lock size={12} /> Complete the previous lesson to unlock
+                                                </span>
+                                              ) : null}
+                                            </span>
                                           </span>
-                                        ) : null}
+                                        </span>
                                         <span
                                           className={`lp-lesson-state ${
                                             isCompleted
@@ -1067,7 +1142,7 @@ export default function StudentCoursePage() {
             </aside>
 
             {/* RIGHT - LESSON VIEWER */}
-            <section className="lp-main lp-reveal" style={reveal(3)}>
+            <section className="lp-main lp-reveal" style={reveal(3)} ref={mainRef}>
               {!selectedLesson ? (
                 <div className="lp-select">
                   <div className="lp-select-icon">
@@ -1334,13 +1409,88 @@ export default function StudentCoursePage() {
             </section>
           </div>
 
-          {/* PROGRESS SUMMARY */}
+          {/* PROGRESS SUMMARY (hover to preview, click to pin) */}
           {progress ? (
-            <div className="lp-stats">
-              <StatTile index={4} label="Total Lessons" value={progress.totalLessons} tone="navy" />
-              <StatTile index={5} label="Completed" value={progress.completedLessons} tone="green" />
-              <StatTile index={6} label="Started" value={progress.startedLessons} tone="blue" />
-              <StatTile index={7} label="Remaining" value={progress.remainingLessons} tone="orange" />
+            <div
+              className="lp-stat-zone"
+              onMouseLeave={() => setHoverStat(null)}
+            >
+              <div className="lp-stats">
+                <StatTile index={4} label="Total Lessons" value={progress.totalLessons} tone="navy"
+                  active={shownStat === "total"} pinned={pinnedStat === "total"}
+                  onEnter={() => setHoverStat("total")} onToggle={() => togglePinStat("total")} />
+                <StatTile index={5} label="Completed" value={progress.completedLessons} tone="green"
+                  active={shownStat === "completed"} pinned={pinnedStat === "completed"}
+                  onEnter={() => setHoverStat("completed")} onToggle={() => togglePinStat("completed")} />
+                <StatTile index={6} label="Started" value={progress.startedLessons} tone="blue"
+                  active={shownStat === "started"} pinned={pinnedStat === "started"}
+                  onEnter={() => setHoverStat("started")} onToggle={() => togglePinStat("started")} />
+                <StatTile index={7} label="Remaining" value={progress.remainingLessons} tone="orange"
+                  active={shownStat === "remaining"} pinned={pinnedStat === "remaining"}
+                  onEnter={() => setHoverStat("remaining")} onToggle={() => togglePinStat("remaining")} />
+              </div>
+
+              <div className={`lp-detail${shownStat ? " is-open" : ""}`}>
+                <div className="lp-detail-inner">
+                  <div className="lp-detail-card" key={lastStat}>
+                    <div className="lp-detail-head">
+                      <div className="lp-min0">
+                        <h3>{statMeta[lastStat].title}</h3>
+                        <p>{statMeta[lastStat].subtitle}</p>
+                      </div>
+                      {pinnedStat === lastStat ? (
+                        <button
+                          type="button"
+                          className="lp-pinchip"
+                          onClick={() => setPinnedStat(null)}
+                          aria-label="Close details"
+                        >
+                          Pinned <X size={13} />
+                        </button>
+                      ) : (
+                        <span className="lp-detail-hint">Click the card to keep this open</span>
+                      )}
+                    </div>
+
+                    {statLessons.length === 0 ? (
+                      <p className="lp-detail-empty">No lessons in this group yet.</p>
+                    ) : (
+                      <div className="lp-srows">
+                        {statLessons.map((lesson) => {
+                          const lp = getLessonProgress(lesson.id);
+                          const done = lp?.status === "COMPLETED";
+                          const locked = !isLessonUnlocked(lesson.id) && !done;
+                          const number = allLessons.findIndex((l) => l.id === lesson.id) + 1;
+
+                          return (
+                            <button
+                              key={lesson.id}
+                              type="button"
+                              className={`lp-srow${locked ? " is-locked" : ""}`}
+                              onClick={() => goToLesson(lesson)}
+                            >
+                              <span className={`lp-srow-num${done ? " is-done" : ""}`}>
+                                {done ? <CheckCircle2 size={15} /> : locked ? <Lock size={13} /> : number}
+                              </span>
+                              <span className="lp-min0 lp-grow">
+                                <span className="lp-srow-title">{lesson.title}</span>
+                                <span
+                                  className={`lp-lesson-state ${
+                                    done ? "is-done" : locked ? "is-locked" : lp?.status === "IN_PROGRESS" ? "is-active" : "is-new"
+                                  }`}
+                                >
+                                  {done ? "Completed" : locked ? "Locked" : lp?.status === "IN_PROGRESS" ? "In Progress" : "Available"}
+                                </span>
+                              </span>
+                              <ArrowRight size={15} className="lp-srow-arrow" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
         </div>
@@ -1392,19 +1542,38 @@ function StatTile({
   label,
   value,
   tone,
+  active,
+  pinned,
+  onEnter,
+  onToggle,
 }: {
   index: number;
   label: string;
   value: number;
   tone: "navy" | "green" | "blue" | "orange";
+  active: boolean;
+  pinned: boolean;
+  onEnter: () => void;
+  onToggle: () => void;
 }) {
   return (
-    <div className={`lp-stat lp-stat-${tone} lp-reveal`} style={reveal(index)}>
-      <p>{label}</p>
-      <strong>
-        <CountUp value={value} />
-      </strong>
-    </div>
+    <button
+      type="button"
+      className={`lp-stat lp-stat-${tone} lp-reveal${active ? " is-active" : ""}${pinned ? " is-pinned" : ""}`}
+      style={reveal(index)}
+      onMouseEnter={onEnter}
+      onFocus={onEnter}
+      onClick={onToggle}
+      aria-pressed={pinned}
+    >
+      <span className="lp-stat-text">
+        <span className="lp-stat-label">{label}</span>
+        <strong>
+          <CountUp value={value} />
+        </strong>
+      </span>
+      <ChevronDown size={17} className="lp-stat-caret" />
+    </button>
   );
 }
 
@@ -1539,7 +1708,7 @@ const lessonCss = `
 .lp-lesson.is-selected .lp-lesson-icon{background:var(--blue);color:#fff}
 .lp-lesson-title{display:block;font-size:14px;font-weight:600;line-height:1.35;color:var(--navy)}
 .lp-lesson.is-selected .lp-lesson-title{color:var(--blue)}
-.lp-lesson-desc{display:-webkit-box;margin-top:3px;font-size:12.5px;line-height:1.45;color:var(--muted);-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
 .lp-lesson-state{display:inline-block;margin-top:6px;font-size:12px;font-weight:600}
 .lp-lesson-state.is-done{color:var(--green)}
 .lp-lesson-state.is-locked{color:var(--soft)}
@@ -1604,6 +1773,50 @@ const lessonCss = `
 .lp-done-next{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #BFE6CD}
 .lp-done-label{margin:0;font-size:12.5px;font-weight:600;color:var(--green)}
 .lp-done-name{display:flex;align-items:center;gap:8px;margin:3px 0 0;font-size:15px;font-weight:600;color:var(--navy)}
+
+/* Lesson hover expand */
+.lp-lesson-more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease)}
+.lp-lesson-more.is-open{grid-template-rows:1fr}
+.lp-lesson-more-inner{display:block;min-height:0;overflow:hidden}
+.lp-lesson-desc{display:block;margin-top:4px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.lp-lesson-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lp-lesson-tags span{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:11.5px;font-weight:600;color:var(--blue)}
+.lp-lesson-tags .is-lock{color:var(--orange-2);background:var(--orange-tint);border-color:#FFD9BD}
+
+/* Stats: hover to preview, click to pin */
+@keyframes lp-swap{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.lp-stat-zone{margin-top:20px}
+.lp-stat-zone .lp-stats{margin-top:0}
+button.lp-stat{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.lp-stat:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.lp-stat-text{display:block}
+.lp-stat-label{display:block;font-size:13px;color:var(--muted)}
+.lp-stat.is-active{transform:translateY(-4px);border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.14),0 14px 28px rgba(15,47,95,.1)}
+.lp-stat-caret{flex:0 0 auto;color:var(--soft);transition:transform .3s var(--ease),color .2s ease}
+.lp-stat.is-active .lp-stat-caret{transform:rotate(180deg);color:var(--orange)}
+.lp-detail{display:grid;grid-template-rows:0fr;margin-top:0;transition:grid-template-rows .4s var(--ease),margin-top .4s var(--ease)}
+.lp-detail.is-open{grid-template-rows:1fr;margin-top:14px}
+.lp-detail-inner{min-height:0;overflow:hidden;padding:0 2px}
+.lp-detail-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,47,95,.08);animation:lp-swap .35s var(--ease) both}
+.lp-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.lp-detail-head h3{margin:0;font-size:17px;font-weight:700;color:var(--navy)}
+.lp-detail-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.lp-detail-hint{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;font-weight:600}
+.lp-pinchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--orange-tint);color:var(--orange-2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,transform .2s var(--ease)}
+.lp-pinchip:hover{background:#FFE3CD;transform:translateY(-1px)}
+.lp-detail-empty{margin:0;font-size:13px;color:var(--muted)}
+.lp-srows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lp-srow{display:flex;align-items:center;gap:12px;width:100%;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;animation:lp-swap .35s var(--ease) both;transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease)}
+.lp-srow:nth-child(2){animation-delay:40ms}.lp-srow:nth-child(3){animation-delay:80ms}.lp-srow:nth-child(4){animation-delay:120ms}.lp-srow:nth-child(5){animation-delay:160ms}.lp-srow:nth-child(6){animation-delay:200ms}
+.lp-srow:hover:not(.is-locked){border-color:#9DBBEA;box-shadow:0 8px 18px rgba(15,47,95,.1);transform:translateX(4px)}
+.lp-srow.is-locked{opacity:.65}
+.lp-srow-num{width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#EDF1F7;color:var(--muted);font-size:12.5px;font-weight:700}
+.lp-srow-num.is-done{background:var(--green-tint);color:var(--green)}
+.lp-srow-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--navy)}
+.lp-srow-arrow{flex:0 0 auto;color:#A3B0C4;transition:transform .25s var(--ease),color .2s ease}
+.lp-srow:hover:not(.is-locked) .lp-srow-arrow{transform:translateX(4px);color:var(--orange)}
+@media (max-width:820px){.lp-srows{grid-template-columns:minmax(0,1fr)}.lp-detail-hint{display:none}}
+@media (prefers-reduced-motion:reduce){.lp-detail,.lp-lesson-more{transition:none}.lp-detail-card,.lp-srow{animation:none!important}}
 
 /* Stats */
 .lp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:20px}
