@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type ElementType,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ import {
   GraduationCap,
   RefreshCw,
   Sparkles,
+  UserCircle,
 } from "lucide-react";
 
 const API_URL =
@@ -352,6 +354,11 @@ function clampPercent(value: number | undefined): number {
   return Math.min(Math.max(value ?? 0, 0), 100);
 }
 
+/* Staggered entrance helper: sets --i used by .sd-reveal */
+function reveal(index: number): CSSProperties {
+  return { ["--i" as string]: index } as CSSProperties;
+}
+
 export default function StudentDashboardPage() {
   const router = useRouter();
 
@@ -571,14 +578,15 @@ export default function StudentDashboardPage() {
   const pendingAssignments = dashboard.assignments.length;
   const pendingQuizzes = dashboard.quizzes.length;
   const pendingTotal = pendingAssignments + pendingQuizzes;
-  const pendingCourseCount = Math.max(
-  studentCourses.length - completedCourseCount,
-  0
-);
 
   const completedAll =
     studentCourses.length > 0 &&
     completedCourseCount === studentCourses.length;
+
+  const completionPercent =
+    studentCourses.length > 0
+      ? (completedCourseCount / studentCourses.length) * 100
+      : 0;
 
   const incompleteProgress = incompleteCourse
     ? progressMap[incompleteCourse.course.id]
@@ -587,12 +595,23 @@ export default function StudentDashboardPage() {
     ? getImageUrl(incompleteCourse.course.imageUrl)
     : null;
 
+  const overallLessonPercent =
+    totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+  const otherCourses = studentCourses
+    .filter(
+      (item) =>
+        item.course.id !== incompleteCourse?.course.id &&
+        (progressMap[item.course.id]?.progressPercentage ?? 0) < 100
+    )
+    .slice(0, 3);
+
   return (
     <>
       <main className="sd-page">
         <div className="sd-container">
           {/* HERO */}
-          <section className="sd-hero">
+          <section className="sd-hero sd-reveal" style={reveal(0)}>
             <div className="sd-hero-main">
               <div className="sd-logo-chip">
                 <div className="sd-logo-crop">
@@ -608,61 +627,58 @@ export default function StudentDashboardPage() {
                   />
                 </div>
               </div>
+
               <div className="sd-eyebrow">
                 <GraduationCap size={16} />
                 Student Portal
               </div>
-              <h1>Welcome back, {dashboard.student.name} 👋</h1>
+              <h1>
+                Welcome back, {dashboard.student.name}{" "}
+                <span className="sd-wave" aria-hidden="true">
+                  👋
+                </span>
+              </h1>
               <p>
                 Continue your learning, check what needs your attention, and
                 keep moving toward your course goals.
               </p>
-              <div className="sd-hero-pairs">
-                <InfoPair label="Student ID" value={dashboard.student.studentId} />
-                <InfoPair
-                  label="Account"
-                  value={dashboard.student.isActive ? "Active" : "Inactive"}
-                />
-                <InfoPair label="Courses" value={String(studentCourses.length)} />
+
+              <div className="sd-hero-pills">
+                <span className="sd-pill">
+                  <span className="sd-pill-label">Student ID</span>
+                  <strong>{dashboard.student.studentId}</strong>
+                </span>
+                <span
+                  className={`sd-pill ${
+                    dashboard.student.isActive ? "sd-pill-on" : ""
+                  }`}
+                >
+                  <span className="sd-dot" />
+                  <strong>
+                    {dashboard.student.isActive ? "Active" : "Inactive"}
+                  </strong>
+                </span>
               </div>
             </div>
 
-            <div className="sd-hero-side">
-              <div className="sd-hero-card">
-                <div className="sd-hero-user">
-                  <div className="sd-avatar sd-avatar-light">{initials}</div>
-                  <div className="sd-min0">
-                    <div className="sd-hero-name">{dashboard.student.name}</div>
-                    <div className="sd-hero-email">{dashboard.student.email}</div>
-                  </div>
-                </div>
-                <div className="sd-hero-mini">
-                  <HeroMiniStat
-                    label="Completed"
-                    value={String(completedCourseCount)}
-                  />
-                  <HeroMiniStat label="Pending" value={String(pendingCourseCount)} />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => fetchDashboardData(true)}
-                disabled={refreshing}
-                className="sd-btn sd-btn-ghost-light"
-              >
-                <RefreshCw
-                  size={15}
-                  className={refreshing ? "sd-spin" : undefined}
-                />
-                {refreshing ? "Refreshing..." : "Refresh Dashboard"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => fetchDashboardData(true)}
+              disabled={refreshing}
+              className="sd-btn sd-btn-ghost-light sd-refresh"
+            >
+              <RefreshCw
+                size={15}
+                className={refreshing ? "sd-spin" : "sd-refresh-icon"}
+              />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
           </section>
 
           {/* METRICS */}
-          <section className="sd-metrics sd-stagger">
+          <section className="sd-metrics">
             <DashboardMetric
+              index={1}
               icon={BookOpen}
               label="Enrolled Courses"
               value={dashboard.stats.enrolledCourses}
@@ -672,6 +688,7 @@ export default function StudentDashboardPage() {
               tone="blue"
             />
             <DashboardMetric
+              index={2}
               icon={GraduationCap}
               label="Active Enrollments"
               value={dashboard.stats.activeEnrollments}
@@ -679,6 +696,7 @@ export default function StudentDashboardPage() {
               tone="green"
             />
             <DashboardMetric
+              index={3}
               icon={ClipboardList}
               label="Pending Work"
               value={pendingTotal}
@@ -686,9 +704,11 @@ export default function StudentDashboardPage() {
               tone="orange"
             />
             <DashboardMetric
+              index={4}
               icon={CreditCard}
               label="Total Paid"
-              value={formatCurrency(dashboard.stats.totalPaid)}
+              value={dashboard.stats.totalPaid}
+              format={(n) => formatCurrency(n)}
               detail={`${dashboard.stats.successfulPayments} successful payment${
                 dashboard.stats.successfulPayments === 1 ? "" : "s"
               }`}
@@ -698,7 +718,7 @@ export default function StudentDashboardPage() {
 
           {/* CONTINUE + QUICK ACTIONS */}
           <section className="sd-grid sd-grid-a">
-            <div className="sd-panel">
+            <div className="sd-panel sd-reveal" style={reveal(5)}>
               <SectionHeader
                 icon={completedAll ? Award : Sparkles}
                 title={completedAll ? "Learning complete" : "Continue Learning"}
@@ -790,9 +810,93 @@ export default function StudentDashboardPage() {
                   message="Your next course will appear here when you are enrolled."
                 />
               )}
+
+              {studentCourses.length > 0 ? (
+                <div className="sd-overview">
+                  <div className="sd-ring">
+                    <svg viewBox="0 0 88 88" width="88" height="88" aria-hidden="true">
+                      <circle className="sd-ring-bg" cx="44" cy="44" r="36" />
+                      <circle
+                        className="sd-ring-fg"
+                        cx="44"
+                        cy="44"
+                        r="36"
+                        style={{
+                          strokeDasharray: 226.2,
+                          strokeDashoffset:
+                            226.2 * (1 - clampPercent(overallLessonPercent) / 100),
+                        }}
+                      />
+                    </svg>
+                    <div className="sd-ring-text">
+                      <CountUp
+                        value={Math.round(overallLessonPercent)}
+                        format={(n) => `${n}%`}
+                      />
+                    </div>
+                  </div>
+                  <div className="sd-min0">
+                    <div className="sd-overview-title">Overall lesson progress</div>
+                    <div className="sd-overview-sub">
+                      {completedLessons} of {totalLessons} lessons completed across{" "}
+                      {studentCourses.length} course
+                      {studentCourses.length === 1 ? "" : "s"}
+                    </div>
+                    <div className="sd-chips">
+                      <span className="sd-chip">
+                        {Math.max(totalLessons - completedLessons, 0)} lessons to go
+                      </span>
+                      <span className="sd-chip sd-chip-orange">
+                        {studentCourses.length - completedCourseCount} in progress
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {otherCourses.length > 0 ? (
+                <div className="sd-next">
+                  <div className="sd-next-title">Also in progress</div>
+                  {otherCourses.map((item) => {
+                    const p = progressMap[item.course.id];
+                    const img = getImageUrl(item.course.imageUrl);
+
+                    return (
+                      <button
+                        key={item.course.id}
+                        type="button"
+                        className="sd-next-item"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/student/my-courses/${item.course.id}`
+                          )
+                        }
+                      >
+                        <div className="sd-thumb">
+                          {img ? (
+                            <img src={img} alt={item.course.title} />
+                          ) : (
+                            <BookOpen size={16} />
+                          )}
+                        </div>
+                        <div className="sd-min0 sd-grow">
+                          <div className="sd-course-title">{item.course.title}</div>
+                          <div className="sd-course-pkg">
+                            {p?.completedLessons ?? 0}/{p?.totalLessons ?? 0} lessons
+                          </div>
+                        </div>
+                        <b className="sd-next-pct">
+                          {Math.round(p?.progressPercentage ?? 0)}%
+                        </b>
+                        <ChevronRight size={16} className="sd-arrow" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
-            <div className="sd-panel">
+            <div className="sd-panel sd-reveal" style={reveal(6)}>
               <SectionHeader
                 icon={CalendarDays}
                 title="Quick Actions"
@@ -800,6 +904,13 @@ export default function StudentDashboardPage() {
               />
 
               <div className="sd-quick-grid">
+                <QuickDashboardAction
+                  icon={BookOpen}
+                  title="My Courses"
+                  value={`${studentCourses.length} enrolled`}
+                  tone="blue"
+                  onClick={() => router.push("/dashboard/student/my-courses")}
+                />
                 <QuickDashboardAction
                   icon={ClipboardList}
                   title="Assignments"
@@ -838,37 +949,20 @@ export default function StudentDashboardPage() {
                   tone="green"
                   onClick={() => router.push("/dashboard/student/calendar")}
                 />
-              </div>
-
-              <div className="sd-completion">
-                <div className="sd-completion-row">
-                  <span>Course completion</span>
-                  <b>
-                    {studentCourses.length > 0
-                      ? `${Math.round(
-                          (completedCourseCount / studentCourses.length) * 100
-                        )}%`
-                      : "0%"}
-                  </b>
-                </div>
-                <ProgressBar
-                  value={
-                    studentCourses.length > 0
-                      ? (completedCourseCount / studentCourses.length) * 100
-                      : 0
-                  }
-                  slim
+                <QuickDashboardAction
+                  icon={UserCircle}
+                  title="Profile"
+                  value="Manage account"
+                  tone="navy"
+                  onClick={() => router.push("/dashboard/student/profile")}
                 />
-                <div className="sd-completion-sub">
-                  {completedCourseCount} / {studentCourses.length} completed
-                </div>
               </div>
             </div>
           </section>
 
           {/* COURSES + ACCOUNT */}
           <section className="sd-grid sd-grid-b">
-            <div className="sd-panel">
+            <div className="sd-panel sd-reveal" style={reveal(7)}>
               <SectionHeader
                 icon={BookOpen}
                 title="My Courses"
@@ -883,8 +977,8 @@ export default function StudentDashboardPage() {
                   message="Your enrolled courses will appear here."
                 />
               ) : (
-                <div className="sd-course-grid sd-stagger">
-                  {studentCourses.slice(0, 4).map((item) => {
+                <div className="sd-course-grid">
+                  {studentCourses.slice(0, 4).map((item, i) => {
                     const progress = progressMap[item.course.id];
                     const percentage = clampPercent(progress?.progressPercentage);
                     const image = getImageUrl(item.course.imageUrl);
@@ -898,7 +992,8 @@ export default function StudentDashboardPage() {
                             `/dashboard/student/my-courses/${item.course.id}`
                           )
                         }
-                        className="sd-course"
+                        className="sd-course sd-reveal"
+                        style={reveal(8 + i)}
                       >
                         <div className="sd-course-top">
                           <div className="sd-thumb">
@@ -916,15 +1011,15 @@ export default function StudentDashboardPage() {
                               {item.packageName || "Direct enrollment"}
                             </div>
                           </div>
+                          <span className="sd-badge">
+                            {formatStatus(item.enrollmentStatus)}
+                          </span>
                         </div>
 
                         <div className="sd-course-row">
                           <span>
                             {progress?.completedLessons ?? 0}/
                             {progress?.totalLessons ?? 0} lessons
-                          </span>
-                          <span className="sd-badge">
-                            {formatStatus(item.enrollmentStatus)}
                           </span>
                           <b>{Math.round(percentage)}%</b>
                         </div>
@@ -947,7 +1042,7 @@ export default function StudentDashboardPage() {
               ) : null}
             </div>
 
-            <div className="sd-panel">
+            <div className="sd-panel sd-reveal" style={reveal(8)}>
               <SectionHeader
                 icon={GraduationCap}
                 title="Account Snapshot"
@@ -964,21 +1059,21 @@ export default function StudentDashboardPage() {
 
               <div className="sd-account-grid">
                 <SmallAccountCard
-                  label="Successful Payments"
-                  value={dashboard.stats.successfulPayments}
-                />
-                <SmallAccountCard
                   label="Courses Completed"
-                  value={completedCourseCount}
+                  value={`${completedCourseCount}/${studentCourses.length}`}
                 />
                 <SmallAccountCard
-                  label="Lessons Completed"
-                  value={`${completedLessons}/${totalLessons}`}
+                  label="Certificates"
+                  value={dashboard.certificates.length}
                 />
-                <SmallAccountCard
-                  label="Account"
-                  value={dashboard.student.isActive ? "Active" : "Inactive"}
-                />
+              </div>
+
+              <div className="sd-completion">
+                <div className="sd-completion-row">
+                  <span>Course completion</span>
+                  <b>{Math.round(completionPercent)}%</b>
+                </div>
+                <ProgressBar value={completionPercent} slim />
               </div>
 
               {recentPayment ? (
@@ -989,20 +1084,11 @@ export default function StudentDashboardPage() {
                   </strong>
                 </div>
               ) : null}
-
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard/student/profile")}
-                className="sd-btn sd-btn-secondary sd-btn-block"
-              >
-                View Profile
-                <ArrowRight size={15} />
-              </button>
             </div>
           </section>
 
           {/* RECENT ACTIVITY */}
-          <section className="sd-panel sd-activity">
+          <section className="sd-panel sd-reveal" style={reveal(9)}>
             <SectionHeader
               icon={CheckCircle2}
               title="Recent Activity"
@@ -1021,36 +1107,11 @@ export default function StudentDashboardPage() {
                     <div className="sd-activity-icon">
                       <CheckCircle2 size={16} />
                     </div>
-                    <div className="sd-min0">
-                      <div className="sd-activity-text">{safeText(activity)}</div>
-                      <div className="sd-activity-sub">Recent student activity</div>
-                    </div>
+                    <div className="sd-activity-text">{safeText(activity)}</div>
                   </div>
                 ))}
               </div>
             )}
-          </section>
-
-          {/* FOOTER ACTIONS */}
-          <section className="sd-footer sd-stagger">
-            <FooterAction
-              icon={BookOpen}
-              title="My Courses"
-              description="Open your enrolled courses"
-              onClick={() => router.push("/dashboard/student/my-courses")}
-            />
-            <FooterAction
-              icon={ClipboardList}
-              title="Assignments & Quizzes"
-              description="Open your learning work"
-              onClick={() => router.push("/dashboard/student/assignments")}
-            />
-            <FooterAction
-              icon={Award}
-              title="Certificates"
-              description="View earned certificates"
-              onClick={() => router.push("/dashboard/student/certificates")}
-            />
           </section>
         </div>
       </main>
@@ -1058,6 +1119,47 @@ export default function StudentDashboardPage() {
       <style dangerouslySetInnerHTML={{ __html: dashboardCss }} />
     </>
   );
+}
+
+function CountUp({
+  value,
+  format,
+}: {
+  value: number;
+  format?: (n: number) => string;
+}) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduce) {
+      setDisplay(value);
+      return;
+    }
+
+    const start = performance.now();
+    const duration = 1000;
+    let raf = 0;
+
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      setDisplay(value * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+
+  const n = Math.round(display);
+
+  return <>{format ? format(n) : String(n)}</>;
 }
 
 function ProgressBar({ value, slim }: { value: number; slim?: boolean }) {
@@ -1074,47 +1176,35 @@ function ProgressBar({ value, slim }: { value: number; slim?: boolean }) {
   );
 }
 
-function InfoPair({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="sd-pair">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function HeroMiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="sd-mini">
-      <div>{label}</div>
-      <b>{value}</b>
-    </div>
-  );
-}
-
 type Tone = "blue" | "green" | "orange" | "navy";
 
 function DashboardMetric({
+  index,
   icon: Icon,
   label,
   value,
+  format,
   detail,
   tone,
 }: {
+  index: number;
   icon: ElementType;
   label: string;
-  value: string | number;
+  value: number;
+  format?: (n: number) => string;
   detail: string;
   tone: Tone;
 }) {
   return (
-    <div className="sd-metric">
+    <div className="sd-metric sd-reveal" style={reveal(index)}>
       <div className={`sd-icon sd-tone-${tone}`}>
         <Icon size={20} />
       </div>
       <div className="sd-min0">
         <div className="sd-metric-label">{label}</div>
-        <div className="sd-metric-value">{safeText(value)}</div>
+        <div className="sd-metric-value">
+          <CountUp value={value} format={format} />
+        </div>
         <div className="sd-metric-detail">{detail}</div>
       </div>
     </div>
@@ -1185,31 +1275,6 @@ function SmallAccountCard({
   );
 }
 
-function FooterAction({
-  icon: Icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: ElementType;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" onClick={onClick} className="sd-footer-item">
-      <div className="sd-icon sd-icon-sm sd-tone-blue">
-        <Icon size={17} />
-      </div>
-      <div className="sd-min0 sd-grow">
-        <div className="sd-footer-title">{title}</div>
-        <div className="sd-footer-desc">{description}</div>
-      </div>
-      <ArrowRight size={15} className="sd-arrow" />
-    </button>
-  );
-}
-
 function EmptyCard({ title, message }: { title: string; message: string }) {
   return (
     <div className="sd-empty">
@@ -1227,227 +1292,239 @@ const dashboardCss = `
   --navy:#0F2F5F; --navy-2:#123B6D; --blue:#1459B8; --blue-2:#2563EB;
   --orange:#FF6B00; --orange-2:#E85F00; --orange-tint:#FFF3EA;
   --bg:#F7F9FC; --card:#FFFFFF; --line:#E2E8F1; --line-2:#EDF1F7;
-  --text:#0F2F5F; --muted:#64748B; --soft:#8A97AB;
+  --muted:#64748B; --soft:#8A97AB;
   --green:#15803D; --green-tint:#E8F6EE; --blue-tint:#EAF1FD;
+  --ease:cubic-bezier(.2,.7,.2,1);
   flex:1; min-width:0; width:100%; box-sizing:border-box;
-  padding:28px 32px 48px; background:var(--bg); color:var(--text);
-  animation:sd-page-in 280ms ease-out both;
+  padding:24px 28px 40px; background:var(--bg); color:var(--navy);
 }
 .sd-page *{box-sizing:border-box}
-.sd-container{width:100%; max-width:1360px; margin:0 auto}
+.sd-container{width:100%;max-width:1360px;margin:0 auto}
 .sd-min0{min-width:0}
 .sd-grow{flex:1}
 .sd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-@keyframes sd-page-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-@keyframes sd-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ---------- Keyframes ---------- */
+@keyframes sd-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes sd-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes sd-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes sd-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
 @keyframes studentDashboardSpin{to{transform:rotate(360deg)}}
+@keyframes sd-flow{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+@keyframes sd-wave{0%,60%,100%{transform:rotate(0)}10%{transform:rotate(16deg)}20%{transform:rotate(-8deg)}30%{transform:rotate(16deg)}40%{transform:rotate(-4deg)}50%{transform:rotate(10deg)}}
+@keyframes sd-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 8px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+@keyframes sd-sheen{from{transform:translateX(-120%) skewX(-18deg)}to{transform:translateX(260%) skewX(-18deg)}}
 .sd-spin{animation:studentDashboardSpin .8s linear infinite}
 
-.sd-stagger>*{animation:sd-rise 260ms ease-out both}
-.sd-stagger>*:nth-child(2){animation-delay:40ms}
-.sd-stagger>*:nth-child(3){animation-delay:80ms}
-.sd-stagger>*:nth-child(4){animation-delay:120ms}
+/* Staggered entrance for every block */
+.sd-reveal{animation:sd-rise 520ms var(--ease) both;animation-delay:calc(var(--i,0) * 70ms)}
 
-/* Buttons */
+/* ---------- Buttons ---------- */
 .sd-btn{
+  position:relative;overflow:hidden;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   height:42px;padding:0 18px;border-radius:10px;border:1px solid transparent;
   font:inherit;font-size:14px;font-weight:600;line-height:1;cursor:pointer;
-  transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease,color 160ms ease;
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease),color .2s ease;
 }
-.sd-btn:focus-visible,.sd-continue:focus-visible,.sd-course:focus-visible,.sd-quick:focus-visible,.sd-footer-item:focus-visible{
-  outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.28);
-}
-.sd-btn:active{transform:translateY(0) scale(.99)}
+.sd-btn:focus-visible,.sd-continue:focus-visible,.sd-course:focus-visible,.sd-quick:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.sd-btn:active,.sd-quick:active,.sd-course:active,.sd-continue:active{transform:scale(.98)}
 .sd-btn:disabled{opacity:.65;cursor:not-allowed}
 .sd-btn-primary{background:linear-gradient(180deg,#FF8A12 0%,#FF6B00 55%,#F25A00 100%);color:#fff}
-.sd-btn-primary:hover{background:linear-gradient(180deg,#FF7E00 0%,#F26000 55%,#E25200 100%);transform:translateY(-1px);box-shadow:0 6px 16px rgba(255,107,0,.28)}
-.sd-logo-chip{display:inline-block;margin-bottom:16px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.14)}
-.sd-logo-crop{width:132px;height:78px;overflow:hidden;border-radius:8px}
-.sd-logo-crop img{display:block;width:151px;max-width:none;margin:-29px 0 0 -10px}
+.sd-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
+.sd-btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(255,107,0,.35)}
+.sd-btn-primary:hover::after{animation:sd-sheen 700ms ease}
 .sd-btn-secondary{background:#fff;color:var(--blue);border-color:var(--line)}
-.sd-btn-secondary:hover{background:var(--blue-tint);border-color:#CFE0FA;transform:translateY(-1px)}
-.sd-btn-ghost-light{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.28);width:100%;height:40px}
-.sd-btn-ghost-light:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.sd-btn-secondary:hover{background:var(--blue-tint);border-color:#BFD3F2;transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,89,184,.12)}
+.sd-btn-secondary svg{transition:transform .2s var(--ease)}
+.sd-btn-secondary:hover svg{transform:translateX(3px)}
+.sd-btn-ghost-light{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+.sd-btn-ghost-light:hover:not(:disabled){background:rgba(255,255,255,.22);transform:translateY(-2px)}
+.sd-refresh-icon{transition:transform .5s var(--ease)}
+.sd-refresh:hover .sd-refresh-icon{transform:rotate(180deg)}
 .sd-btn-block{width:100%;margin-top:14px}
 
-/* Hero */
+/* ---------- Hero ---------- */
 .sd-hero{
-  position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:28px;
-  margin-bottom:20px;padding:28px 32px;border-radius:16px;color:#fff;
-  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 55%,var(--blue) 100%);
-  box-shadow:0 10px 28px rgba(15,47,95,.16);
+  position:relative;overflow:hidden;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;
+  margin-bottom:20px;padding:26px 30px;border-radius:16px;color:#fff;
+  background:linear-gradient(120deg,#0F2F5F 0%,#123B6D 35%,#1459B8 70%,#0F2F5F 100%);
+  background-size:220% 220%;animation:sd-rise 520ms var(--ease) both,sd-flow 14s ease-in-out infinite alternate;
+  box-shadow:0 12px 30px rgba(15,47,95,.18);
 }
-.sd-hero::after{
-  content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;
-  background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 18%,transparent 18%);
-}
-.sd-hero-main,.sd-hero-side{position:relative;z-index:1;min-width:0}
-.sd-eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:600;color:#C9DBF5}
+.sd-hero::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 16%,transparent 16%)}
+.sd-hero-main{position:relative;z-index:1;min-width:0}
+.sd-logo-chip{display:inline-block;margin-bottom:14px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.16);transition:transform .25s var(--ease)}
+.sd-logo-chip:hover{transform:scale(1.04)}
+.sd-logo-crop{width:132px;height:78px;overflow:hidden;border-radius:8px}
+.sd-logo-crop img{display:block;width:151px;max-width:none;margin:-29px 0 0 -10px}
+.sd-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:600;color:#C9DBF5}
 .sd-hero h1{margin:0;font-size:clamp(26px,2.6vw,34px);line-height:1.2;font-weight:700;letter-spacing:-.02em;color:#fff}
-.sd-hero p{max-width:640px;margin:10px 0 0;font-size:15px;line-height:1.6;color:#D3E1F5}
-.sd-hero-pairs{display:flex;flex-wrap:wrap;gap:12px 32px;margin-top:20px}
-.sd-pair{display:flex;flex-direction:column;gap:4px}
-.sd-pair span{font-size:12px;color:#B7C9E4}
-.sd-pair strong{font-size:14px;font-weight:600;color:#fff}
-.sd-hero-side{display:flex;flex-direction:column;justify-content:space-between;gap:12px}
-.sd-hero-card{padding:16px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18)}
-.sd-hero-user{display:flex;align-items:center;gap:12px}
-.sd-hero-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:#fff}
-.sd-hero-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;font-size:12px;color:#C3D4EC}
-.sd-hero-mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
-.sd-mini{padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.1)}
-.sd-mini div{font-size:12px;color:#B7C9E4}
-.sd-mini b{display:block;margin-top:2px;font-size:18px;font-weight:700;color:#fff}
+.sd-wave{display:inline-block;transform-origin:70% 70%;animation:sd-wave 1.8s ease-in-out .6s 1}
+.sd-hero p{max-width:620px;margin:8px 0 0;font-size:15px;line-height:1.6;color:#D3E1F5}
+.sd-hero-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.sd-pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:13px;color:#fff;transition:background .2s ease}
+.sd-pill:hover{background:rgba(255,255,255,.2)}
+.sd-pill-label{color:#B7C9E4}
+.sd-dot{width:8px;height:8px;border-radius:50%;background:#94A3B8}
+.sd-pill-on .sd-dot{background:#4ADE80;animation:sd-pulse 2s infinite}
+.sd-refresh{position:relative;z-index:1;flex:0 0 auto;height:40px}
 
-.sd-avatar{width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--blue-tint);color:var(--blue);font-size:13px;font-weight:700}
-.sd-avatar-light{background:#fff;color:var(--navy)}
-
-/* Icons */
-.sd-icon{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+/* ---------- Icons / avatar ---------- */
+.sd-icon{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;border-radius:10px;transition:transform .3s var(--ease)}
 .sd-icon-sm{width:36px;height:36px;flex-basis:36px}
 .sd-tone-blue{background:var(--blue-tint);color:var(--blue)}
 .sd-tone-green{background:var(--green-tint);color:var(--green)}
 .sd-tone-orange{background:var(--orange-tint);color:var(--orange)}
 .sd-tone-navy{background:#E6ECF5;color:var(--navy)}
+.sd-avatar{width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--blue-tint);color:var(--blue);font-size:13px;font-weight:700}
 
-/* Metrics */
+/* ---------- Metrics ---------- */
 .sd-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
-.sd-metric{display:flex;align-items:flex-start;gap:14px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04);transition:box-shadow 200ms ease,transform 200ms ease,border-color 200ms ease}
-.sd-metric:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,47,95,.08);border-color:#D4DEEC}
+.sd-metric{display:flex;align-items:flex-start;gap:14px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04);transition:box-shadow .25s ease,transform .25s var(--ease),border-color .25s ease}
+.sd-metric:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(15,47,95,.12);border-color:#C9D8EE}
+.sd-metric:hover .sd-icon,.sd-quick:hover .sd-icon,.sd-section-head:hover .sd-icon{transform:scale(1.12) rotate(-6deg)}
 .sd-metric-label{font-size:13px;color:var(--muted)}
-.sd-metric-value{margin-top:4px;font-size:24px;line-height:1.15;font-weight:700;color:var(--navy)}
+.sd-metric-value{margin-top:4px;font-size:26px;line-height:1.15;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
 .sd-metric-detail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:5px;font-size:12px;color:var(--soft)}
 
-/* Grids & panels */
+/* ---------- Grids & panels ---------- */
 .sd-grid{display:grid;gap:20px;margin-bottom:20px}
 .sd-grid-a{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr)}
 .sd-grid-b{grid-template-columns:minmax(0,1.45fr) minmax(320px,.85fr)}
-.sd-panel{min-width:0;padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03)}
-.sd-activity{margin-bottom:20px}
-.sd-section-head{display:flex;align-items:center;gap:12px}
+.sd-panel{min-width:0;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);transition:box-shadow .25s ease,border-color .25s ease}
+.sd-panel:hover{box-shadow:0 10px 26px rgba(15,47,95,.08);border-color:#D4DEEC}
+.sd-section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .sd-section-head h2{margin:0;font-size:17px;line-height:1.3;font-weight:700;color:var(--navy)}
-.sd-section-head p{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.sd-section-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
 
-/* Continue learning */
-.sd-continue{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#FBFCFE;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color 180ms ease,box-shadow 180ms ease,transform 180ms ease}
-.sd-continue:hover{border-color:#BFD3F2;box-shadow:0 8px 20px rgba(15,47,95,.08);transform:translateY(-1px)}
+/* ---------- Continue learning ---------- */
+.sd-continue{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#FBFCFE;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .25s ease,box-shadow .25s ease,transform .25s var(--ease),background .25s ease}
+.sd-continue:hover{border-color:#9DBBEA;background:#fff;box-shadow:0 12px 26px rgba(15,47,95,.12);transform:translateY(-3px)}
 .sd-thumb{width:38px;height:38px;flex:0 0 38px;overflow:hidden;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--blue-tint);color:var(--blue)}
 .sd-thumb-lg{width:56px;height:56px;flex-basis:56px;border-radius:12px}
-.sd-thumb img{width:100%;height:100%;object-fit:cover;transition:transform 300ms ease}
-.sd-continue:hover .sd-thumb img,.sd-course:hover .sd-thumb img{transform:scale(1.05)}
+.sd-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
+.sd-continue:hover .sd-thumb img,.sd-course:hover .sd-thumb img{transform:scale(1.12)}
 .sd-continue-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:600;color:var(--navy)}
 .sd-continue-meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .sd-continue-cta{display:flex;align-items:center;gap:10px}
 .sd-continue-pct{font-size:15px;font-weight:700;color:var(--blue)}
-.sd-continue-go{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(180deg,#FF8A12,#F25A00);color:#fff;transition:transform 180ms ease,background-color 180ms ease}
-.sd-continue:hover .sd-continue-go{background:var(--orange-2);transform:translateX(2px)}
+.sd-continue-go{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(180deg,#FF8A12,#F25A00);color:#fff;transition:transform .25s var(--ease),box-shadow .25s ease}
+.sd-continue:hover .sd-continue-go{transform:translateX(4px) scale(1.08);box-shadow:0 6px 14px rgba(255,107,0,.4)}
 
 .sd-bar{height:8px;overflow:hidden;margin-top:12px;border-radius:999px;background:#E6ECF5}
 .sd-bar-slim{height:6px;margin-top:8px}
-.sd-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--blue-2));transform-origin:left;animation:sd-grow-x 700ms ease-out both}
+.sd-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--blue-2));transform-origin:left;animation:sd-grow-x 1100ms var(--ease) 250ms both}
 
-.sd-complete{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:18px;padding:18px;border:1px solid #FFD9BD;border-radius:14px;background:var(--orange-tint)}
+.sd-complete{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:18px;border:1px solid #FFD9BD;border-radius:14px;background:var(--orange-tint)}
 .sd-complete-info{display:flex;align-items:center;gap:14px}
 .sd-complete-icon{width:46px;height:46px;flex:0 0 46px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#FFE3CD;color:var(--orange)}
 .sd-complete-title{font-size:15px;font-weight:700;color:var(--navy)}
 .sd-complete-sub{margin-top:3px;font-size:13px;color:var(--muted)}
 
-/* Quick actions */
-.sd-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
-.sd-quick,.sd-footer-item{display:flex;align-items:center;gap:10px;width:100%;min-width:0;border:1px solid var(--line);background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color 180ms ease,box-shadow 180ms ease,transform 180ms ease,background-color 180ms ease}
-.sd-quick{padding:12px;border-radius:12px;min-height:58px}
-.sd-quick:hover,.sd-footer-item:hover{border-color:#BFD3F2;box-shadow:0 6px 16px rgba(15,47,95,.07);transform:translateY(-1px)}
+/* ---------- Quick actions ---------- */
+.sd-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sd-quick{display:flex;align-items:center;gap:10px;width:100%;min-width:0;min-height:58px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease),background .2s ease}
+.sd-quick:hover{border-color:#9DBBEA;background:#FAFCFF;box-shadow:0 8px 18px rgba(15,47,95,.1);transform:translateY(-3px)}
 .sd-quick-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600;color:var(--navy)}
 .sd-quick-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;font-size:12px;color:var(--muted)}
-.sd-arrow{flex:0 0 auto;color:#A3B0C4;transition:transform 180ms ease,color 180ms ease}
-.sd-quick:hover .sd-arrow,.sd-footer-item:hover .sd-arrow{transform:translateX(2px);color:var(--orange)}
+.sd-arrow{flex:0 0 auto;color:#A3B0C4;transition:transform .25s var(--ease),color .2s ease}
+.sd-quick:hover .sd-arrow{transform:translateX(4px);color:var(--orange)}
 
-.sd-completion{margin-top:14px;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:#F8FAFD}
-.sd-completion-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
-.sd-completion-row b{font-size:14px;color:var(--blue)}
-.sd-completion-sub{margin-top:8px;font-size:12.5px;font-weight:600;color:var(--navy)}
-.sd-completion .sd-bar{margin-top:10px}
-
-/* Courses */
-.sd-course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
-.sd-course{width:100%;min-width:0;padding:16px;border:1px solid var(--line);border-radius:12px;background:#FBFCFE;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color 180ms ease,box-shadow 180ms ease,transform 180ms ease}
-.sd-course:hover{border-color:#BFD3F2;box-shadow:0 8px 20px rgba(15,47,95,.08);transform:translateY(-2px)}
+/* ---------- Courses ---------- */
+.sd-course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sd-course{width:100%;min-width:0;padding:16px;border:1px solid var(--line);border-radius:12px;background:#FBFCFE;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .25s ease,box-shadow .25s ease,transform .25s var(--ease),background .25s ease}
+.sd-course:hover{border-color:#9DBBEA;background:#fff;box-shadow:0 12px 24px rgba(15,47,95,.12);transform:translateY(-4px)}
 .sd-course-top{display:flex;align-items:flex-start;gap:12px}
 .sd-course-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--navy)}
 .sd-course-pkg{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;font-size:12px;color:var(--muted)}
-.sd-course-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--muted)}
-.sd-course-row span:first-child{flex:1;min-width:0}
+.sd-course-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;font-size:12px;color:var(--muted)}
 .sd-course-row b{color:var(--blue);font-size:13px}
-.sd-badge{padding:2px 8px;border-radius:6px;background:var(--green-tint);color:var(--green);font-size:11px;font-weight:600}
+.sd-badge{flex:0 0 auto;padding:2px 8px;border-radius:6px;background:var(--green-tint);color:var(--green);font-size:11px;font-weight:600}
 
-/* Account */
-.sd-account-user{display:flex;align-items:center;gap:12px;margin-top:18px;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:#F8FAFD}
+/* ---------- Account ---------- */
+.sd-account-user{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:#F8FAFD}
 .sd-account-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--navy)}
 .sd-account-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;font-size:12.5px;color:var(--muted)}
 .sd-account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
-.sd-small{padding:12px;border:1px solid var(--line-2);border-radius:10px;background:#fff}
+.sd-small{padding:12px;border:1px solid var(--line-2);border-radius:10px;background:#fff;transition:border-color .2s ease,transform .2s var(--ease)}
+.sd-small:hover{border-color:#BFD3F2;transform:translateY(-2px)}
 .sd-small div{font-size:12px;color:var(--muted)}
 .sd-small b{display:block;margin-top:4px;font-size:16px;font-weight:700;color:var(--navy)}
-.sd-payment{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#F8FAFD;font-size:13px;color:var(--muted)}
+.sd-completion{margin-top:10px;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#F8FAFD}
+.sd-completion-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.sd-completion-row b{font-size:14px;color:var(--blue)}
+.sd-completion .sd-bar{margin-top:8px}
+.sd-payment{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#fff;font-size:13px;color:var(--muted)}
 .sd-payment strong{font-size:14px;color:var(--navy)}
 
-/* Activity */
-.sd-activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px;margin-top:10px}
-.sd-activity-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--line-2)}
+/* ---------- Activity ---------- */
+.sd-activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.sd-activity-item{display:flex;align-items:center;gap:12px;padding:12px 8px;margin:0 -8px;border-bottom:1px solid var(--line-2);border-radius:8px;transition:background .2s ease}
+.sd-activity-item:hover{background:#F5F8FD}
 .sd-activity-icon{width:32px;height:32px;flex:0 0 32px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--green-tint);color:var(--green)}
-.sd-activity-text{font-size:14px;line-height:1.45;font-weight:500;color:var(--navy);word-break:break-word}
-.sd-activity-sub{margin-top:3px;font-size:12px;color:var(--soft)}
+.sd-activity-text{min-width:0;font-size:14px;line-height:1.45;font-weight:500;color:var(--navy);word-break:break-word}
 
-/* Footer actions */
-.sd-footer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.sd-footer-item{padding:14px 16px;border-radius:12px}
-.sd-footer-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--navy)}
-.sd-footer-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;font-size:12px;color:var(--muted)}
+/* ---------- Overview (fills Continue panel) ---------- */
+@keyframes sd-ring{from{stroke-dashoffset:226.2}}
+.sd-overview{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px;margin-top:16px;padding:16px;border:1px solid var(--line-2);border-radius:14px;background:linear-gradient(135deg,#F8FAFD 0%,#FFFFFF 100%)}
+.sd-ring{position:relative;width:88px;height:88px}
+.sd-ring svg{display:block;transform:rotate(-90deg)}
+.sd-ring-bg{fill:none;stroke:#E6ECF5;stroke-width:8}
+.sd-ring-fg{fill:none;stroke:var(--blue);stroke-width:8;stroke-linecap:round;animation:sd-ring 1200ms var(--ease) 300ms both}
+.sd-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.sd-overview-title{font-size:15px;font-weight:600;color:var(--navy)}
+.sd-overview-sub{margin-top:4px;font-size:13px;line-height:1.5;color:var(--muted)}
+.sd-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sd-chip{padding:4px 10px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;font-weight:600}
+.sd-chip-orange{background:var(--orange-tint);color:var(--orange-2)}
+.sd-next{margin-top:16px}
+.sd-next-title{margin-bottom:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.sd-next-item{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease)}
+.sd-next-item:last-child{margin-bottom:0}
+.sd-next-item:hover{border-color:#9DBBEA;box-shadow:0 8px 18px rgba(15,47,95,.1);transform:translateX(4px)}
+.sd-next-item:hover .sd-arrow{transform:translateX(4px);color:var(--orange)}
+.sd-next-item:hover .sd-thumb img{transform:scale(1.12)}
+.sd-next-pct{font-size:13px;color:var(--blue)}
+.sd-grid-b>.sd-panel:last-child{align-self:start}
 
-/* Empty / error */
-.sd-empty{min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;margin-top:16px;padding:24px;border:1px dashed #CBD6E6;border-radius:14px;background:#FAFBFE;text-align:center}
+/* ---------- Empty / error ---------- */
+.sd-empty{min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:24px;border:1px dashed #CBD6E6;border-radius:14px;background:#FAFBFE;text-align:center}
 .sd-empty-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;border-radius:12px;background:var(--blue-tint);color:var(--blue)}
 .sd-empty strong{font-size:14px;color:var(--navy)}
 .sd-empty span{max-width:380px;font-size:13px;line-height:1.5;color:var(--muted)}
-.sd-error{min-height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;border:1px solid #F3D1D1;border-radius:16px;background:#fff;text-align:center}
+.sd-error{min-height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;border:1px solid #F3D1D1;border-radius:16px;background:#fff;text-align:center;animation:sd-rise 420ms var(--ease) both}
 .sd-error-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#FDECEC;color:#C62828}
 .sd-error h2{margin:16px 0 0;font-size:18px;font-weight:700;color:var(--navy)}
 .sd-error p{max-width:480px;margin:8px 0 20px;font-size:14px;line-height:1.6;color:var(--muted)}
 
-/* Skeleton */
-.sd-skel{border-radius:16px;background:linear-gradient(90deg,#E9EEF6 25%,#F4F7FB 37%,#E9EEF6 63%);background-size:800px 100%;animation:sd-shimmer 1.4s ease infinite}
-.sd-skel-hero{height:200px;margin-bottom:20px}
+/* ---------- Skeleton ---------- */
+.sd-skel{border-radius:16px;background:linear-gradient(90deg,#E9EEF6 25%,#F6F8FC 37%,#E9EEF6 63%);background-size:1200px 100%;animation:sd-shimmer 1.4s linear infinite}
+.sd-skel-hero{height:190px;margin-bottom:20px}
 .sd-skel-metric{height:104px}
-.sd-skel-panel{height:250px}
-.sd-container>.sd-metrics,.sd-container>.sd-grid{margin-bottom:20px}
+.sd-skel-panel{height:240px}
 
-/* Responsive */
+/* ---------- Responsive ---------- */
 @media (max-width:1120px){
   .sd-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .sd-grid-a,.sd-grid-b{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:820px){
-  .sd-page{padding:20px 16px 32px}
-  .sd-hero{grid-template-columns:minmax(0,1fr);padding:24px 20px}
-  .sd-footer{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sd-page{padding:18px 14px 28px}
+  .sd-hero{flex-direction:column;padding:22px 18px}
+  .sd-refresh{width:100%}
   .sd-activity-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:620px){
-  .sd-metrics,.sd-footer,.sd-course-grid{grid-template-columns:minmax(0,1fr)}
+  .sd-metrics,.sd-course-grid,.sd-quick-grid{grid-template-columns:minmax(0,1fr)}
   .sd-panel{padding:18px}
   .sd-hero h1{font-size:25px}
-  .sd-quick-grid{grid-template-columns:minmax(0,1fr)}
-  .sd-continue{grid-template-columns:auto minmax(0,1fr);}
+  .sd-continue{grid-template-columns:auto minmax(0,1fr)}
   .sd-continue-cta{grid-column:1 / -1;justify-content:space-between}
   .sd-btn{height:44px}
   .sd-complete .sd-btn{width:100%}
 }
 @media (prefers-reduced-motion:reduce){
-  .sd-page,.sd-stagger>*,.sd-bar span,.sd-skel{animation:none!important}
-  .sd-metric,.sd-continue,.sd-course,.sd-quick,.sd-footer-item,.sd-btn{transition:none!important}
+  .sd-reveal,.sd-hero,.sd-bar span,.sd-skel,.sd-wave,.sd-pill-on .sd-dot{animation:none!important}
+  .sd-metric,.sd-continue,.sd-course,.sd-quick,.sd-btn,.sd-icon,.sd-panel{transition:none!important}
 }
 `;

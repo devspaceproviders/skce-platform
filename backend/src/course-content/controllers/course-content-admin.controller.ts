@@ -2,2026 +2,4243 @@ import type { Request, Response } from "express";
 
 
 
+
+
+
+
 import { db } from "../../prisma/db";
+
+
 
 import {
 
-  hasTrainerCoursePermission,
+
+
+  hasTrainerCoursePermission,
+
+
 
 } from "../../auth/services/trainer-course-permission.service";
 
-import {
-  updateLessonImage,
-} from "../services/course-content-admin.service";
-
 
 
 import {
 
-  getAdminCourseContent,
-
-  createModule,
-
-  updateModule,
-
-  deleteModule,
-
-  createLesson,
-
-  updateLesson,
-
-  deleteLesson,
-
-  reorderModule,
-
-  reorderLesson,
+  updateLessonImage,
 
 } from "../services/course-content-admin.service";
+
+
+
+
+
+
+
+import {
+
+
+
+  getAdminCourseContent,
+
+
+
+  createModule,
+
+
+
+  updateModule,
+
+
+
+  updateModuleImage,
+
+
+
+  deleteModule,
+
+
+
+  createLesson,
+
+
+
+  updateLesson,
+
+
+
+  deleteLesson,
+
+
+
+  reorderModule,
+
+
+
+  reorderLesson,
+
+
+
+} from "../services/course-content-admin.service";
+
+
+
+
 
 
 
 /* =========================================================
 
-   TRAINER COURSE CONTENT PERMISSION
 
-========================================================= */
+
+   TRAINER COURSE CONTENT PERMISSION
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 async function checkCourseContentPermission(
 
-  req: Request,
 
-  res: Response,
 
-  courseId: number
+  req: Request,
+
+
+
+  res: Response,
+
+
+
+  courseId: number
+
+
 
 ): Promise<boolean> {
 
-  if (!req.user) {
 
-    res.status(401).json({
 
-      success: false,
-
-      message: "Authentication required",
-
-    });
+  if (!req.user) {
 
 
 
-    return false;
-
-  }
+    res.status(401).json({
 
 
 
-  /*
-
-   * ADMIN has unrestricted access.
-
-   */
-
-  if (req.user.role === "ADMIN") {
-
-    return true;
-
-  }
+      success: false,
 
 
 
-  /*
-
-   * Only TRAINER can use these APIs besides ADMIN.
-
-   */
-
-  if (req.user.role !== "TRAINER") {
-
-    res.status(403).json({
-
-      success: false,
-
-      message: "Access denied",
-
-    });
+      message: "Authentication required",
 
 
 
-    return false;
-
-  }
+    });
 
 
 
-  const allowed =
-
-    await hasTrainerCoursePermission(
-
-      req.user.userId,
-
-      courseId,
-
-      "canManageContent"
-
-    );
 
 
 
-  if (!allowed) {
 
-    res.status(403).json({
-
-      success: false,
-
-      message:
-
-        "You do not have permission to manage content for this course",
-
-    });
+    return false;
 
 
 
-    return false;
-
-  }
+  }
 
 
 
-  return true;
+
+
+
+
+  /*
+
+
+
+   * ADMIN has unrestricted access.
+
+
+
+   */
+
+
+
+  if (req.user.role === "ADMIN") {
+
+
+
+    return true;
+
+
+
+  }
+
+
+
+
+
+
+
+  /*
+
+
+
+   * Only TRAINER can use these APIs besides ADMIN.
+
+
+
+   */
+
+
+
+  if (req.user.role !== "TRAINER") {
+
+
+
+    res.status(403).json({
+
+
+
+      success: false,
+
+
+
+      message: "Access denied",
+
+
+
+    });
+
+
+
+
+
+
+
+    return false;
+
+
+
+  }
+
+
+
+
+
+
+
+  const allowed =
+
+
+
+    await hasTrainerCoursePermission(
+
+
+
+      req.user.userId,
+
+
+
+      courseId,
+
+
+
+      "canManageContent"
+
+
+
+    );
+
+
+
+
+
+
+
+  if (!allowed) {
+
+
+
+    res.status(403).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        "You do not have permission to manage content for this course",
+
+
+
+    });
+
+
+
+
+
+
+
+    return false;
+
+
+
+  }
+
+
+
+
+
+
+
+  return true;
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   GET COURSE ID FROM MODULE
 
-========================================================= */
+
+   GET COURSE ID FROM MODULE
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 async function getCourseIdFromModule(
 
-  moduleId: number
+
+
+  moduleId: number
+
+
 
 ): Promise<number | null> {
 
-  const module =
 
-    await db.orm.public.CourseModule
 
-      .where({
-
-        id: moduleId,
-
-      })
-
-      .first();
+  const module =
 
 
 
-  if (!module) {
-
-    return null;
-
-  }
+    await db.orm.public.CourseModule
 
 
 
-  return module.courseId;
+      .where({
+
+
+
+        id: moduleId,
+
+
+
+      })
+
+
+
+      .first();
+
+
+
+
+
+
+
+  if (!module) {
+
+
+
+    return null;
+
+
+
+  }
+
+
+
+
+
+
+
+  return module.courseId;
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   GET COURSE ID FROM LESSON
 
-========================================================= */
+
+   GET COURSE ID FROM LESSON
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 async function getCourseIdFromLesson(
 
-  lessonId: number
+
+
+  lessonId: number
+
+
 
 ): Promise<number | null> {
 
-  const lesson =
 
-    await db.orm.public.Lesson
 
-      .where({
-
-        id: lessonId,
-
-      })
-
-      .first();
+  const lesson =
 
 
 
-  if (!lesson) {
-
-    return null;
-
-  }
+    await db.orm.public.Lesson
 
 
 
-  return getCourseIdFromModule(
+      .where({
 
-    lesson.moduleId
 
-  );
+
+        id: lessonId,
+
+
+
+      })
+
+
+
+      .first();
+
+
+
+
+
+
+
+  if (!lesson) {
+
+
+
+    return null;
+
+
+
+  }
+
+
+
+
+
+
+
+  return getCourseIdFromModule(
+
+
+
+    lesson.moduleId
+
+
+
+  );
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   GET COURSE CONTENT
 
-========================================================= */
+
+   GET COURSE CONTENT
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function getAdminCourseContentController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const courseId =
 
-      Number(req.params.courseId);
+  try {
 
 
 
-    if (Number.isNaN(courseId)) {
-
-      return res.status(400).json({
-
-        success: false,
-
-        message: "Invalid course ID",
-
-      });
-
-    }
+    const courseId =
 
 
 
-    const allowed =
-
-      await checkCourseContentPermission(
-
-        req,
-
-        res,
-
-        courseId
-
-      );
+      Number(req.params.courseId);
 
 
 
-    if (!allowed) {
-
-      return;
-
-    }
 
 
 
-    const data =
 
-      await getAdminCourseContent(
-
-        courseId
-
-      );
+    if (Number.isNaN(courseId)) {
 
 
 
-    return res.status(200).json({
-
-      success: true,
-
-      data,
-
-    });
-
-  } catch (error) {
-
-    console.error(
-
-      "Get course content error:",
-
-      error
-
-    );
+      return res.status(400).json({
 
 
 
-    return res.status(500).json({
+        success: false,
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+        message: "Invalid course ID",
 
-          ? error.message
 
-          : "Failed to load course content",
 
-    });
+      });
 
-  }
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const data =
+
+
+
+      await getAdminCourseContent(
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      data,
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Get course content error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to load course content",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   CREATE MODULE
 
-========================================================= */
+
+   CREATE MODULE
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function createModuleController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const courseId =
 
-      Number(req.params.courseId);
+  try {
 
 
 
-    const {
+    const courseId =
 
-      title,
 
-      description,
 
-    } = req.body;
+      Number(req.params.courseId);
 
 
 
-    if (
 
-      Number.isNaN(courseId) ||
 
-      !title?.trim()
 
-    ) {
 
-      return res.status(400).json({
+    const {
 
-        success: false,
 
-        message:
 
-          "Course ID and module title are required",
+      title,
 
-      });
 
-    }
 
+      description,
 
 
-    const allowed =
 
-      await checkCourseContentPermission(
+    } = req.body;
 
-        req,
 
-        res,
 
-        courseId
 
-      );
 
 
 
-    if (!allowed) {
+    if (
 
-      return;
 
-    }
 
+      Number.isNaN(courseId) ||
 
 
-    const module =
 
-      await createModule(
+      !title?.trim()
 
-        courseId,
 
-        title.trim(),
 
-        description?.trim()
+    ) {
 
-      );
 
 
+      return res.status(400).json({
 
-    return res.status(201).json({
 
-      success: true,
 
-      data: module,
+        success: false,
 
-      message:
 
-        "Module created successfully",
 
-    });
+        message:
 
-  } catch (error) {
 
-    console.error(
 
-      "Create module error:",
+          "Course ID and module title are required",
 
-      error
 
-    );
 
+      });
 
 
-    return res.status(500).json({
 
-      success: false,
+    }
 
-      message:
 
-        error instanceof Error
 
-          ? error.message
 
-          : "Failed to create module",
 
-    });
 
-  }
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const module =
+
+
+
+      await createModule(
+
+
+
+        courseId,
+
+
+
+        title.trim(),
+
+
+
+        description?.trim()
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(201).json({
+
+
+
+      success: true,
+
+
+
+      data: module,
+
+
+
+      message:
+
+
+
+        "Module created successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Create module error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to create module",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   UPDATE MODULE
 
-========================================================= */
+
+   UPDATE MODULE
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function updateModuleController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const moduleId =
 
-      Number(req.params.moduleId);
+  try {
 
 
 
-    const {
+    const moduleId =
 
-      title,
 
-      description,
 
-    } = req.body;
+      Number(req.params.moduleId);
 
 
 
-    if (
 
-      Number.isNaN(moduleId) ||
 
-      !title?.trim()
 
-    ) {
 
-      return res.status(400).json({
+    const {
 
-        success: false,
 
-        message:
 
-          "Module ID and module title are required",
+      title,
 
-      });
 
-    }
 
+      description,
 
 
-    const courseId =
 
-      await getCourseIdFromModule(
+    } = req.body;
 
-        moduleId
 
-      );
 
 
 
-    if (courseId === null) {
 
-      return res.status(404).json({
 
-        success: false,
+    if (
 
-        message: "Module not found",
 
-      });
 
-    }
+      Number.isNaN(moduleId) ||
 
 
 
-    const allowed =
+      !title?.trim()
 
-      await checkCourseContentPermission(
 
-        req,
 
-        res,
+    ) {
 
-        courseId
 
-      );
 
+      return res.status(400).json({
 
 
-    if (!allowed) {
 
-      return;
+        success: false,
 
-    }
 
 
+        message:
 
-    const module =
 
-      await updateModule(
 
-        moduleId,
+          "Module ID and module title are required",
 
-        title.trim(),
 
-        description?.trim()
 
-      );
+      });
 
 
 
-    return res.status(200).json({
+    }
 
-      success: true,
 
-      data: module,
 
-      message:
 
-        "Module updated successfully",
 
-    });
 
-  } catch (error) {
 
-    console.error(
+    const courseId =
 
-      "Update module error:",
 
-      error
 
-    );
+      await getCourseIdFromModule(
 
 
 
-    return res.status(500).json({
+        moduleId
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+      );
 
-          ? error.message
 
-          : "Failed to update module",
 
-    });
 
-  }
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Module not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const module =
+
+
+
+      await updateModule(
+
+
+
+        moduleId,
+
+
+
+        title.trim(),
+
+
+
+        description?.trim()
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      data: module,
+
+
+
+      message:
+
+
+
+        "Module updated successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Update module error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to update module",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   DELETE MODULE
 
-========================================================= */
+
+   DELETE MODULE
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function deleteModuleController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const moduleId =
 
-      Number(req.params.moduleId);
+  try {
 
 
 
-    if (Number.isNaN(moduleId)) {
-
-      return res.status(400).json({
-
-        success: false,
-
-        message: "Invalid module ID",
-
-      });
-
-    }
+    const moduleId =
 
 
 
-    const courseId =
-
-      await getCourseIdFromModule(
-
-        moduleId
-
-      );
+      Number(req.params.moduleId);
 
 
 
-    if (courseId === null) {
-
-      return res.status(404).json({
-
-        success: false,
-
-        message: "Module not found",
-
-      });
-
-    }
 
 
 
-    const allowed =
 
-      await checkCourseContentPermission(
-
-        req,
-
-        res,
-
-        courseId
-
-      );
+    if (Number.isNaN(moduleId)) {
 
 
 
-    if (!allowed) {
-
-      return;
-
-    }
+      return res.status(400).json({
 
 
 
-    const result =
-
-      await deleteModule(
-
-        moduleId
-
-      );
+        success: false,
 
 
 
-    return res.status(200).json(result);
-
-  } catch (error) {
-
-    console.error(
-
-      "Delete module error:",
-
-      error
-
-    );
+        message: "Invalid module ID",
 
 
 
-    return res.status(500).json({
+      });
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+    }
 
-          ? error.message
 
-          : "Failed to delete module",
 
-    });
 
-  }
+
+
+
+    const courseId =
+
+
+
+      await getCourseIdFromModule(
+
+
+
+        moduleId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Module not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const result =
+
+
+
+      await deleteModule(
+
+
+
+        moduleId
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json(result);
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Delete module error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to delete module",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   CREATE LESSON
 
-========================================================= */
+
+   CREATE LESSON
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function createLessonController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const moduleId =
 
-      Number(req.params.moduleId);
+  try {
 
 
 
-    const {
+    const moduleId =
 
-      title,
 
-      description,
 
-      content,
+      Number(req.params.moduleId);
 
-      videoUrl,
 
-      documentUrl,
 
-    } = req.body;
 
 
 
-    if (
 
-      Number.isNaN(moduleId) ||
+    const {
 
-      !title?.trim()
 
-    ) {
 
-      return res.status(400).json({
+      title,
 
-        success: false,
 
-        message:
 
-          "Module ID and lesson title are required",
+      description,
 
-      });
 
-    }
 
+      content,
 
 
-    const courseId =
 
-      await getCourseIdFromModule(
+      videoUrl,
 
-        moduleId
 
-      );
 
+      documentUrl,
 
 
-    if (courseId === null) {
 
-      return res.status(404).json({
+    } = req.body;
 
-        success: false,
 
-        message: "Module not found",
 
-      });
 
-    }
 
 
 
-    const allowed =
+    if (
 
-      await checkCourseContentPermission(
 
-        req,
 
-        res,
+      Number.isNaN(moduleId) ||
 
-        courseId
 
-      );
 
+      !title?.trim()
 
 
-    if (!allowed) {
 
-      return;
+    ) {
 
-    }
 
 
+      return res.status(400).json({
 
-    const lesson =
 
-      await createLesson(
 
-        moduleId,
+        success: false,
 
-        title.trim(),
 
-        description?.trim(),
 
-        content?.trim(),
+        message:
 
-        videoUrl?.trim(),
 
-        documentUrl?.trim()
 
-      );
+          "Module ID and lesson title are required",
 
 
 
-    return res.status(201).json({
+      });
 
-      success: true,
 
-      data: lesson,
 
-      message:
+    }
 
-        "Lesson created successfully",
 
-    });
 
-  } catch (error) {
 
-    console.error(
 
-      "Create lesson error:",
 
-      error
 
-    );
+    const courseId =
 
 
 
-    return res.status(500).json({
+      await getCourseIdFromModule(
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+        moduleId
 
-          ? error.message
 
-          : "Failed to create lesson",
 
-    });
+      );
 
-  }
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Module not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const lesson =
+
+
+
+      await createLesson(
+
+
+
+        moduleId,
+
+
+
+        title.trim(),
+
+
+
+        description?.trim(),
+
+
+
+        content?.trim(),
+
+
+
+        videoUrl?.trim(),
+
+
+
+        documentUrl?.trim()
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(201).json({
+
+
+
+      success: true,
+
+
+
+      data: lesson,
+
+
+
+      message:
+
+
+
+        "Lesson created successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Create lesson error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to create lesson",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   UPDATE LESSON
 
-========================================================= */
+
+   UPDATE LESSON
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function updateLessonController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const lessonId =
 
-      Number(req.params.lessonId);
+  try {
 
 
 
-    const {
+    const lessonId =
 
-      title,
 
-      description,
 
-      content,
+      Number(req.params.lessonId);
 
-      videoUrl,
 
-      documentUrl,
 
-    } = req.body;
 
 
 
-    if (
 
-      Number.isNaN(lessonId) ||
+    const {
 
-      !title?.trim()
 
-    ) {
 
-      return res.status(400).json({
+      title,
 
-        success: false,
 
-        message:
 
-          "Lesson ID and lesson title are required",
+      description,
 
-      });
 
-    }
 
+      content,
 
 
-    const courseId =
 
-      await getCourseIdFromLesson(
+      videoUrl,
 
-        lessonId
 
-      );
 
+      documentUrl,
 
 
-    if (courseId === null) {
 
-      return res.status(404).json({
+    } = req.body;
 
-        success: false,
 
-        message: "Lesson not found",
 
-      });
 
-    }
 
 
 
-    const allowed =
+    if (
 
-      await checkCourseContentPermission(
 
-        req,
 
-        res,
+      Number.isNaN(lessonId) ||
 
-        courseId
 
-      );
 
+      !title?.trim()
 
 
-    if (!allowed) {
 
-      return;
+    ) {
 
-    }
 
 
+      return res.status(400).json({
 
-    const lesson =
 
-      await updateLesson(
 
-        lessonId,
+        success: false,
 
-        title.trim(),
 
-        description?.trim(),
 
-        content?.trim(),
+        message:
 
-        videoUrl?.trim(),
 
-        documentUrl?.trim()
 
-      );
+          "Lesson ID and lesson title are required",
 
 
 
-    return res.status(200).json({
+      });
 
-      success: true,
 
-      data: lesson,
 
-      message:
+    }
 
-        "Lesson updated successfully",
 
-    });
 
-  } catch (error) {
 
-    console.error(
 
-      "Update lesson error:",
 
-      error
 
-    );
+    const courseId =
 
 
 
-    return res.status(500).json({
+      await getCourseIdFromLesson(
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+        lessonId
 
-          ? error.message
 
-          : "Failed to update lesson",
 
-    });
+      );
 
-  }
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Lesson not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const lesson =
+
+
+
+      await updateLesson(
+
+
+
+        lessonId,
+
+
+
+        title.trim(),
+
+
+
+        description?.trim(),
+
+
+
+        content?.trim(),
+
+
+
+        videoUrl?.trim(),
+
+
+
+        documentUrl?.trim()
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      data: lesson,
+
+
+
+      message:
+
+
+
+        "Lesson updated successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Update lesson error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to update lesson",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   DELETE LESSON
 
-========================================================= */
+
+   DELETE LESSON
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function deleteLessonController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const lessonId =
 
-      Number(req.params.lessonId);
+  try {
 
 
 
-    if (Number.isNaN(lessonId)) {
-
-      return res.status(400).json({
-
-        success: false,
-
-        message: "Invalid lesson ID",
-
-      });
-
-    }
+    const lessonId =
 
 
 
-    const courseId =
-
-      await getCourseIdFromLesson(
-
-        lessonId
-
-      );
+      Number(req.params.lessonId);
 
 
 
-    if (courseId === null) {
-
-      return res.status(404).json({
-
-        success: false,
-
-        message: "Lesson not found",
-
-      });
-
-    }
 
 
 
-    const allowed =
 
-      await checkCourseContentPermission(
-
-        req,
-
-        res,
-
-        courseId
-
-      );
+    if (Number.isNaN(lessonId)) {
 
 
 
-    if (!allowed) {
-
-      return;
-
-    }
+      return res.status(400).json({
 
 
 
-    const result =
-
-      await deleteLesson(
-
-        lessonId
-
-      );
+        success: false,
 
 
 
-    return res.status(200).json(result);
-
-  } catch (error) {
-
-    console.error(
-
-      "Delete lesson error:",
-
-      error
-
-    );
+        message: "Invalid lesson ID",
 
 
 
-    return res.status(500).json({
+      });
 
-      success: false,
 
-      message:
 
-        error instanceof Error
+    }
 
-          ? error.message
 
-          : "Failed to delete lesson",
 
-    });
 
-  }
+
+
+
+    const courseId =
+
+
+
+      await getCourseIdFromLesson(
+
+
+
+        lessonId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Lesson not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const result =
+
+
+
+      await deleteLesson(
+
+
+
+        lessonId
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json(result);
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Delete lesson error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to delete lesson",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   UPLOAD LESSON VIDEO
 
-========================================================= */
+
+   UPLOAD LESSON VIDEO
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function uploadLessonVideoController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const lessonId =
 
-      Number(req.params.lessonId);
+  try {
 
 
 
-    if (Number.isNaN(lessonId)) {
+    const lessonId =
 
-      return res.status(400).json({
 
-        success: false,
 
-        message: "Invalid lesson ID",
+      Number(req.params.lessonId);
 
-      });
 
-    }
 
 
 
-    const file = req.file;
 
 
+    if (Number.isNaN(lessonId)) {
 
-    if (!file) {
 
-      return res.status(400).json({
 
-        success: false,
+      return res.status(400).json({
 
-        message: "Video file is required",
 
-      });
 
-    }
+        success: false,
 
 
 
-    const courseId =
+        message: "Invalid lesson ID",
 
-      await getCourseIdFromLesson(
 
-        lessonId
 
-      );
+      });
 
 
 
-    if (courseId === null) {
+    }
 
-      return res.status(404).json({
 
-        success: false,
 
-        message: "Lesson not found",
 
-      });
 
-    }
 
 
+    const file = req.file;
 
-    const allowed =
 
-      await checkCourseContentPermission(
 
-        req,
 
-        res,
 
-        courseId
 
-      );
 
+    if (!file) {
 
 
-    if (!allowed) {
 
-      return;
+      return res.status(400).json({
 
-    }
 
 
+        success: false,
 
-    const videoUrl =
 
-      `/uploads/course-content/videos/${file.filename}`;
 
+        message: "Video file is required",
 
 
-    const lesson =
 
-      await db.orm.public.Lesson
+      });
 
-        .where({
 
-          id: lessonId,
 
-        })
+    }
 
-        .update({
 
-          videoUrl,
 
-        });
 
 
 
-    return res.status(200).json({
 
-      success: true,
+    const courseId =
 
-      data: lesson,
 
-      message:
 
-        "Lesson video uploaded successfully",
+      await getCourseIdFromLesson(
 
-    });
 
-  } catch (error) {
 
-    console.error(
+        lessonId
 
-      "Upload lesson video error:",
 
-      error
 
-    );
+      );
 
 
 
-    return res.status(500).json({
 
-      success: false,
 
-      message:
 
-        error instanceof Error
 
-          ? error.message
+    if (courseId === null) {
 
-          : "Failed to upload lesson video",
 
-    });
 
-  }
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Lesson not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const videoUrl =
+
+
+
+      `/uploads/course-content/videos/${file.filename}`;
+
+
+
+
+
+
+
+    const lesson =
+
+
+
+      await db.orm.public.Lesson
+
+
+
+        .where({
+
+
+
+          id: lessonId,
+
+
+
+        })
+
+
+
+        .update({
+
+
+
+          videoUrl,
+
+
+
+        });
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      data: lesson,
+
+
+
+      message:
+
+
+
+        "Lesson video uploaded successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Upload lesson video error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to upload lesson video",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   UPLOAD LESSON DOCUMENT
 
-========================================================= */
+
+   UPLOAD LESSON DOCUMENT
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function uploadLessonDocumentController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const lessonId =
 
-      Number(req.params.lessonId);
+  try {
 
 
 
-    if (Number.isNaN(lessonId)) {
+    const lessonId =
 
-      return res.status(400).json({
 
-        success: false,
 
-        message: "Invalid lesson ID",
+      Number(req.params.lessonId);
 
-      });
 
-    }
 
 
 
-    const file = req.file;
 
 
+    if (Number.isNaN(lessonId)) {
 
-    if (!file) {
 
-      return res.status(400).json({
 
-        success: false,
+      return res.status(400).json({
 
-        message: "Document file is required",
 
-      });
 
-    }
+        success: false,
 
 
 
-    const courseId =
+        message: "Invalid lesson ID",
 
-      await getCourseIdFromLesson(
 
-        lessonId
 
-      );
+      });
 
 
 
-    if (courseId === null) {
+    }
 
-      return res.status(404).json({
 
-        success: false,
 
-        message: "Lesson not found",
 
-      });
 
-    }
 
 
+    const file = req.file;
 
-    const allowed =
 
-      await checkCourseContentPermission(
 
-        req,
 
-        res,
 
-        courseId
 
-      );
 
+    if (!file) {
 
 
-    if (!allowed) {
 
-      return;
+      return res.status(400).json({
 
-    }
 
 
+        success: false,
 
-    const documentUrl =
 
-      `/uploads/course-content/documents/${file.filename}`;
 
+        message: "Document file is required",
 
 
-    const lesson =
 
-      await db.orm.public.Lesson
+      });
 
-        .where({
 
-          id: lessonId,
 
-        })
+    }
 
-        .update({
 
-          documentUrl,
 
-        });
 
 
 
-    return res.status(200).json({
 
-      success: true,
+    const courseId =
 
-      data: lesson,
 
-      message:
 
-        "Lesson document uploaded successfully",
+      await getCourseIdFromLesson(
 
-    });
 
-  } catch (error) {
 
-    console.error(
+        lessonId
 
-      "Upload lesson document error:",
 
-      error
 
-    );
+      );
 
 
 
-    return res.status(500).json({
 
-      success: false,
 
-      message:
 
-        error instanceof Error
 
-          ? error.message
+    if (courseId === null) {
 
-          : "Failed to upload lesson document",
 
-    });
 
-  }
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Lesson not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const documentUrl =
+
+
+
+      `/uploads/course-content/documents/${file.filename}`;
+
+
+
+
+
+
+
+    const lesson =
+
+
+
+      await db.orm.public.Lesson
+
+
+
+        .where({
+
+
+
+          id: lessonId,
+
+
+
+        })
+
+
+
+        .update({
+
+
+
+          documentUrl,
+
+
+
+        });
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      data: lesson,
+
+
+
+      message:
+
+
+
+        "Lesson document uploaded successfully",
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Upload lesson document error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to upload lesson document",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   REORDER MODULE
 
-========================================================= */
+
+   REORDER MODULE
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function reorderModuleController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const moduleId =
 
-      Number(req.params.moduleId);
+  try {
 
 
 
-    const direction =
+    const moduleId =
 
-      String(
 
-        req.body?.direction || ""
 
-      ).toUpperCase();
+      Number(req.params.moduleId);
 
 
 
-    if (Number.isNaN(moduleId)) {
 
-      return res.status(400).json({
 
-        success: false,
 
-        message: "Invalid module ID",
 
-      });
+    const direction =
 
-    }
 
 
+      String(
 
-    if (
 
-      direction !== "UP" &&
 
-      direction !== "DOWN"
+        req.body?.direction || ""
 
-    ) {
 
-      return res.status(400).json({
 
-        success: false,
+      ).toUpperCase();
 
-        message:
 
-          "Direction must be UP or DOWN",
 
-      });
 
-    }
 
 
 
-    const courseId =
+    if (Number.isNaN(moduleId)) {
 
-      await getCourseIdFromModule(
 
-        moduleId
 
-      );
+      return res.status(400).json({
 
 
 
-    if (courseId === null) {
+        success: false,
 
-      return res.status(404).json({
 
-        success: false,
 
-        message: "Module not found",
+        message: "Invalid module ID",
 
-      });
 
-    }
 
+      });
 
 
-    const allowed =
 
-      await checkCourseContentPermission(
+    }
 
-        req,
 
-        res,
 
-        courseId
 
-      );
 
 
 
-    if (!allowed) {
+    if (
 
-      return;
 
-    }
 
+      direction !== "UP" &&
 
 
-    const result =
 
-      await reorderModule(
+      direction !== "DOWN"
 
-        moduleId,
 
-        direction as "UP" | "DOWN"
 
-      );
+    ) {
 
 
 
-    return res.status(200).json({
+      return res.status(400).json({
 
-      success: true,
 
-      message:
 
-        result?.message ||
+        success: false,
 
-        "Module reordered successfully",
 
-      data: result,
 
-    });
+        message:
 
-  } catch (error) {
 
-    console.error(
 
-      "Reorder module error:",
+          "Direction must be UP or DOWN",
 
-      error
 
-    );
 
+      });
 
 
-    return res.status(500).json({
 
-      success: false,
+    }
 
-      message:
 
-        error instanceof Error
 
-          ? error.message
 
-          : "Failed to reorder module",
 
-    });
 
-  }
+
+    const courseId =
+
+
+
+      await getCourseIdFromModule(
+
+
+
+        moduleId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Module not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const result =
+
+
+
+      await reorderModule(
+
+
+
+        moduleId,
+
+
+
+        direction as "UP" | "DOWN"
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      message:
+
+
+
+        result?.message ||
+
+
+
+        "Module reordered successfully",
+
+
+
+      data: result,
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Reorder module error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to reorder module",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
 
 
 
+
+
+
+
 /* =========================================================
 
-   REORDER LESSON
 
-========================================================= */
+
+   REORDER LESSON
+
+
+
+\========================================================= */
+
+
+
+
 
 
 
 export async function reorderLessonController(
 
-  req: Request,
 
-  res: Response
+
+  req: Request,
+
+
+
+  res: Response
+
+
 
 ) {
 
-  try {
 
-    const lessonId =
 
-      Number(req.params.lessonId);
+  try {
 
 
 
-    const direction =
+    const lessonId =
 
-      String(
 
-        req.body?.direction || ""
 
-      ).toUpperCase();
+      Number(req.params.lessonId);
 
 
 
-    if (Number.isNaN(lessonId)) {
 
-      return res.status(400).json({
 
-        success: false,
 
-        message: "Invalid lesson ID",
 
-      });
+    const direction =
 
-    }
 
 
+      String(
 
-    if (
 
-      direction !== "UP" &&
 
-      direction !== "DOWN"
+        req.body?.direction || ""
 
-    ) {
 
-      return res.status(400).json({
 
-        success: false,
+      ).toUpperCase();
 
-        message:
 
-          "Direction must be UP or DOWN",
 
-      });
 
-    }
 
 
 
-    const courseId =
+    if (Number.isNaN(lessonId)) {
 
-      await getCourseIdFromLesson(
 
-        lessonId
 
-      );
+      return res.status(400).json({
 
 
 
-    if (courseId === null) {
+        success: false,
 
-      return res.status(404).json({
 
-        success: false,
 
-        message: "Lesson not found",
+        message: "Invalid lesson ID",
 
-      });
 
-    }
 
+      });
 
 
-    const allowed =
 
-      await checkCourseContentPermission(
+    }
 
-        req,
 
-        res,
 
-        courseId
 
-      );
 
 
 
-    if (!allowed) {
+    if (
 
-      return;
 
-    }
 
+      direction !== "UP" &&
 
 
-    const result =
 
-      await reorderLesson(
+      direction !== "DOWN"
 
-        lessonId,
 
-        direction as "UP" | "DOWN"
 
-      );
+    ) {
 
 
 
-    return res.status(200).json({
+      return res.status(400).json({
 
-      success: true,
 
-      message:
 
-        result?.message ||
+        success: false,
 
-        "Lesson reordered successfully",
 
-      data: result,
 
-    });
+        message:
 
-  } catch (error) {
 
-    console.error(
 
-      "Reorder lesson error:",
+          "Direction must be UP or DOWN",
 
-      error
 
-    );
 
+      });
 
 
-    return res.status(500).json({
 
-      success: false,
+    }
 
-      message:
 
-        error instanceof Error
 
-          ? error.message
 
-          : "Failed to reorder lesson",
 
-    });
 
-  }
+
+    const courseId =
+
+
+
+      await getCourseIdFromLesson(
+
+
+
+        lessonId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (courseId === null) {
+
+
+
+      return res.status(404).json({
+
+
+
+        success: false,
+
+
+
+        message: "Lesson not found",
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const allowed =
+
+
+
+      await checkCourseContentPermission(
+
+
+
+        req,
+
+
+
+        res,
+
+
+
+        courseId
+
+
+
+      );
+
+
+
+
+
+
+
+    if (!allowed) {
+
+
+
+      return;
+
+
+
+    }
+
+
+
+
+
+
+
+    const result =
+
+
+
+      await reorderLesson(
+
+
+
+        lessonId,
+
+
+
+        direction as "UP" | "DOWN"
+
+
+
+      );
+
+
+
+
+
+
+
+    return res.status(200).json({
+
+
+
+      success: true,
+
+
+
+      message:
+
+
+
+        result?.message ||
+
+
+
+        "Lesson reordered successfully",
+
+
+
+      data: result,
+
+
+
+    });
+
+
+
+  } catch (error) {
+
+
+
+    console.error(
+
+
+
+      "Reorder lesson error:",
+
+
+
+      error
+
+
+
+    );
+
+
+
+
+
+
+
+    return res.status(500).json({
+
+
+
+      success: false,
+
+
+
+      message:
+
+
+
+        error instanceof Error
+
+
+
+          ? error.message
+
+
+
+          : "Failed to reorder lesson",
+
+
+
+    });
+
+
+
+  }
+
+
 
 }
+
+
 
 /* =========================================================
-   UPLOAD LESSON IMAGE
-========================================================= */
+
+   UPLOAD LESSON IMAGE
+
+\========================================================= */
+
+
 
 export async function uploadLessonImageController(
-  req: Request,
-  res: Response
+
+  req: Request,
+
+  res: Response
+
 ) {
-  try {
-    const lessonId =
-      Number(req.params.lessonId);
 
-    if (Number.isNaN(lessonId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid lesson ID",
-      });
-    }
+  try {
 
-    const file = req.file;
+    const lessonId =
 
-    if (!file) {
-      return res.status(400).json({
-        success: false,
-        message: "Lesson image is required",
-      });
-    }
+      Number(req.params.lessonId);
 
-    const courseId =
-      await getCourseIdFromLesson(
-        lessonId
-      );
 
-    if (courseId === null) {
-      return res.status(404).json({
-        success: false,
-        message: "Lesson not found",
-      });
-    }
 
-    const allowed =
-      await checkCourseContentPermission(
-        req,
-        res,
-        courseId
-      );
+    if (Number.isNaN(lessonId)) {
 
-    if (!allowed) {
-      return;
-    }
+      return res.status(400).json({
 
-    const imageUrl =
-      `/uploads/course-content/images/${file.filename}`;
+        success: false,
 
-    const lesson =
-      await updateLessonImage(
-        lessonId,
-        imageUrl
-      );
+        message: "Invalid lesson ID",
 
-    return res.status(200).json({
-      success: true,
-      data: lesson,
-      message:
-        "Lesson image uploaded successfully",
-    });
-  } catch (error) {
-    console.error(
-      "Upload lesson image error:",
-      error
-    );
+      });
 
-    if (
-      error instanceof Error &&
-      error.message === "Lesson not found"
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: "Lesson not found",
-      });
-    }
+    }
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to upload lesson image",
-    });
-  }
+
+
+    const file = req.file;
+
+
+
+    if (!file) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: "Lesson image is required",
+
+      });
+
+    }
+
+
+
+    const courseId =
+
+      await getCourseIdFromLesson(
+
+        lessonId
+
+      );
+
+
+
+    if (courseId === null) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Lesson not found",
+
+      });
+
+    }
+
+
+
+    const allowed =
+
+      await checkCourseContentPermission(
+
+        req,
+
+        res,
+
+        courseId
+
+      );
+
+
+
+    if (!allowed) {
+
+      return;
+
+    }
+
+
+
+    const imageUrl =
+
+      `/uploads/course-content/images/${file.filename}`;
+
+
+
+    const lesson =
+
+      await updateLessonImage(
+
+        lessonId,
+
+        imageUrl
+
+      );
+
+
+
+    return res.status(200).json({
+
+      success: true,
+
+      data: lesson,
+
+      message:
+
+        "Lesson image uploaded successfully",
+
+    });
+
+  } catch (error) {
+
+    console.error(
+
+      "Upload lesson image error:",
+
+      error
+
+    );
+
+
+
+    if (
+
+      error instanceof Error &&
+
+      error.message === "Lesson not found"
+
+    ) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Lesson not found",
+
+      });
+
+    }
+
+
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Failed to upload lesson image",
+
+    });
+
+  }
+
 }
+
+
+
+/* =========================================================
+
+   UPLOAD MODULE IMAGE
+
+\========================================================= */
+
+
+
+export async function uploadModuleImageController(
+
+  req: Request,
+
+  res: Response
+
+) {
+
+  try {
+
+    const moduleId =
+
+      Number(req.params.moduleId);
+
+
+
+    if (Number.isNaN(moduleId)) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: "Invalid module ID",
+
+      });
+
+    }
+
+
+
+    const file = req.file;
+
+
+
+    if (!file) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: "Module image is required",
+
+      });
+
+    }
+
+
+
+    const courseId =
+
+      await getCourseIdFromModule(
+
+        moduleId
+
+      );
+
+
+
+    if (courseId === null) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Module not found",
+
+      });
+
+    }
+
+
+
+    const allowed =
+
+      await checkCourseContentPermission(
+
+        req,
+
+        res,
+
+        courseId
+
+      );
+
+
+
+    if (!allowed) {
+
+      return;
+
+    }
+
+
+
+    const imageUrl =
+
+      `/uploads/course-content/images/${file.filename}`;
+
+
+
+    const module =
+
+      await updateModuleImage(
+
+        moduleId,
+
+        imageUrl
+
+      );
+
+
+
+    return res.status(200).json({
+
+      success: true,
+
+      data: module,
+
+      message:
+
+        "Module image uploaded successfully",
+
+    });
+
+  } catch (error) {
+
+    console.error(
+
+      "Upload module image error:",
+
+      error
+
+    );
+
+
+
+    if (
+
+      error instanceof Error &&
+
+      error.message === "Module not found"
+
+    ) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Module not found",
+
+      });
+
+    }
+
+
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+
+        error instanceof Error
+
+          ? error.message
+
+          : "Failed to upload module image",
+
+    });
+
+  }
+
+}
+
+
+

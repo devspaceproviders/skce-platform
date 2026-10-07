@@ -55,6 +55,7 @@ type CourseModule = {
   id: number;
   title: string;
   description?: string | null;
+  imageUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
   lessons: Lesson[];
@@ -94,6 +95,7 @@ const EMPTY_LESSON_FORM: LessonForm = {
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
 const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
 const MAX_LESSON_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_MODULE_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function getToken() {
   if (typeof window === "undefined") {
@@ -113,6 +115,26 @@ function clearAuthAndRedirect(
   localStorage.removeItem("studentId");
 
   router.push("/login");
+}
+
+function getMediaUrl(
+  url: string | null | undefined
+) {
+  if (!url) {
+    return null;
+  }
+
+  const value = url.trim();
+
+  if (!value) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `${API_URL.replace(/\/api\/?$/, "")}/${value.replace(/^\/+/, "")}`;
 }
 
 export default function TrainerCourseContentPage() {
@@ -171,6 +193,11 @@ export default function TrainerCourseContentPage() {
   const [
     selectedLessonImageFile,
     setSelectedLessonImageFile,
+  ] = useState<File | null>(null);
+
+  const [
+    selectedModuleImageFile,
+    setSelectedModuleImageFile,
   ] = useState<File | null>(null);
 
   const [actionError, setActionError] = useState("");
@@ -538,6 +565,7 @@ export default function TrainerCourseContentPage() {
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
     setSelectedLessonImageFile(null);
+    setSelectedModuleImageFile(null);
 
     setActionError("");
   }
@@ -575,6 +603,7 @@ export default function TrainerCourseContentPage() {
       description:
         module.description || "",
     });
+    setSelectedModuleImageFile(null);
   }
 
   function startCreateLesson(
@@ -644,6 +673,7 @@ export default function TrainerCourseContentPage() {
     setModuleForm(
       EMPTY_MODULE_FORM
     );
+    setSelectedModuleImageFile(null);
   }
 
   function cancelLessonForm() {
@@ -768,6 +798,48 @@ export default function TrainerCourseContentPage() {
     }
 
     setSelectedDocumentFile(file);
+  }
+
+  function validateModuleImageFile(file: File) {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setActionError(
+        "Only JPG, PNG, and WEBP image files are allowed."
+      );
+      return false;
+    }
+
+    if (file.size > MAX_MODULE_IMAGE_SIZE) {
+      setActionError(
+        "Module image must be 5 MB or smaller."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleModuleImageFileChange(
+    file: File | null
+  ) {
+    setActionError("");
+
+    if (!file) {
+      setSelectedModuleImageFile(null);
+      return;
+    }
+
+    if (!validateModuleImageFile(file)) {
+      setSelectedModuleImageFile(null);
+      return;
+    }
+
+    setSelectedModuleImageFile(file);
   }
 
   function validateLessonImageFile(file: File) {
@@ -896,6 +968,45 @@ export default function TrainerCourseContentPage() {
       throw new Error(
         result?.message ||
           "Failed to upload lesson document."
+      );
+    }
+
+    return result;
+  }
+
+  async function uploadModuleImage(
+    moduleId: number,
+    file: File
+  ) {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response =
+      await authenticatedFetch(
+        `${API_URL}/admin/course-content/modules/${moduleId}/image`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+    const result =
+      await parseResponse(response);
+
+    if (response.status === 403) {
+      throw new Error(
+        result?.message ||
+          "You do not have permission to manage content for this course."
+      );
+    }
+
+    if (
+      !response.ok ||
+      !result?.success
+    ) {
+      throw new Error(
+        result?.message ||
+          "Failed to upload module image."
       );
     }
 
@@ -1133,11 +1244,23 @@ export default function TrainerCourseContentPage() {
         );
       }
 
+      const moduleImageUploaded =
+        Boolean(selectedModuleImageFile);
+
+      if (selectedModuleImageFile) {
+        await uploadModuleImage(
+          moduleId,
+          selectedModuleImageFile
+        );
+      }
+
       cancelModuleForm();
 
       setSuccess(
-        result?.message ||
-          "Module updated successfully."
+        moduleImageUploaded
+          ? "Module updated and image uploaded successfully."
+          : result?.message ||
+              "Module updated successfully."
       );
 
       await loadCourseContent(
@@ -1756,6 +1879,41 @@ export default function TrainerCourseContentPage() {
             />
           </label>
         </div>
+
+        {isEditing && (
+          <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-slate-600" />
+              <span className="text-sm font-semibold text-slate-800">
+                Module Image
+              </span>
+            </div>
+
+            <p className="mt-1 text-xs text-slate-500">
+              JPG, PNG or WEBP. Maximum 5 MB.
+            </p>
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                handleModuleImageFileChange(
+                  event.target.files?.[0] || null
+                )
+              }
+              className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
+            />
+
+            {selectedModuleImageFile && (
+              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+                Selected:{" "}
+                <span className="font-medium text-slate-900">
+                  {selectedModuleImageFile.name}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 flex justify-end gap-2">
           <button
@@ -2412,6 +2570,14 @@ export default function TrainerCourseContentPage() {
                                 <ChevronUp className="h-4 w-4 text-slate-600" />
                               )}
                             </div>
+
+                            {module.imageUrl && (
+                              <img
+                                src={getMediaUrl(module.imageUrl) || ""}
+                                alt={module.title}
+                                className="h-12 w-16 rounded-lg object-cover"
+                              />
+                            )}
 
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">

@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+import Reveal from "./Reveal";
+import SectionHeading from "./SectionHeading";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
@@ -119,70 +122,58 @@ export default function CEOSection() {
     DEFAULT_CEO.highlight2;
 
   return (
-    <section className="w-full bg-white px-4 py-16 sm:px-6 md:py-20">
+    <section className="w-full bg-white px-6 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-6xl">
-
         {/* Heading */}
-        <div className="mb-12 text-center">
-          <p className="mb-2 text-sm font-bold uppercase tracking-[0.18em] text-orange-500">
-            Our Leadership
-          </p>
-
-          <h2 className="text-3xl font-extrabold text-[#173B67] sm:text-4xl">
-            Meet Our Founder & CEO
-          </h2>
-
-          <div className="mx-auto mt-4 flex justify-center gap-2">
-            <div className="h-1 w-16 rounded-full bg-orange-500" />
-            <div className="h-1 w-6 rounded-full bg-[#173B67]" />
-          </div>
-        </div>
+        <SectionHeading
+          eyebrow="Our Leadership"
+          title="Meet Our Founder & CEO"
+        />
 
         {/* CEO Content */}
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-
           {/* CEO IMAGE */}
-          <div className="flex w-full justify-center">
-            <div className="relative w-full max-w-[420px]">
-
+          <Reveal direction="left" className="flex w-full justify-center">
+            <div className="relative w-full max-w-[400px]">
               {/* Keeps the container perfectly square */}
-              <div className="aspect-square w-full">
-
+              <div className="relative aspect-square w-full">
                 {/* Orange outer ring */}
-                <div className="absolute inset-0 rounded-full border-[10px] border-orange-500" />
+                <div className="absolute inset-0 rounded-full border-[8px] border-orange-500" />
 
                 {/* Blue ring */}
-                <div className="absolute inset-[12px] rounded-full bg-[#173B67]" />
+                <div className="absolute inset-[10px] rounded-full bg-[#173B67]" />
 
                 {/* White ring */}
-                <div className="absolute inset-[20px] rounded-full bg-white" />
+                <div className="absolute inset-[18px] rounded-full bg-white" />
 
                 {/* IMAGE */}
-                <div className="absolute inset-[27px] overflow-hidden rounded-full">
+                <div className="absolute inset-[24px] overflow-hidden rounded-full">
                   <Image
                     src={ceoPhoto}
                     alt={`${ceoName} - ${ceoDesignation} of SK Computer Education`}
                     width={400}
                     height={500}
-                    priority
+                    sizes="(min-width: 1024px) 400px, 80vw"
                     className="h-full w-full object-cover object-center"
                   />
                 </div>
 
                 {/* Orange decoration */}
-                <div className="absolute right-0 top-20 h-9 w-9 rounded-full bg-orange-500 shadow-md sm:h-10 sm:w-10" />
+                <div className="absolute right-0 top-[18%] h-8 w-8 rounded-full bg-orange-500 shadow-md sm:h-9 sm:w-9" />
 
                 {/* Blue decoration */}
-                <div className="absolute bottom-4 left-10 h-7 w-7 rounded-full bg-[#173B67]" />
-
+                <div className="absolute bottom-[6%] left-[10%] h-6 w-6 rounded-full bg-[#173B67]" />
               </div>
             </div>
-          </div>
+          </Reveal>
 
           {/* CEO TEXT */}
-          <div className="w-full min-w-0">
-
-            <h3 className="text-2xl font-bold text-[#173B67] sm:text-3xl">
+          <Reveal
+            direction="right"
+            delay={150}
+            className="w-full min-w-0 text-center lg:text-left"
+          >
+            <h3 className="text-2xl font-bold tracking-tight text-[#173B67] sm:text-3xl">
               {ceoName}
             </h3>
 
@@ -191,41 +182,31 @@ export default function CEOSection() {
             </p>
 
             {/* Dynamic Biography */}
-            <div className="mt-6 space-y-5 text-base leading-8 text-slate-600 sm:text-[17px]">
+            <div className="mt-6 space-y-5 text-left text-base leading-8 text-slate-600">
+              <p className="whitespace-pre-line">{bioParagraph1}</p>
 
-              <p className="whitespace-pre-line">
-                {bioParagraph1}
-              </p>
-
-              <p className="whitespace-pre-line">
-                {bioParagraph2}
-              </p>
-
+              <p className="whitespace-pre-line">{bioParagraph2}</p>
             </div>
 
             {/* Dynamic Highlights */}
-            <div className="mt-7 space-y-4">
-
-              <div className="flex items-start gap-3">
-                <div className="mt-1 h-10 w-1 shrink-0 rounded-full bg-orange-500" />
+            <div className="mt-7 space-y-3 text-left">
+              <div className="flex items-start gap-3 rounded-xl bg-orange-50/60 p-3.5">
+                <div className="mt-0.5 h-9 w-1 shrink-0 rounded-full bg-orange-500" />
 
                 <p className="text-sm font-semibold leading-6 text-[#173B67]">
                   {highlight1}
                 </p>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="mt-1 h-10 w-1 shrink-0 rounded-full bg-[#173B67]" />
+              <div className="flex items-start gap-3 rounded-xl bg-blue-50/70 p-3.5">
+                <div className="mt-0.5 h-9 w-1 shrink-0 rounded-full bg-[#173B67]" />
 
                 <p className="text-sm font-semibold leading-6 text-[#173B67]">
                   {highlight2}
                 </p>
               </div>
-
             </div>
-
-          </div>
-
+          </Reveal>
         </div>
       </div>
     </section>

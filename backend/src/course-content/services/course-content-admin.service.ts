@@ -96,6 +96,8 @@ export async function getAdminCourseContent(
 
       description: module.description,
 
+      imageUrl: module.imageUrl,
+
       sortOrder: module.sortOrder,
 
       isActive: module.isActive,
@@ -165,7 +167,9 @@ export async function createModule(
 
   title: string,
 
-  description?: string
+  description?: string,
+
+  imageUrl?: string
 
 ) {
 
@@ -221,10 +225,13 @@ export async function createModule(
 
       description || null,
 
+    imageUrl:
+      imageUrl || null,
+
     sortOrder,
 
     isActive: true,
-
+ 
   });
 
 }
@@ -245,7 +252,8 @@ export async function updateModule(
 
   title: string,
 
-  description?: string
+  description?: string,
+  imageUrl?: string
 
 ) {
 
@@ -278,6 +286,9 @@ export async function updateModule(
       description:
 
         description || null,
+
+      imageUrl:
+        imageUrl || null,
 
     });
 
@@ -1032,6 +1043,30 @@ export async function updateLessonImage(
     .where({
       id: lessonId,
     })
+    .update({
+      imageUrl,
+    });
+}
+
+/* =========================================================
+   UPDATE MODULE IMAGE
+========================================================= */
+
+export async function updateModuleImage(
+  moduleId: number,
+  imageUrl: string
+) {
+  const module =
+    await db.orm.public.CourseModule
+      .where({ id: moduleId })
+      .first();
+
+  if (!module) {
+    throw new Error("Module not found");
+  }
+
+  return await db.orm.public.CourseModule
+    .where({ id: moduleId })
     .update({
       imageUrl,
     });

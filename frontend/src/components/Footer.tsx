@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Phone, Mail, MapPin, ArrowRight } from "lucide-react";
 import { COURSE_OPTIONS } from "@/lib/courseList";
 
+import Reveal from "@/components/Reveal";
+
 const QUICK_LINKS = [
   { label: "Home", href: "/" },
   { label: "Courses", href: "/courses" },
@@ -12,16 +14,35 @@ const QUICK_LINKS = [
   { label: "Contact", href: "/contact" },
 ];
 
+const LINK_CLASS =
+  "inline-block rounded text-slate-300 transition duration-200 hover:translate-x-1 hover:text-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60";
+
+function FooterHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-5">
+      <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
+        {children}
+      </h3>
+      <span className="mt-2 block h-0.5 w-8 rounded-full bg-orange-500" />
+    </div>
+  );
+}
+
 export default function Footer() {
   return (
-    <footer className="bg-[#0B1220] text-slate-300">
-      {/* Main Footer */}
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="relative bg-[#0B1220] text-slate-300">
+      {/* Brand accent line */}
+      <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-[#1459B8] to-[#173B67]" />
 
+      {/* Main Footer */}
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
         {/* Brand */}
-        <div>
-          <Link href="/" className="inline-flex items-center">
-            <div className="overflow-hidden rounded-lg bg-white px-3 py-2">
+        <Reveal>
+          <Link
+            href="/"
+            className="inline-flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          >
+            <div className="overflow-hidden rounded-xl bg-white px-3 py-2 transition duration-300 hover:shadow-lg hover:shadow-orange-500/10">
               <Image
                 src="/images/skce-logo.png"
                 alt="SK Computer Education"
@@ -40,45 +61,41 @@ export default function Footer() {
 
           <Link
             href="/about"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-orange-400 transition hover:text-orange-300"
+            className="group mt-5 inline-flex items-center gap-2 rounded text-sm font-semibold text-orange-400 transition duration-200 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
           >
-            Learn More About SKCE
-            <ArrowRight size={15} />
+            Learn More About SK Computer Education
+            <ArrowRight
+              size={15}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
           </Link>
-        </div>
+        </Reveal>
 
         {/* Quick Links */}
-        <div>
-          <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-white">
-            Quick Links
-          </h3>
+        <Reveal delay={100}>
+          <FooterHeading>Quick Links</FooterHeading>
 
           <ul className="space-y-3 text-sm">
             {QUICK_LINKS.map((link) => (
               <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="transition hover:text-orange-400"
-                >
+                <Link href={link.href} className={LINK_CLASS}>
                   {link.label}
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
 
         {/* Popular Courses */}
-        <div>
-          <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-white">
-            Popular Courses
-          </h3>
+        <Reveal delay={200}>
+          <FooterHeading>Popular Courses</FooterHeading>
 
           <ul className="space-y-3 text-sm">
             {COURSE_OPTIONS.slice(0, 6).map((course) => (
               <li key={course.slug}>
                 <Link
                   href={`/courses/${course.slug}`}
-                  className="transition hover:text-orange-400"
+                  className={LINK_CLASS}
                 >
                   {course.title}
                 </Link>
@@ -88,52 +105,50 @@ export default function Footer() {
 
           <Link
             href="/courses"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-orange-400 transition hover:text-orange-300"
+            className="group mt-5 inline-flex items-center gap-2 rounded text-sm font-semibold text-orange-400 transition duration-200 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
           >
             View All Courses
-            <ArrowRight size={14} />
+            <ArrowRight
+              size={14}
+              className="transition-transform duration-200 group-hover:translate-x-1"
+            />
           </Link>
-        </div>
+        </Reveal>
 
         {/* Contact */}
-        <div>
-          <h3 className="mb-5 text-sm font-bold uppercase tracking-wider text-white">
-            Contact Us
-          </h3>
+        <Reveal delay={300}>
+          <FooterHeading>Contact Us</FooterHeading>
 
           <ul className="space-y-4 text-sm">
-            <li className="flex items-start gap-3">
-              <Phone
-                size={17}
-                className="mt-0.5 shrink-0 text-orange-400"
-              />
+            <li className="group flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
+                <Phone size={15} />
+              </span>
               <a
                 href="tel:+919885422483"
-                className="transition hover:text-orange-400"
+                className="pt-1 transition-colors duration-200 hover:text-orange-400"
               >
                 +91 98854 22483
               </a>
             </li>
 
-            <li className="flex items-start gap-3">
-              <Mail
-                size={17}
-                className="mt-0.5 shrink-0 text-orange-400"
-              />
+            <li className="group flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
+                <Mail size={15} />
+              </span>
               <a
                 href="mailto:admissions@skce.in"
-                className="transition hover:text-orange-400"
+                className="break-all pt-1 transition-colors duration-200 hover:text-orange-400"
               >
                 admissions@skce.in
               </a>
             </li>
 
-            <li className="flex items-start gap-3 leading-6">
-              <MapPin
-                size={17}
-                className="mt-1 shrink-0 text-orange-400"
-              />
-              <span>
+            <li className="group flex items-start gap-3 leading-6">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
+                <MapPin size={15} />
+              </span>
+              <span className="pt-0.5">
                 Door NO: 22-8-215/2a,
                 <br />
                 Old Grand world,
@@ -146,13 +161,12 @@ export default function Footer() {
               </span>
             </li>
           </ul>
-        </div>
+        </Reveal>
       </div>
 
       {/* Bottom Footer */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-6 text-xs text-slate-400 sm:flex-row">
-
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 text-xs text-slate-400 sm:flex-row">
           <p className="text-center sm:text-left">
             © {new Date().getFullYear()} SK Computer Education. All rights
             reserved.
@@ -161,21 +175,21 @@ export default function Footer() {
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             <Link
               href="/privacy-policy"
-              className="transition hover:text-orange-400"
+              className="transition-colors duration-200 hover:text-orange-400"
             >
               Privacy Policy
             </Link>
 
             <Link
               href="/terms"
-              className="transition hover:text-orange-400"
+              className="transition-colors duration-200 hover:text-orange-400"
             >
               Terms of Use
             </Link>
 
             <Link
               href="/refund-policy"
-              className="transition hover:text-orange-400"
+              className="transition-colors duration-200 hover:text-orange-400"
             >
               Refund Policy
             </Link>

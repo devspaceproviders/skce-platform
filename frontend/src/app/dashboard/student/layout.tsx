@@ -10,7 +10,8 @@ export default function StudentLayout({
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#F4F6FA",
+        background: "#F7F9FC",
+        color: "#0F2F5F",
       }}
     >
       <StudentSidebar />
@@ -21,6 +22,7 @@ export default function StudentLayout({
           minWidth: 0,
           display: "flex",
           flexDirection: "column",
+          overflowX: "hidden",
         }}
       >
         {children}

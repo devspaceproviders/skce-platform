@@ -1,4 +1,5 @@
 "use client";
+
 import {
   useEffect,
   useMemo,
@@ -9,19 +10,23 @@ import {
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  Award,
   BookOpen,
   CheckCircle2,
-  ChevronDown,
   Clock3,
   Package,
   PlayCircle,
   RefreshCw,
   Search,
   Sparkles,
+  X,
+  AlertCircle,
+  MousePointerClick,
 } from "lucide-react";
+
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 type Course = {
   id: number;
   title: string;
@@ -31,12 +36,14 @@ type Course = {
   isActive?: boolean;
   imageUrl?: string | null;
 };
+
 type PackageCourse = {
   id: number;
   packageId: number;
   courseId: number;
   course: Course | null;
 };
+
 type PackageData = {
   id: number;
   slug?: string | null;
@@ -46,6 +53,7 @@ type PackageData = {
   isActive?: boolean;
   courses: PackageCourse[];
 };
+
 type Enrollment = {
   id: number;
   userId: number;
@@ -58,6 +66,7 @@ type Enrollment = {
   course: Course | null;
   package: PackageData | null;
 };
+
 type DashboardData = {
   id: number;
   name: string;
@@ -65,6 +74,7 @@ type DashboardData = {
   studentId?: string | null;
   enrollments: Enrollment[];
 };
+
 type CourseProgress = {
   courseId: number;
   totalLessons: number;
@@ -79,110 +89,112 @@ type CourseProgress = {
     completedAt: string | null;
   }[];
 };
+
 type StudentCourse = {
   course: Course;
   enrollmentStatus: string;
   packageName: string | null;
   enrolledAt: string | null;
 };
+
 type FilterKey = "ALL" | "ACTIVE" | "COMPLETED";
+
 function getToken() {
   if (typeof window === "undefined") {
     return null;
   }
+
   return localStorage.getItem("token");
 }
-function getImageUrl(
-  imageUrl?: string | null
-) {
+
+function getImageUrl(imageUrl?: string | null) {
   if (!imageUrl) {
     return null;
   }
 
-  if (
-    imageUrl.startsWith("http://") ||
-    imageUrl.startsWith("https://")
-  ) {
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
     return imageUrl;
   }
 
   return `${API_URL.replace("/api", "")}${imageUrl}`;
 }
-function safeText(value: unknown) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
-    return "—";
-  }
-  return String(value);
-}
+
 function formatDate(value: string | null) {
   if (!value) {
     return "—";
   }
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) {
     return "—";
   }
+
   return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(date);
 }
+
 function formatStatus(value: string) {
   if (!value) {
     return "Unknown";
   }
-  return (
-    value.charAt(0).toUpperCase() +
-    value.slice(1).toLowerCase()
-  );
+
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 }
+
+function clampPercent(value: number) {
+  return Math.min(Math.max(value, 0), 100);
+}
+
+function reveal(index: number): CSSProperties {
+  return { ["--i" as string]: index } as CSSProperties;
+}
+
 export default function MyCoursesPage() {
   const router = useRouter();
-  const [courses, setCourses] =
-    useState<StudentCourse[]>([]);
-  const [progressMap, setProgressMap] = useState<
-    Record<number, CourseProgress>
-  >({});
+
+  const [courses, setCourses] = useState<StudentCourse[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<number, CourseProgress>>(
+    {}
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [filter, setFilter] =
-    useState<FilterKey>("ALL");
+  const [filter, setFilter] = useState<FilterKey>("ALL");
+  const [featuredId, setFeaturedId] = useState<number | null>(null);
+
   async function loadCourses(showRefresh = false) {
     const token = getToken();
+
     if (!token) {
       setError("Please login again.");
       setLoading(false);
       return;
     }
+
     try {
       if (showRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
+
       setError("");
-      const response = await fetch(
-        `${API_URL}/students/me/dashboard`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        }
-      );
-      if (
-        response.status === 401 ||
-        response.status === 403
-      ) {
+
+      const response = await fetch(`${API_URL}/students/me/dashboard`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+
+      if (response.status === 401 || response.status === 403) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("role");
@@ -191,83 +203,73 @@ export default function MyCoursesPage() {
         router.push("/login");
         return;
       }
+
       const json = await response.json();
+
       if (!response.ok) {
-        throw new Error(
-          json?.message ||
-            "Failed to load your courses."
-        );
+        throw new Error(json?.message || "Failed to load your courses.");
       }
-      const dashboard: DashboardData =
-        json?.data ?? json;
-      const courseMap = new Map<
-        number,
-        StudentCourse
-      >();
+
+      const dashboard: DashboardData = json?.data ?? json;
+
+      const courseMap = new Map<number, StudentCourse>();
+
       for (const enrollment of dashboard?.enrollments ?? []) {
         if (enrollment.course) {
           courseMap.set(enrollment.course.id, {
             course: enrollment.course,
             enrollmentStatus: enrollment.status,
             packageName: null,
-            enrolledAt:
-              enrollment.enrolledAt ?? null,
+            enrolledAt: enrollment.enrolledAt ?? null,
           });
         }
+
         if (enrollment.package) {
-          for (const packageItem of
-            enrollment.package.courses ?? []) {
+          for (const packageItem of enrollment.package.courses ?? []) {
             if (!packageItem.course) {
               continue;
             }
-            const courseId =
-              packageItem.course.id;
+
+            const courseId = packageItem.course.id;
+
             if (!courseMap.has(courseId)) {
               courseMap.set(courseId, {
                 course: packageItem.course,
-                enrollmentStatus:
-                  enrollment.status,
-                packageName:
-                  enrollment.package.title,
-                enrolledAt:
-                  enrollment.enrolledAt ?? null,
+                enrollmentStatus: enrollment.status,
+                packageName: enrollment.package.title,
+                enrolledAt: enrollment.enrolledAt ?? null,
               });
             }
           }
         }
       }
-      const studentCourses = Array.from(
-        courseMap.values()
-      );
+
+      const studentCourses = Array.from(courseMap.values());
+
       setCourses(studentCourses);
+
       const progressResults = await Promise.all(
         studentCourses.map(async (item) => {
           try {
-            const progressResponse =
-              await fetch(
-                `${API_URL}/course-progress/courses/${item.course.id}/progress`,
-                {
-                  method: "GET",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type":
-                      "application/json",
-                  },
-                  cache: "no-store",
-                }
-              );
+            const progressResponse = await fetch(
+              `${API_URL}/course-progress/courses/${item.course.id}/progress`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+                cache: "no-store",
+              }
+            );
+
             if (!progressResponse.ok) {
               return null;
             }
-            const progressJson =
-              await progressResponse.json();
-            if (!progressResponse.ok) {
-              return null;
-            }
-            return (
-              progressJson?.data ??
-              progressJson
-            ) as CourseProgress;
+
+            const progressJson = await progressResponse.json();
+
+            return (progressJson?.data ?? progressJson) as CourseProgress;
           } catch (progressError) {
             console.error(
               `Progress error for course ${item.course.id}:`,
@@ -277,39 +279,33 @@ export default function MyCoursesPage() {
           }
         })
       );
-      const nextProgressMap: Record<
-        number,
-        CourseProgress
-      > = {};
+
+      const nextProgressMap: Record<number, CourseProgress> = {};
+
       for (const progress of progressResults) {
         if (progress?.courseId) {
-          nextProgressMap[
-            progress.courseId
-          ] = progress;
+          nextProgressMap[progress.courseId] = progress;
         }
       }
+
       setProgressMap(nextProgressMap);
     } catch (err) {
-      console.error(
-        "My Courses error:",
-        err
-      );
+      console.error("My Courses error:", err);
+
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load your courses."
+        err instanceof Error ? err.message : "Unable to load your courses."
       );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }
+
   useEffect(() => {
     void loadCourses();
   }, []);
-  const getCourseProgress = (
-    courseId: number
-  ): CourseProgress => {
+
+  const getCourseProgress = (courseId: number): CourseProgress => {
     return (
       progressMap[courseId] ?? {
         courseId,
@@ -322,400 +318,455 @@ export default function MyCoursesPage() {
       }
     );
   };
+
   const counts = useMemo(() => {
     let completed = 0;
     let active = 0;
+
     for (const item of courses) {
-      const progress = getCourseProgress(
-        item.course.id
-      );
+      const progress = getCourseProgress(item.course.id);
+
       if (progress.progressPercentage === 100) {
         completed += 1;
       } else {
         active += 1;
       }
     }
-    return {
-      total: courses.length,
-      active,
-      completed,
-    };
+
+    return { total: courses.length, active, completed };
   }, [courses, progressMap]);
+
   const filteredCourses = useMemo(() => {
-    const normalizedSearch =
-      search.trim().toLowerCase();
+    const normalizedSearch = search.trim().toLowerCase();
+
     return courses.filter((item) => {
-      const progress = getCourseProgress(
-        item.course.id
-      );
+      const progress = getCourseProgress(item.course.id);
+
       const matchesFilter =
         filter === "ALL" ||
-        (filter === "COMPLETED" &&
-          progress.progressPercentage === 100) ||
-        (filter === "ACTIVE" &&
-          progress.progressPercentage < 100);
+        (filter === "COMPLETED" && progress.progressPercentage === 100) ||
+        (filter === "ACTIVE" && progress.progressPercentage < 100);
+
       const matchesSearch =
         !normalizedSearch ||
-        item.course.title
-          .toLowerCase()
-          .includes(normalizedSearch) ||
-        Boolean(
-          item.packageName
-            ?.toLowerCase()
-            .includes(normalizedSearch)
-        );
+        item.course.title.toLowerCase().includes(normalizedSearch) ||
+        Boolean(item.packageName?.toLowerCase().includes(normalizedSearch));
+
       return matchesFilter && matchesSearch;
     });
-  }, [
-    courses,
-    progressMap,
-    search,
-    filter,
-  ]);
-  const nextCourse = useMemo(
-    () =>
+  }, [courses, progressMap, search, filter]);
+
+  /*
+   * Default spotlight course: the one the student is actually working on
+   * (started, not finished) -> else first unfinished course that has lessons
+   * -> else first unfinished -> else first course.
+   */
+  const defaultFeatured = useMemo(() => {
+    const pct = (item: StudentCourse) =>
+      getCourseProgress(item.course.id).progressPercentage;
+
+    return (
       courses.find(
         (item) =>
-          getCourseProgress(item.course.id)
-            .progressPercentage < 100
-      ) ?? null,
-    [courses, progressMap]
+          getCourseProgress(item.course.id).startedLessons > 0 && pct(item) < 100
+      ) ??
+      courses.find(
+        (item) =>
+          getCourseProgress(item.course.id).totalLessons > 0 && pct(item) < 100
+      ) ??
+      courses.find((item) => pct(item) < 100) ??
+      courses[0] ??
+      null
+    );
+  }, [courses, progressMap]);
+
+  const featured = useMemo(
+    () =>
+      courses.find((item) => item.course.id === featuredId) ?? defaultFeatured,
+    [courses, featuredId, defaultFeatured]
   );
+
   const totalLessons = useMemo(
     () =>
       courses.reduce(
-        (sum, item) =>
-          sum +
-          getCourseProgress(item.course.id)
-            .totalLessons,
+        (sum, item) => sum + getCourseProgress(item.course.id).totalLessons,
         0
       ),
     [courses, progressMap]
   );
+
   const completedLessons = useMemo(
     () =>
       courses.reduce(
-        (sum, item) =>
-          sum +
-          getCourseProgress(item.course.id)
-            .completedLessons,
+        (sum, item) => sum + getCourseProgress(item.course.id).completedLessons,
         0
       ),
     [courses, progressMap]
   );
+
+  function clearFilters() {
+    setSearch("");
+    setFilter("ALL");
+  }
+
   if (loading) {
     return (
       <>
-        <main style={pageStyle}>
-          <PageHeading
-            onRefresh={() =>
-              loadCourses(true)
-            }
-            refreshing
-          />
-          <LoadingState />
+        <main className="mc-page" aria-busy="true" aria-live="polite">
+          <div className="mc-container">
+            <PageHeading onRefresh={() => loadCourses(true)} refreshing />
+            <div className="mc-summary">
+              {[0, 1, 2, 3].map((n) => (
+                <div key={n} className="mc-skel mc-skel-tile" />
+              ))}
+            </div>
+            <div className="mc-skel mc-skel-hero" />
+            <div className="mc-grid">
+              {[0, 1, 2].map((n) => (
+                <div key={n} className="mc-skel mc-skel-card" />
+              ))}
+            </div>
+            <span className="mc-sr">Loading your courses</span>
+          </div>
         </main>
-        <GlobalStyles />
+        <MyCoursesStyles />
       </>
     );
   }
+
   if (error) {
     return (
       <>
-        <main style={pageStyle}>
-          <PageHeading
-            onRefresh={() =>
-              loadCourses(true)
-            }
-            refreshing={false}
-          />
-          <div style={errorCardStyle}>
-            <div style={errorIconStyle}>
-              !
+        <main className="mc-page">
+          <div className="mc-container">
+            <PageHeading onRefresh={() => loadCourses(true)} refreshing={false} />
+            <div className="mc-error" role="alert">
+              <div className="mc-error-icon">
+                <AlertCircle size={24} />
+              </div>
+              <h2>Unable to load your courses</h2>
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => loadCourses(true)}
+                className="mc-btn mc-btn-primary"
+              >
+                <RefreshCw size={16} />
+                Try Again
+              </button>
             </div>
-            <h2 style={errorTitleStyle}>
-              Unable to load your courses
-            </h2>
-            <p style={errorTextStyle}>
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() =>
-                loadCourses(true)
-              }
-              style={primaryButtonStyle}
-            >
-              <RefreshCw size={14} />
-              Try Again
-            </button>
           </div>
         </main>
-        <GlobalStyles />
+        <MyCoursesStyles />
       </>
     );
   }
+
+  const featuredProgress = featured
+    ? getCourseProgress(featured.course.id)
+    : null;
+  const featuredCompleted = featuredProgress?.progressPercentage === 100;
+  const featuredStarted = (featuredProgress?.startedLessons ?? 0) > 0;
+  const featuredImage = featured ? getImageUrl(featured.course.imageUrl) : null;
+  const featuredLabel = featuredCompleted
+    ? "Course completed"
+    : featuredStarted
+    ? "Continue learning"
+    : "Start learning";
+  const featuredButton = featuredCompleted
+    ? "Review Course"
+    : featuredStarted
+    ? "Continue Learning"
+    : "Start Learning";
+
   return (
     <>
-      <main style={pageStyle}>
-        <PageHeading
-          onRefresh={() =>
-            loadCourses(true)
-          }
-          refreshing={refreshing}
-        />
-        {/* Learning snapshot */}
-        <section className="skce-course-summary">
-          <SummaryCard
-            icon={BookOpen}
-            label="My Courses"
-            value={counts.total}
-            helper="Courses available to you"
-            tone="blue"
+      <main className="mc-page">
+        <div className="mc-container">
+          <PageHeading
+            onRefresh={() => loadCourses(true)}
+            refreshing={refreshing}
           />
-          <SummaryCard
-            icon={PlayCircle}
-            label="In Progress"
-            value={counts.active}
-            helper="Continue learning"
-            tone="rose"
-          />
-          <SummaryCard
-            icon={CheckCircle2}
-            label="Completed"
-            value={counts.completed}
-            helper="Courses finished"
-            tone="green"
-          />
-          <SummaryCard
-            icon={Clock3}
-            label="Lessons"
-            value={`${completedLessons}/${totalLessons}`}
-            helper="Completed lessons"
-            tone="gold"
-          />
-        </section>
-        {/* Continue learning hero */}
-        {nextCourse ? (
-          <section style={continueCardStyle}>
-            <div style={continueDecorOneStyle} />
-            <div style={continueContentStyle}>
-              <div style={continueEyebrowStyle}>
-                <Sparkles size={13} />
-                CONTINUE LEARNING
+
+          {/* Summary */}
+          <section className="mc-summary">
+            <SummaryCard
+              index={1}
+              icon={BookOpen}
+              label="My Courses"
+              value={counts.total}
+              helper="Courses available to you"
+              tone="blue"
+            />
+            <SummaryCard
+              index={2}
+              icon={PlayCircle}
+              label="In Progress"
+              value={counts.active}
+              helper="Continue learning"
+              tone="orange"
+            />
+            <SummaryCard
+              index={3}
+              icon={CheckCircle2}
+              label="Completed"
+              value={counts.completed}
+              helper="Courses finished"
+              tone="green"
+            />
+            <SummaryCard
+              index={4}
+              icon={Clock3}
+              label="Lessons"
+              value={completedLessons}
+              suffix={`/${totalLessons}`}
+              helper="Completed lessons"
+              tone="navy"
+            />
+          </section>
+
+          {/* Spotlight: follows the hovered / clicked course */}
+          {featured && featuredProgress ? (
+            <section
+              className="mc-hero mc-reveal"
+              style={reveal(5)}
+              aria-live="polite"
+            >
+              <div className="mc-hero-glow" aria-hidden="true" />
+              <div className="mc-hero-inner" key={featured.course.id}>
+                <div className="mc-hero-main mc-swap">
+                  <div className="mc-hero-thumb">
+                    {featuredImage ? (
+                      <img src={featuredImage} alt={featured.course.title} />
+                    ) : (
+                      <BookOpen size={30} />
+                    )}
+                  </div>
+                  <div className="mc-min0">
+                    <div className="mc-eyebrow">
+                      {featuredCompleted ? (
+                        <CheckCircle2 size={14} />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      {featuredLabel}
+                    </div>
+                    <h2>{featured.course.title}</h2>
+                    <p>
+                      {featured.course.description ||
+                        "Pick up your learning journey where you left off."}
+                    </p>
+                    <div className="mc-hero-meta">
+                      <span>
+                        <BookOpen size={14} />
+                        {featuredProgress.totalLessons > 0
+                          ? `${featuredProgress.completedLessons} / ${featuredProgress.totalLessons} lessons`
+                          : "Lessons coming soon"}
+                      </span>
+                      <span>
+                        <Package size={14} />
+                        {featured.packageName || "Direct enrollment"}
+                      </span>
+                      {featured.course.mode ? (
+                        <span>{featured.course.mode}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mc-hero-action mc-swap">
+                  <div className="mc-hero-pct">
+                    {Math.round(featuredProgress.progressPercentage)}%
+                  </div>
+                  <div className="mc-hero-track">
+                    <span
+                      style={{
+                        width: `${clampPercent(
+                          featuredProgress.progressPercentage
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="mc-hero-buttons">
+                    {featuredCompleted ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push("/dashboard/student/certificates")
+                        }
+                        className="mc-btn mc-btn-ghost-light"
+                      >
+                        <Award size={15} />
+                        Certificates
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/student/my-courses/${featured.course.id}`
+                        )
+                      }
+                      className="mc-btn mc-btn-primary"
+                    >
+                      {featuredButton}
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <h2 style={continueTitleStyle}>
-                {nextCourse.course.title}
-              </h2>
-              <p style={continueDescriptionStyle}>
-                {nextCourse.course.description ||
-                  "Pick up your learning journey where you left off."}
-              </p>
-              <div style={continueMetaStyle}>
-                <span>
-                  <BookOpen size={13} />
-                  {getCourseProgress(
-                    nextCourse.course.id
-                  ).completedLessons}{" "}
-                  /{" "}
-                  {getCourseProgress(
-                    nextCourse.course.id
-                  ).totalLessons}{" "}
-                  lessons
-                </span>
-                {nextCourse.packageName ? (
-                  <span>
-                    <Package size={13} />
-                    {nextCourse.packageName}
-                  </span>
-                ) : (
-                  <span>
-                    Direct enrollment
-                  </span>
-                )}
+              <div className="mc-hero-hint">
+                <MousePointerClick size={13} />
+                Hover or tap any course below to preview it here
               </div>
+            </section>
+          ) : null}
+
+          {/* Library controls */}
+          <section className="mc-library-head mc-reveal" style={reveal(6)}>
+            <div>
+              <h2>Course Library</h2>
+              <p>Open a course to access its lessons and learning content.</p>
             </div>
-            <div style={continueActionStyle}>
-              <div style={continuePercentStyle}>
-                {Math.round(
-                  getCourseProgress(
-                    nextCourse.course.id
-                  ).progressPercentage
-                )}
-                %
-              </div>
-              <div style={continueProgressTrackStyle}>
-                <span
-                  style={{
-                    ...continueProgressFillStyle,
-                    width: `${Math.min(
-                      Math.max(
-                        getCourseProgress(
-                          nextCourse.course.id
-                        ).progressPercentage,
-                        0
-                      ),
-                      100
-                    )}%`,
-                  }}
+
+            <div className="mc-controls">
+              <label className="mc-search">
+                <Search size={16} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search courses..."
+                  aria-label="Search courses"
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    className="mc-search-clear"
+                    onClick={() => setSearch("")}
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : null}
+              </label>
+
+              <div className="mc-filters" role="tablist" aria-label="Filter courses">
+                <FilterButton
+                  label="All"
+                  count={counts.total}
+                  active={filter === "ALL"}
+                  onClick={() => setFilter("ALL")}
+                />
+                <FilterButton
+                  label="In Progress"
+                  count={counts.active}
+                  active={filter === "ACTIVE"}
+                  onClick={() => setFilter("ACTIVE")}
+                />
+                <FilterButton
+                  label="Completed"
+                  count={counts.completed}
+                  active={filter === "COMPLETED"}
+                  onClick={() => setFilter("COMPLETED")}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  router.push(
-                    `/dashboard/student/my-courses/${nextCourse.course.id}`
-                  )
-                }
-                style={continueButtonStyle}
-              >
-                Continue Learning
-                <ArrowRight size={15} />
-              </button>
             </div>
           </section>
-        ) : (
-          <section style={completedBannerStyle}>
-            <div style={completedBannerIconStyle}>
-              <CheckCircle2 size={24} />
+
+          {/* Course cards */}
+          {filteredCourses.length === 0 ? (
+            <div className="mc-empty">
+              <div className="mc-empty-icon">
+                <BookOpen size={22} />
+              </div>
+              <strong>No courses found</strong>
+              <span>
+                {courses.length === 0
+                  ? "Your enrolled courses will appear here."
+                  : "No courses match your current search or filter."}
+              </span>
+              {courses.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mc-btn mc-btn-secondary"
+                >
+                  Clear Filters
+                </button>
+              ) : null}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <h2 style={completedBannerTitleStyle}>
-                All enrolled courses are completed
-              </h2>
-              <p style={completedBannerTextStyle}>
-                You have completed every course currently
-                available in your account. Your certificates
-                are ready to view.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                router.push(
-                  "/dashboard/student/certificates"
-                )
-              }
-              style={secondaryGoldButtonStyle}
-            >
-              View Certificates
-              <ArrowRight size={14} />
-            </button>
-          </section>
-        )}
-        {/* Library controls */}
-        <section style={libraryHeaderStyle}>
-          <div>
-            <h2 style={libraryTitleStyle}>
-              Course Library
-            </h2>
-            <p style={librarySubtitleStyle}>
-              Open a course to access its lessons and learning
-              content.
-            </p>
-          </div>
-          <div style={controlsStyle}>
-            <div style={courseSearchStyle}>
-              <Search
-                size={15}
-                color="#8b95a4"
-              />
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                placeholder="Search courses..."
-                style={courseSearchInputStyle}
-              />
-            </div>
-            <div style={filterGroupStyle}>
-              <FilterButton
-                label="All"
-                count={counts.total}
-                active={filter === "ALL"}
-                onClick={() =>
-                  setFilter("ALL")
-                }
-              />
-              <FilterButton
-                label="In Progress"
-                count={counts.active}
-                active={filter === "ACTIVE"}
-                onClick={() =>
-                  setFilter("ACTIVE")
-                }
-              />
-              <FilterButton
-                label="Completed"
-                count={counts.completed}
-                active={
-                  filter === "COMPLETED"
-                }
-                onClick={() =>
-                  setFilter("COMPLETED")
-                }
-              />
-            </div>
-          </div>
-        </section>
-        {/* Course cards */}
-        {filteredCourses.length === 0 ? (
-          <div style={emptyCardStyle}>
-            <BookOpen
-              size={25}
-              color="#96a0ae"
-            />
-            <strong style={emptyTitleStyle}>
-              No courses found
-            </strong>
-            <span style={emptyTextStyle}>
-              {courses.length === 0
-                ? "Your enrolled courses will appear here."
-                : "Try a different search or filter."}
+          ) : (
+            <section className="mc-grid" key={`${filter}-${search}`}>
+              {filteredCourses.map((item, index) => (
+                <CourseCard
+                  key={item.course.id}
+                  index={index}
+                  course={item.course}
+                  progress={getCourseProgress(item.course.id)}
+                  enrollmentStatus={item.enrollmentStatus}
+                  packageName={item.packageName}
+                  enrolledAt={item.enrolledAt}
+                  selected={featured?.course.id === item.course.id}
+                  onPreview={() => setFeaturedId(item.course.id)}
+                  onOpen={() =>
+                    router.push(`/dashboard/student/my-courses/${item.course.id}`)
+                  }
+                />
+              ))}
+            </section>
+          )}
+
+          <div className="mc-note">
+            <BookOpen size={15} />
+            <span>
+              My Courses is your learning library. Detailed analytics and
+              achievement breakdowns are available under My Progress.
             </span>
           </div>
-        ) : (
-          <section className="skce-course-grid">
-            {filteredCourses.map((item) => (
-              <CourseCard
-                key={item.course.id}
-                course={item.course}
-                progress={getCourseProgress(
-                  item.course.id
-                )}
-                enrollmentStatus={
-                  item.enrollmentStatus
-                }
-                packageName={
-                  item.packageName
-                }
-                enrolledAt={
-                  item.enrolledAt
-                }
-                onOpen={() =>
-                  router.push(
-                    `/dashboard/student/my-courses/${item.course.id}`
-                  )
-                }
-              />
-            ))}
-          </section>
-        )}
-        {/* Bottom learning note */}
-        <div style={bottomNoteStyle}>
-          <BookOpen size={15} />
-          <span>
-            My Courses is your learning library. Detailed
-            analytics and achievement breakdowns are available
-            under My Progress.
-          </span>
         </div>
       </main>
-      <GlobalStyles />
+      <MyCoursesStyles />
     </>
   );
 }
+
+function CountUp({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduce) {
+      setDisplay(value);
+      return;
+    }
+
+    const start = performance.now();
+    let raf = 0;
+
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / 900, 1);
+      setDisplay(value * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) {
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+
+  return (
+    <>
+      {Math.round(display)}
+      {suffix}
+    </>
+  );
+}
+
 function PageHeading({
   onRefresh,
   refreshing,
@@ -724,102 +775,61 @@ function PageHeading({
   refreshing: boolean;
 }) {
   return (
-    <div style={headingStyle}>
+    <div className="mc-heading mc-reveal" style={reveal(0)}>
       <div>
-        <div style={eyebrowStyle}>
-          STUDENT LEARNING
-        </div>
-        <h1 style={titleStyle}>
-          My Courses
-        </h1>
-        <p style={subtitleStyle}>
-          Your enrolled courses, learning content and
-          continuation points in one place.
+        <div className="mc-kicker">Student learning</div>
+        <h1>My Courses</h1>
+        <p>
+          Your enrolled courses, learning content and continuation points in
+          one place.
         </p>
       </div>
       <button
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
-        style={{
-          ...refreshButtonStyle,
-          opacity: refreshing ? 0.65 : 1,
-        }}
+        className="mc-btn mc-btn-secondary mc-refresh"
       >
-        <RefreshCw
-          size={15}
-          style={{
-            animation: refreshing
-              ? "studentCoursesSpin 0.8s linear infinite"
-              : undefined,
-          }}
-        />
-        {refreshing
-          ? "Refreshing..."
-          : "Refresh"}
+        <RefreshCw size={15} className={refreshing ? "mc-spin" : "mc-refresh-icon"} />
+        {refreshing ? "Refreshing..." : "Refresh"}
       </button>
     </div>
   );
 }
+
 function SummaryCard({
+  index,
   icon: Icon,
   label,
   value,
+  suffix,
   helper,
   tone,
 }: {
-  icon: ComponentType<{
-    size?: number | string;
-  }>;
+  index: number;
+  icon: ComponentType<{ size?: number | string }>;
   label: string;
-  value: string | number;
+  value: number;
+  suffix?: string;
   helper: string;
-  tone: "blue" | "rose" | "green" | "gold";
+  tone: "blue" | "orange" | "green" | "navy";
 }) {
-  const tones = {
-    blue: {
-      bg: "#eaf0ff",
-      fg: "#316cf2",
-    },
-    rose: {
-      bg: "#f8e8ef",
-      fg: "#a01441",
-    },
-    green: {
-      bg: "#eaf8f0",
-      fg: "#18945a",
-    },
-    gold: {
-      bg: "#fff4dc",
-      fg: "#b97911",
-    },
-  };
-  const palette = tones[tone];
   return (
-    <div style={summaryCardStyle}>
-      <div
-        style={{
-          ...summaryIconStyle,
-          background: palette.bg,
-          color: palette.fg,
-        }}
-      >
-        <Icon size={19} />
+    <div className="mc-tile mc-reveal" style={reveal(index)}>
+      <div className={`mc-icon mc-tone-${tone}`}>
+        <Icon size={20} />
       </div>
-      <div style={{ minWidth: 0 }}>
-        <span style={summaryLabelStyle}>
-          {label}
-        </span>
-        <strong style={summaryValueStyle}>
-          {safeText(value)}
+      <div className="mc-min0">
+        <span className="mc-tile-label">{label}</span>
+        <strong className="mc-tile-value">
+          <CountUp value={value} suffix={suffix} />
         </strong>
-        <span style={summaryHelperStyle}>
-          {helper}
-        </span>
+        <span className="mc-tile-helper">{helper}</span>
       </div>
     </div>
   );
 }
+
 function FilterButton({
   label,
   count,
@@ -834,845 +844,315 @@ function FilterButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
-      style={{
-        ...filterButtonStyle,
-        ...(active
-          ? filterButtonActiveStyle
-          : {}),
-      }}
+      className={`mc-filter${active ? " is-active" : ""}`}
     >
       {label}
-      <span
-        style={{
-          ...filterCountStyle,
-          ...(active
-            ? filterCountActiveStyle
-            : {}),
-        }}
-      >
-        {count}
-      </span>
+      <span className="mc-filter-count">{count}</span>
     </button>
   );
 }
+
 function CourseCard({
+  index,
   course,
   progress,
   enrollmentStatus,
   packageName,
   enrolledAt,
+  selected,
+  onPreview,
   onOpen,
 }: {
+  index: number;
   course: Course;
   progress: CourseProgress;
   enrollmentStatus: string;
   packageName: string | null;
   enrolledAt: string | null;
+  selected: boolean;
+  onPreview: () => void;
   onOpen: () => void;
 }) {
-  const completed =
-    progress.progressPercentage === 100;
-  const started =
-    progress.startedLessons > 0;
-  const statusText = completed
-    ? "Completed"
-    : started
-    ? "In Progress"
-    : "Not Started";
+  const completed = progress.progressPercentage === 100;
+  const started = progress.startedLessons > 0;
+  const statusText = completed ? "Completed" : started ? "In Progress" : "Not Started";
+  const statusClass = completed ? "is-done" : started ? "is-active" : "is-new";
+  const image = getImageUrl(course.imageUrl);
+  const percent = clampPercent(progress.progressPercentage);
+
   return (
-    <article className="skce-course-card" style={courseCardStyle}>
-      <div style={courseCardTopStyle}>
-        <div style={courseBadgeStyle}>
-          {getImageUrl(course.imageUrl) ? (
-            <img
-              src={getImageUrl(course.imageUrl) ?? ""}
-              alt={course.title}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                borderRadius: 11,
-                display: "block",
-              }}
-            />
-          ) : (
-            <BookOpen size={19} />
-          )}
-        </div>
-        <span
-          style={{
-            ...courseStatusStyle,
-            ...(completed
-              ? courseCompletedStyle
-              : started
-              ? courseActiveStyle
-              : courseNotStartedStyle),
-          }}
-        >
-          {completed ? (
-            <CheckCircle2 size={11} />
-          ) : null}
+    <article
+      className={`mc-card mc-reveal${selected ? " is-selected" : ""}`}
+      style={reveal(Math.min(index, 8) + 7)}
+      onMouseEnter={onPreview}
+      onFocus={onPreview}
+      onClick={onPreview}
+    >
+      <div className="mc-cover">
+        {image ? (
+          <img src={image} alt={course.title} />
+        ) : (
+          <div className="mc-cover-fallback">
+            <BookOpen size={30} />
+          </div>
+        )}
+        <span className={`mc-status ${statusClass}`}>
+          {completed ? <CheckCircle2 size={12} /> : null}
           {statusText}
         </span>
       </div>
-      <h3 style={courseTitleStyle}>
-        {course.title}
-      </h3>
-      <div style={courseMetaStyle}>
-        {course.mode ? (
-          <span>{course.mode}</span>
-        ) : null}
-        {packageName ? (
-          <span style={packageMetaStyle}>
-            <Package size={11} />
-            {packageName}
-          </span>
-        ) : (
-          <span>Direct enrollment</span>
-        )}
-      </div>
-      {course.description ? (
-        <p style={courseDescriptionStyle}>
-          {course.description}
-        </p>
-      ) : (
-        <p style={courseDescriptionStyle}>
-          Access your course lessons and continue learning
-          from here.
-        </p>
-      )}
-      <div style={progressSectionStyle}>
-        <div style={progressHeaderStyle}>
-          <span>Learning progress</span>
-          <strong>
-            {Math.round(
-              progress.progressPercentage
-            )}
-            %
-          </strong>
-        </div>
-        <div style={progressTrackStyle}>
-          <span
-            style={{
-              ...progressFillStyle,
-              width: `${Math.min(
-                Math.max(
-                  progress.progressPercentage,
-                  0
-                ),
-                100
-              )}%`,
-              ...(completed
-                ? {
-                    background: "#16a05d",
-                  }
-                : {}),
-            }}
-          />
-        </div>
-        <div style={lessonStatsStyle}>
-          <span>
-            {progress.completedLessons}/
-            {progress.totalLessons} lessons
-          </span>
-          <span>
-            {progress.remainingLessons} remaining
-          </span>
-        </div>
-      </div>
-      <div style={courseFooterStyle}>
-        <div style={courseEnrollmentStyle}>
-          <span>
-            Enrolled{" "}
-            {formatDate(enrolledAt)}
-          </span>
-          {enrollmentStatus ? (
-            <span>
-              {formatStatus(
-                enrollmentStatus
-              )}
+
+      <div className="mc-card-body">
+        <h3>{course.title}</h3>
+
+        <div className="mc-card-meta">
+          {course.mode ? <span>{course.mode}</span> : null}
+          {packageName ? (
+            <span className="mc-pkg">
+              <Package size={12} />
+              {packageName}
             </span>
-          ) : null}
+          ) : (
+            <span>Direct enrollment</span>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={onOpen}
-          style={courseActionStyle}
-        >
-          {completed
-            ? "Review Course"
-            : started
-            ? "Continue"
-            : "Start Learning"}
-          <ArrowRight size={14} />
-        </button>
+
+        <p className="mc-card-desc">
+          {course.description ||
+            "Access your course lessons and continue learning from here."}
+        </p>
+
+        <div className="mc-progress">
+          <div className="mc-progress-head">
+            <span>Learning progress</span>
+            <strong>{Math.round(progress.progressPercentage)}%</strong>
+          </div>
+          <div
+            className="mc-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(percent)}
+          >
+            <span
+              className={completed ? "is-done" : undefined}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <div className="mc-progress-foot">
+            <span>
+              {progress.completedLessons}/{progress.totalLessons} lessons
+            </span>
+            <span>{progress.remainingLessons} remaining</span>
+          </div>
+        </div>
+
+        <div className="mc-card-foot">
+          <div className="mc-enrolled">
+            <span>Enrolled {formatDate(enrolledAt)}</span>
+            {enrollmentStatus ? <span>{formatStatus(enrollmentStatus)}</span> : null}
+          </div>
+          <button type="button" onClick={onOpen} className="mc-btn mc-btn-primary mc-btn-sm">
+            {completed ? "Review Course" : started ? "Continue" : "Start Learning"}
+            <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
     </article>
   );
 }
-function LoadingState() {
-  return (
-    <div style={loadingCardStyle}>
-      <RefreshCw
-        size={25}
-        color="#2f6bff"
-        style={{
-          animation:
-            "studentCoursesSpin 0.8s linear infinite",
-        }}
-      />
-      <strong style={loadingTitleStyle}>
-        Loading your courses
-      </strong>
-      <span style={loadingTextStyle}>
-        Fetching your enrolled learning content.
-      </span>
-    </div>
-  );
+
+function MyCoursesStyles() {
+  return <style dangerouslySetInnerHTML={{ __html: myCoursesCss }} />;
 }
-const pageStyle: CSSProperties = {
-  width: "100%",
-  minWidth: 0,
-  flex: 1,
-  boxSizing: "border-box",
-  padding: "28px 32px 36px",
-  background: "#f5f7fb",
-};
-const headingStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: 20,
-  marginBottom: 18,
-};
-const eyebrowStyle: CSSProperties = {
-  marginBottom: 5,
-  fontSize: 10.5,
-  fontWeight: 800,
-  letterSpacing: "0.11em",
-  color: "#a01441",
-};
-const titleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: 27,
-  lineHeight: 1.2,
-  fontWeight: 800,
-  letterSpacing: "-0.02em",
-  color: "#111827",
-};
-const subtitleStyle: CSSProperties = {
-  maxWidth: 700,
-  margin: "6px 0 0",
-  fontSize: 13,
-  lineHeight: 1.6,
-  color: "#818b9b",
-};
-const refreshButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 7,
-  border: "1px solid #d9dfe8",
-  borderRadius: 9,
-  padding: "9px 12px",
-  background: "#ffffff",
-  color: "#374151",
-  fontSize: 11,
-  fontWeight: 800,
-  cursor: "pointer",
-  flex: "0 0 auto",
-};
-const summaryCardStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 11,
-  minWidth: 0,
-  padding: 15,
-  border: "1px solid #e4e8ef",
-  borderRadius: 15,
-  background: "#ffffff",
-  boxShadow:
-    "0 4px 12px rgba(15,23,42,0.035)",
-};
-const summaryIconStyle: CSSProperties = {
-  width: 41,
-  height: 41,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flex: "0 0 41px",
-  borderRadius: 11,
-};
-const summaryLabelStyle: CSSProperties = {
-  display: "block",
-  fontSize: 10.5,
-  color: "#8c95a5",
-};
-const summaryValueStyle: CSSProperties = {
-  display: "block",
-  marginTop: 2,
-  fontSize: 19,
-  lineHeight: 1.15,
-  color: "#111827",
-};
-const summaryHelperStyle: CSSProperties = {
-  display: "block",
-  marginTop: 3,
-  fontSize: 9.5,
-  color: "#9aa2af",
-};
-const continueCardStyle: CSSProperties = {
-  position: "relative",
-  overflow: "hidden",
-  display: "flex",
-  alignItems: "stretch",
-  justifyContent: "space-between",
-  gap: 24,
-  minHeight: 180,
-  margin: "18px 0",
-  padding: "24px 25px",
-  borderRadius: 19,
-  background:
-    "linear-gradient(135deg,#122846 0%,#1a4775 62%,#2f6bf0 100%)",
-  color: "#ffffff",
-  boxShadow:
-    "0 12px 28px rgba(16,34,63,0.13)",
-};
-const continueDecorOneStyle: CSSProperties = {
-  position: "absolute",
-  width: 250,
-  height: 250,
-  right: -65,
-  top: -150,
-  borderRadius: "50%",
-  background:
-    "rgba(255,255,255,0.07)",
-};
-const continueContentStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 1,
-  minWidth: 0,
-  flex: 1,
-};
-const continueEyebrowStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 5,
-  marginBottom: 8,
-  fontSize: 9.5,
-  fontWeight: 850,
-  letterSpacing: "0.1em",
-  color: "#d8e7fc",
-};
-const continueTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: 22,
-  lineHeight: 1.25,
-  fontWeight: 800,
-};
-const continueDescriptionStyle: CSSProperties = {
-  maxWidth: 650,
-  margin: "7px 0 0",
-  fontSize: 11.5,
-  lineHeight: 1.55,
-  color: "#d6e4f7",
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-};
-const continueMetaStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 13,
-  marginTop: 13,
-  fontSize: 10,
-  color: "#d2e1f5",
-};
-const continueActionStyle: CSSProperties = {
-  position: "relative",
-  zIndex: 2,
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "flex-end",
-  gap: 8,
-  minWidth: 210,
-};
-const continuePercentStyle: CSSProperties = {
-  fontSize: 22,
-  fontWeight: 850,
-};
-const continueProgressTrackStyle: CSSProperties = {
-  width: "100%",
-  maxWidth: 210,
-  height: 6,
-  overflow: "hidden",
-  borderRadius: 999,
-  background: "rgba(255,255,255,0.2)",
-};
-const continueProgressFillStyle: CSSProperties = {
-  display: "block",
-  height: "100%",
-  borderRadius: 999,
-  background: "#ffffff",
-};
-const continueButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  border: 0,
-  borderRadius: 8,
-  padding: "9px 11px",
-  background: "#ffffff",
-  color: "#173f71",
-  fontSize: 10.5,
-  fontWeight: 850,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-const completedBannerStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 14,
-  margin: "18px 0",
-  padding: 18,
-  border: "1px solid #eadba7",
-  borderRadius: 17,
-  background:
-    "linear-gradient(135deg,#fffdf7 0%,#fff8e6 100%)",
-};
-const completedBannerIconStyle: CSSProperties = {
-  width: 46,
-  height: 46,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flex: "0 0 46px",
-  borderRadius: 13,
-  background: "#fff1c8",
-  color: "#b97911",
-};
-const completedBannerTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: 14.5,
-  fontWeight: 800,
-  color: "#3c3324",
-};
-const completedBannerTextStyle: CSSProperties = {
-  margin: "4px 0 0",
-  fontSize: 10.5,
-  lineHeight: 1.5,
-  color: "#806f51",
-};
-const secondaryGoldButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  marginLeft: "auto",
-  flex: "0 0 auto",
-  border: "1px solid #dabf75",
-  borderRadius: 8,
-  padding: "8px 10px",
-  background: "#fffaf0",
-  color: "#a76d10",
-  fontSize: 10,
-  fontWeight: 800,
-  cursor: "pointer",
-};
-const libraryHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-end",
-  justifyContent: "space-between",
-  gap: 18,
-  marginBottom: 12,
-};
-const libraryTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: 17,
-  fontWeight: 800,
-  color: "#172033",
-};
-const librarySubtitleStyle: CSSProperties = {
-  margin: "3px 0 0",
-  fontSize: 10.5,
-  color: "#98a1af",
-};
-const controlsStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-};
-const courseSearchStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 7,
-  width: 215,
-  padding: "8px 10px",
-  border: "1px solid #dfe5ed",
-  borderRadius: 8,
-  background: "#ffffff",
-};
-const courseSearchInputStyle: CSSProperties = {
-  width: "100%",
-  minWidth: 0,
-  border: 0,
-  outline: "none",
-  background: "transparent",
-  color: "#374151",
-  fontSize: 10.5,
-};
-const filterGroupStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 5,
-  flexWrap: "wrap",
-};
-const filterButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 5,
-  border: "1px solid #dfe4ec",
-  borderRadius: 999,
-  padding: "6px 8px",
-  background: "#ffffff",
-  color: "#657184",
-  fontSize: 9.5,
-  fontWeight: 750,
-  cursor: "pointer",
-};
-const filterButtonActiveStyle: CSSProperties = {
-  borderColor: "#2f6bff",
-  background: "#2f6bff",
-  color: "#ffffff",
-};
-const filterCountStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 18,
-  height: 18,
-  padding: "0 4px",
-  borderRadius: 999,
-  background: "#eef2f7",
-  color: "#657184",
-  fontSize: 8.5,
-};
-const filterCountActiveStyle: CSSProperties = {
-  background: "rgba(255,255,255,0.2)",
-  color: "#ffffff",
-};
-const courseCardStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  minWidth: 0,
-  minHeight: 318,
-  padding: 17,
-  border: "1px solid #e4e8ef",
-  borderRadius: 16,
-  background: "#ffffff",
-  boxShadow:
-    "0 4px 12px rgba(15,23,42,0.03)",
-};
-const courseCardTopStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10,
-};
-const courseBadgeStyle: CSSProperties = {
-  width: 41,
-  height: 41,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flex: "0 0 41px",
-  borderRadius: 11,
-  background: "#f8e8ef",
-  color: "#a01441",
-};
-const courseStatusStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-  borderRadius: 999,
-  padding: "5px 7px",
-  fontSize: 8.5,
-  fontWeight: 850,
-  whiteSpace: "nowrap",
-};
-const courseCompletedStyle: CSSProperties = {
-  background: "#eaf8f0",
-  color: "#168452",
-};
-const courseActiveStyle: CSSProperties = {
-  background: "#edf3ff",
-  color: "#316cf2",
-};
-const courseNotStartedStyle: CSSProperties = {
-  background: "#fff4df",
-  color: "#aa7416",
-};
-const courseTitleStyle: CSSProperties = {
-  margin: "13px 0 0",
-  fontSize: 15,
-  lineHeight: 1.35,
-  fontWeight: 800,
-  color: "#182133",
-};
-const courseMetaStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: 7,
-  marginTop: 5,
-  fontSize: 9.5,
-  color: "#8a94a4",
-};
-const packageMetaStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 4,
-};
-const courseDescriptionStyle: CSSProperties = {
-  minHeight: 42,
-  margin: "10px 0 0",
-  fontSize: 10.5,
-  lineHeight: 1.55,
-  color: "#778293",
-  display: "-webkit-box",
-  WebkitLineClamp: 3,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
-};
-const progressSectionStyle: CSSProperties = {
-  marginTop: 13,
-};
-const progressHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 8,
-  fontSize: 9.5,
-  color: "#8a94a4",
-};
-const progressTrackStyle: CSSProperties = {
-  height: 7,
-  overflow: "hidden",
-  marginTop: 6,
-  borderRadius: 999,
-  background: "#e9edf3",
-};
-const progressFillStyle: CSSProperties = {
-  display: "block",
-  height: "100%",
-  borderRadius: 999,
-  background: "linear-gradient(90deg,#2f6bff,#5e8eff)",
-  transition: "width 250ms ease",
-};
-const lessonStatsStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 8,
-  marginTop: 5,
-  fontSize: 9,
-  color: "#99a1ae",
-};
-const courseFooterStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-end",
-  justifyContent: "space-between",
-  gap: 10,
-  marginTop: "auto",
-  paddingTop: 14,
-  borderTop: "1px solid #eef1f5",
-};
-const courseEnrollmentStyle: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 3,
-  minWidth: 0,
-  fontSize: 8.5,
-  color: "#9aa2af",
-};
-const courseActionStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 5,
-  flex: "0 0 auto",
-  border: 0,
-  borderRadius: 8,
-  padding: "8px 10px",
-  background: "#a01441",
-  color: "#ffffff",
-  fontSize: 9.5,
-  fontWeight: 800,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-const bottomNoteStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  marginTop: 15,
-  padding: "10px 12px",
-  border: "1px solid #e2e7ef",
-  borderRadius: 10,
-  background: "#fafbfd",
-  color: "#8a94a4",
-  fontSize: 9.5,
-};
-const emptyCardStyle: CSSProperties = {
-  minHeight: 260,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 25,
-  border: "1px dashed #dce2eb",
-  borderRadius: 16,
-  background: "#fbfcfd",
-  textAlign: "center",
-};
-const emptyTitleStyle: CSSProperties = {
-  marginTop: 9,
-  fontSize: 13,
-  fontWeight: 800,
-  color: "#4b5565",
-};
-const emptyTextStyle: CSSProperties = {
-  maxWidth: 340,
-  marginTop: 4,
-  fontSize: 10.5,
-  lineHeight: 1.5,
-  color: "#9aa2af",
-};
-const loadingCardStyle: CSSProperties = {
-  minHeight: 340,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 7,
-  padding: 30,
-  border: "1px solid #e4e8ef",
-  borderRadius: 18,
-  background: "#ffffff",
-  textAlign: "center",
-};
-const loadingTitleStyle: CSSProperties = {
-  marginTop: 5,
-  fontSize: 14,
-  color: "#374151",
-};
-const loadingTextStyle: CSSProperties = {
-  fontSize: 10.5,
-  color: "#969fac",
-};
-const errorCardStyle: CSSProperties = {
-  minHeight: 310,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 7,
-  padding: 30,
-  border: "1px solid #f1d6d6",
-  borderRadius: 18,
-  background: "#ffffff",
-  textAlign: "center",
-};
-const errorIconStyle: CSSProperties = {
-  width: 44,
-  height: 44,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 12,
-  background: "#fdebea",
-  color: "#c8433e",
-  fontSize: 20,
-  fontWeight: 850,
-};
-const errorTitleStyle: CSSProperties = {
-  margin: "6px 0 0",
-  fontSize: 17,
-  color: "#374151",
-};
-const errorTextStyle: CSSProperties = {
-  maxWidth: 460,
-  margin: "2px 0 10px",
-  fontSize: 11.5,
-  lineHeight: 1.55,
-  color: "#808b9a",
-};
-const primaryButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  border: 0,
-  borderRadius: 8,
-  padding: "9px 12px",
-  background: "#2f6bff",
-  color: "#ffffff",
-  fontSize: 10.5,
-  fontWeight: 800,
-  cursor: "pointer",
-};
-function GlobalStyles() {
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: `
-          .skce-course-summary {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 13px;
-            margin-bottom: 1px;
-          }
-          .skce-course-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 13px;
-          }
-          .skce-course-card {
-            transition:
-              transform 160ms ease,
-              box-shadow 160ms ease,
-              border-color 160ms ease;
-          }
-          .skce-course-card:hover {
-            transform: translateY(-2px);
-            border-color: #dce2eb !important;
-            box-shadow: 0 9px 20px rgba(15,23,42,0.06) !important;
-          }
-          @keyframes studentCoursesSpin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @media (max-width: 1200px) {
-            .skce-course-summary {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-            .skce-course-grid {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-          }
-          @media (max-width: 850px) {
-            .skce-course-grid {
-              grid-template-columns: minmax(0, 1fr);
-            }
-          }
-        `,
-      }}
-    />
-  );
+
+const myCoursesCss = `
+.mc-page{
+  --navy:#0F2F5F; --navy-2:#123B6D; --blue:#1459B8; --blue-2:#2563EB;
+  --orange:#FF6B00; --orange-2:#E85F00; --orange-tint:#FFF3EA;
+  --bg:#F7F9FC; --card:#fff; --line:#E2E8F1; --line-2:#EDF1F7;
+  --muted:#64748B; --soft:#8A97AB;
+  --green:#15803D; --green-tint:#E8F6EE; --blue-tint:#EAF1FD;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  flex:1;min-width:0;width:100%;box-sizing:border-box;
+  padding:24px 28px 40px;background:var(--bg);color:var(--navy);
 }
+.mc-page *{box-sizing:border-box}
+.mc-container{width:100%;max-width:1360px;margin:0 auto}
+.mc-min0{min-width:0}
+.mc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@keyframes mc-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes mc-swap{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mc-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes mc-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+@keyframes mc-spin{to{transform:rotate(360deg)}}
+@keyframes mc-flow{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+@keyframes mc-sheen{from{transform:translateX(-120%) skewX(-18deg)}to{transform:translateX(260%) skewX(-18deg)}}
+.mc-spin{animation:mc-spin .8s linear infinite}
+.mc-reveal{animation:mc-rise 520ms var(--ease) both;animation-delay:calc(var(--i,0) * 60ms)}
+.mc-swap{animation:mc-swap 420ms var(--ease) both}
+
+/* Buttons */
+.mc-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;border-radius:10px;border:1px solid transparent;font:inherit;font-size:14px;font-weight:600;line-height:1;cursor:pointer;white-space:nowrap;transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease),color .2s ease}
+.mc-btn:focus-visible,.mc-filter:focus-visible,.mc-search input:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
+.mc-btn:active{transform:scale(.98)}
+.mc-btn:disabled{opacity:.65;cursor:not-allowed}
+.mc-btn-sm{height:36px;padding:0 14px;font-size:13px}
+.mc-btn-primary{background:linear-gradient(180deg,#FF8A12 0%,#FF6B00 55%,#F25A00 100%);color:#fff}
+.mc-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
+.mc-btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(255,107,0,.35)}
+.mc-btn-primary:hover::after{animation:mc-sheen 700ms ease}
+.mc-btn-primary svg{transition:transform .2s var(--ease)}
+.mc-btn-primary:hover svg{transform:translateX(3px)}
+.mc-btn-secondary{background:#fff;color:var(--blue);border-color:var(--line)}
+.mc-btn-secondary:hover{background:var(--blue-tint);border-color:#BFD3F2;transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,89,184,.12)}
+.mc-btn-ghost-light{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+.mc-btn-ghost-light:hover{background:rgba(255,255,255,.22);transform:translateY(-2px)}
+.mc-refresh-icon{transition:transform .5s var(--ease)}
+.mc-refresh:hover .mc-refresh-icon{transform:rotate(180deg)}
+
+/* Heading */
+.mc-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
+.mc-kicker{margin-bottom:4px;font-size:13px;font-weight:600;color:var(--orange)}
+.mc-heading h1{margin:0;font-size:30px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:var(--navy)}
+.mc-heading p{max-width:640px;margin:6px 0 0;font-size:15px;line-height:1.6;color:var(--muted)}
+
+/* Summary */
+.mc-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.mc-tile{display:flex;align-items:center;gap:14px;min-width:0;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04);transition:box-shadow .25s ease,transform .25s var(--ease),border-color .25s ease}
+.mc-tile:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(15,47,95,.12);border-color:#C9D8EE}
+.mc-tile:hover .mc-icon{transform:scale(1.12) rotate(-6deg)}
+.mc-icon{width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;border-radius:11px;transition:transform .3s var(--ease)}
+.mc-tone-blue{background:var(--blue-tint);color:var(--blue)}
+.mc-tone-orange{background:var(--orange-tint);color:var(--orange)}
+.mc-tone-green{background:var(--green-tint);color:var(--green)}
+.mc-tone-navy{background:#E6ECF5;color:var(--navy)}
+.mc-tile-label{display:block;font-size:13px;color:var(--muted)}
+.mc-tile-value{display:block;margin-top:3px;font-size:26px;line-height:1.15;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.mc-tile-helper{display:block;margin-top:4px;font-size:12px;color:var(--soft)}
+
+/* Spotlight hero */
+.mc-hero{position:relative;overflow:hidden;margin-bottom:24px;padding:26px 28px 14px;border-radius:16px;color:#fff;background:linear-gradient(120deg,#0F2F5F 0%,#123B6D 35%,#1459B8 70%,#0F2F5F 100%);background-size:220% 220%;animation:mc-rise 520ms var(--ease) both,mc-flow 14s ease-in-out infinite alternate;animation-delay:calc(var(--i,0) * 60ms),0s;box-shadow:0 12px 30px rgba(15,47,95,.18)}
+.mc-hero::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 16%,transparent 16%)}
+.mc-hero-glow{position:absolute;width:320px;height:320px;top:-190px;right:6%;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none}
+.mc-hero-inner{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:28px}
+.mc-hero-main{display:flex;align-items:center;gap:20px;min-width:0;flex:1}
+.mc-hero-thumb{width:104px;height:104px;flex:0 0 104px;overflow:hidden;display:flex;align-items:center;justify-content:center;border-radius:16px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.28);box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.mc-hero-thumb img{width:100%;height:100%;object-fit:cover}
+.mc-eyebrow{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:13px;font-weight:600;color:#C9DBF5}
+.mc-hero h2{margin:0;font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-.01em;color:#fff}
+.mc-hero p{max-width:620px;margin:8px 0 0;font-size:14px;line-height:1.6;color:#D3E1F5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mc-hero-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:13px;color:#D3E1F5}
+.mc-hero-meta span{display:inline-flex;align-items:center;gap:6px}
+.mc-hero-action{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:240px}
+.mc-hero-pct{font-size:34px;line-height:1;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.mc-hero-track{width:100%;height:8px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.2)}
+.mc-hero-track span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#fff,#CFE0FA);transform-origin:left;animation:mc-grow 900ms var(--ease) 150ms both}
+.mc-hero-buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+.mc-hero-hint{position:relative;z-index:1;display:flex;align-items:center;gap:7px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);font-size:12px;color:#B7C9E4}
+
+/* Library head & controls */
+.mc-library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.mc-library-head h2{margin:0;font-size:20px;font-weight:700;color:var(--navy)}
+.mc-library-head p{margin:3px 0 0;font-size:13px;color:var(--muted)}
+.mc-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mc-search{display:flex;align-items:center;gap:8px;width:250px;height:40px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--soft);transition:border-color .2s ease,box-shadow .2s ease}
+.mc-search:focus-within{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.15);color:var(--blue)}
+.mc-search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:inherit;font-size:14px;color:var(--navy)}
+.mc-search input:focus-visible{box-shadow:none}
+.mc-search-clear{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:0;border-radius:50%;background:var(--line-2);color:var(--muted);cursor:pointer;transition:background .2s ease}
+.mc-search-clear:hover{background:#D9E3F2}
+.mc-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mc-filter{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .2s var(--ease),box-shadow .2s ease}
+.mc-filter:hover{border-color:#BFD3F2;color:var(--blue);transform:translateY(-1px)}
+.mc-filter.is-active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 6px 14px rgba(20,89,184,.25)}
+.mc-filter-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;border-radius:999px;background:var(--line-2);color:var(--muted);font-size:11.5px}
+.mc-filter.is-active .mc-filter-count{background:rgba(255,255,255,.22);color:#fff}
+
+/* Course grid & cards */
+.mc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.mc-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);cursor:default;transition:transform .3s var(--ease),box-shadow .3s ease,border-color .3s ease}
+.mc-card:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(15,47,95,.13);border-color:#9DBBEA}
+.mc-card.is-selected{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.16),0 12px 26px rgba(15,47,95,.1)}
+.mc-cover{position:relative;height:150px;overflow:hidden;background:linear-gradient(135deg,var(--blue-tint),#F4F8FF)}
+.mc-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease)}
+.mc-card:hover .mc-cover img{transform:scale(1.08)}
+.mc-cover-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.mc-status{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(15,47,95,.12)}
+.mc-status.is-done{background:rgba(232,246,238,.95);color:var(--green)}
+.mc-status.is-active{background:rgba(234,241,253,.95);color:var(--blue)}
+.mc-status.is-new{background:rgba(255,243,234,.95);color:var(--orange-2)}
+.mc-card-body{display:flex;flex-direction:column;flex:1;padding:18px}
+.mc-card-body h3{margin:0;font-size:17px;line-height:1.35;font-weight:700;color:var(--navy)}
+.mc-card-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.mc-pkg{display:inline-flex;align-items:center;gap:5px}
+.mc-card-desc{min-height:42px;margin:10px 0 0;font-size:13px;line-height:1.6;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mc-progress{margin-top:14px}
+.mc-progress-head{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.mc-progress-head strong{color:var(--blue);font-size:13px}
+.mc-bar{height:8px;overflow:hidden;margin-top:8px;border-radius:999px;background:#E6ECF5}
+.mc-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--blue-2));transform-origin:left;animation:mc-grow 1000ms var(--ease) 250ms both}
+.mc-bar span.is-done{background:linear-gradient(90deg,#16A05D,#22C176)}
+.mc-progress-foot{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:12px;color:var(--soft)}
+.mc-card-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--line-2)}
+.mc-card-body .mc-progress{margin-bottom:16px}
+.mc-enrolled{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;color:var(--soft)}
+
+/* Empty / error / note */
+.mc-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:28px;border:1px dashed #CBD6E6;border-radius:16px;background:#FAFBFE;text-align:center;animation:mc-rise 420ms var(--ease) both}
+.mc-empty-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;border-radius:14px;background:var(--blue-tint);color:var(--blue)}
+.mc-empty strong{font-size:16px;color:var(--navy)}
+.mc-empty span{max-width:360px;margin-bottom:10px;font-size:13.5px;line-height:1.5;color:var(--muted)}
+.mc-error{min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;border:1px solid #F3D1D1;border-radius:16px;background:#fff;text-align:center;animation:mc-rise 420ms var(--ease) both}
+.mc-error-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#FDECEC;color:#C62828}
+.mc-error h2{margin:16px 0 0;font-size:18px;font-weight:700;color:var(--navy)}
+.mc-error p{max-width:480px;margin:8px 0 20px;font-size:14px;line-height:1.6;color:var(--muted)}
+.mc-note{display:flex;align-items:center;gap:10px;margin-top:20px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--muted);font-size:13px}
+.mc-note svg{color:var(--blue);flex:0 0 auto}
+
+/* Skeleton */
+.mc-skel{border-radius:16px;background:linear-gradient(90deg,#E9EEF6 25%,#F6F8FC 37%,#E9EEF6 63%);background-size:1200px 100%;animation:mc-shimmer 1.4s linear infinite}
+.mc-skel-tile{height:96px}
+.mc-skel-hero{height:200px;margin-bottom:24px}
+.mc-skel-card{height:380px}
+.mc-summary,.mc-grid{margin-bottom:20px}
+.mc-grid{margin-bottom:0}
+
+/* Responsive */
+@media (max-width:1200px){
+  .mc-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .mc-hero-inner{flex-direction:column;align-items:stretch}
+  .mc-hero-action{align-items:stretch;min-width:0}
+  .mc-hero-buttons{justify-content:stretch}
+  .mc-hero-buttons .mc-btn{flex:1}
+}
+@media (max-width:760px){
+  .mc-page{padding:18px 14px 28px}
+  .mc-heading{flex-direction:column}
+  .mc-refresh{width:100%}
+  .mc-controls{width:100%;justify-content:flex-start}
+  .mc-search{width:100%}
+  .mc-grid{grid-template-columns:minmax(0,1fr)}
+  .mc-hero{padding:22px 18px 12px}
+  .mc-hero-main{align-items:flex-start}
+  .mc-hero-thumb{width:76px;height:76px;flex-basis:76px}
+  .mc-hero h2{font-size:21px}
+}
+@media (max-width:520px){
+  .mc-summary{grid-template-columns:minmax(0,1fr)}
+  .mc-hero-main{flex-direction:column}
+  .mc-btn{height:44px}
+}
+@media (hover:none){.mc-hero-hint{display:none}}
+@media (prefers-reduced-motion:reduce){
+  .mc-reveal,.mc-swap,.mc-hero,.mc-bar span,.mc-hero-track span,.mc-skel,.mc-empty,.mc-error{animation:none!important}
+  .mc-card,.mc-tile,.mc-btn,.mc-icon,.mc-cover img,.mc-filter{transition:none!important}
+}
+`;

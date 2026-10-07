@@ -58,8 +58,7 @@ const videoStorage = multer.diskStorage({
     cb
   ) => {
     const extension =
-      path.extname(file.originalname)
-        .toLowerCase();
+      path.extname(file.originalname).toLowerCase();
 
     const uniqueName =
       `video-${Date.now()}-${Math.round(
@@ -120,8 +119,7 @@ const documentStorage = multer.diskStorage({
     cb
   ) => {
     const extension =
-      path.extname(file.originalname)
-        .toLowerCase();
+      path.extname(file.originalname).toLowerCase();
 
     const uniqueName =
       `document-${Date.now()}-${Math.round(
@@ -166,35 +164,8 @@ export const courseDocumentUpload = multer({
 });
 
 /* =========================================================
-   LESSON IMAGE UPLOAD
+   IMAGE CONFIGURATION
 ========================================================= */
-
-const imageStorage = multer.diskStorage({
-  destination: (
-    _req,
-    _file,
-    cb
-  ) => {
-    cb(null, imageDirectory);
-  },
-
-  filename: (
-    _req,
-    file,
-    cb
-  ) => {
-    const extension =
-      path.extname(file.originalname)
-        .toLowerCase();
-
-    const uniqueName =
-      `lesson-${Date.now()}-${Math.round(
-        Math.random() * 1_000_000_000
-      )}${extension}`;
-
-    cb(null, uniqueName);
-  },
-});
 
 const allowedImageMimeTypes = new Set([
   "image/jpeg",
@@ -219,8 +190,77 @@ const imageFileFilter: multer.Options["fileFilter"] = (
   cb(null, true);
 };
 
+/* =========================================================
+   LESSON IMAGE UPLOAD
+   Temporary - kept until Lesson.imageUrl is removed
+========================================================= */
+
+const lessonImageStorage = multer.diskStorage({
+  destination: (
+    _req,
+    _file,
+    cb
+  ) => {
+    cb(null, imageDirectory);
+  },
+
+  filename: (
+    _req,
+    file,
+    cb
+  ) => {
+    const extension =
+      path.extname(file.originalname).toLowerCase();
+
+    const uniqueName =
+      `lesson-${Date.now()}-${Math.round(
+        Math.random() * 1_000_000_000
+      )}${extension}`;
+
+    cb(null, uniqueName);
+  },
+});
+
 export const lessonImageUpload = multer({
-  storage: imageStorage,
+  storage: lessonImageStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+/* =========================================================
+   MODULE IMAGE UPLOAD
+========================================================= */
+
+const moduleImageStorage = multer.diskStorage({
+  destination: (
+    _req,
+    _file,
+    cb
+  ) => {
+    cb(null, imageDirectory);
+  },
+
+  filename: (
+    _req,
+    file,
+    cb
+  ) => {
+    const extension =
+      path.extname(file.originalname).toLowerCase();
+
+    const uniqueName =
+      `module-${Date.now()}-${Math.round(
+        Math.random() * 1_000_000_000
+      )}${extension}`;
+
+    cb(null, uniqueName);
+  },
+});
+
+export const moduleImageUpload = multer({
+  storage: moduleImageStorage,
   fileFilter: imageFileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
