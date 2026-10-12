@@ -8,6 +8,7 @@ import {
 } from "react-razorpay";
 
 import {
+  AlertCircle,
   ArrowLeft,
   BookOpen,
   CheckCircle2,
@@ -17,6 +18,9 @@ import {
   Package,
   ShieldCheck,
 } from "lucide-react";
+
+import Reveal from "@/components/Reveal";
+import { ALERT_ERROR, BACK_LINK } from "@/components/formStyles";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -53,6 +57,32 @@ type RazorpayPaymentResponse = {
   razorpay_order_id: string;
   razorpay_signature: string;
 };
+
+function DetailTile({
+  label,
+  value,
+  breakAll = false,
+}: {
+  label: string;
+  value: string;
+  breakAll?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 font-semibold text-slate-800 ${
+          breakAll ? "break-all" : ""
+        }`}
+      >
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
 
 export default function PaymentPage() {
   const { Razorpay, isLoading: razorpayLoading, error: razorpayError } =
@@ -544,14 +574,15 @@ export default function PaymentPage() {
     }
   };
 
+  /* =====================================================================
+     RENDER
+     ===================================================================== */
+
   if (loading) {
     return (
-      <section className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex items-center gap-3 text-slate-600">
-          <Loader2
-            size={20}
-            className="animate-spin text-orange-500"
-          />
+      <section className="flex min-h-[60vh] items-center justify-center bg-[#F7F9FC] px-5">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-slate-600 shadow-sm">
+          <Loader2 size={20} className="animate-spin text-orange-500" />
 
           Loading payment details...
         </div>
@@ -560,389 +591,327 @@ export default function PaymentPage() {
   }
 
   if (!registration) {
+    // Loading finished but details could not be loaded (see `error`).
+    if (error) {
+      return (
+        <section className="flex min-h-[60vh] items-center justify-center bg-[#F7F9FC] px-5">
+          <div
+            role="alert"
+            className="w-full max-w-md rounded-2xl border border-red-200 bg-red-50 p-8 text-center"
+          >
+            <AlertCircle size={28} className="mx-auto text-red-500" />
+
+            <p className="mt-3 text-sm font-medium text-red-700">
+              {error}
+            </p>
+
+            <Link
+              href="/register"
+              className="mt-5 inline-flex h-10 items-center rounded-xl bg-[#173B67] px-5 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+            >
+              Back to Registration
+            </Link>
+          </div>
+        </section>
+      );
+    }
+
     return null;
   }
 
-  return (
-    <section className="min-h-screen bg-slate-50 px-5 py-10 sm:px-6 sm:py-14">
-      <div className="mx-auto max-w-5xl">
+  const formattedAmount = registration.amount.toLocaleString("en-IN");
 
+  return (
+    <section className="bg-[#F7F9FC] px-5 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-5xl">
         {/* Back */}
-        <Link
-          href="/register"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-orange-500"
-        >
-          <ArrowLeft size={16} />
+        <Link href="/register" className={`${BACK_LINK} mb-5`}>
+          <ArrowLeft
+            size={16}
+            className="transition-transform duration-200 group-hover:-translate-x-1"
+          />
           Back to Registration
         </Link>
 
-        {/* Main Card */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <Reveal>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
+            {/* Header */}
+            <div className="relative overflow-hidden bg-[#173B67] px-6 py-8 text-white sm:px-10">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/20 blur-3xl" />
 
-          {/* Header */}
-          <div className="bg-[#173B67] px-6 py-9 text-white sm:px-10">
-            <p className="text-sm font-semibold text-orange-400">
-              SK Computer Education
-            </p>
+              <div className="relative">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-400 sm:text-sm">
+                  SK Computer Education
+                </p>
 
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
-              Complete Your Payment
-            </h1>
+                <h1 className="mt-2 text-3xl font-bold tracking-tight">
+                  Complete Your Payment
+                </h1>
 
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
-              Complete the secure payment to
-              finish your registration.
-            </p>
-          </div>
-
-          {/* Content */}
-          <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_320px]">
-
-            {/* LEFT */}
-            <div>
-
-              <h2 className="text-xl font-extrabold text-[#102A43]">
-                Registration Details
-              </h2>
-
-              {/* Student Details */}
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="grid gap-5 sm:grid-cols-2">
-
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Student Name
-                    </p>
-
-                    <p className="mt-1 font-semibold text-slate-800">
-                      {registration.name || "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Email
-                    </p>
-
-                    <p className="mt-1 break-all font-semibold text-slate-800">
-                      {registration.email || "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Mobile
-                    </p>
-
-                    <p className="mt-1 font-semibold text-slate-800">
-                      {registration.phone || "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      State
-                    </p>
-
-                    <p className="mt-1 font-semibold text-slate-800">
-                      {registration.state || "—"}
-                    </p>
-                  </div>
-
-                </div>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
+                  Complete the secure payment to finish your registration.
+                </p>
               </div>
+            </div>
 
-              {/* Registration Reference */}
-              <div className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div className="flex items-center justify-between gap-4">
+            {/* Content */}
+            <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_320px]">
+              {/* LEFT */}
+              <div>
+                <h2 className="flex items-center gap-3 text-xl font-bold text-[#173B67]">
+                  <span
+                    aria-hidden="true"
+                    className="h-5 w-1 rounded-full bg-orange-500"
+                  />
+                  Registration Details
+                </h2>
 
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <DetailTile
+                      label="Student Name"
+                      value={registration.name}
+                    />
+                    <DetailTile
+                      label="Email"
+                      value={registration.email}
+                      breakAll
+                    />
+                    <DetailTile
+                      label="Mobile"
+                      value={registration.phone}
+                    />
+                    <DetailTile
+                      label="State"
+                      value={registration.state}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Registration Reference
                   </span>
 
                   <span className="font-mono text-sm font-bold text-[#173B67]">
                     #{registration.registrationIntentId}
                   </span>
-
                 </div>
-              </div>
 
-              {/* Selected Course */}
-              {registration.courseTitle && (
-                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+                {registration.courseTitle && (
+                  <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#173B67] text-white">
+                        <BookOpen size={19} />
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[#173B67]">
+                          Selected Course
+                        </p>
+
+                        <h3 className="mt-1 text-lg font-bold text-[#173B67]">
+                          {registration.courseTitle}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          Included with your selected package.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 p-5">
                   <div className="flex items-start gap-4">
-
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#173B67] text-white">
-                      <BookOpen size={19} />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white">
+                      <Package size={19} />
                     </div>
 
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[#173B67]">
-                        Selected Course
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">
+                        Selected Package
                       </p>
 
-                      <h3 className="mt-1 text-lg font-bold text-[#102A43]">
-                        {registration.courseTitle}
+                      <h3 className="mt-1 text-xl font-bold text-[#173B67]">
+                        {registration.packageTitle}
                       </h3>
 
-                      <p className="mt-1 text-sm text-slate-600">
-                        Included with your selected package.
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        {registration.packageDescription ||
+                          "Package details will be provided after registration."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment methods */}
+                <div className="mt-8">
+                  <h2 className="flex items-center gap-3 text-xl font-bold text-[#173B67]">
+                    <span
+                      aria-hidden="true"
+                      className="h-5 w-1 rounded-full bg-orange-500"
+                    />
+                    Secure Payment
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Pay securely using Razorpay Test Mode. No real money will
+                    be charged.
+                  </p>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-slate-200 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-sm">
+                      <CreditCard size={20} className="text-orange-500" />
+
+                      <p className="mt-3 text-sm font-bold text-slate-800">
+                        Cards
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Razorpay Test Mode
                       </p>
                     </div>
 
+                    <div className="rounded-xl border border-slate-200 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-sm">
+                      <span className="flex h-5 w-8 items-center justify-center rounded border border-slate-300 text-[9px] font-bold text-slate-500">
+                        UPI
+                      </span>
+
+                      <p className="mt-3 text-sm font-bold text-slate-800">
+                        UPI
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Razorpay Test Mode
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-sm">
+                      <CheckCircle2 size={20} className="text-emerald-500" />
+
+                      <p className="mt-3 text-sm font-bold text-slate-800">
+                        Test Mode
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        No real payment
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Selected Package */}
-              <div className="mt-6 rounded-2xl border border-orange-100 bg-orange-50 p-5">
-                <div className="flex items-start gap-4">
-
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-500 text-white">
-                    <Package size={19} />
+              {/* RIGHT — ORDER SUMMARY */}
+              <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50">
+                    <Package size={19} className="text-orange-500" />
                   </div>
 
-                  <div className="min-w-0">
-
-                    <p className="text-xs font-bold uppercase tracking-wider text-orange-600">
-                      Selected Package
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Order Summary
                     </p>
 
-                    <h3 className="mt-1 text-xl font-bold text-[#102A43]">
+                    <h3 className="mt-1 text-base font-bold text-[#173B67]">
                       {registration.packageTitle}
                     </h3>
-
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                      {registration.packageDescription ||
-                        "Package details will be provided after registration."}
-                    </p>
-
                   </div>
-
                 </div>
-              </div>
 
-              {/* Payment Methods */}
-              <div className="mt-8">
-
-                <h2 className="text-xl font-extrabold text-[#102A43]">
-                  Secure Payment
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  Pay securely using Razorpay Test Mode.
-                  No real money will be charged.
-                </p>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <CreditCard
-                      size={20}
-                      className="text-orange-500"
-                    />
-
-                    <p className="mt-3 text-sm font-bold text-slate-800">
-                      Cards
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      Razorpay Test Mode
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <span className="flex h-5 w-8 items-center justify-center rounded border border-slate-300 text-[9px] font-bold text-slate-500">
-                      UPI
+                <div className="my-6 border-t border-slate-200 pt-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500">
+                      Package Price
                     </span>
 
-                    <p className="mt-3 text-sm font-bold text-slate-800">
-                      UPI
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      Razorpay Test Mode
-                    </p>
+                    <span className="font-semibold text-slate-800">
+                      ₹{formattedAmount}
+                    </span>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 p-4">
-                    <CheckCircle2
-                      size={20}
-                      className="text-green-500"
-                    />
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-base font-bold text-[#173B67]">
+                      Total
+                    </span>
 
-                    <p className="mt-3 text-sm font-bold text-slate-800">
-                      Test Mode
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-400">
-                      No real payment
-                    </p>
+                    <span className="text-2xl font-bold text-orange-500">
+                      ₹{formattedAmount}
+                    </span>
                   </div>
-
-                </div>
-              </div>
-
-            </div>
-
-            {/* RIGHT - ORDER SUMMARY */}
-            <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50">
-                  <Package
-                    size={19}
-                    className="text-orange-500"
-                  />
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Order Summary
+                {/* TEST MODE notice */}
+                <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <p className="text-xs font-bold text-[#173B67]">
+                    RAZORPAY TEST MODE
                   </p>
 
-                  <h3 className="mt-1 text-base font-bold text-[#173B67]">
-                    {registration.packageTitle}
-                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    No real money will be charged. This payment uses
+                    Razorpay&apos;s testing environment.
+                  </p>
                 </div>
 
-              </div>
-
-              <div className="my-6 border-t border-slate-200 pt-5">
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-500">
-                    Package Price
-                  </span>
-
-                  <span className="font-semibold text-slate-800">
-                    ₹
-                    {registration.amount.toLocaleString(
-                      "en-IN"
-                    )}
-                  </span>
-                </div>
-
-                <div className="mt-5 flex items-center justify-between">
-
-                  <span className="text-base font-bold text-[#102A43]">
-                    Total
-                  </span>
-
-                  <span className="text-2xl font-extrabold text-orange-500">
-                    ₹
-                    {registration.amount.toLocaleString(
-                      "en-IN"
-                    )}
-                  </span>
-
-                </div>
-
-              </div>
-
-              {/* TEST MODE Notice */}
-              <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-
-                <p className="text-xs font-bold text-[#173B67]">
-                  RAZORPAY TEST MODE
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-slate-600">
-                  No real money will be charged.
-                  This payment uses Razorpay's
-                  testing environment.
-                </p>
-
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
-                  {error}
-                </div>
-              )}
-
-              {/* Razorpay loading error */}
-              {razorpayError && !error && (
-                <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-600">
-                  Unable to load Razorpay Checkout.
-                  Please refresh and try again.
-                </div>
-              )}
-
-              {/* Pay Button */}
-              <button
-                type="button"
-                onClick={handlePayment}
-                disabled={
-                  paymentLoading ||
-                  razorpayLoading
-                }
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {paymentLoading ? (
-                  <>
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-
-                    Processing...
-                  </>
-                ) : razorpayLoading ? (
-                  <>
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-
-                    Loading Payment...
-                  </>
-                ) : (
-                  <>
-                    Complete Payment ₹
-                    {registration.amount.toLocaleString(
-                      "en-IN"
-                    )}
-                  </>
+                {/* Error */}
+                {error && (
+                  <div role="alert" className={`mb-4 ${ALERT_ERROR}`}>
+                    {error}
+                  </div>
                 )}
-              </button>
 
-              {/* Security */}
-              <div className="mt-5 space-y-3 border-t border-slate-100 pt-5">
+                {/* Razorpay loading error */}
+                {razorpayError && !error && (
+                  <div role="alert" className={`mb-4 ${ALERT_ERROR}`}>
+                    Unable to load Razorpay Checkout. Please refresh and try
+                    again.
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <LockKeyhole
-                    size={14}
-                    className="text-[#173B67]"
-                  />
+                {/* Pay Button */}
+                <button
+                  type="button"
+                  onClick={handlePayment}
+                  disabled={paymentLoading || razorpayLoading}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md hover:shadow-orange-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:translate-y-0"
+                >
+                  {paymentLoading ? (
+                    <>
+                      <Loader2 size={17} className="animate-spin" />
+                      Processing...
+                    </>
+                  ) : razorpayLoading ? (
+                    <>
+                      <Loader2 size={17} className="animate-spin" />
+                      Loading Payment...
+                    </>
+                  ) : (
+                    <>Complete Payment ₹{formattedAmount}</>
+                  )}
+                </button>
 
-                  Secure registration
+                {/* Security */}
+                <div className="mt-5 space-y-3 border-t border-slate-100 pt-5">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <LockKeyhole size={14} className="text-[#173B67]" />
+                    Secure registration
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <ShieldCheck size={14} className="text-[#173B67]" />
+                    Backend payment verification
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <ShieldCheck
-                    size={14}
-                    className="text-[#173B67]"
-                  />
-
-                  Backend payment verification
-                </div>
-
-              </div>
-
-            </aside>
-
+              </aside>
+            </div>
           </div>
-        </div>
+        </Reveal>
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-          Razorpay Test Mode is enabled for
-          development. No real money will be charged.
+        <p className="mt-5 text-center text-xs leading-5 text-slate-400">
+          Razorpay Test Mode is enabled for development. No real money will
+          be charged.
         </p>
-
       </div>
     </section>
   );

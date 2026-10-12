@@ -1548,61 +1548,58 @@ export default function AssignmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+    <main className="min-h-screen bg-[#f3f6fb] p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1600px]">
-        <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
-              <ClipboardList size={14} />
-              Assessments
+        <header className="relative mb-6 overflow-hidden rounded-[24px] border border-[#244b78] bg-gradient-to-br from-[#102d50] via-[#173B67] to-[#28517d] px-5 py-5 text-white shadow-[0_16px_38px_-24px_rgba(16,45,80,0.75)] sm:px-7 sm:py-6">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-24 h-64 w-64 rounded-full border border-[#F59E0B]/30" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 rounded-full border-[18px] border-white/[0.035]" />
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-44 bg-gradient-to-r from-orange-500 via-amber-300 to-transparent" />
+          <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-orange-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-200">
+                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-orange-400 text-[#173B67]"><ClipboardList size={13} /></span>
+                SK Computer Education <span className="text-white/45">·</span> Assessments
+              </div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                Assignments <span className="text-orange-300">&amp;</span> Quizzes
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-blue-100/85">
+                Create and manage assignments, quizzes, questions and student submissions in one place.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Total <strong className="ml-1 text-white">{assessments.length}</strong></span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Assignments <strong className="ml-1 text-white">{totalAssignments}</strong></span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Quizzes <strong className="ml-1 text-white">{totalQuizzes}</strong></span>
+                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Drafts <strong className="ml-1 text-white">{totalDrafts}</strong></span>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#173B67] sm:text-3xl">
-              Assignments &amp; Quizzes
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Create and manage real assignments, quizzes and student submissions.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={refreshPage}
-              disabled={refreshing || loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw
-                size={17}
-                className={
-                  refreshing
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                openCreateModal("Assignment")
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#173B67] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#102d50]"
-            >
-              <FileText size={17} />
-              Create Assignment
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                openCreateModal("Quiz")
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7C3AED] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6D28D9]"
-            >
-              <HelpCircle size={17} />
-              Create Quiz
-            </button>
+            <div className="relative flex shrink-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={refreshPage}
+                disabled={refreshing || loading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => openCreateModal("Assignment")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/20 transition duration-200 hover:-translate-y-0.5 hover:from-orange-400 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2 focus:ring-offset-[#173B67]"
+              >
+                <FileText size={17} />
+                Create Assignment
+              </button>
+              <button
+                type="button"
+                onClick={() => openCreateModal("Quiz")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200/40 bg-white px-4 py-3 text-sm font-bold text-[#173B67] shadow-lg shadow-slate-950/10 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2 focus:ring-offset-[#173B67]"
+              >
+                <HelpCircle size={17} className="text-orange-600" />
+                Create Quiz
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1639,8 +1636,8 @@ export default function AssignmentsPage() {
           />
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
+        <section className="overflow-hidden rounded-2xl border border-[#dbe5f1] bg-white shadow-[0_8px_28px_-22px_rgba(23,59,103,0.45)]">
+          <div className="border-b border-[#dbe5f1] bg-gradient-to-r from-white via-[#fffaf5] to-[#f4f7fc] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-800">
@@ -1670,33 +1667,33 @@ export default function AssignmentsPage() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px]">
-              <thead className="bg-slate-50">
+              <thead className="bg-gradient-to-r from-[#eef3fa] via-[#f8fafc] to-[#fff6ed]">
                 <tr>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Assessment
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Type
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Course
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Created By
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Due Date
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Questions
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Submissions
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Status
                   </th>
-                  <th className="border-b border-slate-200 px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <th className="border-b border-slate-200 px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[#547092]">
                     Actions
                   </th>
                 </tr>
@@ -1864,7 +1861,7 @@ export default function AssignmentsPage() {
                     (assessment) => (
                       <tr
                         key={assessment.id}
-                        className="transition hover:bg-slate-50/70"
+                        className="transition duration-150 hover:bg-orange-50/40"
                       >
                         <td className="border-b border-slate-100 px-4 py-4">
                           <div className="font-semibold text-slate-800">
@@ -2292,7 +2289,7 @@ function AssessmentFormModal({
             </label>
             <div className={`flex min-h-[46px] items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${
               form.type === "Quiz"
-                ? "border-purple-200 bg-purple-50 text-purple-700"
+                ? "border-orange-200 bg-orange-50 text-orange-700"
                 : "border-blue-200 bg-blue-50 text-blue-700"
             }`}>
               {form.type === "Quiz" ? (
@@ -2956,18 +2953,24 @@ function QuizAnswersPanel({
   }
 
   return (
-    <details className="mt-3 rounded-lg border border-slate-200 p-3">
-      <summary className="cursor-pointer text-xs font-semibold text-slate-600">
+    <details open className="w-full rounded-xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-slate-700">
         View submitted answers
       </summary>
 
-      <div className="mt-3 space-y-3">
+      <div className="mt-4 grid grid-cols-1 gap-4">
         {questions
           .slice()
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((question, index) => {
+            // Submission payloads may be stored with the question ID as the
+            // key, or (for older attempts) the question position/sort order.
+            // Resolve all supported forms before rendering the answer details.
             const selectedAnswer =
               parsedAnswers[String(question.id)] ??
+              parsedAnswers[String(question.sortOrder)] ??
+              parsedAnswers[String(index)] ??
+              parsedAnswers[String(index + 1)] ??
               "";
             const normalizedSelected =
               selectedAnswer.trim().toUpperCase();
@@ -2975,22 +2978,34 @@ function QuizAnswersPanel({
               (question.correctAnswer ?? "")
                 .trim()
                 .toUpperCase();
+            const optionKeyForText = (value: string) => {
+              const normalized = value.trim().toUpperCase();
+              const options: Array<[string, string | null]> = [
+                ["A", question.optionA],
+                ["B", question.optionB],
+                ["C", question.optionC],
+                ["D", question.optionD],
+              ];
+              return options.find(
+                ([, text]) => text?.trim().toUpperCase() === normalized
+              )?.[0] ?? "";
+            };
+            const resolvedSelected =
+              ["A", "B", "C", "D"].includes(normalizedSelected)
+                ? normalizedSelected
+                : optionKeyForText(selectedAnswer);
+            const resolvedCorrect =
+              ["A", "B", "C", "D"].includes(normalizedCorrect)
+                ? normalizedCorrect
+                : optionKeyForText(question.correctAnswer ?? "");
             const isCorrect =
-              normalizedSelected !== "" &&
-              normalizedSelected === normalizedCorrect;
-            const selectedText = getQuestionOption(
-              question,
-              selectedAnswer
-            );
-            const correctText = getQuestionOption(
-              question,
-              question.correctAnswer ?? undefined
-            );
+              resolvedSelected !== "" &&
+              resolvedSelected === resolvedCorrect;
 
             return (
               <div
                 key={question.id}
-                className="rounded-xl border border-slate-200 bg-white p-3"
+                className="w-full rounded-xl border border-slate-200 bg-white p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -3013,7 +3028,7 @@ function QuizAnswersPanel({
                   </span>
                 </div>
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[
                     ["A", question.optionA],
                     ["B", question.optionB],
@@ -3023,9 +3038,9 @@ function QuizAnswersPanel({
                     if (!text) return null;
 
                     const isSelected =
-                      normalizedSelected === key;
+                      resolvedSelected === key;
                     const isAnswer =
-                      normalizedCorrect === key;
+                      resolvedCorrect === key;
 
                     return (
                       <div
@@ -3055,29 +3070,6 @@ function QuizAnswersPanel({
                   })}
                 </div>
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg bg-slate-50 p-2.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Student answer
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-slate-700">
-                      {selectedAnswer
-                        ? `${selectedAnswer.toUpperCase()}${selectedText ? ` — ${selectedText}` : ""}`
-                        : "Not answered"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-emerald-50 p-2.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
-                      Correct answer
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-emerald-800">
-                      {question.correctAnswer
-                        ? `${question.correctAnswer.toUpperCase()}${correctText ? ` — ${correctText}` : ""}`
-                        : "Not configured"}
-                    </p>
-                  </div>
-                </div>
               </div>
             );
           })}
@@ -3166,6 +3158,22 @@ function SubmissionsPanel({
       submission.status === "GRADED"
   ).length;
 
+  // Group attempts by student so the admin view mirrors the Student Profile
+  // assessment screen: one student panel with Attempt 1/2/3 tabs.
+  const [selectedAttempts, setSelectedAttempts] = useState<Record<string, number>>({});
+  const submissionsByStudent = Array.from(
+    submissions.reduce((groups, submission) => {
+      const studentKey = String(submission.userId || submission.studentId || submission.studentEmail || submission.studentName || submission.id);
+      const current = groups.get(studentKey) ?? [];
+      current.push(submission);
+      groups.set(studentKey, current);
+      return groups;
+    }, new Map<string, Submission[]>()).entries()
+  ).map(([studentKey, studentSubmissions]) => ({
+    studentKey,
+    attempts: studentSubmissions.slice().sort((a, b) => a.attemptNumber - b.attemptNumber),
+  }));
+
   return (
     <div>
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -3197,12 +3205,36 @@ function SubmissionsPanel({
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {submissions.map((submission) => (
+        <div className="space-y-4">
+          {submissionsByStudent.map(({ studentKey, attempts }) => {
+            const latestAttempt = attempts[attempts.length - 1];
+            const selectedAttemptNumber = selectedAttempts[studentKey] ?? latestAttempt.attemptNumber;
+            const submission = attempts.find((attempt) => attempt.attemptNumber === selectedAttemptNumber) ?? latestAttempt;
+
+            return (
             <div
-              key={submission.id}
-              className="rounded-xl border border-slate-200 p-4"
+              key={studentKey}
+              className="rounded-xl border border-slate-200 bg-white p-4"
             >
+              {attempts.length > 1 && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-slate-100 pb-4">
+                  {attempts.map((attempt) => (
+                    <button
+                      key={attempt.id}
+                      type="button"
+                      onClick={() => setSelectedAttempts((current) => ({ ...current, [studentKey]: attempt.attemptNumber }))}
+                      aria-pressed={submission.id === attempt.id}
+                      className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                        submission.id === attempt.id
+                          ? "border-[#173B67] bg-[#173B67] text-white shadow-sm"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      Attempt {attempt.attemptNumber}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -3254,15 +3286,6 @@ function SubmissionsPanel({
                       </button>
                     </div>
                   )}
-
-                  {assessment.type ===
-                    "Quiz" &&
-                    submission.answers && (
-                      <QuizAnswersPanel
-                        questions={questions}
-                        answers={submission.answers}
-                      />
-                    )}
 
                   {submission.feedback && (
                     <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
@@ -3355,8 +3378,18 @@ function SubmissionsPanel({
                   )}
                 </div>
               </div>
+
+              {assessment.type === "Quiz" && submission.answers && (
+                <div className="mt-4 w-full">
+                  <QuizAnswersPanel
+                    questions={questions}
+                    answers={submission.answers}
+                  />
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -3621,17 +3654,22 @@ function SummaryCard({
   value: number;
   title: string;
 }) {
+  const accent = title === "Assignments" ? "from-[#173B67] to-[#4778aa]" : title === "Quizzes" ? "from-orange-400 to-amber-300" : title === "Drafts" ? "from-amber-400 to-orange-500" : "from-[#173B67] via-orange-500 to-amber-300";
+
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-        {icon}
-      </div>
-      <div>
-        <div className="text-2xl font-bold text-[#173B67]">
-          {value}
+    <div className="group relative overflow-hidden rounded-2xl border border-[#dbe5f1] bg-white p-5 shadow-[0_5px_18px_-16px_rgba(23,59,103,0.65)] transition duration-200 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_16px_30px_-22px_rgba(23,59,103,0.55)]">
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accent}`} />
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 text-orange-600 transition duration-200 group-hover:rotate-3 group-hover:scale-105">
+          {icon}
         </div>
-        <div className="text-sm text-slate-500">
-          {title}
+        <div>
+          <div className="text-2xl font-extrabold tracking-tight text-[#173B67]">
+            {value}
+          </div>
+          <div className="mt-0.5 text-sm font-medium text-slate-500">
+            {title}
+          </div>
         </div>
       </div>
     </div>
@@ -3648,7 +3686,7 @@ function TypeBadge({
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
         type === "Assignment"
           ? "bg-blue-50 text-blue-700"
-          : "bg-purple-50 text-purple-700"
+          : "bg-orange-50 text-orange-700"
       }`}
     >
       {type === "Assignment" ? (
@@ -3758,7 +3796,7 @@ function ActionButton({
       title={title}
       aria-label={ariaLabel ?? title}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 hover:shadow-sm"
     >
       {children}
     </button>

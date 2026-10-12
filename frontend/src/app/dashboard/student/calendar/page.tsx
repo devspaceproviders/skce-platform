@@ -1,1766 +1,2629 @@
 "use client";
 
 import {
+
   useCallback,
+
   useEffect,
+
   useMemo,
+
   useRef,
+
   useState,
+
 } from "react";
+
 import {
+
   CalendarDays,
+
   ChevronLeft,
+
   ChevronRight,
+
   Clock3,
+
   ExternalLink,
+
   RefreshCw,
+
   Copy,
+
   Eye,
+
   EyeOff,
+
   MonitorUp,
+
   ShieldCheck,
+
   UserCircle,
+
   Users,
+
   Video,
+
+
   XCircle,
+
+  CheckCircle2,
+
+  Sun,
+
+  Hourglass,
+
 } from "lucide-react";
 
+import {
+
+  DetailPanel,
+
+  Modal,
+
+  SkStyles,
+
+  SkTile,
+
+  reveal,
+
+  usePreview,
+
+} from "@/components/student/skce-ui";
+
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 type MeetingType =
+
   | "BATCH_MEETING"
+
   | "STUDENT_MEETING"
+
   | "INTERNAL_MEETING"
+
   | "ONE_TO_ONE"
+
   | "OTHER";
 
-type MeetingStatus =
-  | "SCHEDULED"
-  | "COMPLETED"
-  | "CANCELLED";
+type MeetingStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
 
-type CalendarMeetingType =
-  | MeetingType
-  | "LIVE_CLASS";
+type CalendarMeetingType = MeetingType;
 
-type CalendarMeetingStatus =
-  | MeetingStatus
-  | "LIVE";
+type CalendarMeetingStatus = MeetingStatus | "LIVE";
 
 interface MeetingParticipant {
+
   id: number;
+
   userId: number;
+
   name?: string | null;
+
   email?: string | null;
+
   role?: string | null;
+
 }
 
 interface Meeting {
+
   id: number;
+
   organizerUserId: number;
+
   title: string;
+
   description?: string | null;
+
   startAt: string;
+
   endAt: string;
+
   meetingUrl?: string | null;
+
   meetingPlatform?:
+
     | "GOOGLE_MEET"
+
     | "MICROSOFT_TEAMS"
+
     | "ZOOM"
+
     | "WHATSAPP"
+
     | "OTHER"
+
     | null;
+
   meetingType: MeetingType;
+
   status: MeetingStatus;
+
   courseId?: number | null;
+
   batchId?: number | null;
+
   organizer?: {
+
     id: number;
+
     name?: string | null;
+
     email?: string | null;
+
     role?: string | null;
+
   } | null;
+
   course?: {
+
     id: number;
+
     slug?: string | null;
+
     title?: string | null;
+
   } | null;
+
   batch?: {
+
     id: number;
+
     name?: string | null;
+
     displayId?: string | null;
+
   } | null;
+
   participants?: MeetingParticipant[];
+
 }
 
-interface LiveSession {
-  id: number;
-  courseId: number;
-  trainerId: number;
-  title: string;
-  description?: string | null;
-  startAt: string;
-  endAt: string;
-  meetingUrl?: string | null;
-  recordingUrl?: string | null;
-  status:
-    | "SCHEDULED"
-    | "LIVE"
-    | "COMPLETED"
-    | "CANCELLED";
-  isPublished: boolean;
-  course?: {
-    id: number;
-    slug?: string | null;
-    title?: string | null;
-  } | null;
-  trainer?: {
-    id: number;
-    userId: number;
-    name?: string | null;
-    email?: string | null;
-  } | null;
-}
 
-type CalendarMeeting = Omit<
-  Meeting,
-  "meetingType" | "status"
-> & {
+type CalendarMeeting = Omit<Meeting, "meetingType" | "status"> & {
+
   meetingType: CalendarMeetingType;
+
   status: CalendarMeetingStatus;
-  calendarSource: "MEETING" | "LIVE_SESSION";
+
+  calendarSource: "MEETING";
+
 };
 
-type CalendarView =
-  | "month"
-  | "week"
-  | "day"
-  | "agenda";
+type CalendarView = "month" | "week" | "day" | "agenda";
+
+type TileKey = "total" | "scheduled" | "today" | "upcoming";
 
 interface ApiResponse<T> {
+
   success: boolean;
+
   message?: string;
+
   data?: T;
+
 }
 
 function getToken() {
+
   if (typeof window === "undefined") {
+
     return null;
+
   }
 
   return localStorage.getItem("token");
+
 }
 
-async function authenticatedFetch(
-  path: string
-) {
+async function authenticatedFetch(path: string) {
+
   const token = getToken();
 
   if (!token) {
-    throw new Error(
-      "Authentication required. Please login again."
-    );
+
+    throw new Error("Authentication required. Please login again.");
+
   }
 
   const response = await fetch(path, {
+
     method: "GET",
+
     headers: {
+
       Authorization: `Bearer ${token}`,
+
     },
+
     cache: "no-store",
+
   });
 
   if (response.status === 401) {
+
     localStorage.removeItem("token");
+
     localStorage.removeItem("user");
+
     localStorage.removeItem("role");
+
     localStorage.removeItem("student");
+
     localStorage.removeItem("studentId");
 
     window.location.href = "/login";
+
     throw new Error("Authentication required.");
+
   }
 
   return response;
+
 }
 
 function startOfDay(date: Date) {
+
   const value = new Date(date);
+
   value.setHours(0, 0, 0, 0);
+
   return value;
+
 }
 
 function endOfDay(date: Date) {
+
   const value = new Date(date);
+
   value.setHours(23, 59, 59, 999);
+
   return value;
+
 }
 
 function startOfWeek(date: Date) {
+
   const value = startOfDay(date);
+
   const day = value.getDay();
+
   value.setDate(value.getDate() - day);
+
   return value;
+
 }
 
 function addDays(date: Date, amount: number) {
+
   const value = new Date(date);
+
   value.setDate(value.getDate() + amount);
+
   return value;
+
 }
 
 function addMonths(date: Date, amount: number) {
+
   const value = new Date(date);
+
   value.setMonth(value.getMonth() + amount);
+
   return value;
+
 }
 
-function sameDay(
-  first: Date,
-  second: Date
-) {
+function sameDay(first: Date, second: Date) {
+
   return (
-    first.getFullYear() ===
-      second.getFullYear() &&
+
+    first.getFullYear() === second.getFullYear() &&
+
     first.getMonth() === second.getMonth() &&
+
     first.getDate() === second.getDate()
+
   );
+
 }
 
 function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString(
-    "en-IN",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
-}
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  );
+  return new Date(value).toLocaleTimeString("en-IN", {
+
+    hour: "2-digit",
+
+    minute: "2-digit",
+
+  });
+
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+
+  return new Date(value).toLocaleString("en-IN", {
+
+    day: "2-digit",
+
+    month: "short",
+
+    year: "numeric",
+
+    hour: "2-digit",
+
+    minute: "2-digit",
+
+  });
+
 }
 
-function meetingTypeLabel(
-  type: CalendarMeetingType
-) {
+function meetingTypeLabel(type: CalendarMeetingType) {
+
   switch (type) {
+
     case "BATCH_MEETING":
+
       return "Batch Meeting";
+
     case "STUDENT_MEETING":
+
       return "Student Meeting";
+
     case "ONE_TO_ONE":
+
       return "One-to-One";
+
     case "INTERNAL_MEETING":
+
       return "Internal Meeting";
-    case "LIVE_CLASS":
-      return "Live Class";
+
     default:
+
       return "Meeting";
+
   }
+
 }
 
-function statusLabel(
-  status: CalendarMeetingStatus
-) {
+function statusLabel(status: CalendarMeetingStatus) {
+
   switch (status) {
+
     case "SCHEDULED":
+
       return "Scheduled";
-    case "LIVE":
-      return "Live";
+
     case "COMPLETED":
+
       return "Completed";
+
     case "CANCELLED":
+
       return "Cancelled";
+
     default:
+
       return status;
+
   }
+
 }
 
-function eventIsUpcoming(
-  event: CalendarMeeting
-) {
+function eventIsUpcoming(event: CalendarMeeting) {
+
   return (
-    event.status === "SCHEDULED" ||
-    event.status === "LIVE"
-  ) && new Date(event.endAt).getTime() >=
-    Date.now();
-}
 
-function eventIsToday(
-  event: CalendarMeeting
-) {
-  return sameDay(
-    new Date(event.startAt),
-    new Date()
+    event.status === "SCHEDULED" &&
+
+    new Date(event.endAt).getTime() >= Date.now()
+
   );
+
 }
 
-function eventColor(
-  event: CalendarMeeting
-) {
-  if (event.meetingType === "LIVE_CLASS") {
-    return "border-sky-200 bg-sky-50 text-sky-700";
-  }
+function eventIsToday(event: CalendarMeeting) {
+
+  return sameDay(new Date(event.startAt), new Date());
+
+}
+
+function eventTone(event: CalendarMeeting) {
 
   if (event.status === "CANCELLED") {
-    return "border-red-200 bg-red-50 text-red-700";
+
+    return "stc-ev-cancel";
+
   }
 
   if (event.meetingType === "ONE_TO_ONE") {
-    return "border-violet-200 bg-violet-50 text-violet-700";
+
+    return "stc-ev-one";
+
   }
 
   if (event.meetingType === "STUDENT_MEETING") {
-    return "border-indigo-200 bg-indigo-50 text-indigo-700";
+
+    return "stc-ev-student";
+
   }
 
   if (event.meetingType === "INTERNAL_MEETING") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
+
+    return "stc-ev-internal";
+
   }
 
-  return "border-blue-200 bg-blue-50 text-blue-700";
+  return "stc-ev-batch";
+
 }
 
 function buildMonthDays(date: Date) {
-  const first = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    1
-  );
+
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+
   const firstDay = first.getDay();
 
   const start = addDays(first, -firstDay);
-  return Array.from(
-    { length: 42 },
-    (_, index) => addDays(start, index)
-  );
+
+  return Array.from({ length: 42 }, (_, index) => addDays(start, index));
+
 }
 
-function eventOccursOnDay(
-  event: CalendarMeeting,
-  day: Date
-) {
+function eventOccursOnDay(event: CalendarMeeting, day: Date) {
+
   const start = new Date(event.startAt);
+
   const end = new Date(event.endAt);
 
   return (
+
     sameDay(start, day) ||
+
     sameDay(end, day) ||
-    (start < startOfDay(day) &&
-      end > endOfDay(day))
+
+    (start < startOfDay(day) && end > endOfDay(day))
+
   );
+
 }
 
-function eventsForDay(
-  events: CalendarMeeting[],
-  day: Date
-) {
+function eventsForDay(events: CalendarMeeting[], day: Date) {
+
   return events
-    .filter((event) =>
-      eventOccursOnDay(event, day)
-    )
+
+    .filter((event) => eventOccursOnDay(event, day))
+
     .sort(
-      (a, b) =>
-        new Date(a.startAt).getTime() -
-        new Date(b.startAt).getTime()
+
+      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+
     );
+
 }
 
 function calendarTitle(
+
   view: CalendarView,
+
   month: Date,
+
   weekDate: Date,
+
   dayDate: Date
+
 ) {
+
   if (view === "month") {
-    return month.toLocaleDateString(
-      "en-IN",
-      {
-        month: "long",
-        year: "numeric",
-      }
-    );
+
+    return month.toLocaleDateString("en-IN", {
+
+      month: "long",
+
+      year: "numeric",
+
+    });
+
   }
 
   if (view === "day") {
-    return dayDate.toLocaleDateString(
-      "en-IN",
-      {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }
-    );
+
+    return dayDate.toLocaleDateString("en-IN", {
+
+      weekday: "long",
+
+      day: "numeric",
+
+      month: "long",
+
+      year: "numeric",
+
+    });
+
   }
 
   if (view === "week") {
+
     const start = startOfWeek(weekDate);
+
     const end = addDays(start, 6);
 
-    if (
-      start.getMonth() === end.getMonth()
-    ) {
-      return `${start.toLocaleDateString(
-        "en-IN",
-        {
-          month: "long",
-        }
-      )} ${start.getDate()}–${end.getDate()}, ${start.getFullYear()}`;
+    if (start.getMonth() === end.getMonth()) {
+
+      return `${start.toLocaleDateString("en-IN", {
+
+        month: "long",
+
+      })} ${start.getDate()}–${end.getDate()}, ${start.getFullYear()}`;
+
     }
 
-    return `${start.toLocaleDateString(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-      }
-    )} – ${end.toLocaleDateString(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }
-    )}`;
+    return `${start.toLocaleDateString("en-IN", {
+
+      day: "numeric",
+
+      month: "short",
+
+    })} – ${end.toLocaleDateString("en-IN", {
+
+      day: "numeric",
+
+      month: "short",
+
+      year: "numeric",
+
+    })}`;
+
   }
 
   return "Upcoming Events";
+
 }
 
 export default function StudentCalendarPage() {
-  const [meetings, setMeetings] =
-    useState<Meeting[]>([]);
-  const [liveSessions, setLiveSessions] =
-    useState<LiveSession[]>([]);
-  const [loading, setLoading] =
-    useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
-  const [error, setError] =
-    useState("");
+
+  const tilePreview = usePreview<TileKey>("total");
+
+  const dayPreview = usePreview<string>(String(startOfDay(new Date()).getTime()));
+
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+
+
+  const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [error, setError] = useState("");
+
   const [selectedMeeting, setSelectedMeeting] =
+
     useState<CalendarMeeting | null>(null);
-  const [remoteAssistId, setRemoteAssistId] =
-    useState("");
-  const [remoteAssistPassword, setRemoteAssistPassword] =
-    useState("");
+
+  const [remoteAssistId, setRemoteAssistId] = useState("");
+
+  const [remoteAssistPassword, setRemoteAssistPassword] = useState("");
+
   const [showRemoteAssistPassword, setShowRemoteAssistPassword] =
+
     useState(false);
-  const [remoteAssistCopyMessage, setRemoteAssistCopyMessage] =
-    useState("");
 
-  const [calendarView, setCalendarView] =
-    useState<CalendarView>("month");
-  const [calendarMonth, setCalendarMonth] =
-    useState(new Date());
-  const [calendarWeekDate, setCalendarWeekDate] =
-    useState(new Date());
-  const [calendarDayDate, setCalendarDayDate] =
-    useState(new Date());
+  const [remoteAssistCopyMessage, setRemoteAssistCopyMessage] = useState("");
 
-  const agendaTodayRef =
-    useRef<HTMLDivElement | null>(null);
+  const [calendarView, setCalendarView] = useState<CalendarView>("month");
 
-  const loadCalendar = useCallback(
-    async (showRefresh = false) => {
-      try {
-        setError("");
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-        if (showRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
+  const [calendarWeekDate, setCalendarWeekDate] = useState(new Date());
 
-        const meetingResponse =
-          await authenticatedFetch(
-            `${API_URL}/meetings`
-          );
+  const [calendarDayDate, setCalendarDayDate] = useState(new Date());
 
-        const meetingResult: ApiResponse<
-          Meeting[]
-        > = await meetingResponse.json();
+  const agendaTodayRef = useRef<HTMLDivElement | null>(null);
 
-        if (
-          !meetingResponse.ok ||
-          !meetingResult.success
-        ) {
-          throw new Error(
-            meetingResult.message ||
-              "Failed to load student calendar meetings."
-          );
-        }
+  const loadCalendar = useCallback(async (showRefresh = false) => {
 
-        setMeetings(
-          Array.isArray(meetingResult.data)
-            ? meetingResult.data
-            : []
-        );
+    try {
 
-        try {
-          const liveResponse =
-            await authenticatedFetch(
-              `${API_URL}/live-sessions`
-            );
+      setError("");
 
-          const liveResult: ApiResponse<
-            LiveSession[]
-          > = await liveResponse.json();
+      if (showRefresh) {
 
-          if (
-            liveResponse.ok &&
-            liveResult.success
-          ) {
-            setLiveSessions(
-              Array.isArray(liveResult.data)
-                ? liveResult.data
-                : []
-            );
-          } else {
-            setLiveSessions([]);
-          }
-        } catch (liveError) {
-          console.warn(
-            "Student live sessions could not be loaded:",
-            liveError
-          );
-          setLiveSessions([]);
-        }
-      } catch (err) {
-        console.error(
-          "Failed to load student calendar:",
-          err
-        );
+        setRefreshing(true);
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load student calendar."
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+      } else {
+
+        setLoading(true);
+
       }
-    },
-    []
-  );
+
+      const meetingResponse = await authenticatedFetch(`${API_URL}/meetings`);
+
+      const meetingResult: ApiResponse<Meeting[]> = await meetingResponse.json();
+
+      if (!meetingResponse.ok || !meetingResult.success) {
+
+        throw new Error(
+
+          meetingResult.message || "Failed to load student calendar meetings."
+
+        );
+
+      }
+
+      setMeetings(Array.isArray(meetingResult.data) ? meetingResult.data : []);
+
+    } catch (err) {
+
+      console.error("Failed to load student calendar:", err);
+
+      setError(
+
+        err instanceof Error ? err.message : "Failed to load student calendar."
+
+      );
+
+    } finally {
+
+      setLoading(false);
+
+      setRefreshing(false);
+
+    }
+
+  }, []);
 
   useEffect(() => {
+
     void loadCalendar();
+
   }, [loadCalendar]);
 
-  const calendarMeetings =
-    useMemo<CalendarMeeting[]>(() => {
-      const normalMeetings =
-        meetings.map((meeting) => ({
-          ...meeting,
-          calendarSource: "MEETING" as const,
-        }));
-
-      const liveMeetingEvents =
-        liveSessions
-          .filter(
-            (session) =>
-              session.isPublished !== false
-          )
-          .map(
-            (session): CalendarMeeting => ({
-              id: -session.id,
-              organizerUserId:
-                session.trainer?.userId ?? 0,
-              title: session.title,
-              description: session.description,
-              startAt: session.startAt,
-              endAt: session.endAt,
-              meetingUrl: session.meetingUrl,
-              meetingType: "LIVE_CLASS",
-              status: session.status,
-              courseId: session.courseId,
-              batchId: null,
-              organizer: session.trainer
-                ? {
-                    id:
-                      session.trainer.userId,
-                    name:
-                      session.trainer.name,
-                    email:
-                      session.trainer.email,
-                    role: "TRAINER",
-                  }
-                : null,
-              course: session.course
-                ? {
-                    id: session.course.id,
-                    slug:
-                      session.course.slug,
-                    title:
-                      session.course.title,
-                  }
-                : null,
-              batch: null,
-              participants: [],
-              calendarSource:
-                "LIVE_SESSION",
-            })
-          );
-
-      return [
-        ...normalMeetings,
-        ...liveMeetingEvents,
-      ].sort(
+  const calendarMeetings = useMemo<CalendarMeeting[]>(() => {
+    return meetings
+      .map((meeting): CalendarMeeting => ({
+        ...meeting,
+        calendarSource: "MEETING",
+      }))
+      .sort(
         (a, b) =>
-          new Date(a.startAt).getTime() -
-          new Date(b.startAt).getTime()
+          new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
       );
-    }, [meetings, liveSessions]);
+  }, [meetings]);
 
   const todayEvents = useMemo(
-    () =>
-      calendarMeetings.filter(eventIsToday),
+
+    () => calendarMeetings.filter(eventIsToday),
+
     [calendarMeetings]
+
   );
 
   const upcomingEvents = useMemo(
+
     () =>
+
       calendarMeetings
+
         .filter(eventIsUpcoming)
+
         .sort(
+
           (a, b) =>
-            new Date(a.startAt).getTime() -
-            new Date(b.startAt).getTime()
+
+            new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+
         ),
+
     [calendarMeetings]
+
   );
 
-  const scheduledCount = useMemo(
+  const scheduledEvents = useMemo(
+
     () =>
+
       calendarMeetings.filter(
-        (event) =>
-          event.status === "SCHEDULED" ||
-          event.status === "LIVE"
-      ).length,
+
+        (event) => event.status === "SCHEDULED"
+
+      ),
+
     [calendarMeetings]
+
   );
+
+  const scheduledCount = scheduledEvents.length;
 
   function goToCurrentPeriod() {
+
     const today = new Date();
 
     if (calendarView === "agenda") {
+
       setCalendarMonth(today);
+
       setCalendarWeekDate(today);
+
       setCalendarDayDate(today);
 
       window.requestAnimationFrame(() => {
+
         window.requestAnimationFrame(() => {
+
           agendaTodayRef.current?.scrollIntoView({
+
             behavior: "smooth",
+
             block: "center",
+
           });
+
         });
+
       });
 
       return;
+
     }
 
     if (calendarView === "month") {
+
       setCalendarMonth(today);
+
       return;
+
     }
 
     if (calendarView === "week") {
+
       setCalendarWeekDate(today);
+
       return;
+
     }
 
     setCalendarDayDate(today);
+
   }
 
   function goPrevious() {
+
     if (calendarView === "month") {
-      setCalendarMonth(
-        addMonths(calendarMonth, -1)
-      );
+
+      setCalendarMonth(addMonths(calendarMonth, -1));
+
       return;
+
     }
 
     if (calendarView === "week") {
-      setCalendarWeekDate(
-        addDays(calendarWeekDate, -7)
-      );
+
+      setCalendarWeekDate(addDays(calendarWeekDate, -7));
+
       return;
+
     }
 
     if (calendarView === "day") {
-      setCalendarDayDate(
-        addDays(calendarDayDate, -1)
-      );
+
+      setCalendarDayDate(addDays(calendarDayDate, -1));
+
       return;
+
     }
 
-    setCalendarMonth(
-      addMonths(calendarMonth, -1)
-    );
+    setCalendarMonth(addMonths(calendarMonth, -1));
+
   }
 
   function goNext() {
+
     if (calendarView === "month") {
-      setCalendarMonth(
-        addMonths(calendarMonth, 1)
-      );
+
+      setCalendarMonth(addMonths(calendarMonth, 1));
+
       return;
+
     }
 
     if (calendarView === "week") {
-      setCalendarWeekDate(
-        addDays(calendarWeekDate, 7)
-      );
+
+      setCalendarWeekDate(addDays(calendarWeekDate, 7));
+
       return;
+
     }
 
     if (calendarView === "day") {
-      setCalendarDayDate(
-        addDays(calendarDayDate, 1)
-      );
+
+      setCalendarDayDate(addDays(calendarDayDate, 1));
+
       return;
+
     }
 
-    setCalendarMonth(
-      addMonths(calendarMonth, 1)
-    );
+    setCalendarMonth(addMonths(calendarMonth, 1));
+
   }
 
-  function openMeeting(
-    event: CalendarMeeting
-  ) {
+  function openMeeting(event: CalendarMeeting) {
+
     setSelectedMeeting(event);
+
     setRemoteAssistId("");
+
     setRemoteAssistPassword("");
+
     setShowRemoteAssistPassword(false);
+
     setRemoteAssistCopyMessage("");
+
   }
 
   function closeMeetingDetails() {
+
     setSelectedMeeting(null);
+
     setRemoteAssistId("");
+
     setRemoteAssistPassword("");
+
     setShowRemoteAssistPassword(false);
+
     setRemoteAssistCopyMessage("");
+
   }
 
-  async function copyRemoteAssistValue(
-    value: string,
-    label: string
-  ) {
+  async function copyRemoteAssistValue(value: string, label: string) {
+
     if (!value.trim()) {
+
       setRemoteAssistCopyMessage(`Enter the ${label} first.`);
+
       return;
+
     }
 
     try {
+
       await navigator.clipboard.writeText(value);
+
       setRemoteAssistCopyMessage(`${label} copied.`);
+
       window.setTimeout(() => {
+
         setRemoteAssistCopyMessage("");
+
       }, 1800);
+
     } catch {
-      setRemoteAssistCopyMessage(
-        `Unable to copy the ${label.toLowerCase()}.`
-      );
+
+      setRemoteAssistCopyMessage(`Unable to copy the ${label.toLowerCase()}.`);
+
     }
+
   }
 
-  function renderEvent(
-    event: CalendarMeeting,
-    compact = false
-  ) {
-    return (
-      <button
-        key={`${event.calendarSource}-${event.id}`}
-        type="button"
-        onClick={() => openMeeting(event)}
-        className={`w-full rounded-lg border px-2.5 py-2 text-left transition hover:shadow-sm ${eventColor(
-          event
-        )}`}
-      >
-        <div className="flex items-center gap-1.5">
-          {event.meetingType ===
-          "LIVE_CLASS" ? (
-            <Video size={13} />
-          ) : (
-            <CalendarDays size={13} />
-          )}
+  function renderEvent(event: CalendarMeeting, compact = false) {
 
-          <span className="truncate text-xs font-semibold">
-            {formatTime(event.startAt)}{" "}
-            {event.title}
+    return (
+
+      <button
+
+        key={`${event.calendarSource}-${event.id}`}
+
+        type="button"
+
+        onClick={(clickEvent) => {
+
+          clickEvent.stopPropagation();
+
+          openMeeting(event);
+
+        }}
+
+        className={`stc-ev ${eventTone(event)}`}
+
+      >
+
+        <div className="stc-ev-top">
+
+          <CalendarDays size={16} />
+
+          <span>
+
+            {formatTime(event.startAt)} {event.title}
+
           </span>
+
         </div>
 
         {!compact && (
-          <div className="mt-1 truncate text-[11px] opacity-75">
-            {meetingTypeLabel(
-              event.meetingType
-            )}
-          </div>
+
+          <div className="stc-ev-sub">{meetingTypeLabel(event.meetingType)}</div>
+
         )}
+
       </button>
+
     );
+
   }
 
   function renderMonthView() {
-    const days = buildMonthDays(
-      calendarMonth
-    );
+
+    const days = buildMonthDays(calendarMonth);
 
     return (
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-          {[
-            "SUN",
-            "MON",
-            "TUE",
-            "WED",
-            "THU",
-            "FRI",
-            "SAT",
-          ].map((day) => (
-            <div
-              key={day}
-              className="px-2 py-3 text-center text-xs font-semibold text-slate-500"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
 
-        <div className="grid grid-cols-7">
-          {days.map((day) => {
-            const outside =
-              day.getMonth() !==
-              calendarMonth.getMonth();
+      <div
 
-            const isToday = sameDay(
-              day,
-              new Date()
-            );
+        className="stc-zone"
 
-            const dayEvents =
-              eventsForDay(
-                calendarMeetings,
-                day
+        style={{ marginBottom: 0 }}
+
+        onMouseLeave={() => dayPreview.setHover(null)}
+
+      >
+
+        <div className="stc-board">
+
+          <div className="stc-weekdays" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", width: "100%" }}>
+
+            {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
+
+              <div key={day}>{day}</div>
+
+            ))}
+
+          </div>
+
+          <div className="stc-month" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", width: "100%" }}>
+
+            {days.map((day) => {
+
+              const outside = day.getMonth() !== calendarMonth.getMonth();
+
+              const isToday = sameDay(day, new Date());
+
+              const dayEvents = eventsForDay(calendarMeetings, day);
+
+              const dayKey = String(startOfDay(day).getTime());
+
+              return (
+
+                <div
+
+                  key={day.toISOString()}
+
+                  className={`stc-cell${outside ? " is-outside" : ""}${
+
+                    dayPreview.shown === dayKey ? " is-active" : ""
+
+                  }${dayPreview.pinned === dayKey ? " is-pinned" : ""}`}
+
+                  onMouseEnter={() => dayPreview.setHover(dayKey)}
+
+                  onClick={() => dayPreview.toggle(dayKey)}
+
+                >
+
+                  <div className="stc-cell-top">
+
+                    <span className={isToday ? "stc-today" : "stc-num"}>
+
+                      {day.getDate()}
+
+                    </span>
+
+                    {dayEvents.length > 0 && (
+
+                      <span className="stc-count">{dayEvents.length}</span>
+
+                    )}
+
+                  </div>
+
+                  <div className="stc-cell-events">
+
+                    {dayEvents.slice(0, 3).map((event) => renderEvent(event, true))}
+
+                    {dayEvents.length > 3 && (
+
+                      <button
+
+                        type="button"
+
+                        onClick={(clickEvent) => {
+
+                          clickEvent.stopPropagation();
+
+                          setCalendarDayDate(day);
+
+                          setCalendarView("day");
+
+                        }}
+
+                        className="stc-more"
+
+                      >
+
+                        +{dayEvents.length - 3} more
+
+                      </button>
+
+                    )}
+
+                  </div>
+
+                </div>
+
               );
 
-            return (
-              <div
-                key={day.toISOString()}
-                className={`min-h-[145px] border-b border-r border-slate-200 p-2 ${
-                  outside
-                    ? "bg-slate-50/60"
-                    : "bg-white"
-                }`}
-              >
-                <div className="mb-2 flex justify-between">
-                  <span
-                    className={`text-xs ${
-                      outside
-                        ? "text-slate-400"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {isToday ? (
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#173B67] font-semibold text-white">
-                        {day.getDate()}
-                      </span>
-                    ) : (
-                      day.getDate()
-                    )}
-                  </span>
+            })}
 
-                  {dayEvents.length > 0 && (
-                    <span className="text-[10px] text-slate-400">
-                      {dayEvents.length}
-                    </span>
-                  )}
-                </div>
+          </div>
 
-                <div className="space-y-1.5">
-                  {dayEvents
-                    .slice(0, 4)
-                    .map((event) =>
-                      renderEvent(
-                        event,
-                        true
-                      )
-                    )}
-
-                  {dayEvents.length > 4 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCalendarDayDate(
-                          day
-                        );
-                        setCalendarView(
-                          "day"
-                        );
-                      }}
-                      className="text-xs font-medium text-[#173B67] hover:underline"
-                    >
-                      +{dayEvents.length - 4} more
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
+
+        {(() => {
+
+          const previewDay = new Date(Number(dayPreview.last));
+
+          const previewEvents = eventsForDay(calendarMeetings, previewDay);
+
+          return (
+
+            <DetailPanel
+
+              open={Boolean(dayPreview.shown)}
+
+              itemKey={dayPreview.last}
+
+              icon={CalendarDays}
+
+              title={previewDay.toLocaleDateString("en-IN", {
+
+                weekday: "long",
+
+                day: "numeric",
+
+                month: "long",
+
+              })}
+
+              subtitle={`${previewEvents.length} event${
+
+                previewEvents.length === 1 ? "" : "s"
+
+              } on this day`}
+
+              pinned={dayPreview.pinned === dayPreview.last}
+
+              onUnpin={() => dayPreview.setPinned(null)}
+
+            >
+
+              {previewEvents.length === 0 ? (
+
+                <p className="sk-detail-empty">Nothing scheduled on this day.</p>
+
+              ) : (
+
+                <div className="sk-rows">
+
+                  {previewEvents.map((event) => (
+
+                    <button
+
+                      key={`${event.calendarSource}-${event.id}`}
+
+                      type="button"
+
+                      className="sk-row"
+
+                      onClick={() => openMeeting(event)}
+
+                    >
+
+                      <div className={`stc-dot ${eventTone(event)}`}>
+
+                        <CalendarDays size={16} />
+
+                      </div>
+
+                      <div className="sk-min0 sk-grow">
+
+                        <span className="sk-row-title">{event.title}</span>
+
+                        <span className="sk-row-sub">
+
+                          {formatTime(event.startAt)} – {formatTime(event.endAt)} ·{" "}
+
+                          {meetingTypeLabel(event.meetingType)}
+
+                        </span>
+
+                      </div>
+
+                      <ChevronRight size={15} className="sk-arrow" />
+
+                    </button>
+
+                  ))}
+
+                </div>
+
+              )}
+
+            </DetailPanel>
+
+          );
+
+        })()}
+
       </div>
+
     );
+
   }
 
   function renderWeekView() {
-    const start = startOfWeek(
-      calendarWeekDate
-    );
-    const days = Array.from(
-      { length: 7 },
-      (_, index) => addDays(start, index)
-    );
+
+    const start = startOfWeek(calendarWeekDate);
+
+    const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
 
     return (
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <div className="min-w-[980px]">
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+
+      <div className="stc-board stc-scroll">
+
+        <div className="stc-week">
+
+          <div className="stc-week-head" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", width: "100%" }}>
+
             {days.map((day) => {
-              const isToday = sameDay(
-                day,
-                new Date()
-              );
+
+              const isToday = sameDay(day, new Date());
 
               return (
-                <div
-                  key={day.toISOString()}
-                  className="border-r border-slate-200 px-3 py-3 text-center"
-                >
-                  <div className="text-xs font-semibold text-slate-500">
-                    {day.toLocaleDateString(
-                      "en-IN",
-                      {
-                        weekday: "short",
-                      }
-                    )}
-                  </div>
-                  <div
-                    className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
-                      isToday
-                        ? "bg-[#173B67] text-white"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {day.getDate()}
-                  </div>
+
+                <div key={day.toISOString()}>
+
+                  <span>
+
+                    {day.toLocaleDateString("en-IN", {
+
+                      weekday: "short",
+
+                    })}
+
+                  </span>
+
+                  <b className={isToday ? "stc-today" : "stc-num"}>{day.getDate()}</b>
+
                 </div>
+
               );
+
             })}
+
           </div>
 
-          <div className="grid grid-cols-7">
+          <div className="stc-week-body" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", width: "100%" }}>
+
             {days.map((day) => (
-              <div
-                key={day.toISOString()}
-                className="min-h-[500px] border-r border-slate-200 p-2"
-              >
-                <div className="space-y-2">
-                  {eventsForDay(
-                    calendarMeetings,
-                    day
-                  ).map((event) =>
-                    renderEvent(event)
-                  )}
-                </div>
+
+              <div key={day.toISOString()} className="stc-week-col">
+
+                {eventsForDay(calendarMeetings, day).map((event) =>
+
+                  renderEvent(event)
+
+                )}
+
               </div>
+
             ))}
+
           </div>
+
         </div>
+
       </div>
+
     );
+
   }
 
   function renderDayView() {
-    const events =
-      eventsForDay(
-        calendarMeetings,
-        calendarDayDate
-      );
+
+    const events = eventsForDay(calendarMeetings, calendarDayDate);
 
     return (
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-          <div className="text-sm font-semibold text-slate-800">
-            {calendarDayDate.toLocaleDateString(
-              "en-IN",
-              {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }
-            )}
-          </div>
+
+      <div className="stc-board">
+
+        <div className="stc-day-head">
+
+          {calendarDayDate.toLocaleDateString("en-IN", {
+
+            weekday: "long",
+
+            day: "numeric",
+
+            month: "long",
+
+            year: "numeric",
+
+          })}
+
         </div>
 
-        <div className="min-h-[520px] p-5">
+        <div className="stc-day-body">
+
           {events.length === 0 ? (
-            <div className="flex min-h-[420px] items-center justify-center text-sm text-slate-500">
-              No meetings or live classes
-              scheduled for this day.
+
+            <div className="stc-day-empty">
+
+              No meetings scheduled for this day.
+
             </div>
+
           ) : (
-            <div className="space-y-3">
-              {events.map((event) =>
-                renderEvent(event)
-              )}
-            </div>
+
+            <div className="stc-stack">{events.map((event) => renderEvent(event))}</div>
+
           )}
+
         </div>
+
       </div>
+
     );
+
   }
 
   function renderAgendaView() {
-    const grouped = new Map<
-      string,
-      {
-        day: Date;
-        events: CalendarMeeting[];
-      }
-    >();
+
+    const grouped = new Map<string, { day: Date; events: CalendarMeeting[] }>();
 
     for (const event of calendarMeetings) {
-      const day = startOfDay(
-        new Date(event.startAt)
-      );
+
+      const day = startOfDay(new Date(event.startAt));
+
       const key = day.toISOString();
 
       if (!grouped.has(key)) {
+
         grouped.set(key, {
+
           day,
+
           events: [],
+
         });
+
       }
 
-      grouped
-        .get(key)!
-        .events.push(event);
+      grouped.get(key)!.events.push(event);
+
     }
 
-    const groups = Array.from(
-      grouped.values()
-    ).sort(
-      (a, b) =>
-        a.day.getTime() -
-        b.day.getTime()
+    const groups = Array.from(grouped.values()).sort(
+
+      (a, b) => a.day.getTime() - b.day.getTime()
+
     );
 
     return (
-      <div className="space-y-4">
+
+      <div className="stc-stack">
+
         {groups.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-            No calendar events available.
+
+          <div className="sk-empty">
+
+            <div className="sk-empty-icon">
+
+              <CalendarDays size={22} />
+
+            </div>
+
+            <strong>No calendar events available</strong>
+
+            <span>Meetings and batch activities will appear here once scheduled.</span>
+
           </div>
+
         ) : (
+
           groups.map((group) => {
-            const isToday = sameDay(
-              group.day,
-              new Date()
-            );
+
+            const isToday = sameDay(group.day, new Date());
 
             return (
+
               <div
+
                 key={group.day.toISOString()}
-                ref={
-                  isToday
-                    ? agendaTodayRef
-                    : undefined
-                }
-                className={`rounded-xl border bg-white ${
-                  isToday
-                    ? "border-[#173B67] shadow-sm"
-                    : "border-slate-200"
-                }`}
+
+                ref={isToday ? agendaTodayRef : undefined}
+
+                className={`stc-agenda${isToday ? " is-today" : ""}`}
+
               >
-                <div className="border-b border-slate-200 px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                        isToday
-                          ? "bg-[#173B67] text-white"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {group.day.getDate()}
-                    </div>
 
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800">
-                        {group.day.toLocaleDateString(
-                          "en-IN",
-                          {
-                            weekday: "long",
-                          }
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {group.day.toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          }
-                        )}
-                      </div>
-                    </div>
+                <div className="stc-agenda-head">
 
-                    {isToday && (
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                        Today
-                      </span>
-                    )}
+                  <div className={`stc-agenda-date${isToday ? " is-today" : ""}`}>
+
+                    {group.day.getDate()}
+
                   </div>
+
+                  <div>
+
+                    <b>
+
+                      {group.day.toLocaleDateString("en-IN", {
+
+                        weekday: "long",
+
+                      })}
+
+                    </b>
+
+                    <span>
+
+                      {group.day.toLocaleDateString("en-IN", {
+
+                        day: "numeric",
+
+                        month: "long",
+
+                        year: "numeric",
+
+                      })}
+
+                    </span>
+
+                  </div>
+
+                  {isToday && <span className="sk-badge tone-green">Today</span>}
+
                 </div>
 
-                <div className="space-y-2 p-4">
-                  {group.events.map(
-                    (event) =>
-                      renderEvent(event)
-                  )}
+                <div className="stc-stack stc-agenda-body">
+
+                  {group.events.map((event) => renderEvent(event))}
+
                 </div>
+
               </div>
+
             );
+
           })
+
         )}
+
       </div>
+
     );
+
   }
 
+  const tileEvents =
+
+    tilePreview.last === "scheduled"
+
+      ? scheduledEvents
+
+      : tilePreview.last === "today"
+
+      ? todayEvents
+
+      : tilePreview.last === "upcoming"
+
+      ? upcomingEvents
+
+      : calendarMeetings;
+
+  const tileMeta: Record<TileKey, { title: string; subtitle: string }> = {
+
+    total: { title: "All events", subtitle: `${calendarMeetings.length} in your calendar` },
+
+    scheduled: { title: "Scheduled events", subtitle: `${scheduledCount} scheduled` },
+
+    today: { title: "Today's events", subtitle: `${todayEvents.length} happening today` },
+
+    upcoming: { title: "Upcoming events", subtitle: `${upcomingEvents.length} still to come` },
+
+  };
+
+  const tileProps = (key: TileKey) => ({
+
+    active: tilePreview.shown === key,
+
+    pinned: tilePreview.pinned === key,
+
+    onEnter: () => tilePreview.setHover(key),
+
+    onToggle: () => tilePreview.toggle(key),
+
+  });
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="border-b border-slate-200 bg-white">
-        <div className="flex flex-col gap-4 px-8 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#173B67] text-white">
-              <CalendarDays size={24} />
-            </div>
 
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                Calendar
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                View your meetings, batch activities,
-                and live classes.
-              </p>
-            </div>
-          </div>
+    <>
 
-          <button
-            type="button"
-            onClick={() =>
-              void loadCalendar(true)
-            }
-            disabled={refreshing}
-            className="inline-flex items-center gap-2 self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 lg:self-auto"
+      <main id="stc-page" className="sk-page">
+
+        <div className="sk-container">
+
+          <header
+
+            className="stc-hero sk-reveal"
+
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left" }}
+
           >
-            <RefreshCw
-              size={16}
-              className={
-                refreshing
-                  ? "animate-spin"
-                  : ""
-              }
-            />
-            Refresh
-          </button>
-        </div>
-      </div>
 
-      <div className="space-y-6 px-8 py-6">
-        {error && (
-          <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            <span>{error}</span>
+            <div
+
+              className="stc-title-wrap"
+
+              style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 18, textAlign: "left", flex: "1 1 auto", minWidth: 0 }}
+
+            >
+
+              <div className="stc-title-icon" style={{ flex: "0 0 56px", width: 56, height: 56 }}>
+
+                <CalendarDays size={26} style={{ flex: "0 0 auto", width: 26, height: 26 }} />
+
+              </div>
+
+              <div>
+
+                <div className="sk-kicker">Student learning</div>
+
+                <h1>Calendar</h1>
+
+                <p>View your meetings and batch activities.</p>
+
+              </div>
+
+            </div>
 
             <button
+
               type="button"
-              onClick={() => setError("")}
-              className="shrink-0 text-red-500 hover:text-red-700"
-              aria-label="Close error"
+
+              onClick={() => void loadCalendar(true)}
+
+              disabled={refreshing}
+
+              className="sk-btn sk-btn-secondary"
+
             >
-              <XCircle size={18} />
+
+              <RefreshCw size={15} className={refreshing ? "sk-spin" : "sk-refresh-icon"} />
+
+              {refreshing ? "Refreshing..." : "Refresh"}
+
             </button>
-          </div>
-        )}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">
-              Total Events
+          </header>
+
+          {error && (
+
+            <div className="sk-alert is-error" role="alert">
+
+              <XCircle size={18} />
+
+              <span>{error}</span>
+
+              <button type="button" onClick={() => setError("")} aria-label="Close error">
+
+                <XCircle size={16} />
+
+              </button>
+
             </div>
-            <div className="mt-2 text-3xl font-bold text-slate-900">
-              {calendarMeetings.length}
-            </div>
+
+          )}
+
+          <div className="stc-stats" onMouseLeave={() => tilePreview.setHover(null)}>
+
+            <section className="stc-tiles">
+
+              <div className="stc-tile-slot" style={{ minWidth: 0 }}>
+
+              <SkTile
+
+                index={1}
+
+                icon={CalendarDays}
+
+                label="Total Events"
+
+                value={calendarMeetings.length}
+
+                helper="Meetings and batch activities"
+
+                tone="blue"
+
+                {...tileProps("total")}
+
+              />
+
+              </div>
+
+              <div className="stc-tile-slot" style={{ minWidth: 0 }}>
+
+              <SkTile
+
+                index={2}
+
+                icon={CheckCircle2}
+
+                label="Scheduled"
+
+                value={scheduledCount}
+
+                helper="Scheduled meetings"
+
+                tone="green"
+
+                {...tileProps("scheduled")}
+
+              />
+
+              </div>
+
+              <div className="stc-tile-slot" style={{ minWidth: 0 }}>
+
+              <SkTile
+
+                index={3}
+
+                icon={Sun}
+
+                label="Today's Events"
+
+                value={todayEvents.length}
+
+                helper="Happening today"
+
+                tone="orange"
+
+                {...tileProps("today")}
+
+              />
+
+              </div>
+
+              <div className="stc-tile-slot" style={{ minWidth: 0 }}>
+
+              <SkTile
+
+                index={4}
+
+                icon={Hourglass}
+
+                label="Upcoming"
+
+                value={upcomingEvents.length}
+
+                helper="Still to come"
+
+                tone="navy"
+
+                {...tileProps("upcoming")}
+
+              />
+
+              </div>
+
+            </section>
+
+            <DetailPanel
+
+              open={Boolean(tilePreview.shown)}
+
+              itemKey={tilePreview.last}
+
+              icon={CalendarDays}
+
+              title={tileMeta[tilePreview.last].title}
+
+              subtitle={tileMeta[tilePreview.last].subtitle}
+
+              pinned={tilePreview.pinned === tilePreview.last}
+
+              onUnpin={() => tilePreview.setPinned(null)}
+
+            >
+
+              {tileEvents.length === 0 ? (
+
+                <p className="sk-detail-empty">Nothing here yet.</p>
+
+              ) : (
+
+                <div className="sk-rows">
+
+                  {tileEvents.slice(0, 6).map((event) => (
+
+                    <button
+
+                      key={`${event.calendarSource}-${event.id}`}
+
+                      type="button"
+
+                      className="sk-row"
+
+                      onClick={() => openMeeting(event)}
+
+                    >
+
+                      <div className={`stc-dot ${eventTone(event)}`}>
+
+                        <CalendarDays size={16} />
+
+                      </div>
+
+                      <div className="sk-min0 sk-grow">
+
+                        <span className="sk-row-title">{event.title}</span>
+
+                        <span className="sk-row-sub">
+
+                          {formatDateTime(event.startAt)} ·{" "}
+
+                          {meetingTypeLabel(event.meetingType)}
+
+                        </span>
+
+                      </div>
+
+                      <ChevronRight size={15} className="sk-arrow" />
+
+                    </button>
+
+                  ))}
+
+                </div>
+
+              )}
+
+              {tileEvents.length > 6 ? (
+
+                <p className="sk-detail-empty" style={{ marginTop: 12 }}>
+
+                  +{tileEvents.length - 6} more in the calendar below.
+
+                </p>
+
+              ) : null}
+
+            </DetailPanel>
+
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">
-              Scheduled
-            </div>
-            <div className="mt-2 text-3xl font-bold text-emerald-600">
-              {scheduledCount}
-            </div>
-          </div>
+          <section className="sk-reveal" style={reveal(5)}>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">
-              Today's Events
-            </div>
-            <div className="mt-2 text-3xl font-bold text-slate-900">
-              {todayEvents.length}
-            </div>
-          </div>
+            <div
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">
-              Upcoming
+              className="stc-toolbar"
+
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, textAlign: "left" }}
+
+            >
+
+              <div>
+
+                <h2>Your Schedule</h2>
+
+                <p>View meetings by month, week, day, or agenda.</p>
+
+              </div>
+
+              <div
+
+                className="stc-controls"
+
+                style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 8 }}
+
+              >
+
+                <div className="sk-seg" role="tablist" aria-label="Calendar view">
+
+                  {(
+
+                    [
+
+                      ["month", "Month"],
+
+                      ["week", "Week"],
+
+                      ["day", "Day"],
+
+                      ["agenda", "Agenda"],
+
+                    ] as const
+
+                  ).map(([value, label]) => (
+
+                    <button
+
+                      key={value}
+
+                      type="button"
+
+                      role="tab"
+
+                      aria-selected={calendarView === value}
+
+                      onClick={() => setCalendarView(value)}
+
+                      className={`sk-seg-btn${calendarView === value ? " is-active" : ""}`}
+
+                    >
+
+                      {label}
+
+                    </button>
+
+                  ))}
+
+                </div>
+
+                <button
+
+                  type="button"
+
+                  onClick={goToCurrentPeriod}
+
+                  className="sk-btn sk-btn-secondary sk-btn-sm"
+
+                >
+
+                  Today
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={goPrevious}
+
+                  className="sk-btn sk-btn-secondary sk-btn-sm stc-nav"
+
+                  aria-label="Previous period"
+
+                >
+
+                  <ChevronLeft size={18} style={{ flex: "0 0 auto" }} />
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={goNext}
+
+                  className="sk-btn sk-btn-secondary sk-btn-sm stc-nav"
+
+                  aria-label="Next period"
+
+                >
+
+                  <ChevronRight size={18} style={{ flex: "0 0 auto" }} />
+
+                </button>
+
+              </div>
+
             </div>
-            <div className="mt-2 text-3xl font-bold text-[#173B67]">
-              {upcomingEvents.length}
+
+            <div className="stc-period">
+
+              {calendarTitle(
+
+                calendarView,
+
+                calendarMonth,
+
+                calendarWeekDate,
+
+                calendarDayDate
+
+              )}
+
             </div>
-          </div>
+
+            {loading ? (
+
+              <div className="sk-skel" style={{ height: 340 }} aria-busy="true">
+
+                <span className="sk-sr">Loading calendar</span>
+
+              </div>
+
+            ) : (
+
+              <div
+
+                key={`${calendarView}-${calendarMonth.getMonth()}-${calendarWeekDate.getTime()}-${calendarDayDate.getTime()}`}
+
+                className="sk-swap"
+
+              >
+
+                {calendarView === "month" && renderMonthView()}
+
+                {calendarView === "week" && renderWeekView()}
+
+                {calendarView === "day" && renderDayView()}
+
+                {calendarView === "agenda" && renderAgendaView()}
+
+              </div>
+
+            )}
+
+          </section>
+
         </div>
 
-        <section>
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Calendar
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                View meetings and live classes by
-                month, week, day, or agenda.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">
-                {(
-                  [
-                    ["month", "Month"],
-                    ["week", "Week"],
-                    ["day", "Day"],
-                    ["agenda", "Agenda"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      setCalendarView(value)
-                    }
-                    className={`px-4 py-2 text-sm font-medium ${
-                      calendarView === value
-                        ? "bg-[#173B67] text-white"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={goToCurrentPeriod}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Today
-              </button>
-
-              <button
-                type="button"
-                onClick={goPrevious}
-                className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 hover:bg-slate-50"
-                aria-label="Previous period"
-              >
-                <ChevronLeft size={18} />
-              </button>
-
-              <button
-                type="button"
-                onClick={goNext}
-                className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 hover:bg-slate-50"
-                aria-label="Next period"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mb-4 rounded-xl border border-slate-200 bg-white px-5 py-4 text-center">
-            <h3 className="text-lg font-semibold text-slate-900">
-              {calendarTitle(
-                calendarView,
-                calendarMonth,
-                calendarWeekDate,
-                calendarDayDate
-              )}
-            </h3>
-          </div>
-
-          {loading ? (
-            <div className="flex min-h-[500px] items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
-              Loading calendar...
-            </div>
-          ) : (
-            <>
-              {calendarView === "month" &&
-                renderMonthView()}
-              {calendarView === "week" &&
-                renderWeekView()}
-              {calendarView === "day" &&
-                renderDayView()}
-              {calendarView === "agenda" &&
-                renderAgendaView()}
-            </>
-          )}
-        </section>
-      </div>
+      </main>
 
       {selectedMeeting && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-          onClick={() =>
-            setSelectedMeeting(null)
-          }
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  {selectedMeeting.meetingType ===
-                  "LIVE_CLASS" ? (
-                    <Video
-                      size={18}
-                      className="text-sky-600"
-                    />
-                  ) : (
-                    <CalendarDays
-                      size={18}
-                      className="text-[#173B67]"
-                    />
-                  )}
 
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {meetingTypeLabel(
-                      selectedMeeting.meetingType
-                    )}
-                  </span>
+        <Modal onClose={closeMeetingDetails} maxWidth={600} labelledBy="meeting-title">
+
+          {(close) => (
+
+            <>
+
+              <div className="sk-modal-head">
+
+                <div className="sk-min0">
+
+                  <div className="stc-modal-type">
+
+                    <CalendarDays size={20} />
+
+                    {meetingTypeLabel(selectedMeeting.meetingType)}
+
+                  </div>
+
+                  <h2 id="meeting-title">{selectedMeeting.title}</h2>
+
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900">
-                  {selectedMeeting.title}
-                </h3>
+                <button
+
+                  type="button"
+
+                  onClick={close}
+
+                  className="sk-modal-close"
+
+                  aria-label="Close details"
+
+                >
+
+                  <XCircle size={18} />
+
+                </button>
+
               </div>
 
-              <button
-                type="button"
-                onClick={closeMeetingDetails}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Close details"
-              >
-                <XCircle size={20} />
-              </button>
-            </div>
+              <div className="sk-modal-body">
 
-            <div className="space-y-5 px-6 py-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-                    <Clock3 size={14} />
-                    Start
+                <div className="stc-two">
+
+                  <div className="stc-info">
+
+                    <span>
+
+                      <Clock3 size={14} />
+
+                      Start
+
+                    </span>
+
+                    <strong>{formatDateTime(selectedMeeting.startAt)}</strong>
+
                   </div>
-                  <div className="text-sm font-semibold text-slate-800">
-                    {formatDateTime(
-                      selectedMeeting.startAt
-                    )}
+
+                  <div className="stc-info">
+
+                    <span>
+
+                      <Clock3 size={14} />
+
+                      End
+
+                    </span>
+
+                    <strong>{formatDateTime(selectedMeeting.endAt)}</strong>
+
                   </div>
+
                 </div>
 
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-                    <Clock3 size={14} />
-                    End
-                  </div>
-                  <div className="text-sm font-semibold text-slate-800">
-                    {formatDateTime(
-                      selectedMeeting.endAt
-                    )}
-                  </div>
-                </div>
-              </div>
+                <div className="stc-chips">
 
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                  {statusLabel(
-                    selectedMeeting.status
+                  <span className="sk-badge">{statusLabel(selectedMeeting.status)}</span>
+
+                  {selectedMeeting.course?.title && (
+
+                    <span className="sk-badge tone-blue">{selectedMeeting.course.title}</span>
+
                   )}
-                </span>
 
-                {selectedMeeting.course?.title && (
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    {selectedMeeting.course.title}
-                  </span>
+                  {selectedMeeting.batch?.name && (
+
+                    <span className="sk-badge tone-navy">{selectedMeeting.batch.name}</span>
+
+                  )}
+
+                </div>
+
+                {selectedMeeting.description && (
+
+                  <div className="stc-section">
+
+                    <h3>Description</h3>
+
+                    <p>{selectedMeeting.description}</p>
+
+                  </div>
+
+                )}
+
+                {selectedMeeting.calendarSource === "MEETING" &&
+
+                  selectedMeeting.meetingPlatform && (
+
+                    <div className="stc-line">
+
+                      <Video size={22} />
+
+                      <div>
+
+                        <span>Meeting Platform</span>
+
+                        <strong>
+
+                          {selectedMeeting.meetingPlatform === "GOOGLE_MEET"
+
+                            ? "Google Meet"
+
+                            : selectedMeeting.meetingPlatform === "MICROSOFT_TEAMS"
+
+                            ? "Microsoft Teams"
+
+                            : selectedMeeting.meetingPlatform === "ZOOM"
+
+                            ? "Zoom"
+
+                            : selectedMeeting.meetingPlatform === "WHATSAPP"
+
+                            ? "WhatsApp"
+
+                            : "Other"}
+
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                {selectedMeeting.organizer && (
+
+                  <div className="stc-line">
+
+                    <UserCircle size={22} />
+
+                    <div>
+
+                      <span>Organizer</span>
+
+                      <strong>{selectedMeeting.organizer.name || "Organizer"}</strong>
+
+                      {selectedMeeting.organizer.email && (
+
+                        <em>{selectedMeeting.organizer.email}</em>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
                 )}
 
                 {selectedMeeting.batch?.name && (
-                  <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
-                    {selectedMeeting.batch.name}
-                  </span>
+
+                  <div className="stc-line">
+
+                    <Users size={22} />
+
+                    <div>
+
+                      <span>Batch</span>
+
+                      <strong>{selectedMeeting.batch.name}</strong>
+
+                    </div>
+
+                  </div>
+
                 )}
+
+                {selectedMeeting.calendarSource === "MEETING" &&
+
+                  selectedMeeting.participants &&
+
+                  selectedMeeting.participants.length > 0 && (
+
+                    <div className="stc-section">
+
+                      <h3>Participants</h3>
+
+                      <div className="stc-stack">
+
+                        {selectedMeeting.participants.map((participant) => (
+
+                          <div key={participant.id} className="stc-person">
+
+                            <strong>{participant.name || "Participant"}</strong>
+
+                            {participant.email && <em>{participant.email}</em>}
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                {selectedMeeting.calendarSource === "MEETING" &&
+
+                  selectedMeeting.status === "SCHEDULED" && (
+
+                    <div className="stc-remote">
+
+                      <div className="stc-remote-head">
+
+                        <div className="sk-icon sk-tone-navy">
+
+                          <MonitorUp size={19} />
+
+                        </div>
+
+                        <div className="sk-min0 sk-grow">
+
+                          <strong>Remote Assistance · UltraViewer</strong>
+
+                          <p>
+
+                            Keep the video call running and use UltraViewer when your
+
+                            trainer needs to work directly on your computer. Share your
+
+                            current UltraViewer ID and temporary password with the trainer
+
+                            through the meeting chat.
+
+                          </p>
+
+                        </div>
+
+                        <button
+
+                          type="button"
+
+                          onClick={() =>
+
+                            window.open(
+
+                              "https\://www.ultraviewer.net/",
+
+                              "_blank",
+
+                              "noopener,noreferrer"
+
+                            )
+
+                          }
+
+                          className="sk-btn sk-btn-secondary sk-btn-sm"
+
+                        >
+
+                          <ExternalLink size={13} />
+
+                          UltraViewer
+
+                        </button>
+
+                      </div>
+
+                      <div className="stc-two" style={{ marginTop: 14 }}>
+
+                        <label>
+
+                          <span className="sk-label">Your UltraViewer ID</span>
+
+                          <div className="stc-copy">
+
+                            <input
+
+                              type="text"
+
+                              inputMode="numeric"
+
+                              value={remoteAssistId}
+
+                              onChange={(event) => setRemoteAssistId(event.target.value)}
+
+                              placeholder="Enter current ID"
+
+                              className="sk-input"
+
+                            />
+
+                            <button
+
+                              type="button"
+
+                              onClick={() =>
+
+                                void copyRemoteAssistValue(remoteAssistId, "UltraViewer ID")
+
+                              }
+
+                              className="sk-btn sk-btn-secondary stc-icon-btn"
+
+                              aria-label="Copy UltraViewer ID"
+
+                              title="Copy UltraViewer ID"
+
+                            >
+
+                              <Copy size={16} />
+
+                            </button>
+
+                          </div>
+
+                        </label>
+
+                        <label>
+
+                          <span className="sk-label">Temporary Password</span>
+
+                          <div className="stc-copy">
+
+                            <div className="stc-pass">
+
+                              <input
+
+                                type={showRemoteAssistPassword ? "text" : "password"}
+
+                                value={remoteAssistPassword}
+
+                                onChange={(event) =>
+
+                                  setRemoteAssistPassword(event.target.value)
+
+                                }
+
+                                placeholder="Enter current password"
+
+                                autoComplete="off"
+
+                                className="sk-input"
+
+                              />
+
+                              <button
+
+                                type="button"
+
+                                onClick={() =>
+
+                                  setShowRemoteAssistPassword((current) => !current)
+
+                                }
+
+                                aria-label={
+
+                                  showRemoteAssistPassword ? "Hide password" : "Show password"
+
+                                }
+
+                              >
+
+                                {showRemoteAssistPassword ? (
+
+                                  <EyeOff size={16} />
+
+                                ) : (
+
+                                  <Eye size={16} />
+
+                                )}
+
+                              </button>
+
+                            </div>
+
+                            <button
+
+                              type="button"
+
+                              onClick={() =>
+
+                                void copyRemoteAssistValue(
+
+                                  remoteAssistPassword,
+
+                                  "UltraViewer password"
+
+                                )
+
+                              }
+
+                              className="sk-btn sk-btn-secondary stc-icon-btn"
+
+                              aria-label="Copy UltraViewer password"
+
+                              title="Copy UltraViewer password"
+
+                            >
+
+                              <Copy size={16} />
+
+                            </button>
+
+                          </div>
+
+                        </label>
+
+                      </div>
+
+                      <div className="sk-alert is-warn" style={{ margin: "14px 0 0" }}>
+
+                        <ShieldCheck size={17} />
+
+                        <span>
+
+                          SKCE does not save these UltraViewer credentials. Enter the
+
+                          current values from the UltraViewer application and share them
+
+                          only with your trainer.
+
+                        </span>
+
+                      </div>
+
+                      {remoteAssistCopyMessage && (
+
+                        <div className="stc-copy-msg">{remoteAssistCopyMessage}</div>
+
+                      )}
+
+                    </div>
+
+                  )}
+
+                {selectedMeeting.meetingUrl &&
+
+                  selectedMeeting.status === "SCHEDULED" && (
+
+                    <button
+
+                      type="button"
+
+                      onClick={() =>
+
+                        window.open(
+
+                          selectedMeeting.meetingUrl!,
+
+                          "_blank",
+
+                          "noopener,noreferrer"
+
+                        )
+
+                      }
+
+                      className="sk-btn sk-btn-primary sk-btn-block"
+
+                    >
+
+                      <ExternalLink size={16} />
+
+                      Join Meeting
+
+                    </button>
+
+                  )}
+
               </div>
 
-              {selectedMeeting.description && (
-                <div>
-                  <div className="mb-1 text-sm font-semibold text-slate-800">
-                    Description
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                    {selectedMeeting.description}
-                  </p>
-                </div>
-              )}
+            </>
 
-              {selectedMeeting.calendarSource ===
-                "MEETING" &&
-                selectedMeeting.meetingPlatform && (
-                  <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-4">
-                    <Video
-                      size={22}
-                      className="text-slate-500"
-                    />
-                    <div>
-                      <div className="text-xs text-slate-500">
-                        Meeting Platform
-                      </div>
-                      <div className="text-sm font-semibold text-slate-800">
-                        {selectedMeeting.meetingPlatform ===
-                        "GOOGLE_MEET"
-                          ? "Google Meet"
-                          : selectedMeeting.meetingPlatform ===
-                            "MICROSOFT_TEAMS"
-                          ? "Microsoft Teams"
-                          : selectedMeeting.meetingPlatform ===
-                            "ZOOM"
-                          ? "Zoom"
-                          : selectedMeeting.meetingPlatform ===
-                            "WHATSAPP"
-                          ? "WhatsApp"
-                          : "Other"}
-                      </div>
-                    </div>
-                  </div>
-                )}
+          )}
 
-              {selectedMeeting.organizer && (
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-4">
-                  <UserCircle
-                    size={22}
-                    className="text-slate-500"
-                  />
-                  <div>
-                    <div className="text-xs text-slate-500">
-                      Organizer
-                    </div>
-                    <div className="text-sm font-semibold text-slate-800">
-                      {selectedMeeting.organizer
-                        .name ||
-                        "Organizer"}
-                    </div>
-                    {selectedMeeting.organizer
-                      .email && (
-                      <div className="text-xs text-slate-500">
-                        {
-                          selectedMeeting
-                            .organizer.email
-                        }
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+        </Modal>
 
-              {selectedMeeting.batch?.name && (
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-4">
-                  <Users
-                    size={22}
-                    className="text-slate-500"
-                  />
-                  <div>
-                    <div className="text-xs text-slate-500">
-                      Batch
-                    </div>
-                    <div className="text-sm font-semibold text-slate-800">
-                      {selectedMeeting.batch.name}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedMeeting.calendarSource ===
-                "MEETING" &&
-                selectedMeeting.participants &&
-                selectedMeeting.participants
-                  .length > 0 && (
-                  <div>
-                    <div className="mb-2 text-sm font-semibold text-slate-800">
-                      Participants
-                    </div>
-                    <div className="space-y-2">
-                      {selectedMeeting.participants.map(
-                        (participant) => (
-                          <div
-                            key={
-                              participant.id
-                            }
-                            className="rounded-lg border border-slate-200 px-3 py-2"
-                          >
-                            <div className="text-sm font-medium text-slate-800">
-                              {participant.name ||
-                                "Participant"}
-                            </div>
-                            {participant.email && (
-                              <div className="text-xs text-slate-500">
-                                {
-                                  participant.email
-                                }
-                              </div>
-                            )}
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              {selectedMeeting.calendarSource ===
-                "MEETING" &&
-                (selectedMeeting.status === "SCHEDULED" ||
-                  selectedMeeting.status === "LIVE") && (
-                  <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700">
-                        <MonitorUp size={19} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <div className="text-sm font-semibold text-slate-900">
-                              Remote Assistance · UltraViewer
-                            </div>
-                            <p className="mt-1 text-xs leading-5 text-slate-600">
-                              Keep the video call running and use UltraViewer when your trainer needs to work directly on your computer. Share your current UltraViewer ID and temporary password with the trainer through the meeting chat.
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              window.open(
-                                "https://www.ultraviewer.net/",
-                                "_blank",
-                                "noopener,noreferrer"
-                              )
-                            }
-                            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100"
-                          >
-                            <ExternalLink size={13} />
-                            UltraViewer
-                          </button>
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <label className="block">
-                            <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-                              Your UltraViewer ID
-                            </span>
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={remoteAssistId}
-                                onChange={(event) =>
-                                  setRemoteAssistId(event.target.value)
-                                }
-                                placeholder="Enter current ID"
-                                className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void copyRemoteAssistValue(
-                                    remoteAssistId,
-                                    "UltraViewer ID"
-                                  )
-                                }
-                                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 hover:bg-slate-50"
-                                aria-label="Copy UltraViewer ID"
-                                title="Copy UltraViewer ID"
-                              >
-                                <Copy size={16} />
-                              </button>
-                            </div>
-                          </label>
-
-                          <label className="block">
-                            <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-                              Temporary Password
-                            </span>
-                            <div className="flex gap-2">
-                              <div className="relative min-w-0 flex-1">
-                                <input
-                                  type={
-                                    showRemoteAssistPassword
-                                      ? "text"
-                                      : "password"
-                                  }
-                                  value={remoteAssistPassword}
-                                  onChange={(event) =>
-                                    setRemoteAssistPassword(event.target.value)
-                                  }
-                                  placeholder="Enter current password"
-                                  autoComplete="off"
-                                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 pr-10 text-sm text-slate-800 outline-none focus:border-[#173B67] focus:ring-2 focus:ring-[#173B67]/10"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setShowRemoteAssistPassword((current) => !current)
-                                  }
-                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                                  aria-label={
-                                    showRemoteAssistPassword
-                                      ? "Hide password"
-                                      : "Show password"
-                                  }
-                                >
-                                  {showRemoteAssistPassword ? (
-                                    <EyeOff size={16} />
-                                  ) : (
-                                    <Eye size={16} />
-                                  )}
-                                </button>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  void copyRemoteAssistValue(
-                                    remoteAssistPassword,
-                                    "UltraViewer password"
-                                  )
-                                }
-                                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-slate-600 hover:bg-slate-50"
-                                aria-label="Copy UltraViewer password"
-                                title="Copy UltraViewer password"
-                              >
-                                <Copy size={16} />
-                              </button>
-                            </div>
-                          </label>
-                        </div>
-
-                        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                          <ShieldCheck size={15} className="mt-0.5 shrink-0" />
-                          <span>
-                            SKCE does not save these UltraViewer credentials. Enter the current values from the UltraViewer application and share them only with your trainer.
-                          </span>
-                        </div>
-
-                        {remoteAssistCopyMessage && (
-                          <div className="mt-2 text-xs font-medium text-violet-700">
-                            {remoteAssistCopyMessage}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {selectedMeeting.meetingUrl &&
-                (selectedMeeting.status ===
-                  "SCHEDULED" ||
-                  selectedMeeting.status ===
-                    "LIVE") && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      window.open(
-                        selectedMeeting.meetingUrl!,
-                        "_blank",
-                        "noopener,noreferrer"
-                      )
-                    }
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#173B67] px-4 py-3 text-sm font-semibold text-white hover:bg-[#102c4f]"
-                  >
-                    <ExternalLink size={16} />
-                    Join Meeting
-                  </button>
-                )}
-
-              {selectedMeeting.calendarSource ===
-                "LIVE_SESSION" &&
-                selectedMeeting.meetingUrl &&
-                (selectedMeeting.status ===
-                  "SCHEDULED" ||
-                  selectedMeeting.status ===
-                    "LIVE") && (
-                  <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-700">
-                    This event is a published live
-                    class. Joining is available through
-                    the Live Sessions flow.
-                  </div>
-                )}
-            </div>
-          </div>
-        </div>
       )}
-    </main>
+
+      <SkStyles />
+
+      <style dangerouslySetInnerHTML={{ __html: calendarCss }} />
+
+    </>
+
   );
+
 }
+
+const calendarCss = `
+
+.stc-title-wrap{display:flex;align-items:center;gap:16px}
+
+.stc-title-icon{width:44px;height:44px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;box-shadow:0 8px 20px rgba(15,47,95,.25)}
+
+.stc-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+
+.stc-toolbar h2{margin:0;font-size:17px;font-weight:700;color:var(--navy)}
+
+.stc-toolbar p{margin:3px 0 0;font-size:13px;color:var(--muted)}
+
+.stc-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.stc-controls .sk-seg{padding:3px}
+
+.stc-controls .sk-seg-btn{flex:0 0 auto;height:34px}
+
+.stc-nav{width:36px;padding:0}
+
+.stc-period{margin-bottom:10px;padding:9px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:center;font-size:16px;font-weight:700;color:var(--navy)}
+
+.stc-board{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03)}
+
+.stc-scroll{overflow-x:auto}
+
+.stc-weekdays,.stc-month,.stc-week-head,.stc-week-body{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+
+.stc-weekdays{border-bottom:1px solid var(--line);background:#F8FAFD}
+
+.stc-weekdays div{padding:12px 8px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted)}
+
+.stc-cell{min-height:98px;padding:8px;border-right:1px solid var(--line-2);border-bottom:1px solid var(--line-2);background:#fff;cursor:pointer;transition:background .2s ease,box-shadow .2s ease}
+
+.stc-cell:nth-child(7n){border-right:0}
+
+.stc-cell.is-outside{background:#FAFBFD}
+
+.stc-cell:hover,.stc-cell.is-active{background:#F5F9FF;box-shadow:inset 0 0 0 2px rgba(37,99,235,.35)}
+
+.stc-cell.is-pinned{background:var(--orange-tint);box-shadow:inset 0 0 0 2px rgba(255,107,0,.5)}
+
+.stc-cell-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+
+.stc-num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;font-size:13px;font-weight:600;color:var(--navy)}
+
+.stc-cell.is-outside .stc-num{color:#B6C0CF}
+
+.stc-today{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-size:13px;font-weight:700;box-shadow:0 4px 10px rgba(255,107,0,.35)}
+
+.stc-count{min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:11px;font-weight:700}
+
+.stc-cell-events{display:flex;flex-direction:column;gap:5px}
+
+.stc-more{align-self:flex-start;padding:2px 4px;border:0;background:transparent;color:var(--blue);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+
+.stc-more:hover{text-decoration:underline}
+
+.stc-ev{display:block;width:100%;padding:6px 8px;border:1px solid;border-radius:9px;text-align:left;font:inherit;cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s ease}
+
+.stc-ev:hover{transform:translateY(-2px);box-shadow:0 8px 16px rgba(15,47,95,.12)}
+
+.stc-ev-top{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+
+.stc-ev-top span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.stc-ev-sub{margin-top:3px;font-size:11.5px;opacity:.8}
+
+.stc-ev-live{border-color:#FFD2B0;background:var(--orange-tint);color:var(--orange-2)}
+
+.stc-ev-batch{border-color:#CFE0FA;background:var(--blue-tint);color:var(--blue)}
+
+.stc-ev-student{border-color:#C9D3E3;background:#E6ECF5;color:var(--navy)}
+
+.stc-ev-one{border-color:#BFE6CD;background:var(--green-tint);color:var(--green)}
+
+.stc-ev-internal{border-color:#DCE3EE;background:#F1F4F9;color:var(--muted)}
+
+.stc-ev-cancel{border-color:#F3C9C9;background:var(--red-tint);color:var(--red);text-decoration:line-through}
+
+.stc-dot{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid}
+
+.stc-week{min-width:980px}
+
+.stc-week-head{border-bottom:1px solid var(--line);background:#F8FAFD}
+
+.stc-week-head div{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-right:1px solid var(--line-2);font-size:12px;font-weight:700;color:var(--muted)}
+
+.stc-week-col{min-height:260px;display:flex;flex-direction:column;gap:8px;padding:8px;border-right:1px solid var(--line-2)}
+
+.stc-day-head{padding:16px 20px;border-bottom:1px solid var(--line);background:#F8FAFD;font-size:15px;font-weight:700;color:var(--navy)}
+
+.stc-day-body{min-height:220px;padding:14px}
+
+.stc-day-empty{display:flex;align-items:center;justify-content:center;min-height:180px;font-size:14px;color:var(--muted)}
+
+.stc-stack{display:flex;flex-direction:column;gap:10px}
+
+.stc-agenda{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff;transition:box-shadow .25s ease}
+
+.stc-agenda:hover{box-shadow:0 10px 24px rgba(15,47,95,.08)}
+
+.stc-agenda.is-today{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,107,0,.12)}
+
+.stc-agenda-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line-2)}
+
+.stc-agenda-head b{display:block;font-size:14.5px;color:var(--navy)}
+
+.stc-agenda-head span:not(.sk-badge){font-size:12.5px;color:var(--muted)}
+
+.stc-agenda-date{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#EDF1F7;color:var(--muted);font-weight:700}
+
+.stc-agenda-date.is-today{background:var(--orange);color:#fff}
+
+.stc-agenda-body{padding:10px}
+
+.stc-modal-type{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12.5px;font-weight:600;color:var(--orange-2);text-transform:uppercase;letter-spacing:.05em}
+
+.stc-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+
+.stc-info{padding:14px;border:1px solid var(--line-2);border-radius:12px;background:#F8FAFD}
+
+.stc-info span{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:12px;font-weight:600;color:var(--muted)}
+
+.stc-info strong{font-size:14px;color:var(--navy)}
+
+.stc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+
+.stc-section{margin-bottom:16px}
+
+.stc-section h3{margin:0 0 6px;font-size:14.5px;font-weight:700;color:var(--navy)}
+
+.stc-section p{margin:0;white-space:pre-wrap;font-size:14px;line-height:1.65;color:var(--muted)}
+
+.stc-line{display:flex;align-items:center;gap:14px;margin-bottom:12px;padding:14px;border:1px solid var(--line);border-radius:12px;color:var(--blue);transition:border-color .2s ease,transform .2s var(--ease)}
+
+.stc-line:hover{border-color:#9DBBEA;transform:translateX(3px)}
+
+.stc-line span{display:block;font-size:12px;color:var(--soft)}
+
+.stc-line strong{display:block;font-size:14px;color:var(--navy)}
+
+.stc-line em,.stc-person em{display:block;font-style:normal;font-size:12.5px;color:var(--muted)}
+
+.stc-person{padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+
+.stc-person strong{font-size:14px;color:var(--navy)}
+
+.stc-remote{margin-bottom:12px;padding:14px;border:1px solid #CFE0FA;border-radius:14px;background:linear-gradient(135deg,#F5F9FF,#FFFFFF)}
+
+.stc-remote-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+.stc-remote-head strong{font-size:14.5px;color:var(--navy)}
+
+.stc-remote-head p{margin:4px 0 0;font-size:13px;line-height:1.55;color:var(--muted)}
+
+.stc-copy{display:flex;gap:8px}
+
+.stc-copy .sk-input{flex:1;min-width:0}
+
+.stc-icon-btn{width:44px;padding:0;flex:0 0 44px}
+
+.stc-pass{position:relative;flex:1;min-width:0}
+
+.stc-pass .sk-input{padding-right:42px}
+
+.stc-pass button{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;padding:6px;border:0;border-radius:8px;background:transparent;color:var(--soft);cursor:pointer}
+
+.stc-pass button:hover{background:var(--line-2);color:var(--navy)}
+
+.stc-copy-msg{margin-top:10px;font-size:13px;font-weight:600;color:var(--blue);animation:sk-swap .25s var(--ease) both}
+
+@media (max-width:760px){
+
+  .stc-two{grid-template-columns:minmax(0,1fr)}
+
+  .stc-cell{min-height:96px}
+
+  .stc-controls{width:100%}
+
+  .stc-controls .sk-seg{width:100%}
+
+}
+
+/* ---- Student calendar layout: isolated from shared SKCE grid rules ---- */
+#stc-page { display:block !important; width:100% !important; min-width:0 !important; }
+#stc-page > .sk-container { display:block !important; width:100% !important; max-width:none !important; min-width:0 !important; box-sizing:border-box !important; }
+#stc-page .stc-hero { position:relative; isolation:isolate; overflow:hidden; display:flex !important; flex-direction:row !important; align-items:center !important; justify-content:space-between !important; gap:24px; width:100%; min-width:0; margin:0 0 22px; padding:26px 32px; box-sizing:border-box; border-radius:20px; border-bottom:3px solid var(--orange); color:#fff; background:radial-gradient(circle at 96% 0%,rgba(75,132,204,.38),transparent 30%),radial-gradient(circle at 0% 110%,rgba(255,107,0,.15),transparent 36%),linear-gradient(118deg,#071C3A 0%,#0F2F5F 45%,#1B4B82 100%); box-shadow:0 14px 30px rgba(15,47,95,.18); }
+#stc-page .stc-hero::before { content:""; position:absolute; inset:0; z-index:-1; background-image:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1px); background-size:24px 24px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 70%); mask-image:linear-gradient(90deg,transparent,#000 70%); }
+#stc-page .stc-hero::after { content:""; position:absolute; z-index:-1; right:-54px; top:-110px; width:245px; height:245px; border-radius:9999px; border:1px solid rgba(255,255,255,.1); box-shadow:0 0 0 28px rgba(255,255,255,.03),0 0 0 58px rgba(255,255,255,.02); pointer-events:none; }
+#stc-page .stc-title-wrap { display:flex !important; flex:1 1 auto; align-items:center; justify-content:flex-start; gap:18px; min-width:0; text-align:left; }
+#stc-page .stc-title-wrap > div:last-child { min-width:0; }
+#stc-page .stc-title-icon { display:flex; flex:0 0 56px; align-items:center; justify-content:center; width:56px; height:56px; border:1px solid rgba(255,255,255,.22); border-radius:16px; background:rgba(255,255,255,.14); box-shadow:0 8px 22px rgba(0,0,0,.15); }
+#stc-page .stc-hero .sk-kicker { margin:0 0 4px; color:#FF9A43; font-weight:800; letter-spacing:.12em; }
+#stc-page .stc-hero h1 { margin:0; color:#fff; font-size:32px; font-weight:700; line-height:1.15; letter-spacing:-.03em; }
+#stc-page .stc-hero p { margin:6px 0 0; color:#C8D8EE; font-size:14.5px; }
+#stc-page .stc-hero .sk-btn { flex:0 0 auto; min-width:140px; justify-content:center; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12); color:#fff; box-shadow:none; backdrop-filter:blur(8px); }
+#stc-page .stc-stats { display:block !important; width:100% !important; min-width:0 !important; margin:0 0 26px !important; }
+#stc-page .stc-tiles { display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; grid-auto-flow:row !important; gap:16px !important; align-items:stretch !important; justify-items:stretch !important; width:100% !important; max-width:none !important; min-width:0 !important; margin:0 !important; padding:0 !important; }
+#stc-page .stc-tiles > .stc-tile-slot { display:block !important; grid-column:auto !important; grid-row:auto !important; min-width:0 !important; width:100% !important; max-width:none !important; margin:0 !important; }
+#stc-page .stc-tile-slot > * { width:100% !important; max-width:none !important; min-width:0 !important; margin:0 !important; box-sizing:border-box !important; }
+#stc-page .stc-stats .sk-detail, #stc-page .stc-zone .sk-detail { width:100%; max-width:none; margin-top:14px; }
+#stc-page .stc-zone { display:block; width:100%; min-width:0; }
+#stc-page .stc-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; width:100%; margin:0 0 14px; }
+#stc-page .stc-toolbar h2 { margin:0; font-size:20px; font-weight:750; color:var(--navy); }
+#stc-page .stc-toolbar p { margin:4px 0 0; font-size:13px; color:var(--muted); }
+#stc-page .stc-controls { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+#stc-page .stc-controls .sk-seg { display:inline-flex; width:auto; padding:3px; }
+#stc-page .stc-controls .sk-seg-btn { flex:0 0 auto; min-width:78px; height:36px; padding:0 16px; }
+#stc-page .stc-nav { width:38px; min-width:38px; padding:0; justify-content:center; }
+#stc-page .stc-period { display:flex; align-items:center; justify-content:center; margin-bottom:12px; padding:12px 16px; border:1px solid var(--line); border-radius:14px; background:linear-gradient(135deg,#fff,#F5F9FF); font-size:17px; font-weight:750; color:var(--navy); box-shadow:0 1px 2px rgba(15,47,95,.04); }
+#stc-page .stc-weekdays, #stc-page .stc-month, #stc-page .stc-week-head, #stc-page .stc-week-body { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); width:100%; min-width:0; }
+#stc-page .stc-weekdays div { padding:12px 6px; }
+#stc-page .stc-cell { min-height:112px; padding:8px; min-width:0; }
+#stc-page .stc-cell-top { min-height:30px; }
+#stc-page .stc-num, #stc-page .stc-today { flex:0 0 30px; width:30px; height:30px; line-height:1; border-radius:50%; }
+#stc-page .stc-ev { min-width:0; }
+#stc-page .stc-ev svg, #stc-page .stc-title-icon svg, #stc-page .stc-nav svg { flex:0 0 auto; }
+#stc-page .stc-week-col:last-child, #stc-page .stc-week-head div:last-child { border-right:0; }
+#stc-page .stc-weekdays::before, #stc-page .stc-weekdays::after, #stc-page .stc-month::before, #stc-page .stc-month::after, #stc-page .stc-week-head::before, #stc-page .stc-week-head::after, #stc-page .stc-week-body::before, #stc-page .stc-week-body::after, #stc-page .stc-tiles::before, #stc-page .stc-tiles::after, #stc-page .stc-toolbar::before, #stc-page .stc-toolbar::after, #stc-page .stc-controls::before, #stc-page .stc-controls::after, #stc-page .stc-title-wrap::before, #stc-page .stc-title-wrap::after { display:none !important; content:none !important; }
+#stc-page .stc-tiles > :empty, #stc-page .stc-weekdays > :empty, #stc-page .stc-month > :empty { display:none !important; }
+#stc-page .stc-controls .sk-btn, #stc-page .stc-controls .sk-seg { flex:0 0 auto !important; }
+@media (max-width: 1100px) { #stc-page .stc-tiles { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } }
+@media (max-width: 760px) {
+  #stc-page > .sk-container { padding:0 18px 24px !important; }
+  #stc-page .stc-hero { flex-direction:column !important; align-items:flex-start !important; gap:14px; padding:20px 18px; border-radius:16px; }
+  #stc-page .stc-hero .stc-title-icon { flex-basis:46px; width:46px; height:46px; border-radius:13px; }
+  #stc-page .stc-hero h1 { font-size:26px; }
+  #stc-page .stc-hero .sk-btn { width:100%; min-width:0; }
+  #stc-page .stc-tiles { gap:12px !important; }
+  #stc-page .stc-toolbar { align-items:flex-start; flex-direction:column; }
+  #stc-page .stc-controls { width:100%; justify-content:flex-start; }
+  #stc-page .stc-controls .sk-seg { width:100%; }
+  #stc-page .stc-controls .sk-seg-btn { flex:1; min-width:0; padding:0 8px; }
+  #stc-page .stc-cell { min-height:76px; padding:4px; }
+  #stc-page .stc-cell .stc-ev { padding:3px 4px; }
+  #stc-page .stc-cell .stc-ev-top span, #stc-page .stc-count { display:none; }
+}
+@media (max-width: 480px) { #stc-page .stc-tiles { grid-template-columns:minmax(0,1fr) !important; } }
+`;

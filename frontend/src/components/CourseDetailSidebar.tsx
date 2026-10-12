@@ -1,13 +1,15 @@
+
 import Link from "next/link";
 import {
   Award,
-  User,
+  UserRound,
   Images,
   Globe,
   ArrowRight,
   Facebook,
   Linkedin,
-  Play,
+  BookOpen,
+  CheckCircle2,
 } from "lucide-react";
 import { Course } from "@/types";
 
@@ -23,14 +25,14 @@ export default function CourseDetailSidebar({
       value: course.hasCertificate ? "Yes" : "No",
     },
     {
-      icon: User,
+      icon: UserRound,
       label: "Instructor",
-      value: course.instructor?.name ?? "—",
+      value: course.instructor?.name ?? "To be announced",
     },
     {
       icon: Images,
       label: "Total Videos",
-      value: course.totalVideos ?? "—",
+      value: course.totalVideos ?? 0,
     },
     {
       icon: Globe,
@@ -40,137 +42,111 @@ export default function CourseDetailSidebar({
   ];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg">
-      {/* =========================================================
-          VIDEO PREVIEW
-      ========================================================= */}
-      <div className="group/preview relative aspect-video w-full overflow-hidden bg-[#173B67]">
-        {course.videoThumbnailUrl || course.bannerImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={
-              course.videoThumbnailUrl ||
-              course.bannerImageUrl
-            }
-            alt={`${course.title} preview`}
-            className="h-full w-full object-cover transition duration-500 group-hover/preview:scale-[1.04]"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <span className="text-sm font-semibold text-white/70">
-              Course Preview
-            </span>
-          </div>
-        )}
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
+      {/* SIDEBAR HEADER */}
+      <div className="bg-gradient-to-br from-[#0B2A52] via-[#173B67] to-[#1d4d85] p-5 text-white sm:p-6">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500">
+          <BookOpen size={22} />
+        </div>
 
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-[#173B67]/25 transition-colors duration-300 group-hover/preview:bg-[#173B67]/35" />
+        <p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-orange-300">
+          Start Learning
+        </p>
 
-        {/* Play button */}
-        <button
-          type="button"
-          aria-label="Play preview video"
-          className="absolute inset-0 flex items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-orange-300"
-        >
-          <span className="relative flex h-16 w-16 items-center justify-center">
-            {/* Soft pulse ring */}
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500/40 motion-reduce:hidden" />
+        <h2 className="mt-2 text-xl font-bold leading-snug">
+          {course.title}
+        </h2>
 
-            <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-orange-500 text-white shadow-xl shadow-orange-900/30 transition duration-300 group-hover/preview:scale-110 group-hover/preview:bg-orange-600">
-              <Play
-                size={24}
-                fill="currentColor"
-                className="ml-0.5"
-              />
-            </span>
-          </span>
-        </button>
+        <p className="mt-2 text-sm leading-6 text-blue-100">
+          Register to take the next step in your learning journey.
+        </p>
       </div>
 
-      {/* =========================================================
-          COURSE INFORMATION
-      ========================================================= */}
-      <div className="p-6 sm:p-7">
-        {/* Includes heading */}
+      {/* COURSE INFORMATION */}
+      <div className="p-5 sm:p-6">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-[#173B67]">
+          <h3 className="text-base font-bold text-[#173B67]">
             Course Includes
           </h3>
-
           <span className="h-1 w-8 rounded-full bg-orange-500" />
         </div>
 
-        {/* Course details */}
         <dl className="divide-y divide-slate-100">
-          {includes.map(
-            ({ icon: Icon, label, value }) => (
-              <div
-                key={label}
-                className="group flex items-center justify-between gap-4 py-3.5"
-              >
-                <dt className="flex min-w-0 items-center gap-2.5 text-sm text-slate-500">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 transition duration-200 group-hover:bg-orange-500">
-                    <Icon
-                      size={15}
-                      className="text-orange-500 transition-colors duration-200 group-hover:text-white"
-                    />
-                  </span>
+          {includes.map(({ icon: Icon, label, value }) => (
+            <div
+              key={label}
+              className="flex items-center justify-between gap-3 py-3.5"
+            >
+              <dt className="flex min-w-0 items-center gap-2.5 text-sm text-slate-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
+                  <Icon size={16} />
+                </span>
+                <span>{label}</span>
+              </dt>
 
-                  <span>{label}</span>
-                </dt>
-
-                <dd className="max-w-[52%] text-right text-sm font-semibold text-[#173B67]">
-                  {value}
-                </dd>
-              </div>
-            )
-          )}
+              <dd className="max-w-[55%] break-words text-right text-sm font-semibold text-[#173B67]">
+                {value}
+              </dd>
+            </div>
+          ))}
         </dl>
 
-        {/* =======================================================
-            ENROLL BUTTON
-        ======================================================= */}
+        {/* ENROLL NOW */}
         <Link
           href={`/register?course=${course.slug}`}
-          className="group mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md hover:shadow-orange-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99]"
+          className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-orange-500/20 transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
         >
           Enroll Now
-
-          <ArrowRight
-            size={17}
-            className="transition-transform duration-200 group-hover:translate-x-1"
-          />
+          <ArrowRight size={17} />
         </Link>
 
-        {/* Free demo */}
+        {/* FREE DEMO */}
         <Link
           href={`/contact?course=${course.slug}`}
-          className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-[#173B67] px-5 text-sm font-semibold text-[#173B67] transition duration-200 hover:-translate-y-0.5 hover:bg-[#173B67] hover:text-white hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.99]"
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border border-[#173B67] px-5 py-3 text-sm font-semibold text-[#173B67] transition hover:bg-[#173B67] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
         >
           Book Free Demo
         </Link>
 
-        {/* =======================================================
-            SHARE
-        ======================================================= */}
-        <div className="mt-6 border-t border-slate-100 pt-5">
+        {/* REGISTRATION NOTE */}
+        <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-orange-100 bg-orange-50/70 p-3.5">
+          <CheckCircle2
+            size={18}
+            className="mt-0.5 shrink-0 text-orange-500"
+          />
+          <p className="text-xs leading-5 text-slate-600">
+            Course topics and learning materials are not displayed on this
+            public page.
+          </p>
+        </div>
+
+        {/* SHARE */}
+        <div className="mt-5 border-t border-slate-100 pt-5">
           <p className="mb-3 text-sm font-semibold text-[#173B67]">
             Share This Course
           </p>
 
           <div className="flex gap-2">
             <a
-              href="#"
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                `http://localhost:3000/courses/${course.slug}`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
               aria-label="Share on Facebook"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500"
             >
               <Facebook size={17} />
             </a>
 
             <a
-              href="#"
+              href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                `http://localhost:3000/courses/${course.slug}`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
               aria-label="Share on LinkedIn"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500"
             >
               <Linkedin size={17} />
             </a>

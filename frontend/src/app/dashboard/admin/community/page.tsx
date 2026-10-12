@@ -1703,9 +1703,9 @@ export default function AdminCommunityPage() {
 
       <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
 
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto w-full max-w-none">
 
-          <div className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
+          <div className="relative mb-7 overflow-hidden rounded-2xl border-b-4 border-orange-500 bg-gradient-to-r from-[#172A45] via-[#173B67] to-[#35689D] p-5 text-white shadow-lg sm:p-6">
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
@@ -1898,11 +1898,12 @@ export default function AdminCommunityPage() {
                   </p>
 
                   {pinnedPost.imageUrl ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-orange-200 bg-white">
+                    <div className="flex h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-orange-200 bg-slate-50 sm:h-[280px]">
                       <img
                         src={getPhotoUrl(pinnedPost.imageUrl) as string}
                         alt="Pinned post attachment"
-                        className="mx-auto block max-h-[260px] w-full object-contain"
+                        loading="lazy"
+                        className="block max-h-full max-w-full object-contain"
                       />
                     </div>
                   ) : null}
@@ -1913,11 +1914,11 @@ export default function AdminCommunityPage() {
 
 
 
-              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
 
                 <div className="mb-4 flex items-center gap-3">
 
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2F6BFF] text-sm font-bold text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
 
                     {adminInitials}
 
@@ -1961,7 +1962,7 @@ export default function AdminCommunityPage() {
 
                   rows={4}
 
-                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#2F6BFF] focus:bg-white focus:ring-2 focus:ring-[#2F6BFF]/10"
+                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/15"
 
                 />
 
@@ -1993,7 +1994,7 @@ export default function AdminCommunityPage() {
 
                     }
 
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-[#2F6BFF] sm:w-auto"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-orange-500 sm:w-auto"
 
                   >
 
@@ -2023,7 +2024,7 @@ export default function AdminCommunityPage() {
 
                     }
 
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2F6BFF] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2459D6] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
 
                   >
 
@@ -2107,9 +2108,9 @@ export default function AdminCommunityPage() {
 
                         activeTopic === topic
 
-                          ? "bg-[#2F6BFF] text-white shadow-sm"
+                          ? "bg-orange-500 text-white shadow-sm"
 
-                          : "border border-slate-200 bg-white text-slate-600 hover:border-[#2F6BFF]/30 hover:text-[#2F6BFF]"
+                          : "border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700"
 
                       }`}
 
@@ -2137,7 +2138,7 @@ export default function AdminCommunityPage() {
 
                       size={30}
 
-                      className="mx-auto animate-spin text-[#2F6BFF]"
+                      className="mx-auto animate-spin text-orange-600"
 
                     />
 
@@ -2195,7 +2196,13 @@ export default function AdminCommunityPage() {
 
                         key={post.id}
 
-                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                        className={`rounded-2xl border-l-4 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+                          post.role === "Admin"
+                            ? "border border-l-orange-500 border-orange-100 hover:border-orange-200"
+                            : post.role === "Trainer"
+                              ? "border border-l-[#35689D] border-blue-100 hover:border-blue-200"
+                              : "border border-l-emerald-500 border-emerald-100 hover:border-emerald-200"
+                        }`}
 
                       >
 
@@ -2203,7 +2210,13 @@ export default function AdminCommunityPage() {
 
                           <div className="flex min-w-0 items-center gap-3">
 
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-bold ${
+                              post.role === "Admin"
+                                ? "bg-orange-100 text-orange-700"
+                                : post.role === "Trainer"
+                                  ? "bg-blue-100 text-[#245786]"
+                                  : "bg-emerald-100 text-emerald-700"
+                            }`}>
 
                               {getPhotoUrl(post.profilePhotoUrl) ? (
                                 <img
@@ -2344,11 +2357,18 @@ export default function AdminCommunityPage() {
                           </p>
 
                           {post.imageUrl ? (
-                            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                            <div className={`mt-4 flex h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border bg-slate-50 sm:h-[280px] ${
+                                post.role === "Admin"
+                                  ? "border-orange-200"
+                                  : post.role === "Trainer"
+                                    ? "border-blue-200"
+                                    : "border-emerald-200"
+                              }`}>
                               <img
                                 src={getPhotoUrl(post.imageUrl) as string}
                                 alt="Community post attachment"
-                                className="mx-auto block max-h-[360px] w-full object-contain"
+                                loading="lazy"
+                                className="block max-h-full max-w-full object-contain"
                               />
                             </div>
                           ) : null}
@@ -2419,7 +2439,7 @@ export default function AdminCommunityPage() {
 
                             }
 
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-[#2F6BFF]"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-orange-600"
 
                           >
 
@@ -2791,7 +2811,7 @@ export default function AdminCommunityPage() {
 
                   }
 
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6BFF] focus:ring-2 focus:ring-[#2F6BFF]/10"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15"
 
                 />
 
@@ -2817,7 +2837,7 @@ export default function AdminCommunityPage() {
 
                   }
 
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2F6BFF]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-500"
 
                 >
 
@@ -2857,7 +2877,7 @@ export default function AdminCommunityPage() {
 
                   rows={6}
 
-                  className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-[#2F6BFF] focus:ring-2 focus:ring-[#2F6BFF]/10"
+                  className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15"
 
                 />
 
@@ -2891,7 +2911,7 @@ export default function AdminCommunityPage() {
 
                 disabled={editSubmitting}
 
-                className="inline-flex items-center gap-2 rounded-lg bg-[#2F6BFF] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2459D6] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
 
               >
 
@@ -3071,13 +3091,13 @@ function RoleBadge({ role }: { role: PostRole }) {
 
     role === "Admin"
 
-      ? "bg-orange-50 text-orange-700"
+      ? "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200"
 
       : role === "Trainer"
 
-        ? "bg-emerald-50 text-emerald-700"
+        ? "bg-blue-50 text-[#245786] ring-1 ring-inset ring-blue-200"
 
-        : "bg-slate-100 text-slate-600";
+        : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200";
 
 
 
@@ -3147,7 +3167,7 @@ function CommentsSection({
 
           size={15}
 
-          className="text-[#2F6BFF]"
+          className="text-orange-600"
 
         />
 
@@ -3169,7 +3189,7 @@ function CommentsSection({
 
             size={20}
 
-            className="animate-spin text-[#2F6BFF]"
+            className="animate-spin text-orange-600"
 
           />
 
@@ -3203,7 +3223,13 @@ function CommentsSection({
 
                 key={comment.id}
 
-                className="rounded-xl border border-slate-200 bg-white p-3"
+                className={`rounded-xl border-l-4 bg-white p-3 ${
+                  comment.role === "Admin"
+                    ? "border border-l-orange-500 border-orange-100"
+                    : comment.role === "Trainer"
+                      ? "border border-l-[#35689D] border-blue-100"
+                      : "border border-l-emerald-500 border-emerald-100"
+                }`}
 
               >
 
@@ -3211,7 +3237,13 @@ function CommentsSection({
 
                   <div className="flex min-w-0 items-center gap-2">
 
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-bold ${
+                        comment.role === "Admin"
+                          ? "bg-orange-100 text-orange-700"
+                          : comment.role === "Trainer"
+                            ? "bg-blue-100 text-[#245786]"
+                            : "bg-emerald-100 text-emerald-700"
+                      }`}>
                         {getPhotoUrl(comment.profilePhotoUrl) ? (
                           <img src={getPhotoUrl(comment.profilePhotoUrl) as string} alt={comment.author} className="h-full w-full object-cover" />
                         ) : (
@@ -3329,7 +3361,7 @@ function CommentsSection({
 
           placeholder="Write a reply..."
 
-          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#2F6BFF] focus:ring-2 focus:ring-[#2F6BFF]/10"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15"
 
         />
 
@@ -3343,7 +3375,7 @@ function CommentsSection({
 
           disabled={!draft.trim() || submitting}
 
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#2F6BFF] px-3 text-white hover:bg-[#2459D6] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-orange-500 px-3 text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
 
           title="Send reply"
 
@@ -3399,7 +3431,7 @@ function SideHeading({
 
     <div className="flex items-start gap-3">
 
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#2F6BFF]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
 
         <Icon size={17} />
 
@@ -3465,7 +3497,7 @@ function TopicButton({
 
         active
 
-          ? "border-emerald-100 bg-emerald-50 text-[#2F6BFF]"
+          ? "border-emerald-100 bg-orange-50 text-orange-600"
 
           : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
 
@@ -3481,7 +3513,7 @@ function TopicButton({
 
           active
 
-            ? "bg-white text-[#2F6BFF]"
+            ? "bg-white text-orange-700"
 
             : "bg-white text-slate-400"
 

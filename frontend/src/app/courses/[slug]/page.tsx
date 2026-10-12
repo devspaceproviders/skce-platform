@@ -1,30 +1,19 @@
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Check, BookOpen } from "lucide-react";
+import {
+  ChevronRight,
+  Check,
+  BookOpen,
+  GraduationCap,
+  Target,
+  ListChecks,
+  ClipboardCheck,
+  UserRound,
+} from "lucide-react";
 import { getCourseBySlug, getCourses } from "@/lib/api";
 import CourseDetailSidebar from "@/components/CourseDetailSidebar";
-import TopicsAccordion from "@/components/TopicsAccordion";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
-const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
-
-function getMediaUrl(url?: string | null) {
-  if (!url) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-
-  if (url.startsWith("/")) {
-    return `${API_ORIGIN}${url}`;
-  }
-
-  return `${API_ORIGIN}/${url}`;
-}
+import Reveal from "@/components/Reveal";
 
 export async function generateStaticParams() {
   const courses = await getCourses();
@@ -48,6 +37,35 @@ export async function generateMetadata({
   };
 }
 
+function ContentCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Reveal className="min-w-0">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-7">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+            {icon}
+          </span>
+          <h2 className="text-xl font-bold text-[#173B67] sm:text-2xl">
+            {title}
+          </h2>
+        </div>
+
+        <div className="mb-5 mt-4 h-1 w-12 rounded-full bg-orange-500" />
+
+        {children}
+      </section>
+    </Reveal>
+  );
+}
+
 export default async function CourseDetailPage({
   params,
 }: {
@@ -59,233 +77,162 @@ export default async function CourseDetailPage({
     notFound();
   }
 
-  const courseImageUrl = getMediaUrl(course.imageUrl);
-  const bannerImageUrl = getMediaUrl(course.bannerImageUrl);
-
   return (
     <>
-      {/* =========================================================
-          HERO
-      ========================================================= */}
-      <section className="bg-[#173B67] px-6 py-14 text-white sm:py-16">
-        <div className="mx-auto max-w-6xl text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500 shadow-lg shadow-orange-500/20">
-            <BookOpen size={24} />
-          </div>
+      {/* COURSE HEADER */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0B2A52] via-[#173B67] to-[#1d4d85] px-5 py-9 text-white sm:px-6 sm:py-12">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-orange-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-64 w-64 rounded-full bg-blue-400/10 blur-3xl" />
 
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {course.title}
-          </h1>
-
+        <div className="relative mx-auto max-w-7xl">
           <nav
             aria-label="Breadcrumb"
-            className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm"
+            className="mb-5 flex flex-wrap items-center gap-2 text-sm text-blue-100"
           >
-            <Link
-              href="/"
-              className="font-semibold text-orange-400 transition hover:text-orange-300"
-            >
+            <Link href="/" className="transition hover:text-orange-300">
               Home
             </Link>
-
-            <ChevronRight
-              size={14}
-              className="text-slate-400"
-            />
-
+            <ChevronRight size={14} />
             <Link
               href="/courses"
-              className="font-semibold text-slate-300 transition hover:text-white"
+              className="transition hover:text-orange-300"
             >
               Courses
             </Link>
-
-            <ChevronRight
-              size={14}
-              className="text-slate-400"
-            />
-
-            <span className="font-semibold text-white">
+            <ChevronRight size={14} />
+            <span aria-current="page" className="font-semibold text-white">
               {course.title}
             </span>
           </nav>
+
+          <div className="flex items-start gap-4 sm:gap-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500 shadow-lg shadow-orange-950/20 sm:h-14 sm:w-14">
+              <BookOpen size={26} />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-300 sm:text-sm">
+                Course Overview
+              </p>
+
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+                {course.title}
+              </h1>
+
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-blue-100 sm:text-base">
+                {course.description ||
+                  "Explore the course details, learning outcomes and enrollment options."}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* =========================================================
-          MAIN CONTENT
-      ========================================================= */}
-      <section className="bg-slate-50 px-6 py-12 sm:py-16">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 lg:grid-cols-[1fr_360px]">
-          {/* =====================================================
-              LEFT CONTENT
-          ===================================================== */}
-          <div className="min-w-0">
-            {/* Course Banner */}
-            {bannerImageUrl && (
-              <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={bannerImageUrl}
-                  alt={course.title}
-                  className="h-auto max-h-[420px] w-full object-cover"
-                />
-              </div>
-            )}
-
-            {/* Official Course Image */}
-            <div className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {courseImageUrl ? (
-                <div className="relative h-[260px] w-full overflow-hidden sm:h-[340px] lg:h-[400px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={courseImageUrl}
-                    alt={course.title}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-[260px] w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 sm:h-[340px] lg:h-[400px]">
-                  <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
-                      <BookOpen
-                        size={30}
-                        className="text-[#173B67]"
-                      />
-                    </div>
-
-                    <p className="mt-4 text-sm font-semibold text-slate-500">
-                      {course.title}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* About */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="mb-4 text-2xl font-extrabold text-[#102A43]">
-                About This Course
-              </h2>
-
-              <div className="h-1 w-12 rounded-full bg-orange-500" />
-
-              <p className="mt-5 leading-7 text-slate-600">
-                {course.aboutLong || course.description}
+      {/* COURSE DETAILS */}
+      <section className="min-h-[60vh] bg-[#F5F8FC] px-4 py-7 sm:px-6 sm:py-10">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-8">
+          {/* MAIN COLUMN */}
+          <div className="min-w-0 space-y-5 sm:space-y-6">
+            <ContentCard
+              title="About This Course"
+              icon={<GraduationCap size={21} />}
+            >
+              <p className="whitespace-pre-line text-sm leading-7 text-slate-600 sm:text-base">
+                {course.aboutLong ||
+                  course.description ||
+                  "Course information will be available soon."}
               </p>
-            </div>
+            </ContentCard>
 
-            {/* What You Will Learn */}
             {course.whatYouWillLearn &&
               course.whatYouWillLearn.length > 0 && (
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                  <h2 className="mb-4 text-2xl font-extrabold text-[#102A43]">
-                    What You&apos;ll Learn
-                  </h2>
-
-                  <div className="mb-6 h-1 w-12 rounded-full bg-orange-500" />
-
-                  <ul className="grid gap-4 sm:grid-cols-2">
+                <ContentCard
+                  title="What You'll Learn"
+                  icon={<Target size={21} />}
+                >
+                  <ul className="grid gap-3 sm:grid-cols-2">
                     {course.whatYouWillLearn.map((item) => (
                       <li
                         key={item}
-                        className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm leading-6 text-slate-700"
+                        className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm leading-6 text-slate-700 transition hover:border-orange-200 hover:bg-orange-50/50"
                       >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100">
-                          <Check
-                            size={13}
-                            className="text-orange-600"
-                          />
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                          <Check size={13} strokeWidth={3} />
                         </span>
-
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
+                </ContentCard>
               )}
 
-            {/* Requirements */}
-            {course.requirements &&
-              course.requirements.length > 0 && (
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                  <h2 className="mb-4 text-2xl font-extrabold text-[#102A43]">
-                    Requirements
-                  </h2>
+            {course.requirements && course.requirements.length > 0 && (
+              <ContentCard
+                title="Requirements"
+                icon={<ClipboardCheck size={21} />}
+              >
+                <ul className="space-y-3">
+                  {course.requirements.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-3 text-sm leading-6 text-slate-600"
+                    >
+                      <Check
+                        size={17}
+                        className="mt-1 shrink-0 text-orange-500"
+                      />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </ContentCard>
+            )}
 
-                  <div className="mb-6 h-1 w-12 rounded-full bg-orange-500" />
-
-                  <ul className="space-y-3">
-                    {course.requirements.map((item) => (
-                      <li
-                        key={item}
-                        className="flex items-start gap-3 text-sm leading-6 text-slate-700"
-                      >
-                        <Check
-                          size={17}
-                          className="mt-1 shrink-0 text-orange-500"
-                        />
-
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {/* Topics */}
-            {course.topics &&
-              course.topics.length > 0 && (
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                  <h2 className="mb-4 text-2xl font-extrabold text-[#102A43]">
-                    Topics for This Course
-                  </h2>
-
-                  <div className="mb-6 h-1 w-12 rounded-full bg-orange-500" />
-
-                  <TopicsAccordion topics={course.topics} />
-                </div>
-              )}
-
-            {/* Instructor */}
             {course.instructor && (
-              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                <h2 className="mb-6 text-2xl font-extrabold text-[#102A43]">
-                  Your Instructor
-                </h2>
+              <ContentCard
+                title="Your Instructor"
+                icon={<UserRound size={21} />}
+              >
+                <div className="flex items-start gap-4">
+                  {course.instructor.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={course.instructor.avatarUrl}
+                      alt={course.instructor.name}
+                      className="h-16 w-16 shrink-0 rounded-full border-2 border-orange-100 object-cover sm:h-20 sm:w-20"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-500 sm:h-20 sm:w-20">
+                      <UserRound size={28} />
+                    </div>
+                  )}
 
-                <div className="h-1 w-12 rounded-full bg-orange-500" />
-
-                <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-start">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={course.instructor.avatarUrl}
-                    alt={course.instructor.name}
-                    className="h-20 w-20 shrink-0 rounded-full border-4 border-orange-100 object-cover"
-                  />
-
-                  <div>
-                    <p className="text-lg font-bold text-[#173B67]">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-[#173B67]">
                       {course.instructor.name}
-                    </p>
+                    </h3>
 
-                    <p className="mt-1 text-sm font-medium text-orange-500">
-                      {course.instructor.title}
-                    </p>
+                    {course.instructor.title && (
+                      <p className="mt-1 text-sm font-semibold text-orange-500">
+                        {course.instructor.title}
+                      </p>
+                    )}
 
-                    <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
-                      {course.instructor.bio}
-                    </p>
+                    {course.instructor.bio && (
+                      <p className="mt-3 text-sm leading-7 text-slate-600">
+                        {course.instructor.bio}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
+              </ContentCard>
             )}
+
+            {/* Topics are intentionally hidden on the public course page. */}
           </div>
 
-          {/* =====================================================
-              RIGHT SIDEBAR
-          ===================================================== */}
-          <aside className="lg:sticky lg:top-24 lg:self-start">
+          {/* ENROLLMENT SIDEBAR */}
+          <aside className="min-w-0 lg:sticky lg:top-24">
             <CourseDetailSidebar course={course} />
           </aside>
         </div>

@@ -195,7 +195,7 @@ export default function HomepagePopup() {
 
       {/* Backdrop */}
       <div
-        className="homepage-popup-overlay fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#0B1B33]/60 px-4 py-6 backdrop-blur-sm sm:px-6"
+        className="homepage-popup-overlay fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#071C3A]/70 px-4 py-6 backdrop-blur-sm sm:px-6"
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
             closePopup();
@@ -207,14 +207,14 @@ export default function HomepagePopup() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="homepage-popup-title"
-          className="homepage-popup-card relative z-[110] w-full max-w-[960px] overflow-hidden rounded-3xl border border-white/70 bg-white shadow-[0_30px_90px_rgba(11,27,51,0.35)]"
+          className="homepage-popup-card relative z-[110] w-full max-w-[960px] overflow-hidden rounded-3xl border border-white/20 bg-[#0B2A52] shadow-[0_30px_90px_rgba(7,28,58,0.55)] ring-1 ring-orange-400/30"
         >
           {/* Close button */}
           <button
             type="button"
             onClick={closePopup}
             aria-label="Close announcement"
-            className="absolute right-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm backdrop-blur transition duration-200 hover:bg-white hover:text-[#173B67] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+            className="absolute right-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white shadow-sm backdrop-blur transition duration-200 hover:rotate-90 hover:border-orange-400 hover:bg-orange-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
           >
             <X size={18} />
           </button>
@@ -312,24 +312,26 @@ export default function HomepagePopup() {
             </div>
 
             {/* ================= CONTENT ================= */}
-            <div className="relative z-10 flex min-h-[260px] flex-col justify-center p-6 sm:p-8 md:min-h-[440px] lg:p-10">
+            <div className="relative z-10 flex min-h-[260px] flex-col justify-center overflow-hidden bg-gradient-to-br from-[#071C3A] via-[#0F2F5F] to-[#173B67] p-6 sm:p-8 md:min-h-[440px] lg:p-10">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-orange-500/25 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl" />
               {/* Accent */}
               <div className="mb-5 flex items-center gap-2" aria-hidden="true">
                 <span className="h-[3px] w-10 rounded-full bg-orange-500" />
-                <span className="h-[3px] w-4 rounded-full bg-[#173B67]" />
+                <span className="h-[3px] w-4 rounded-full bg-white/60" />
               </div>
 
               {/* Title */}
               <h2
                 id="homepage-popup-title"
-                className="max-w-md pr-8 text-2xl font-bold leading-[1.2] tracking-tight text-[#173B67] sm:text-[1.75rem]"
+                className="max-w-md pr-8 text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:text-[1.75rem]"
               >
                 {popup.title}
               </h2>
 
               {/* Message */}
               {popup.message && (
-                <p className="mt-3 max-w-md whitespace-pre-line text-sm leading-6 text-slate-600">
+                <p className="mt-3 max-w-md whitespace-pre-line text-sm leading-7 text-blue-100/90">
                   {popup.message}
                 </p>
               )}

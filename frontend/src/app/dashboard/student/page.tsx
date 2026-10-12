@@ -1690,12 +1690,12 @@ const dashboardCss = `
 
 /* ---------- Hero ---------- */
 .sd-hero{
-  position:relative;overflow:hidden;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;
-  margin-bottom:20px;padding:26px 30px;border-radius:16px;color:#fff;
-  background:linear-gradient(120deg,#0F2F5F 0%,#123B6D 35%,#1459B8 70%,#0F2F5F 100%);
-  background-size:220% 220%;animation:sd-rise 520ms var(--ease) both,sd-flow 14s ease-in-out infinite alternate;
+  position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;
+  margin-bottom:20px;padding:26px 30px;border-radius:16px;border-bottom:3px solid var(--orange);color:#fff;
+  background:radial-gradient(circle at 96% 0%,rgba(75,132,204,.38),transparent 30%),radial-gradient(circle at 0% 110%,rgba(255,107,0,.15),transparent 36%),linear-gradient(118deg,#071C3A 0%,#0F2F5F 45%,#1B4B82 100%);
   box-shadow:0 12px 30px rgba(15,47,95,.18);
 }
+.sd-hero::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 70%);mask-image:linear-gradient(90deg,transparent,#000 70%);pointer-events:none}
 .sd-hero::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 16%,transparent 16%)}
 .sd-hero-main{position:relative;z-index:1;min-width:0}
 .sd-logo-chip{display:inline-block;margin-bottom:14px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.16);transition:transform .25s var(--ease)}

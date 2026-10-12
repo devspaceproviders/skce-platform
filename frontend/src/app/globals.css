@@ -23,3 +23,42 @@ body {
 ::selection {
   background-color: rgb(249 115 22 / 0.25);
 }
+
+/* Cleaner line breaks in headings */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Visible keyboard focus everywhere (brand orange) */
+:focus-visible {
+  outline: 2px solid rgb(249 115 22 / 0.6);
+  outline-offset: 2px;
+}
+
+/* Navy hero / panel decoration shared by public pages */
+@keyframes skHeroFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(36px, 22px, 0) scale(1.1); }
+}
+.sk-hero-orb { animation: skHeroFloat 14s ease-in-out infinite; }
+.sk-hero-orb-2 { animation: skHeroFloat 18s ease-in-out -6s infinite reverse; }
+.sk-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+}
+
+/* Never trap users who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

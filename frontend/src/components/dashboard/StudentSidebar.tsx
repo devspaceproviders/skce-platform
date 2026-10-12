@@ -1,72 +1,66 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutGrid,
-  BookOpen,
-  ClipboardList,
-  CalendarDays,
-  TrendingUp,
-  Award,
-  User,
-  MessageCircle,
-  ChevronDown,
-  Star,
-  LogOut,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronRight, LogOut, type LucideIcon } from "lucide-react";
+import { LayoutGrid, BookOpen, ClipboardList, CalendarDays, TrendingUp, Award, User, MessageCircle, Star } from "lucide-react";
 
-const SIDEBAR_ITEMS = [
-  {
-    href: "/dashboard/student",
-    label: "Dashboard",
-    icon: LayoutGrid,
-  },
-  {
-    href: "/dashboard/student/my-courses",
-    label: "My Courses",
-    icon: BookOpen,
-  },
-  {
-    href: "/dashboard/student/assignments",
-    label: "Assignments & Quizzes",
-    icon: ClipboardList,
-  },
-  {
-    href: "/dashboard/student/calendar",
-    label: "Calendar",
-    icon: CalendarDays,
-  },
-  {
-    href: "/dashboard/student/community",
-    label: "Community",
-    icon: MessageCircle,
-  },
-  {
-  href: "/dashboard/student/feedback",
-  label: "Give Feedback",
-  icon: Star,
-  },
-  {
-    href: "/dashboard/student/progress",
-    label: "My Progress",
-    icon: TrendingUp,
-  },
-  {
-    href: "/dashboard/student/certificates",
-    label: "Certificates",
-    icon: Award,
-  },
-  {
-    href: "/dashboard/student/profile",
-    label: "Profile",
-    icon: User,
-  },
+type NavItem = { href: string; label: string; icon: LucideIcon };
+
+const ROOT = "/dashboard/student";
+
+const SIDEBAR_ITEMS: NavItem[] = [
+  { href: `${ROOT}`, label: "Dashboard", icon: LayoutGrid },
+  { href: `${ROOT}/my-courses`, label: "My Courses", icon: BookOpen },
+  { href: `${ROOT}/assignments`, label: "Assignments & Quizzes", icon: ClipboardList },
+  { href: `${ROOT}/calendar`, label: "Calendar", icon: CalendarDays },
+  { href: `${ROOT}/community`, label: "Community", icon: MessageCircle },
+  { href: `${ROOT}/feedback`, label: "Give Feedback", icon: Star },
+  { href: `${ROOT}/progress`, label: "My Progress", icon: TrendingUp },
+  { href: `${ROOT}/certificates`, label: "Certificates", icon: Award },
+  { href: `${ROOT}/profile`, label: "Profile", icon: User },
 ];
 
+type SessionUser = { name?: string; email?: string };
+
+const NAV_SCROLL =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 " +
+  "[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.22)_transparent] " +
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent " +
+  "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 " +
+  "hover:[&::-webkit-scrollbar-thumb]:bg-white/25";
+
+const NAV_SHADOW = {
+  background:
+    "linear-gradient(#173B67 30%, rgba(23,59,103,0)) 0 0 / 100% 28px no-repeat local, " +
+    "linear-gradient(rgba(23,59,103,0), #173B67 70%) 0 100% / 100% 28px no-repeat local, " +
+    "radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 0 / 100% 10px no-repeat scroll, " +
+    "radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 100% / 100% 10px no-repeat scroll",
+} as const;
+
 export default function StudentSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) setUser(JSON.parse(raw) as SessionUser);
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  const displayName = user?.name?.trim() || "Student";
+  const displayEmail = user?.email?.trim() || "";
+  const initials =
+    displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join("") || "ST";
+
+  const isActive = (href: string) =>
+    href === ROOT ? pathname === ROOT : pathname === href || pathname.startsWith(`${href}/`);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -74,207 +68,68 @@ export default function StudentSidebar() {
     localStorage.removeItem("role");
     localStorage.removeItem("student");
     localStorage.removeItem("studentId");
-
     router.push("/login");
   };
 
   return (
     <aside
-      style={{
-        width: 240,
-        background: "#0E1526",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px 14px",
-        color: "#fff",
-        minHeight: "100vh",
-      }}
+      aria-label="Student navigation"
+      className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col self-start overflow-hidden border-r border-white/5 bg-[#173B67] text-white"
     >
-      {/* Logo / Institute Name */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "0 6px 20px",
-        }}
-      >
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
-            background: "#2F6BFF",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <BookOpen size={16} color="#fff" />
-        </div>
-
-        <span
-          style={{
-            fontWeight: 700,
-            letterSpacing: 0.5,
-          }}
-        >
-          SK Computer Education
-        </span>
+      {/* Brand — fixed */}
+      <div className="shrink-0 border-b border-white/10 px-5 py-4">
+        <Link href={ROOT} className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
+            <Image src="/images/skce-logo.png" alt="SK Computer Education" width={40} height={40} className="h-full w-full object-contain" />
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-[14px] font-bold tracking-tight">SK Computer Education</span>
+            <span className="mt-0.5 block text-[11px] font-medium text-blue-100/65">Student Portal</span>
+          </span>
+        </Link>
       </div>
 
-      {/* Portal Selector */}
-      <button
-        type="button"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "#1B2440",
-          border: "none",
-          borderRadius: 8,
-          padding: "9px 12px",
-          color: "#fff",
-          fontSize: 13.5,
-          marginBottom: 18,
-          cursor: "pointer",
-        }}
-      >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: "#22C55E",
-              display: "inline-block",
-            }}
-          />
-
-          Student Portal
-        </span>
-
-        <ChevronDown size={14} />
-      </button>
-
-      {/* Navigation */}
-      <nav
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          flex: 1,
-        }}
-      >
-        {SIDEBAR_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive =
-            pathname === href ||
-            (href !== "/dashboard/student" &&
-              pathname.startsWith(`${href}/`));
-
-          return (
-            <Link
-              key={href}
-              href={href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                padding: "9px 12px",
-                borderRadius: 8,
-                fontSize: 13.5,
-                textDecoration: "none",
-                background: isActive
-                  ? "#2F6BFF"
-                  : "transparent",
-                color: isActive
-                  ? "#fff"
-                  : "#AEB6CC",
-                fontWeight: isActive ? 600 : 500,
-              }}
-            >
-              <Icon size={17} strokeWidth={1.8} />
-              {label}
-            </Link>
-          );
-        })}
+      {/* Navigation — the ONLY scrolling area */}
+      <nav aria-label="Student menu" className={NAV_SCROLL} style={NAV_SHADOW}>
+        <div className="space-y-0.5">
+          {SIDEBAR_ITEMS.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-orange-400 ${
+                  active
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-950/25"
+                    : "text-blue-50/75 hover:bg-white/[0.08] hover:text-white"
+                }`}
+              >
+                <Icon size={17} strokeWidth={active ? 2.2 : 1.9} className={`shrink-0 transition-colors ${active ? "text-white" : "text-blue-100/60 group-hover:text-orange-300"}`} />
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                {active && <ChevronRight size={14} className="shrink-0 text-white/80" />}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Student Profile + Logout */}
-      <div
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          paddingTop: 14,
-        }}
-      >
-        {/* Student Profile */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
+      {/* Profile + Logout — fixed */}
+      <div className="shrink-0 border-t border-white/10 p-3">
+        <Link
+          href={`${ROOT}/profile`}
+          className="flex items-center gap-3 rounded-xl px-2 py-2 outline-none transition hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-orange-400"
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "#2F6BFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            ST
-          </div>
-
-          <div
-            style={{
-              lineHeight: 1.3,
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              Student Name
-            </div>
-
-            <div
-              style={{
-                fontSize: 11.5,
-                color: "#8992AC",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              student@skce.in
-            </div>
-          </div>
-        </div>
-
-        {/* Logout */}
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-bold">{initials}</span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-[13px] font-semibold">{displayName}</span>
+            {displayEmail && <span className="block truncate text-[11px] text-blue-100/60">{displayEmail}</span>}
+          </span>
+        </Link>
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-medium text-[#AEB6CC] transition hover:bg-red-500/10 hover:text-red-300"
+          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-blue-50/75 outline-none transition hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-300"
         >
           <LogOut size={17} strokeWidth={1.9} />
           <span>Logout</span>

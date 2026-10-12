@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Layers,
   ClipboardList,
-  CalendarClock,
   CalendarDays,
   CreditCard,
   BarChart3,
@@ -24,342 +23,156 @@ import {
   Megaphone,
   Star,
   Contact,
+  type LucideIcon,
 } from "lucide-react";
 
-const MENU_SECTIONS = [
-  {
-    label: "Main Menu",
-    items: [
-      {
-        href: "/dashboard/admin",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    label: "Students",
-    items: [
-      {
-        href: "/dashboard/admin/students",
-        label: "Students",
-        icon: Users,
-      },
-    ],
-  },
+type MenuItem = { href: string; label: string; icon: LucideIcon };
+type MenuSection = { label: string; items: MenuItem[] };
+
+const ROOT = "/dashboard/admin";
+
+const MENU_SECTIONS: MenuSection[] = [
+  { label: "Main Menu", items: [{ href: ROOT, label: "Dashboard", icon: LayoutDashboard }] },
+  { label: "Students", items: [{ href: `${ROOT}/students`, label: "Students", icon: Users }] },
   {
     label: "Academic",
     items: [
-      {
-        href: "/dashboard/admin/courses",
-        label: "Courses",
-        icon: BookOpen,
-      },
-      {
-        href: "/dashboard/admin/packages",
-        label: "Packages",
-        icon: Package,
-      },
-      {
-        href: "/dashboard/admin/batches",
-        label: "Batches",
-        icon: Layers,
-      },
-      {
-        href: "/dashboard/admin/assignments",
-        label: "Assignments & Quizzes",
-        icon: ClipboardList,
-      },
-      {
-        href: "/dashboard/admin/calendar",
-        label: "Calendar",
-        icon: CalendarDays,
-      },
+      { href: `${ROOT}/courses`, label: "Courses", icon: BookOpen },
+      { href: `${ROOT}/packages`, label: "Packages", icon: Package },
+      { href: `${ROOT}/batches`, label: "Batches", icon: Layers },
+      { href: `${ROOT}/assignments`, label: "Assignments & Quizzes", icon: ClipboardList },
+      { href: `${ROOT}/calendar`, label: "Calendar", icon: CalendarDays },
     ],
   },
   {
     label: "People",
     items: [
-      {
-        href: "/dashboard/admin/trainers",
-        label: "All Trainers",
-        icon: UserCheck,
-      },
-      {
-        href: "/dashboard/admin/trainer-permissions",
-        label: "Trainer Permissions",
-        icon: ShieldCheck,
-      },
+      { href: `${ROOT}/trainers`, label: "All Trainers", icon: UserCheck },
+      { href: `${ROOT}/trainer-permissions`, label: "Trainer Permissions", icon: ShieldCheck },
     ],
   },
-  {
-    label: "Finance",
-    items: [
-      {
-        href: "/dashboard/admin/payments",
-        label: "Payments",
-        icon: CreditCard,
-      },
-    ],
-  },
-  {
-    label: "Analytics",
-    items: [
-      {
-        href: "/dashboard/admin/reports",
-        label: "Reports",
-        icon: BarChart3,
-      },
-    ],
-  },
-  {
-    label: "Contact",
-    items: [
-      {
-        href: "/dashboard/admin/contact",
-        label: "contact",
-        icon: Contact,
-      },
-    ],
-  },
+  { label: "Finance", items: [{ href: `${ROOT}/payments`, label: "Payments", icon: CreditCard }] },
+  { label: "Analytics", items: [{ href: `${ROOT}/reports`, label: "Reports", icon: BarChart3 }] },
+  { label: "Contact", items: [{ href: `${ROOT}/contact`, label: "Contact", icon: Contact }] },
   {
     label: "System",
     items: [
-      {
-        href: "/dashboard/admin/settings",
-        label: "Settings",
-        icon: Settings,
-      },
-      {
-        href: "/dashboard/admin/profile",
-        label: "Profile",
-        icon: UserCircle,
-      },
-      {
-        href: "/dashboard/admin/homepage-popup",
-        label: "Homepage Popup",
-        icon: Megaphone,
-      },
+      { href: `${ROOT}/settings`, label: "Settings", icon: Settings },
+      { href: `${ROOT}/profile`, label: "Profile", icon: UserCircle },
+      { href: `${ROOT}/homepage-popup`, label: "Homepage Popup", icon: Megaphone },
+    ],
+  },
+  {
+    label: "Community",
+    items: [
+      { href: `${ROOT}/community`, label: "Community", icon: MessageCircle },
+      { href: `${ROOT}/feedback`, label: "Feedback", icon: Star },
     ],
   },
 ];
 
+// Only this area scrolls. Thin scrollbar, contained wheel scrolling,
+// and soft fade shadows at the top/bottom edges when content overflows.
+const NAV_SCROLL =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 " +
+  "[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.22)_transparent] " +
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent " +
+  "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 " +
+  "hover:[&::-webkit-scrollbar-thumb]:bg-white/25";
+
+const NAV_SHADOW = {
+  background:
+    "linear-gradient(#173B67 30%, rgba(23,59,103,0)) 0 0 / 100% 28px no-repeat local, " +
+    "linear-gradient(rgba(23,59,103,0), #173B67 70%) 0 100% / 100% 28px no-repeat local, " +
+    "radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 0 / 100% 10px no-repeat scroll, " +
+    "radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 100% / 100% 10px no-repeat scroll",
+} as const;
+
 export default function AdminSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
+
+  const isActive = (href: string) =>
+    href === ROOT ? pathname === ROOT : pathname === href || pathname.startsWith(`${href}/`);
 
   const handleLogout = () => {
     localStorage.removeItem("skce_admin_logged_in");
     localStorage.removeItem("token");
-
     router.push("/admin/login");
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[270px] shrink-0 flex-col overflow-hidden bg-[#173B67] text-white">
-      {/* BRAND HEADER */}
-      <div className="border-b border-white/10 px-5 py-5">
-        <Link
-          href="/dashboard/admin"
-          className="flex items-center gap-3"
-        >
-          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
-            <Image
-              src="/images/skce-logo.png"
-              alt="SK Computer Education"
-              width={44}
-              height={44}
-              className="h-full w-full object-contain"
-            />
-          </div>
-
-          <div className="min-w-0">
-            <h2 className="truncate text-[17px] font-bold tracking-tight">
-              SKCE Admin
-            </h2>
-            <p className="mt-0.5 text-[11px] font-medium text-blue-100/70">
-              Administration Portal
-            </p>
-          </div>
+    <aside
+      aria-label="Admin navigation"
+      className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col self-start overflow-hidden border-r border-white/5 bg-[#173B67] text-white"
+    >
+      {/* Brand — fixed */}
+      <div className="shrink-0 border-b border-white/10 px-5 py-4">
+        <Link href={ROOT} className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
+            <Image src="/images/skce-logo.png" alt="SK Computer Education" width={40} height={40} className="h-full w-full object-contain" />
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-[14px] font-bold tracking-tight">SK Computer Education</span>
+            <span className="mt-0.5 block text-[11px] font-medium text-blue-100/65">Admin Portal</span>
+          </span>
         </Link>
       </div>
 
-      {/* ADMIN PROFILE */}
-      <Link
-        href="/dashboard/admin/profile"
-        className="mx-4 mt-4 block rounded-xl border border-white/10 bg-white/[0.06] p-3 transition hover:bg-white/[0.10]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
-            A
-          </div>
+      {/* Profile — fixed */}
+      <div className="shrink-0 px-3 pt-3">
+        <Link
+          href={`${ROOT}/profile`}
+          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-2.5 outline-none transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-orange-400"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold">A</span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-[13px] font-semibold">Administrator</span>
+            <span className="block truncate text-[11px] text-blue-100/60">Admin Account</span>
+          </span>
+        </Link>
+      </div>
 
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
-              Administrator
-            </p>
-            <p className="truncate text-[11px] text-blue-100/65">
-              Admin Account
-            </p>
-          </div>
-        </div>
-      </Link>
-
-      {/* NAVIGATION */}
-      <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4">
-        <div className="space-y-5">
+      {/* Navigation — the ONLY scrolling area */}
+      <nav aria-label="Admin menu" className={NAV_SCROLL} style={NAV_SHADOW}>
+        <div className="space-y-6">
           {MENU_SECTIONS.map((section) => (
             <div key={section.label}>
-              <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-100/45">
-                {section.label}
-              </p>
-
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-
-                  const isActive =
-                    item.href === "/dashboard/admin"
-                      ? pathname === "/dashboard/admin"
-                      : pathname.startsWith(item.href);
-
+              <p className="px-3 pb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-blue-100/45">{section.label}</p>
+              <div className="space-y-0.5">
+                {section.items.map(({ href, label, icon: Icon }) => {
+                  const active = isActive(href);
                   return (
                     <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
-                        isActive
-                          ? "bg-orange-500 text-white shadow-md shadow-orange-950/20"
-                          : "text-blue-50/80 hover:bg-white/[0.08] hover:text-white"
+                      key={href}
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-orange-400 ${
+                        active
+                          ? "bg-orange-500 text-white shadow-md shadow-orange-950/25"
+                          : "text-blue-50/75 hover:bg-white/[0.08] hover:text-white"
                       }`}
                     >
-                      <Icon
-                        size={18}
-                        strokeWidth={isActive ? 2.3 : 1.9}
-                        className={
-                          isActive
-                            ? "text-white"
-                            : "text-blue-100/65 group-hover:text-orange-400"
-                        }
-                      />
-
-                      <span className="flex-1">
-                        {item.label}
-                      </span>
-
-                      {isActive && (
-                        <ChevronRight
-                          size={15}
-                          className="text-white/80"
-                        />
-                      )}
+                      <Icon size={17} strokeWidth={active ? 2.2 : 1.9} className={`shrink-0 transition-colors ${active ? "text-white" : "text-blue-100/60 group-hover:text-orange-300"}`} />
+                      <span className="min-w-0 flex-1 truncate">{label}</span>
+                      {active && <ChevronRight size={14} className="shrink-0 text-white/80" />}
                     </Link>
                   );
                 })}
               </div>
             </div>
           ))}
-
-          {/* COMMUNITY */}
-          <div>
-            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-100/45">
-              Community
-            </p>
-
-            <Link
-              href="/dashboard/admin/community"
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
-                pathname.startsWith("/dashboard/admin/community")
-                  ? "bg-orange-500 text-white shadow-md shadow-orange-950/20"
-                  : "text-blue-50/80 hover:bg-white/[0.08] hover:text-white"
-              }`}
-            >
-
-              <MessageCircle
-                size={18}
-                strokeWidth={
-                  pathname.startsWith("/dashboard/admin/community")
-                    ? 2.3
-                    : 1.9
-                }
-                className={
-                  pathname.startsWith("/dashboard/admin/community")
-                    ? "text-white"
-                    : "text-blue-100/65 group-hover:text-orange-400"
-                }
-              />
-
-              <span className="flex-1">
-                Community
-              </span>
-
-              {pathname.startsWith("/dashboard/admin/community") && (
-                <ChevronRight
-                  size={15}
-                  className="text-white/80"
-                />
-              )}
-            </Link>
-
-
-                      <Link
-            href="/dashboard/admin/feedback"
-            className={`group mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
-              pathname.startsWith("/dashboard/admin/feedback")
-                ? "bg-orange-500 text-white shadow-md shadow-orange-950/20"
-                : "text-blue-50/80 hover:bg-white/[0.08] hover:text-white"
-            }`}
-          >
-            <Star
-              size={18}
-              strokeWidth={
-                pathname.startsWith("/dashboard/admin/feedback")
-                  ? 2.3
-                  : 1.9
-              }
-              className={
-                pathname.startsWith("/dashboard/admin/feedback")
-                  ? "text-white"
-                  : "text-blue-100/65 group-hover:text-orange-400"
-              }
-            />
-
-            <span className="flex-1">
-              Feedback
-            </span>
-
-            {pathname.startsWith("/dashboard/admin/feedback") && (
-              <ChevronRight
-                size={15}
-                className="text-white/80"
-              />
-            )}
-          </Link>
-          
-          </div>
         </div>
       </nav>
 
-      {/* BOTTOM SECTION */}
-      <div className="border-t border-white/10 p-3">
-        <div className="mb-2 rounded-lg bg-orange-500/10 px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-300">
-            Admin Portal
-          </p>
-          <p className="mt-0.5 text-[11px] text-blue-100/60">
-            Manage SKCE operations
-          </p>
-        </div>
-
+      {/* Footer — fixed */}
+      <div className="shrink-0 border-t border-white/10 p-3">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-blue-50/80 transition hover:bg-red-500/10 hover:text-red-300"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-blue-50/75 outline-none transition hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-300"
         >
-          <LogOut
-            size={18}
-            strokeWidth={1.9}
-          />
+          <LogOut size={17} strokeWidth={1.9} />
           <span>Logout</span>
         </button>
       </div>

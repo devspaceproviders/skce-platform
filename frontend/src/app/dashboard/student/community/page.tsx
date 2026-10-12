@@ -2,70 +2,73 @@
 
 
 
+import {
 
+  useEffect,
 
+  useMemo,
 
+  useState,
 
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+  type FormEvent,
 
-
+} from "react";
 
 import {
 
-
+  AlertCircle,
 
   Bell,
 
-
+  Edit3,
 
   Heart,
 
-
+  Image as ImageIcon,
 
   Megaphone,
 
-
-
   MessageCircle,
 
+  MoreHorizontal,
 
+  Pin,
 
-    MoreHorizontal,
-  Edit3,
-  Trash2,
-Pin,
-
-
+  RefreshCw,
 
   Search,
 
-
-
   Send,
-
-
-
-  Image as ImageIcon,
-
-
-
-  X,
-
-
 
   Sparkles,
 
-
+  Trash2,
 
   Users,
 
+  X,
 
+  ChevronRight,
 
 } from "lucide-react";
 
+import {
 
+  DetailPanel,
 
+  Modal,
 
+  SkStyles,
+
+  SkTile,
+
+  reveal,
+
+  useToasts,
+
+  usePreview,
+
+} from "@/components/student/skce-ui";
 
 
 
@@ -98,7 +101,9 @@ type CommunityPost = {
   replies: number;
 
   pinned: boolean;
+
   profilePhotoUrl?: string | null;
+
   imageUrl?: string | null;
 
 };
@@ -122,9 +127,14 @@ type CommunityComment = {
   createdAt: string;
 
   updatedAt?: string;
+
   profilePhotoUrl?: string | null;
 
 };
+
+
+
+type TileKey = "discussions" | "announcements";
 
 
 
@@ -140,13 +150,13 @@ const TOPIC_LABELS = [
 
 ];
 
-const CREATE_TOPICS = [
 
-  "General Discussion",
 
-  "Questions & Help",
+const CREATE_TOPICS = ["General Discussion", "Questions & Help"];
 
-];
+
+
+const FEED_TABS = ["All Posts", "Announcements", "Questions & Help", "Learning Tips"];
 
 
 
@@ -155,6 +165,12 @@ export default function CommunityPage() {
   const API_URL =
 
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+
+
+  const toasts = useToasts();
+
+  const preview = usePreview<TileKey>("discussions");
 
 
 
@@ -167,8 +183,14 @@ export default function CommunityPage() {
   const [search, setSearch] = useState("");
 
   const [newPost, setNewPost] = useState("");
+
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
-  const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
+
+  const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(
+
+    null
+
+  );
 
   const [activeTopic, setActiveTopic] = useState("All Posts");
 
@@ -180,7 +202,11 @@ export default function CommunityPage() {
 
   const [expandedPostId, setExpandedPostId] = useState<number | null>(null);
 
-  const [commentsByPost, setCommentsByPost] = useState<Record<number, CommunityComment[]>>({});
+  const [commentsByPost, setCommentsByPost] = useState<
+
+    Record<number, CommunityComment[]>
+
+  >({});
 
   const [commentsLoading, setCommentsLoading] = useState<number | null>(null);
 
@@ -189,38 +215,60 @@ export default function CommunityPage() {
   const [commentSubmitting, setCommentSubmitting] = useState<number | null>(null);
 
   const [editingPost, setEditingPost] = useState<CommunityPost | null>(null);
+
   const [editTitle, setEditTitle] = useState("");
+
   const [editContent, setEditContent] = useState("");
+
   const [editTopic, setEditTopic] = useState("General Discussion");
+
   const [selectedTopic, setSelectedTopic] = useState("General Discussion");
+
   const [editSubmitting, setEditSubmitting] = useState(false);
+
   const [deletePostId, setDeletePostId] = useState<number | null>(null);
+
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const [menuPostId, setMenuPostId] = useState<number | null>(null);
 
 
 
   function getToken() {
 
-    return typeof window !== "undefined"
-
-      ? localStorage.getItem("token")
-
-      : null;
+    return typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   }
 
 
 
   function getCurrentUserId() {
+
     if (typeof window === "undefined") return null;
+
+
+
     try {
+
       const raw = localStorage.getItem("user");
+
       if (!raw) return null;
+
       const user = JSON.parse(raw) as { id?: number; userId?: number };
+
       const id = Number(user.id ?? user.userId);
+
       return Number.isInteger(id) && id > 0 ? id : null;
-    } catch { return null; }
+
+    } catch {
+
+      return null;
+
+    }
+
   }
+
+
 
   function clearAuthAndRedirect() {
 
@@ -228,19 +276,11 @@ export default function CommunityPage() {
 
 
 
-    [
+    ["token", "user", "role", "student", "studentId"].forEach((key) =>
 
-      "token",
+      localStorage.removeItem(key)
 
-      "user",
-
-      "role",
-
-      "student",
-
-      "studentId",
-
-    ].forEach((key) => localStorage.removeItem(key));
+    );
 
 
 
@@ -251,57 +291,108 @@ export default function CommunityPage() {
 
 
   function getPhotoUrl(photoUrl?: string | null): string | null {
+
     if (!photoUrl) return null;
+
     if (photoUrl.startsWith("http://") || photoUrl.startsWith("https://")) {
+
       return photoUrl;
+
     }
+
+
 
     const backendUrl = API_URL.replace(/\/api\/?$/, "");
+
     return `${backendUrl}${photoUrl.startsWith("/") ? "" : "/"}${photoUrl}`;
+
   }
+
+
 
   function handlePostImageChange(file: File | null) {
+
     if (!file) {
+
       setNewPostImage(null);
+
       setNewPostImagePreview(null);
+
       return;
+
     }
+
+
 
     const allowedTypes = new Set([
+
       "image/jpeg",
+
       "image/png",
+
       "image/webp",
+
       "image/gif",
+
     ]);
 
+
+
     if (!allowedTypes.has(file.type)) {
+
       setError("Only JPG, PNG, WEBP, and GIF images are allowed.");
+
       return;
+
     }
+
+
 
     if (file.size > 5 * 1024 * 1024) {
+
       setError("Image size cannot exceed 5 MB.");
+
       return;
+
     }
+
+
 
     setError("");
+
     setNewPostImage(file);
+
     setNewPostImagePreview(URL.createObjectURL(file));
+
   }
 
+
+
   function clearPostImage() {
+
     if (newPostImagePreview) {
+
       URL.revokeObjectURL(newPostImagePreview);
+
     }
+
     setNewPostImage(null);
+
     setNewPostImagePreview(null);
+
   }
+
+
 
   function initialsFor(name: string) {
 
     const parts = name.trim().split(/\s+/).filter(Boolean);
 
+
+
     if (!parts.length) return "SK";
+
+
 
     return parts
 
@@ -398,7 +489,9 @@ export default function CommunityPage() {
       replies: Number(row?.replies || 0),
 
       pinned: Boolean(row?.pinned ?? row?.isPinned),
+
       profilePhotoUrl: row?.profilePhotoUrl ? String(row.profilePhotoUrl) : null,
+
       imageUrl: row?.imageUrl ? String(row.imageUrl) : null,
 
     };
@@ -431,19 +524,15 @@ export default function CommunityPage() {
 
       updatedAt: row?.updatedAt ? String(row.updatedAt) : undefined,
 
+      profilePhotoUrl: row?.profilePhotoUrl ? String(row.profilePhotoUrl) : null,
+
     };
 
   }
 
 
 
-  async function authenticatedFetch(
-
-    path: string,
-
-    options: RequestInit = {}
-
-  ) {
+  async function authenticatedFetch(path: string, options: RequestInit = {}) {
 
     const token = getToken();
 
@@ -466,11 +555,17 @@ export default function CommunityPage() {
 
 
     // Let the browser set the multipart/form-data boundary for FormData.
+
     // For JSON requests, explicitly send the JSON content type.
+
     if (options.body instanceof FormData) {
+
       headers.delete("Content-Type");
+
     } else if (!headers.has("Content-Type")) {
+
       headers.set("Content-Type", "application/json");
+
     }
 
 
@@ -507,11 +602,7 @@ export default function CommunityPage() {
 
     try {
 
-      const response = await authenticatedFetch(
-
-        "/community/stats"
-
-      );
+      const response = await authenticatedFetch("/community/stats");
 
       const result = await response.json();
 
@@ -519,43 +610,21 @@ export default function CommunityPage() {
 
       if (!response.ok || !result?.success) {
 
-        throw new Error(
-
-          result?.message ||
-
-            "Unable to load community statistics."
-
-        );
+        throw new Error(result?.message || "Unable to load community statistics.");
 
       }
 
 
 
-      setCommunityMembers(
-
-        Number(result?.data?.members ?? 0)
-
-      );
+      setCommunityMembers(Number(result?.data?.members ?? 0));
 
     } catch (err) {
 
-      console.error(
-
-        "Failed to load community statistics:",
-
-        err
-
-      );
+      console.error("Failed to load community statistics:", err);
 
 
 
-      if (
-
-        err instanceof Error &&
-
-        err.message === "Authentication required"
-
-      ) {
+      if (err instanceof Error && err.message === "Authentication required") {
 
         return;
 
@@ -565,11 +634,7 @@ export default function CommunityPage() {
 
       setError(
 
-        err instanceof Error
-
-          ? err.message
-
-          : "Unable to load community statistics."
+        err instanceof Error ? err.message : "Unable to load community statistics."
 
       );
 
@@ -626,19 +691,50 @@ export default function CommunityPage() {
 
 
   useEffect(() => {
+
     return () => {
+
       if (newPostImagePreview) {
+
         URL.revokeObjectURL(newPostImagePreview);
+
       }
+
     };
+
   }, [newPostImagePreview]);
 
+
+
   useEffect(() => {
-    void Promise.all([
-      loadPosts(),
-      loadCommunityStats(),
-    ]);
+
+    void Promise.all([loadPosts(), loadCommunityStats()]);
+
   }, []);
+
+
+
+  useEffect(() => {
+
+    if (menuPostId === null) {
+
+      return;
+
+    }
+
+
+
+    const close = () => setMenuPostId(null);
+
+
+
+    document.addEventListener("click", close);
+
+
+
+    return () => document.removeEventListener("click", close);
+
+  }, [menuPostId]);
 
 
 
@@ -659,20 +755,29 @@ export default function CommunityPage() {
 
 
       const formData = new FormData();
-      formData.append(
-        "title",
-        text.length > 80 ? `${text.slice(0, 77)}...` : text
-      );
+
+      formData.append("title", text.length > 80 ? `${text.slice(0, 77)}...` : text);
+
       formData.append("content", text);
+
       formData.append("topic", selectedTopic);
 
+
+
       if (newPostImage) {
+
         formData.append("image", newPostImage);
+
       }
 
+
+
       const response = await authenticatedFetch("/community/posts", {
+
         method: "POST",
+
         body: formData,
+
       });
 
 
@@ -690,8 +795,16 @@ export default function CommunityPage() {
 
 
       setNewPost("");
+
       clearPostImage();
+
       setSelectedTopic("General Discussion");
+
+
+
+      toasts.push("success", "Your post has been published.");
+
+
 
       await loadPosts();
 
@@ -725,13 +838,11 @@ export default function CommunityPage() {
 
 
 
-      const response = await authenticatedFetch(
+      const response = await authenticatedFetch(`/community/posts/${postId}/like`, {
 
-        `/community/posts/${postId}/like`,
+        method: isLiked ? "DELETE" : "POST",
 
-        { method: isLiked ? "DELETE" : "POST" }
-
-      );
+      });
 
 
 
@@ -782,43 +893,176 @@ export default function CommunityPage() {
 
 
   function openEdit(post: CommunityPost) {
-    setEditingPost(post); setEditTitle(post.title); setEditContent(post.content); setEditTopic(post.topic); setError("");
+
+    setEditingPost(post);
+
+    setEditTitle(post.title);
+
+    setEditContent(post.content);
+
+    setEditTopic(post.topic);
+
+    setError("");
+
   }
+
+
 
   function closeEdit() {
+
     if (editSubmitting) return;
-    setEditingPost(null); setEditTitle(""); setEditContent(""); setEditTopic("General Discussion");
+
+    setEditingPost(null);
+
+    setEditTitle("");
+
+    setEditContent("");
+
+    setEditTopic("General Discussion");
+
   }
+
+
 
   async function saveEdit(event?: FormEvent) {
+
     event?.preventDefault();
+
     if (!editingPost || editSubmitting) return;
-    const title = editTitle.trim(); const content = editContent.trim();
-    if (!title || !content) { setError("Title and content are required."); return; }
+
+
+
+    const title = editTitle.trim();
+
+    const content = editContent.trim();
+
+
+
+    if (!title || !content) {
+
+      setError("Title and content are required.");
+
+      return;
+
+    }
+
+
+
     try {
-      setEditSubmitting(true); setError("");
-      const response = await authenticatedFetch(`/community/posts/${editingPost.id}`, { method: "PATCH", body: JSON.stringify({ title, content, topic: editTopic }) });
+
+      setEditSubmitting(true);
+
+      setError("");
+
+
+
+      const response = await authenticatedFetch(
+
+        `/community/posts/${editingPost.id}`,
+
+        {
+
+          method: "PATCH",
+
+          body: JSON.stringify({ title, content, topic: editTopic }),
+
+        }
+
+      );
+
+
+
       const result = await response.json();
-      if (!response.ok || !result?.success) throw new Error(result?.message || "Unable to update the post.");
-      setEditingPost(null); await loadPosts();
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to update the post."); }
-    finally { setEditSubmitting(false); }
+
+
+
+      if (!response.ok || !result?.success) {
+
+        throw new Error(result?.message || "Unable to update the post.");
+
+      }
+
+
+
+      setEditingPost(null);
+
+      toasts.push("success", "Post updated.");
+
+      await loadPosts();
+
+    } catch (err) {
+
+      setError(err instanceof Error ? err.message : "Unable to update the post.");
+
+    } finally {
+
+      setEditSubmitting(false);
+
+    }
+
   }
 
+
+
   async function confirmDeletePost() {
+
     if (!deletePostId || deleteSubmitting) return;
+
+
+
     const deletedId = deletePostId;
+
+
+
     try {
-      setDeleteSubmitting(true); setError("");
-      const response = await authenticatedFetch(`/community/posts/${deletedId}`, { method: "DELETE" });
+
+      setDeleteSubmitting(true);
+
+      setError("");
+
+
+
+      const response = await authenticatedFetch(`/community/posts/${deletedId}`, {
+
+        method: "DELETE",
+
+      });
+
+
+
       const result = await response.json();
-      if (!response.ok || !result?.success) throw new Error(result?.message || "Unable to delete the post.");
+
+
+
+      if (!response.ok || !result?.success) {
+
+        throw new Error(result?.message || "Unable to delete the post.");
+
+      }
+
+
+
       setDeletePostId(null);
+
       if (expandedPostId === deletedId) setExpandedPostId(null);
+
+      toasts.push("success", "Post deleted.");
+
       await loadPosts();
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete the post."); }
-    finally { setDeleteSubmitting(false); }
+
+    } catch (err) {
+
+      setError(err instanceof Error ? err.message : "Unable to delete the post.");
+
+    } finally {
+
+      setDeleteSubmitting(false);
+
+    }
+
   }
+
+
 
   async function toggleComments(postId: number) {
 
@@ -848,11 +1092,7 @@ export default function CommunityPage() {
 
 
 
-      const response = await authenticatedFetch(
-
-        `/community/posts/${postId}/comments`
-
-      );
+      const response = await authenticatedFetch(`/community/posts/${postId}/comments`);
 
       const result = await response.json();
 
@@ -910,19 +1150,13 @@ export default function CommunityPage() {
 
 
 
-      const response = await authenticatedFetch(
+      const response = await authenticatedFetch(`/community/posts/${postId}/comments`, {
 
-        `/community/posts/${postId}/comments`,
+        method: "POST",
 
-        {
+        body: JSON.stringify({ content }),
 
-          method: "POST",
-
-          body: JSON.stringify({ content }),
-
-        }
-
-      );
+      });
 
 
 
@@ -954,11 +1188,7 @@ export default function CommunityPage() {
 
       if (commentsResponse.ok && commentsResult?.success) {
 
-        const rows = Array.isArray(commentsResult.data)
-
-          ? commentsResult.data
-
-          : [];
+        const rows = Array.isArray(commentsResult.data) ? commentsResult.data : [];
 
         setCommentsByPost((current) => ({
 
@@ -994,6 +1224,8 @@ export default function CommunityPage() {
 
   const currentUserId = getCurrentUserId();
 
+
+
   const filteredPosts = useMemo(() => {
 
     const normalizedSearch = search.trim().toLowerCase();
@@ -1014,9 +1246,7 @@ export default function CommunityPage() {
 
 
 
-      const matchesTopic =
-
-        activeTopic === "All Posts" || post.topic === activeTopic;
+      const matchesTopic = activeTopic === "All Posts" || post.topic === activeTopic;
 
 
 
@@ -1030,7 +1260,9 @@ export default function CommunityPage() {
 
   const pinnedPost = posts.find((post) => post.pinned);
 
-  const announcementCount = posts.filter((post) => post.topic === "Announcements").length;
+  const announcementPosts = posts.filter((post) => post.topic === "Announcements");
+
+  const announcementCount = announcementPosts.length;
 
   const discussionCount = posts.length;
 
@@ -1044,5485 +1276,1834 @@ export default function CommunityPage() {
 
 
 
+  const tileProps = (key: TileKey) => ({
+
+    active: preview.shown === key,
+
+    pinned: preview.pinned === key,
+
+    onEnter: () => preview.setHover(key),
+
+    onToggle: () => preview.toggle(key),
+
+  });
+
+
+
+  const previewPosts = preview.last === "announcements" ? announcementPosts : posts;
+
+
+
+  function jumpToPost(postId: number) {
+
+    setSearch("");
+
+    setActiveTopic("All Posts");
+
+
+
+    window.setTimeout(() => {
+
+      document
+
+        .getElementById(`post-${postId}`)
+
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    }, 80);
+
+  }
+
+
+
+  function selectTopic(topicLabel: string) {
+
+    if (
+
+      topicLabel === "Announcements" ||
+
+      topicLabel === "Questions & Help" ||
+
+      topicLabel === "Learning Tips"
+
+    ) {
+
+      setActiveTopic(topicLabel);
+
+    } else {
+
+      setActiveTopic("All Posts");
+
+    }
+
+  }
+
+
+
   return (
-
-
 
     <>
 
+      <main className="sk-page">
 
+        <div className="sk-container">
 
-      <main style={pageStyle}>
+          <header className="cm-hero sk-reveal">
 
+            <div className="cm-hero-copy sk-min0">
 
+              <div className="cm-hero-icon" aria-hidden="true">
 
-        {/* Header */}
+                <Users size={26} />
 
+              </div>
 
+              <div className="cm-hero-text">
 
-        <header style={headerStyle}>
+                <div className="sk-kicker">Student community</div>
 
+                <h1>Our Community</h1>
 
+                <p>
 
-          <div>
+                  Ask questions, share ideas, learn together, and stay connected
 
+                  with the SKCE community.
 
+                </p>
 
-            <div style={eyebrowStyle}>
-
-
-
-              STUDENT COMMUNITY
-
-
+              </div>
 
             </div>
 
 
 
+            <label className="sk-search cm-search">
 
-
-
-
-            <h1 style={titleStyle}>
-
-
-
-              Our Community
-
-
-
-            </h1>
-
-
-
-
-
-
-
-            <p style={subtitleStyle}>
-
-
-
-              Ask questions, share ideas, learn together,
-
-
-
-              and stay connected with the SKCE community.
-
-
-
-            </p>
-
-
-
-          </div>
-
-
-
-
-
-
-
-          <div style={headerActionsStyle}>
-
-
-
-            <div style={searchBoxStyle}>
-
-
-
-              <Search
-
-
-
-                size={16}
-
-
-
-                color="#8b95a4"
-
-
-
-              />
-
-
-
-
-
-
+              <Search size={16} />
 
               <input
 
-
-
                 value={search}
 
-
-
-                onChange={(event) =>
-
-
-
-                  setSearch(event.target.value)
-
-
-
-                }
-
-
+                onChange={(event) => setSearch(event.target.value)}
 
                 placeholder="Search discussions..."
 
-
-
-                style={searchInputStyle}
-
-
+                aria-label="Search discussions"
 
               />
 
+              {search ? (
 
+                <button
+
+                  type="button"
+
+                  className="cm-clear"
+
+                  onClick={() => setSearch("")}
+
+                  aria-label="Clear search"
+
+                >
+
+                  <X size={14} />
+
+                </button>
+
+              ) : null}
+
+            </label>
+
+          </header>
+
+
+
+          {error ? (
+
+            <div className="sk-alert is-error" role="alert">
+
+              <AlertCircle size={18} />
+
+              <span>{error}</span>
+
+              <button type="button" onClick={() => setError("")} aria-label="Dismiss">
+
+                <X size={15} />
+
+              </button>
 
             </div>
 
+          ) : null}
 
+
+
+          {/* Highlights: hover to preview, click to pin */}
+
+          <div className="sk-zone" onMouseLeave={() => preview.setHover(null)}>
+
+            <section className="sk-tiles sk-tiles-3">
+
+              <SkTile
+
+                isStatic
+
+                index={1}
+
+                icon={Users}
+
+                label="Community Members"
+
+                value={communityMembers}
+
+                helper="Students, trainers and staff"
+
+                tone="blue"
+
+              />
+
+              <SkTile
+
+                index={2}
+
+                icon={MessageCircle}
+
+                label="Discussions"
+
+                value={discussionCount}
+
+                helper="Questions and conversations"
+
+                tone="orange"
+
+                {...tileProps("discussions")}
+
+              />
+
+              <SkTile
+
+                index={3}
+
+                icon={Megaphone}
+
+                label="Announcements"
+
+                value={announcementCount}
+
+                helper="Updates from the SKCE team"
+
+                tone="navy"
+
+                {...tileProps("announcements")}
+
+              />
+
+            </section>
+
+
+
+            <DetailPanel
+
+              open={Boolean(preview.shown)}
+
+              itemKey={preview.last}
+
+              icon={preview.last === "announcements" ? Megaphone : MessageCircle}
+
+              title={
+
+                preview.last === "announcements"
+
+                  ? "Latest announcements"
+
+                  : "Latest discussions"
+
+              }
+
+              subtitle="Click a post to jump straight to it in the feed"
+
+              pinned={preview.pinned === preview.last}
+
+              onUnpin={() => preview.setPinned(null)}
+
+            >
+
+              {previewPosts.length === 0 ? (
+
+                <p className="sk-detail-empty">Nothing here yet.</p>
+
+              ) : (
+
+                <div className="sk-rows">
+
+                  {previewPosts.slice(0, 6).map((post) => (
+
+                    <button
+
+                      key={post.id}
+
+                      type="button"
+
+                      className="sk-row"
+
+                      onClick={() => jumpToPost(post.id)}
+
+                    >
+
+                      <div className="sk-avatar" style={{ width: 36, height: 36, flexBasis: 36, fontSize: 12 }}>
+
+                        {getPhotoUrl(post.profilePhotoUrl) ? (
+
+                          <img src={getPhotoUrl(post.profilePhotoUrl) as string} alt={post.author} />
+
+                        ) : (
+
+                          post.initials
+
+                        )}
+
+                      </div>
+
+                      <div className="sk-min0 sk-grow">
+
+                        <span className="sk-row-title">{post.title}</span>
+
+                        <span className="sk-row-sub">
+
+                          {post.author} · {post.time}
+
+                        </span>
+
+                      </div>
+
+                      <ChevronRight size={15} className="sk-arrow" />
+
+                    </button>
+
+                  ))}
+
+                </div>
+
+              )}
+
+            </DetailPanel>
 
           </div>
 
 
 
-        </header>
+          <section className="cm-layout">
 
+            {/* Main feed */}
 
+            <div className="sk-min0">
 
+              {pinnedPost ? (
 
+                <section className="cm-pinned sk-reveal" style={reveal(4)}>
 
+                  <div className="cm-pinned-top">
 
+                    <span className="cm-pinned-label">
 
-        {error ? (
+                      <Pin size={14} />
 
-          <div style={errorBannerStyle}>
+                      Pinned by SKCE
 
-            {error}
+                    </span>
 
-          </div>
-
-        ) : null}
-
-
-
-        {/* Community highlights */}
-
-
-
-        <section className="community-highlight-grid">
-
-
-
-          <HighlightCard
-
-
-
-            icon={Users}
-
-
-
-            label="Community Members"
-
-
-
-            value={String(communityMembers)}
-
-
-
-            description="Students, trainers and staff"
-
-
-
-            tone="blue"
-
-
-
-          />
-
-
-
-
-
-
-
-          <HighlightCard
-
-
-
-            icon={MessageCircle}
-
-
-
-            label="Discussions"
-
-
-
-            value={String(discussionCount)}
-
-
-
-            description="Questions and conversations"
-
-
-
-            tone="rose"
-
-
-
-          />
-
-
-
-
-
-
-
-          <HighlightCard
-
-
-
-            icon={Megaphone}
-
-
-
-            label="Announcements"
-
-
-
-            value={String(announcementCount)}
-
-
-
-            description="Updates from the SKCE team"
-
-
-
-            tone="gold"
-
-
-
-          />
-
-
-
-        </section>
-
-
-
-
-
-
-
-        <section className="community-layout">
-
-
-
-          {/* Main feed */}
-
-
-
-          <div style={{ minWidth: 0 }}>
-
-
-
-            {pinnedPost ? (
-
-
-
-              <section style={pinnedCardStyle}>
-
-
-
-                <div style={pinnedTopStyle}>
-
-
-
-                  <div style={pinnedLabelStyle}>
-
-
-
-                    <Pin size={14} />
-
-
-
-                    Pinned by SKCE
-
-
+                    <span className="sk-badge tone-orange">{pinnedPost.topic}</span>
 
                   </div>
 
 
 
+                  <h2>{pinnedPost.title}</h2>
+
+                  <p>{pinnedPost.content}</p>
 
 
-
-
-                  <span style={pinnedSmallStyle}>
-
-
-
-                    {pinnedPost.topic}
-
-
-
-                  </span>
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <h2 style={pinnedTitleStyle}>
-
-
-
-                  {pinnedPost.title}
-
-
-
-                </h2>
-
-
-
-
-
-
-
-                <p style={pinnedTextStyle}>
-
-
-
-                  {pinnedPost.content}
-
-
-
-                </p>
 
                   {getPhotoUrl(pinnedPost.imageUrl) ? (
-                    <div style={{ marginTop: 14, overflow: "hidden", borderRadius: 12, border: "1px solid #e5e7eb", background: "#f8fafc" }}>
-                      <img src={getPhotoUrl(pinnedPost.imageUrl) as string} alt="Pinned post attachment" style={{ display: "block", width: "100%", maxHeight: 260, objectFit: "contain", margin: "0 auto" }} />
+
+                    <div className="cm-image">
+
+                      <img
+
+                        src={getPhotoUrl(pinnedPost.imageUrl) as string}
+
+                        alt="Pinned post attachment"
+
+                      />
+
                     </div>
+
                   ) : null}
 
 
 
+                  <div className="cm-pinned-foot">
+
+                    <span>{pinnedPost.likes} likes</span>
+
+                    <span>{pinnedPost.replies} replies</span>
+
+                  </div>
+
+                </section>
+
+              ) : null}
 
 
 
+              {/* Composer */}
 
-                <div style={pinnedFooterStyle}>
+              <section className="sk-panel cm-composer sk-reveal" style={reveal(5)}>
 
+                <div className="cm-composer-head">
 
+                  <div className="sk-avatar">ST</div>
 
-                  <span>
+                  <div>
 
+                    <strong>Start a discussion</strong>
 
+                    <span>Share a question, idea, or learning update with your community.</span>
 
-                    {pinnedPost.likes} likes
-
-
-
-                  </span>
-
-
-
-                  <span>
-
-
-
-                    {pinnedPost.replies} replies
-
-
-
-                  </span>
-
-
+                  </div>
 
                 </div>
 
 
+
+                <textarea
+
+                  className="sk-textarea"
+
+                  value={newPost}
+
+                  onChange={(event) => setNewPost(event.target.value)}
+
+                  placeholder="What would you like to share?"
+
+                  rows={3}
+
+                />
+
+
+
+                {newPostImagePreview ? (
+
+                  <div className="cm-preview">
+
+                    <img src={newPostImagePreview} alt="Selected post image" />
+
+                    <button
+
+                      type="button"
+
+                      onClick={clearPostImage}
+
+                      aria-label="Remove selected image"
+
+                      title="Remove image"
+
+                    >
+
+                      <X size={14} />
+
+                    </button>
+
+                  </div>
+
+                ) : null}
+
+
+
+                <div className="cm-composer-bar">
+
+                  <select
+
+                    className="sk-select cm-topic-select"
+
+                    value={selectedTopic}
+
+                    onChange={(event) => setSelectedTopic(event.target.value)}
+
+                    aria-label="Post topic"
+
+                  >
+
+                    {CREATE_TOPICS.map((topic) => (
+
+                      <option key={topic} value={topic}>
+
+                        {topic}
+
+                      </option>
+
+                    ))}
+
+                  </select>
+
+
+
+                  <label className="sk-btn sk-btn-secondary sk-btn-sm cm-attach">
+
+                    <ImageIcon size={14} />
+
+                    Add image
+
+                    <input
+
+                      type="file"
+
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+
+                      onChange={(event) => {
+
+                        handlePostImageChange(event.target.files?.[0] || null);
+
+                        event.currentTarget.value = "";
+
+                      }}
+
+                      style={{ display: "none" }}
+
+                    />
+
+                  </label>
+
+
+
+                  <span className="cm-hint">JPG, PNG, WEBP or GIF · max 5 MB</span>
+
+
+
+                  <button
+
+                    type="button"
+
+                    onClick={() => void createPost()}
+
+                    disabled={(!newPost.trim() && !newPostImage) || submitting}
+
+                    className="sk-btn sk-btn-primary cm-post-btn"
+
+                  >
+
+                    {submitting ? (
+
+                      <>
+
+                        <RefreshCw size={14} className="sk-spin" />
+
+                        Posting...
+
+                      </>
+
+                    ) : (
+
+                      <>
+
+                        <Send size={14} />
+
+                        Post
+
+                      </>
+
+                    )}
+
+                  </button>
+
+                </div>
 
               </section>
 
 
 
-            ) : null}
+              {/* Feed heading */}
 
-
-
-
-
-
-
-            {/* Create post */}
-
-
-
-            <section style={composerCardStyle}>
-
-
-
-              <div style={composerHeaderStyle}>
-
-
-
-                <div style={studentAvatarStyle}>
-
-
-
-                  ST
-
-
-
-                </div>
-
-
-
-
-
-
+              <div className="cm-feed-head">
 
                 <div>
 
+                  <h2>Community Feed</h2>
 
+                  <p>
 
-                  <strong style={composerTitleStyle}>
+                    {filteredPosts.length} discussion
 
+                    {filteredPosts.length === 1 ? "" : "s"} found
 
-
-                    Start a discussion
-
-
-
-                  </strong>
-
-
-
-
-
-
-
-                  <span style={composerHintStyle}>
-
-
-
-                    Share a question, idea, or learning update
-
-
-
-                    with your community.
-
-
-
-                  </span>
-
-
+                  </p>
 
                 </div>
 
 
 
-              </div>
+                <div className="cm-tabs" role="tablist" aria-label="Feed topics">
 
+                  {FEED_TABS.map((topic) => (
 
+                    <button
 
+                      type="button"
 
+                      role="tab"
 
+                      aria-selected={activeTopic === topic}
 
+                      key={topic}
 
-              <textarea
+                      onClick={() => setActiveTopic(topic)}
 
+                      className={`cm-tab${activeTopic === topic ? " is-active" : ""}`}
 
+                    >
 
-                value={newPost}
+                      {topic}
 
+                    </button>
 
-
-                onChange={(event) =>
-
-
-
-                  setNewPost(event.target.value)
-
-
-
-                }
-
-
-
-                placeholder="What would you like to share?"
-
-
-
-                rows={4}
-
-
-
-                style={composerTextareaStyle}
-
-
-
-              />
-
-
-
-
-
-
-
-              {newPostImagePreview ? (
-                <div style={postImagePreviewStyle}>
-                  <img
-                    src={newPostImagePreview}
-                    alt="Selected post image"
-                    style={postImagePreviewImageStyle}
-                  />
-                  <button
-                    type="button"
-                    onClick={clearPostImage}
-                    style={postImageRemoveButtonStyle}
-                    aria-label="Remove selected image"
-                    title="Remove image"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : null}
-
-              <div style={{ marginTop: 12, marginBottom: 12 }}>
-                <select
-                  value={selectedTopic}
-                  onChange={(event) => setSelectedTopic(event.target.value)}
-                  style={{ width: "100%", maxWidth: 260, border: "1px solid #dce2eb", borderRadius: 10, background: "#fff", padding: "9px 12px", fontSize: 12, color: "#475569", outline: "none" }}
-                >
-                  {CREATE_TOPICS.map((topic) => (
-                    <option key={topic} value={topic}>{topic}</option>
                   ))}
-                </select>
-              </div>
-
-              <div style={composerFooterStyle}>
-                <div style={composerFooterLeftStyle}>
-                  <label style={attachImageButtonStyle}>
-                    <ImageIcon size={14} />
-                    Add image
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={(event) => {
-                        handlePostImageChange(event.target.files?.[0] || null);
-                        event.currentTarget.value = "";
-                      }}
-                      style={hiddenFileInputStyle}
-                    />
-                  </label>
-                  <span style={composerFooterHintStyle}>
-                    JPG, PNG, WEBP or GIF · max 5 MB
-                  </span>
-                </div>
-
-                <span style={composerFooterHintStyle}>
-                  Be respectful and helpful to other learners.
-                </span>
-
-                <button
-
-
-
-                  type="button"
-
-
-
-                  onClick={() => void createPost()}
-
-
-
-                  disabled={(!newPost.trim() && !newPostImage) || submitting}
-
-
-
-                  style={{
-
-
-
-                    ...postButtonStyle,
-
-
-
-                    opacity: newPost.trim() || newPostImage ? 1 : 0.55,
-
-
-
-                    cursor: newPost.trim()
-
-
-
-                      ? "pointer"
-
-
-
-                      : "not-allowed",
-
-
-
-                  }}
-
-
-
-                >
-
-
-
-                  <Send size={14} />
-
-
-
-                  {submitting ? "Posting..." : "Post"}
-
-
-
-                </button>
-
-
-
-              </div>
-
-
-
-            </section>
-
-
-
-
-
-
-
-            {/* Feed heading */}
-
-
-
-            <div style={feedHeaderStyle}>
-
-
-
-              <div>
-
-
-
-                <h2 style={feedTitleStyle}>
-
-
-
-                  Community Feed
-
-
-
-                </h2>
-
-
-
-
-
-
-
-                <p style={feedSubtitleStyle}>
-
-
-
-                  {filteredPosts.length} discussion
-
-
-
-                  {filteredPosts.length === 1
-
-
-
-                    ? ""
-
-
-
-                    : "s"} found
-
-
-
-                </p>
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <div style={topicTabsStyle}>
-
-
-
-                {[
-
-
-
-                  "All Posts",
-
-
-
-                  "Announcements",
-
-
-
-                  "Questions & Help",
-
-
-
-                  "Learning Tips",
-
-
-
-                ].map((topic) => (
-
-
-
-                  <button
-
-
-
-                    type="button"
-
-
-
-                    key={topic}
-
-
-
-                    onClick={() => setActiveTopic(topic)}
-
-
-
-                    style={{
-
-
-
-                      ...topicButtonStyle,
-
-
-
-                      ...(activeTopic === topic
-
-
-
-                        ? topicButtonActiveStyle
-
-
-
-                        : {}),
-
-
-
-                    }}
-
-
-
-                  >
-
-
-
-                    {topic}
-
-
-
-                  </button>
-
-
-
-                ))}
-
-
-
-              </div>
-
-
-
-            </div>
-
-
-
-
-
-
-
-            {/* Posts */}
-
-
-
-            <div style={postListStyle}>
-
-
-
-              {loading ? (
-
-                <div style={emptyCardStyle}>
-
-                  <div style={emptyIconStyle}>
-
-                    <MessageCircle size={22} />
-
-                  </div>
-
-                  <strong style={emptyTitleStyle}>Loading community...</strong>
-
-                  <span style={emptyTextStyle}>Fetching the latest discussions.</span>
 
                 </div>
 
-              ) : null}
+              </div>
 
 
 
-              {!loading ? filteredPosts.map((post) => {
+              {/* Posts */}
 
+              <div className="cm-posts" key={`${activeTopic}-${search}`}>
 
+                {loading ? (
 
-                const isLiked = likedPosts.includes(
+                  <>
 
+                    {[0, 1, 2].map((n) => (
 
+                      <div key={n} className="sk-skel" style={{ height: 150 }} />
 
-                  post.id
+                    ))}
 
+                    <span className="sk-sr">Loading community</span>
 
+                  </>
 
-                );
+                ) : null}
 
 
 
+                {!loading
 
+                  ? filteredPosts.map((post, index) => {
 
+                      const isLiked = likedPosts.includes(post.id);
 
+                      const expanded = expandedPostId === post.id;
 
-                return (
+                      const comments = commentsByPost[post.id];
 
+                      const isOwner =
 
+                        currentUserId !== null && post.authorId === currentUserId;
 
-                  <article
 
 
+                      return (
 
-                    key={post.id}
+                        <article
 
+                          key={post.id}
 
+                          id={`post-${post.id}`}
 
-                    className="community-post-card"
+                          className="cm-post sk-reveal"
 
-
-
-                    style={postCardStyle}
-
-
-
-                  >
-
-
-
-                    <div style={postHeaderStyle}>
-
-
-
-                      <div style={authorStyle}>
-
-
-
-                        <div
-
-
-
-                          style={{
-
-
-
-                            ...authorAvatarStyle,
-
-
-
-                            ...(post.role === "Admin"
-
-
-
-                              ? {
-
-
-
-                                  background: "#2f6bff",
-
-
-
-                                  color: "#fff",
-
-
-
-                                }
-
-
-
-                              : post.role === "Trainer"
-
-
-
-                              ? {
-
-
-
-                                  background: "#f0eaff",
-
-
-
-                                  color: "#7a56d6",
-
-
-
-                                }
-
-
-
-                              : {
-
-
-
-                                  background: "#eef2f6",
-
-
-
-                                  color: "#596579",
-
-
-
-                                }),
-
-
-
-                          }}
-
-
+                          style={reveal(Math.min(index, 8))}
 
                         >
-                          {getPhotoUrl(post.profilePhotoUrl) ? (
-                            <img
-                              src={getPhotoUrl(post.profilePhotoUrl) as string}
-                              alt={post.author}
-                              style={avatarImageStyle}
-                            />
-                          ) : (
-                            post.initials
-                          )}
-                        </div>
 
+                          <div className="cm-post-head">
 
+                            <div className="cm-author">
 
+                              <div className={`cm-avatar role-${post.role.toLowerCase()}`}>
 
+                                {getPhotoUrl(post.profilePhotoUrl) ? (
 
+                                  <img
 
+                                    src={getPhotoUrl(post.profilePhotoUrl) as string}
 
-                        <div style={{ minWidth: 0 }}>
+                                    alt={post.author}
 
+                                  />
 
+                                ) : (
 
-                          <div style={authorNameRowStyle}>
+                                  post.initials
 
-
-
-                            <strong
-
-
-
-                              style={authorNameStyle}
-
-
-
-                            >
-
-
-
-                              {post.author}
-
-
-
-                            </strong>
-
-
-
-
-
-
-
-                            <RoleBadge role={post.role} />
-
-
-
-                          </div>
-
-
-
-
-
-
-
-                          <span style={postTimeStyle}>
-
-
-
-                            {post.time}
-
-
-
-                          </span>
-
-
-
-                        </div>
-
-
-
-                      </div>
-
-
-
-
-
-
-
-                      {currentUserId !== null && post.authorId === currentUserId ? (
-                        <details style={{ position: "relative" }}>
-                          <summary style={{ listStyle: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 8, color: "#778293" }}><MoreHorizontal size={18} /></summary>
-                          <div style={{ position: "absolute", right: 0, top: 34, zIndex: 20, width: 120, background: "#fff", border: "1px solid #e3e7ee", borderRadius: 12, padding: 4, boxShadow: "0 8px 24px rgba(15,23,42,.12)" }}>
-                            <button type="button" onClick={() => openEdit(post)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "8px 9px", border: 0, background: "transparent", cursor: "pointer", color: "#4b5565", fontSize: 12, textAlign: "left" }}><Edit3 size={14} /> Edit</button>
-                            <button type="button" onClick={() => setDeletePostId(post.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "8px 9px", border: 0, background: "transparent", cursor: "pointer", color: "#dc2626", fontSize: 12, textAlign: "left" }}><Trash2 size={14} /> Delete</button>
-                          </div>
-                        </details>
-                      ) : null}
-
-                      {post.pinned ? (
-
-
-
-                        <span style={pinnedFeedBadgeStyle}>
-
-
-
-                          <Pin size={12} />
-
-
-
-                          Pinned
-
-
-
-                        </span>
-
-
-
-                      ) : null}
-
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <h3 style={postTitleStyle}>
-
-
-
-                      {post.title}
-
-
-
-                    </h3>
-
-
-
-
-
-
-
-                    <p style={postContentStyle}>
-                      {post.content}
-                    </p>
-
-                    {getPhotoUrl(post.imageUrl) ? (
-                      <div style={postImageContainerStyle}>
-                        <img
-                          src={getPhotoUrl(post.imageUrl) as string}
-                          alt="Post attachment"
-                          style={postImageStyle}
-                        />
-                      </div>
-                    ) : null}
-
-                    <div style={postActionsStyle}>
-
-
-
-                      <button
-
-
-
-                        type="button"
-
-
-
-                        onClick={() =>
-
-
-
-                          toggleLike(post.id)
-
-
-
-                        }
-
-
-
-                        style={{
-
-
-
-                          ...postActionButtonStyle,
-
-
-
-                          color: isLiked
-
-
-
-                            ? "#2f6bff"
-
-
-
-                            : "#778293",
-
-
-
-                        }}
-
-
-
-                      >
-
-
-
-                        <Heart
-
-
-
-                          size={15}
-
-
-
-                          fill={
-
-
-
-                            isLiked
-
-
-
-                              ? "currentColor"
-
-
-
-                              : "none"
-
-
-
-                          }
-
-
-
-                        />
-
-
-
-                        {post.likes}{" "}
-
-
-
-                        Likes
-
-
-
-                      </button>
-
-
-
-
-
-
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => void toggleComments(post.id)}
-
-                        style={postActionButtonStyle}
-
-                      >
-
-                        <MessageCircle size={15} />
-
-                        {post.replies} Replies
-
-                      </button>
-
-
-
-                    </div>
-
-
-
-                    {expandedPostId === post.id ? (
-
-                      <section style={commentsSectionStyle}>
-
-                        <div style={commentsHeaderStyle}>
-
-                          <strong style={commentsTitleStyle}>Comments</strong>
-
-                          <span style={commentsCountStyle}>
-
-                            {(commentsByPost[post.id] || []).length}
-
-                          </span>
-
-                        </div>
-
-
-
-                        {commentsLoading === post.id ? (
-
-                          <div style={commentsMutedStyle}>Loading comments...</div>
-
-                        ) : (commentsByPost[post.id] || []).length === 0 ? (
-
-                          <div style={commentsMutedStyle}>No comments yet. Be the first to reply.</div>
-
-                        ) : (
-
-                          <div style={commentsListStyle}>
-
-                            {(commentsByPost[post.id] || []).map((comment) => (
-
-                              <div key={comment.id} style={commentItemStyle}>
-
-                                <div style={commentAvatarStyle}>
-                                  {getPhotoUrl(comment.profilePhotoUrl) ? (
-                                    <img
-                                      src={getPhotoUrl(comment.profilePhotoUrl) as string}
-                                      alt={comment.author}
-                                      style={avatarImageStyle}
-                                    />
-                                  ) : (
-                                    initialsFor(comment.author)
-                                  )}
-                                </div>
-
-                                <div style={commentBodyStyle}>
-
-                                  <div style={commentAuthorRowStyle}>
-
-                                    <strong style={commentAuthorStyle}>{comment.author}</strong>
-
-                                    <RoleBadge role={comment.role} />
-
-                                    <span style={commentTimeStyle}>{formatTime(comment.createdAt)}</span>
-
-                                  </div>
-
-                                  <p style={commentTextStyle}>{comment.content}</p>
-
-                                </div>
+                                )}
 
                               </div>
 
-                            ))}
+
+
+                              <div className="sk-min0">
+
+                                <div className="cm-author-row">
+
+                                  <strong>{post.author}</strong>
+
+                                  <RoleBadge role={post.role} />
+
+                                </div>
+
+                                <span className="cm-time">{post.time}</span>
+
+                              </div>
+
+                            </div>
+
+
+
+                            <div className="cm-post-tools">
+
+                              {post.pinned ? (
+
+                                <span className="sk-badge tone-orange">
+
+                                  <Pin size={12} />
+
+                                  Pinned
+
+                                </span>
+
+                              ) : null}
+
+
+
+                              {isOwner ? (
+
+                                <div className="cm-menu-wrap">
+
+                                  <button
+
+                                    type="button"
+
+                                    className="cm-menu-btn"
+
+                                    onClick={(event) => {
+
+                                      event.stopPropagation();
+
+                                      setMenuPostId((current) =>
+
+                                        current === post.id ? null : post.id
+
+                                      );
+
+                                    }}
+
+                                    aria-label="Post options"
+
+                                    aria-expanded={menuPostId === post.id}
+
+                                  >
+
+                                    <MoreHorizontal size={18} />
+
+                                  </button>
+
+
+
+                                  {menuPostId === post.id ? (
+
+                                    <div
+
+                                      className="cm-menu"
+
+                                      onClick={(event) => event.stopPropagation()}
+
+                                    >
+
+                                      <button
+
+                                        type="button"
+
+                                        onClick={() => {
+
+                                          setMenuPostId(null);
+
+                                          openEdit(post);
+
+                                        }}
+
+                                      >
+
+                                        <Edit3 size={14} /> Edit
+
+                                      </button>
+
+                                      <button
+
+                                        type="button"
+
+                                        className="is-danger"
+
+                                        onClick={() => {
+
+                                          setMenuPostId(null);
+
+                                          setDeletePostId(post.id);
+
+                                        }}
+
+                                      >
+
+                                        <Trash2 size={14} /> Delete
+
+                                      </button>
+
+                                    </div>
+
+                                  ) : null}
+
+                                </div>
+
+                              ) : null}
+
+                            </div>
 
                           </div>
 
-                        )}
+
+
+                          <h3>{post.title}</h3>
+
+                          <p className="cm-content">{post.content}</p>
 
 
 
-                        <div style={commentComposerStyle}>
+                          {getPhotoUrl(post.imageUrl) ? (
 
-                          <textarea
+                            <div className="cm-image">
 
-                            value={commentDrafts[post.id] || ""}
+                              <img
 
-                            onChange={(event) =>
+                                src={getPhotoUrl(post.imageUrl) as string}
 
-                              setCommentDrafts((current) => ({
+                                alt="Post attachment"
 
-                                ...current,
+                              />
 
-                                [post.id]: event.target.value,
+                            </div>
 
-                              }))
+                          ) : null}
 
-                            }
 
-                            placeholder="Write a reply..."
 
-                            rows={2}
+                          <div className="cm-actions">
 
-                            style={commentTextareaStyle}
+                            <button
 
-                          />
+                              type="button"
 
-                          <button
+                              onClick={() => toggleLike(post.id)}
 
-                            type="button"
+                              className={`cm-action${isLiked ? " is-liked" : ""}`}
 
-                            onClick={() => void createComment(post.id)}
+                            >
 
-                            disabled={
+                              <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
 
-                              !commentDrafts[post.id]?.trim() ||
+                              {post.likes} Likes
 
-                              commentSubmitting === post.id
+                            </button>
 
-                            }
 
-                            style={{
 
-                              ...commentButtonStyle,
+                            <button
 
-                              opacity:
+                              type="button"
 
-                                commentDrafts[post.id]?.trim() &&
+                              onClick={() => void toggleComments(post.id)}
 
-                                commentSubmitting !== post.id
+                              className={`cm-action${expanded ? " is-open" : ""}`}
 
-                                  ? 1
+                              aria-expanded={expanded}
 
-                                  : 0.55,
+                            >
 
-                              cursor:
+                              <MessageCircle size={16} />
 
-                                commentDrafts[post.id]?.trim() &&
+                              {post.replies} Replies
 
-                                commentSubmitting !== post.id
+                            </button>
 
-                                  ? "pointer"
+                          </div>
 
-                                  : "not-allowed",
 
-                            }}
 
-                          >
+                          <div className={`sk-expand${expanded ? " is-open" : ""}`}>
 
-                            <Send size={13} />
+                            <div className="sk-expand-inner">
 
-                            {commentSubmitting === post.id ? "Replying..." : "Reply"}
+                              {expanded || comments ? (
 
-                          </button>
+                                <section className="cm-comments">
 
-                        </div>
+                                  <div className="cm-comments-head">
 
-                      </section>
+                                    <strong>Comments</strong>
+
+                                    <span>{(comments || []).length}</span>
+
+                                  </div>
+
+
+
+                                  {commentsLoading === post.id ? (
+
+                                    <div className="cm-muted">
+
+                                      <RefreshCw size={14} className="sk-spin" /> Loading comments...
+
+                                    </div>
+
+                                  ) : (comments || []).length === 0 ? (
+
+                                    <div className="cm-muted">
+
+                                      No comments yet. Be the first to reply.
+
+                                    </div>
+
+                                  ) : (
+
+                                    <div className="cm-comment-list">
+
+                                      {(comments || []).map((comment, commentIndex) => (
+
+                                        <div
+
+                                          key={comment.id}
+
+                                          className="cm-comment"
+
+                                          style={{
+
+                                            animationDelay: `${Math.min(commentIndex, 8) * 40}ms`,
+
+                                          }}
+
+                                        >
+
+                                          <div className="cm-avatar cm-avatar-sm role-student">
+
+                                            {getPhotoUrl(comment.profilePhotoUrl) ? (
+
+                                              <img
+
+                                                src={getPhotoUrl(comment.profilePhotoUrl) as string}
+
+                                                alt={comment.author}
+
+                                              />
+
+                                            ) : (
+
+                                              initialsFor(comment.author)
+
+                                            )}
+
+                                          </div>
+
+
+
+                                          <div className="cm-comment-body">
+
+                                            <div className="cm-author-row">
+
+                                              <strong>{comment.author}</strong>
+
+                                              <RoleBadge role={comment.role} />
+
+                                              <span className="cm-time">
+
+                                                {formatTime(comment.createdAt)}
+
+                                              </span>
+
+                                            </div>
+
+                                            <p>{comment.content}</p>
+
+                                          </div>
+
+                                        </div>
+
+                                      ))}
+
+                                    </div>
+
+                                  )}
+
+
+
+                                  <div className="cm-reply">
+
+                                    <textarea
+
+                                      className="sk-textarea"
+
+                                      value={commentDrafts[post.id] || ""}
+
+                                      onChange={(event) =>
+
+                                        setCommentDrafts((current) => ({
+
+                                          ...current,
+
+                                          [post.id]: event.target.value,
+
+                                        }))
+
+                                      }
+
+                                      placeholder="Write a reply..."
+
+                                      rows={2}
+
+                                    />
+
+                                    <button
+
+                                      type="button"
+
+                                      onClick={() => void createComment(post.id)}
+
+                                      disabled={
+
+                                        !commentDrafts[post.id]?.trim() ||
+
+                                        commentSubmitting === post.id
+
+                                      }
+
+                                      className="sk-btn sk-btn-primary sk-btn-sm"
+
+                                    >
+
+                                      <Send size={13} />
+
+                                      {commentSubmitting === post.id ? "Replying..." : "Reply"}
+
+                                    </button>
+
+                                  </div>
+
+                                </section>
+
+                              ) : null}
+
+                            </div>
+
+                          </div>
+
+                        </article>
+
+                      );
+
+                    })
+
+                  : null}
+
+
+
+                {!loading && filteredPosts.length === 0 ? (
+
+                  <div className="sk-empty">
+
+                    <div className="sk-empty-icon">
+
+                      <MessageCircle size={22} />
+
+                    </div>
+
+                    <strong>No discussions found</strong>
+
+                    <span>Try another search term or choose a different topic.</span>
+
+                    {search || activeTopic !== "All Posts" ? (
+
+                      <button
+
+                        type="button"
+
+                        className="sk-btn sk-btn-secondary"
+
+                        onClick={() => {
+
+                          setSearch("");
+
+                          setActiveTopic("All Posts");
+
+                        }}
+
+                      >
+
+                        Clear Filters
+
+                      </button>
 
                     ) : null}
 
-
-
-                  </article>
-
-
-
-                );
-
-
-
-              }) : null}
-
-
-
-
-
-
-
-              {!loading && filteredPosts.length === 0 ? (
-
-
-
-                <div style={emptyCardStyle}>
-
-
-
-                  <div style={emptyIconStyle}>
-
-
-
-                    <MessageCircle size={22} />
-
-
-
                   </div>
 
+                ) : null}
 
-
-
-
-
-
-                  <strong style={emptyTitleStyle}>
-
-
-
-                    No discussions found
-
-
-
-                  </strong>
-
-
-
-
-
-
-
-                  <span style={emptyTextStyle}>
-
-
-
-                    Try another search term or choose a
-
-
-
-                    different topic.
-
-
-
-                  </span>
-
-
-
-                </div>
-
-
-
-              ) : null}
-
-
+              </div>
 
             </div>
 
 
 
-          </div>
+            {/* Right column */}
 
+            <aside className="cm-side">
 
+              <section className="sk-panel sk-reveal" style={reveal(6)}>
 
+                <div className="sk-panel-head">
 
+                  <div className="sk-icon sk-icon-sm sk-tone-blue">
 
+                    <Sparkles size={17} />
 
+                  </div>
 
-          {/* Right column */}
+                  <div>
 
+                    <h2 style={{ fontSize: 15 }}>Community Topics</h2>
 
+                    <p>Browse discussions by theme</p>
 
-          <aside style={sideColumnStyle}>
+                  </div>
 
+                </div>
 
 
-            <section style={sideCardStyle}>
 
+                <div className="cm-topics">
 
+                  {TOPIC_LABELS.map((topicLabel) => {
 
-              <SideHeading
+                    const isActive =
 
+                      topicLabel === "General Discussion"
 
+                        ? activeTopic === "All Posts"
 
-                icon={Sparkles}
+                        : activeTopic === topicLabel;
 
 
 
-                title="Community Topics"
+                    return (
 
+                      <button
 
+                        type="button"
 
-                subtitle="Browse discussions by theme"
+                        key={topicLabel}
 
+                        onClick={() => selectTopic(topicLabel)}
 
+                        className={`cm-topic${isActive ? " is-active" : ""}`}
 
-              />
+                      >
 
+                        <span>{topicLabel}</span>
 
+                        <b>{topicCounts[topicLabel] || 0}</b>
 
+                      </button>
 
+                    );
 
+                  })}
 
+                </div>
 
-              <div style={topicListStyle}>
+              </section>
 
 
 
-                {TOPIC_LABELS.map((topicLabel) => (
+              <section className="sk-panel sk-reveal" style={reveal(7)}>
 
+                <div className="sk-panel-head">
 
+                  <div className="sk-icon sk-icon-sm sk-tone-orange">
 
-                  <button
+                    <Bell size={17} />
 
+                  </div>
 
+                  <div>
 
-                    type="button"
+                    <h2 style={{ fontSize: 15 }}>Community Guidelines</h2>
 
+                    <p>Keep the learning space useful for everyone</p>
 
+                  </div>
 
-                    key={topicLabel}
+                </div>
 
 
 
-                    onClick={() => {
+                <div className="cm-guides">
 
+                  <Guideline number="01" text="Keep questions clear and constructive." />
 
+                  <Guideline number="02" text="Help other students when you can." />
 
-                      if (
+                  <Guideline number="03" text="Do not share private account details." />
 
+                  <Guideline number="04" text="Keep conversations respectful." />
 
+                </div>
 
-                        topicLabel ===
+              </section>
 
 
 
-                        "Announcements"
+              <section className="cm-team sk-reveal" style={reveal(8)}>
 
+                <div className="sk-icon sk-tone-blue">
 
+                  <Megaphone size={18} />
 
-                      ) {
+                </div>
 
+                <strong>SKCE Team</strong>
 
+                <p>
 
-                        setActiveTopic(
+                  Announcements and important student updates are shared here by
 
+                  the SKCE team.
 
+                </p>
 
-                          "Announcements"
+              </section>
 
+            </aside>
 
+          </section>
 
-                        );
-
-
-
-                      } else if (
-
-
-
-                        topicLabel ===
-
-
-
-                        "Questions & Help"
-
-
-
-                      ) {
-
-
-
-                        setActiveTopic(
-
-
-
-                          "Questions & Help"
-
-
-
-                        );
-
-
-
-                      } else if (
-
-
-
-                        topicLabel ===
-
-
-
-                        "Learning Tips"
-
-
-
-                      ) {
-
-
-
-                        setActiveTopic(
-
-
-
-                          "Learning Tips"
-
-
-
-                        );
-
-
-
-                      } else {
-
-
-
-                        setActiveTopic("All Posts");
-
-
-
-                      }
-
-
-
-                    }}
-
-
-
-                    style={topicRowStyle}
-
-
-
-                  >
-
-
-
-                    <span>{topicLabel}</span>
-
-
-
-                    <span style={topicCountStyle}>
-
-
-
-                      {topicCounts[topicLabel] || 0}
-
-
-
-                    </span>
-
-
-
-                  </button>
-
-
-
-                ))}
-
-
-
-              </div>
-
-
-
-            </section>
-
-
-
-
-
-
-
-            <section style={guidelinesCardStyle}>
-
-
-
-              <SideHeading
-
-
-
-                icon={Bell}
-
-
-
-                title="Community Guidelines"
-
-
-
-                subtitle="Keep the learning space useful for everyone"
-
-
-
-              />
-
-
-
-
-
-
-
-              <div style={guidelineListStyle}>
-
-
-
-                <Guideline
-
-
-
-                  number="01"
-
-
-
-                  text="Keep questions clear and constructive."
-
-
-
-                />
-
-
-
-                <Guideline
-
-
-
-                  number="02"
-
-
-
-                  text="Help other students when you can."
-
-
-
-                />
-
-
-
-                <Guideline
-
-
-
-                  number="03"
-
-
-
-                  text="Do not share private account details."
-
-
-
-                />
-
-
-
-                <Guideline
-
-
-
-                  number="04"
-
-
-
-                  text="Keep conversations respectful."
-
-
-
-                />
-
-
-
-              </div>
-
-
-
-            </section>
-
-
-
-
-
-
-
-            <section style={teamCardStyle}>
-
-
-
-              <div style={teamIconStyle}>
-
-
-
-                <Megaphone size={18} />
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <strong style={teamTitleStyle}>
-
-
-
-                SKCE Team
-
-
-
-              </strong>
-
-
-
-
-
-
-
-              <p style={teamTextStyle}>
-
-
-
-                Announcements and important student
-
-
-
-                updates are shared here by the SKCE team.
-
-
-
-              </p>
-
-
-
-            </section>
-
-
-
-          </aside>
-
-
-
-        </section>
-
-
+        </div>
 
       </main>
 
 
 
-
-
-
-
-      <style
-
-
-
-        dangerouslySetInnerHTML={{
-
-
-
-          __html: `
-
-
-
-            .community-highlight-grid {
-
-
-
-              display: grid;
-
-
-
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-
-
-
-              gap: 13px;
-
-
-
-              margin-bottom: 18px;
-
-
-
-            }
-
-
-
-
-
-
-
-            .community-layout {
-
-
-
-              display: grid;
-
-
-
-              grid-template-columns: minmax(0, 1.6fr) minmax(290px, 0.75fr);
-
-
-
-              gap: 18px;
-
-
-
-              align-items: start;
-
-
-
-            }
-
-
-
-
-
-
-
-            .community-post-card {
-
-
-
-              transition:
-
-
-
-                transform 160ms ease,
-
-
-
-                box-shadow 160ms ease,
-
-
-
-                border-color 160ms ease;
-
-
-
-            }
-
-
-
-
-
-
-
-            .community-post-card:hover {
-
-
-
-              transform: translateY(-1px);
-
-
-
-              box-shadow: 0 9px 20px rgba(15,23,42,0.06) !important;
-
-
-
-              border-color: #dfe5ee !important;
-
-
-
-            }
-
-
-
-
-
-
-
-            @media (max-width: 1050px) {
-
-
-
-              .community-layout {
-
-
-
-                grid-template-columns: minmax(0, 1fr);
-
-
-
-              }
-
-
-
-
-
-
-
-              .community-highlight-grid {
-
-
-
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-
-
-
-              }
-
-
-
-            }
-
-
-
-
-
-
-
-            @media (max-width: 760px) {
-
-
-
-              .community-highlight-grid {
-
-
-
-                grid-template-columns: minmax(0, 1fr);
-
-
-
-              }
-
-
-
-            }
-
-
-
-          `,
-
-
-
-        }}
-
-
-
-      />
-
       {editingPost ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(15,23,42,.45)" }}>
-          <form onSubmit={saveEdit} style={{ width: "100%", maxWidth: 560, borderRadius: 18, background: "#fff", padding: 22, boxShadow: "0 20px 60px rgba(15,23,42,.22)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}><h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#172033" }}>Edit Post</h2><button type="button" onClick={closeEdit} style={{ border: 0, background: "transparent", cursor: "pointer", color: "#64748b" }}><X size={20} /></button></div>
-            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title" style={{ width: "100%", boxSizing: "border-box", border: "1px solid #dce2eb", borderRadius: 10, padding: "10px 12px", marginBottom: 10, fontSize: 13 }} />
-            <select value={editTopic} onChange={(e) => setEditTopic(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #dce2eb", borderRadius: 10, padding: "10px 12px", marginBottom: 10, fontSize: 13, background: "#fff", color: "#475569" }}>
-              {CREATE_TOPICS.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
-            </select>
-            <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={6} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #dce2eb", borderRadius: 10, padding: "10px 12px", fontSize: 13, resize: "vertical" }} />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}><button type="button" onClick={closeEdit} disabled={editSubmitting} style={{ border: "1px solid #dce2eb", background: "#fff", borderRadius: 10, padding: "9px 14px", cursor: "pointer", color: "#475569" }}>Cancel</button><button type="submit" disabled={editSubmitting} style={{ border: 0, background: "#2f6bff", color: "#fff", borderRadius: 10, padding: "9px 16px", cursor: "pointer", opacity: editSubmitting ? .6 : 1 }}>{editSubmitting ? "Saving..." : "Save changes"}</button></div>
-          </form>
-        </div>
+
+        <Modal
+
+          onClose={closeEdit}
+
+          maxWidth={580}
+
+          labelledBy="edit-post-title"
+
+          locked={editSubmitting}
+
+        >
+
+          {(close) => (
+
+            <form onSubmit={saveEdit}>
+
+              <div className="sk-modal-head">
+
+                <div>
+
+                  <h2 id="edit-post-title">Edit Post</h2>
+
+                  <p>Update your title, topic or message.</p>
+
+                </div>
+
+                <button
+
+                  type="button"
+
+                  onClick={close}
+
+                  className="sk-modal-close"
+
+                  aria-label="Close"
+
+                  disabled={editSubmitting}
+
+                >
+
+                  <X size={18} />
+
+                </button>
+
+              </div>
+
+
+
+              <div className="sk-modal-body">
+
+                <div className="sk-field">
+
+                  <label className="sk-label" htmlFor="edit-title">
+
+                    Title
+
+                  </label>
+
+                  <input
+
+                    id="edit-title"
+
+                    className="sk-input"
+
+                    value={editTitle}
+
+                    onChange={(e) => setEditTitle(e.target.value)}
+
+                    placeholder="Title"
+
+                  />
+
+                </div>
+
+
+
+                <div className="sk-field">
+
+                  <label className="sk-label" htmlFor="edit-topic">
+
+                    Topic
+
+                  </label>
+
+                  <select
+
+                    id="edit-topic"
+
+                    className="sk-select"
+
+                    value={editTopic}
+
+                    onChange={(e) => setEditTopic(e.target.value)}
+
+                  >
+
+                    {CREATE_TOPICS.map((topic) => (
+
+                      <option key={topic} value={topic}>
+
+                        {topic}
+
+                      </option>
+
+                    ))}
+
+                  </select>
+
+                </div>
+
+
+
+                <div className="sk-field" style={{ marginBottom: 0 }}>
+
+                  <label className="sk-label" htmlFor="edit-content">
+
+                    Message
+
+                  </label>
+
+                  <textarea
+
+                    id="edit-content"
+
+                    className="sk-textarea"
+
+                    value={editContent}
+
+                    onChange={(e) => setEditContent(e.target.value)}
+
+                    rows={6}
+
+                  />
+
+                </div>
+
+              </div>
+
+
+
+              <div className="sk-modal-foot">
+
+                <button
+
+                  type="button"
+
+                  onClick={close}
+
+                  disabled={editSubmitting}
+
+                  className="sk-btn sk-btn-secondary"
+
+                >
+
+                  Cancel
+
+                </button>
+
+                <button
+
+                  type="submit"
+
+                  disabled={editSubmitting}
+
+                  className="sk-btn sk-btn-primary"
+
+                >
+
+                  {editSubmitting ? (
+
+                    <>
+
+                      <RefreshCw size={15} className="sk-spin" />
+
+                      Saving...
+
+                    </>
+
+                  ) : (
+
+                    "Save changes"
+
+                  )}
+
+                </button>
+
+              </div>
+
+            </form>
+
+          )}
+
+        </Modal>
+
       ) : null}
+
+
 
       {deletePostId ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(15,23,42,.45)" }}>
-          <div style={{ width: "100%", maxWidth: 420, borderRadius: 18, background: "#fff", padding: 22, boxShadow: "0 20px 60px rgba(15,23,42,.22)" }}><h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#172033" }}>Delete this post?</h2><p style={{ margin: "8px 0 0", fontSize: 13, color: "#64748b" }}>This action cannot be undone.</p><div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 18 }}><button type="button" onClick={() => setDeletePostId(null)} disabled={deleteSubmitting} style={{ border: "1px solid #dce2eb", background: "#fff", borderRadius: 10, padding: "9px 14px", cursor: "pointer", color: "#475569" }}>Cancel</button><button type="button" onClick={() => void confirmDeletePost()} disabled={deleteSubmitting} style={{ border: 0, background: "#dc2626", color: "#fff", borderRadius: 10, padding: "9px 16px", cursor: "pointer", opacity: deleteSubmitting ? .6 : 1 }}>{deleteSubmitting ? "Deleting..." : "Delete"}</button></div></div>
-        </div>
+
+        <Modal
+
+          onClose={() => setDeletePostId(null)}
+
+          maxWidth={440}
+
+          labelledBy="delete-post-title"
+
+          locked={deleteSubmitting}
+
+        >
+
+          {(close) => (
+
+            <>
+
+              <div className="sk-modal-body cm-delete">
+
+                <div className="cm-delete-icon">
+
+                  <Trash2 size={22} />
+
+                </div>
+
+                <h2 id="delete-post-title">Delete this post?</h2>
+
+                <p>This action cannot be undone.</p>
+
+              </div>
+
+
+
+              <div className="sk-modal-foot">
+
+                <button
+
+                  type="button"
+
+                  onClick={close}
+
+                  disabled={deleteSubmitting}
+
+                  className="sk-btn sk-btn-secondary"
+
+                >
+
+                  Cancel
+
+                </button>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => void confirmDeletePost()}
+
+                  disabled={deleteSubmitting}
+
+                  className="sk-btn sk-btn-danger"
+
+                >
+
+                  {deleteSubmitting ? (
+
+                    <>
+
+                      <RefreshCw size={15} className="sk-spin" />
+
+                      Deleting...
+
+                    </>
+
+                  ) : (
+
+                    "Delete"
+
+                  )}
+
+                </button>
+
+              </div>
+
+            </>
+
+          )}
+
+        </Modal>
+
       ) : null}
 
 
 
+      {toasts.node}
+
+      <SkStyles />
+
+      <style dangerouslySetInnerHTML={{ __html: communityCss }} />
 
     </>
 
-
-
   );
 
-
-
 }
-
-
-
-
-
-
-
-function HighlightCard({
-
-
-
-  icon: Icon,
-
-
-
-  label,
-
-
-
-  value,
-
-
-
-  description,
-
-
-
-  tone,
-
-
-
-}: {
-
-
-
-  icon: React.ElementType;
-
-
-
-  label: string;
-
-
-
-  value: string;
-
-
-
-  description: string;
-
-
-
-  tone: "blue" | "rose" | "gold";
-
-
-
-}) {
-
-
-
-  const palette = {
-
-
-
-    blue: {
-
-
-
-      bg: "#eaf0ff",
-
-
-
-      fg: "#316cf2",
-
-
-
-    },
-
-
-
-    rose: {
-
-
-
-      bg: "#f8e8ef",
-
-
-
-      fg: "#a01441",
-
-
-
-    },
-
-
-
-    gold: {
-
-
-
-      bg: "#fff4dc",
-
-
-
-      fg: "#b97812",
-
-
-
-    },
-
-
-
-  };
-
-
-
-
-
-
-
-  const colors = palette[tone];
-
-
-
-
-
-
-
-  return (
-
-
-
-    <div style={highlightCardStyle}>
-
-
-
-      <div
-
-
-
-        style={{
-
-
-
-          ...highlightIconStyle,
-
-
-
-          background: colors.bg,
-
-
-
-          color: colors.fg,
-
-
-
-        }}
-
-
-
-      >
-
-
-
-        <Icon size={18} />
-
-
-
-      </div>
-
-
-
-
-
-
-
-      <div style={{ minWidth: 0 }}>
-
-
-
-        <span style={highlightLabelStyle}>
-
-
-
-          {label}
-
-
-
-        </span>
-
-
-
-
-
-
-
-        <strong style={highlightValueStyle}>
-
-
-
-          {value}
-
-
-
-        </strong>
-
-
-
-
-
-
-
-        <span style={highlightDescriptionStyle}>
-
-
-
-          {description}
-
-
-
-        </span>
-
-
-
-      </div>
-
-
-
-    </div>
-
-
-
-  );
-
-
-
-}
-
-
-
-
 
 
 
 function RoleBadge({ role }: { role: PostRole }) {
 
+  const tone =
 
-
-  const styles: Record<
-
-
-
-    PostRole,
-
-
-
-    { bg: string; fg: string }
-
-
-
-  > = {
-
-
-
-    Admin: {
-
-
-
-      bg: "#eaf0ff",
-
-
-
-      fg: "#3161d3",
-
-
-
-    },
-
-
-
-    Trainer: {
-
-
-
-      bg: "#f0eaff",
-
-
-
-      fg: "#7247c7",
-
-
-
-    },
-
-
-
-    Student: {
-
-
-
-      bg: "#f1f4f7",
-
-
-
-      fg: "#657083",
-
-
-
-    },
-
-
-
-  };
-
-
-
-
-
-
-
-  const current = styles[role];
-
-
-
-
+    role === "Admin" ? "tone-navy" : role === "Trainer" ? "tone-blue" : "";
 
 
 
   return (
 
-
-
-    <span
-
-
-
-      style={{
-
-
-
-        ...roleBadgeStyle,
-
-
-
-        background: current.bg,
-
-
-
-        color: current.fg,
-
-
-
-      }}
-
-
-
-    >
-
-
+    <span className={`sk-badge ${tone}`} style={{ padding: "2px 8px", fontSize: 11 }}>
 
       {role}
 
-
-
     </span>
 
-
-
   );
-
-
 
 }
 
 
 
-
-
-
-
-function SideHeading({
-
-
-
-  icon: Icon,
-
-
-
-  title,
-
-
-
-  subtitle,
-
-
-
-}: {
-
-
-
-  icon: React.ElementType;
-
-
-
-  title: string;
-
-
-
-  subtitle: string;
-
-
-
-}) {
-
-
+function Guideline({ number, text }: { number: string; text: string }) {
 
   return (
 
+    <div className="cm-guide">
 
+      <span>{number}</span>
 
-    <div style={sideHeadingStyle}>
-
-
-
-      <div style={sideHeadingIconStyle}>
-
-
-
-        <Icon size={16} />
-
-
-
-      </div>
-
-
-
-
-
-
-
-      <div style={{ minWidth: 0 }}>
-
-
-
-        <h2 style={sideHeadingTitleStyle}>
-
-
-
-          {title}
-
-
-
-        </h2>
-
-
-
-
-
-
-
-        <p style={sideHeadingSubtitleStyle}>
-
-
-
-          {subtitle}
-
-
-
-        </p>
-
-
-
-      </div>
-
-
+      <p>{text}</p>
 
     </div>
 
-
-
   );
-
-
 
 }
 
 
 
+const communityCss = `
+.cm-hero{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:176px;margin-bottom:20px;padding:30px 32px;overflow:hidden;border:1px solid rgba(255,255,255,.12);border-bottom:3px solid #ff7900;border-radius:22px;background:linear-gradient(112deg,#202334 0%,#153866 54%,#245b9d 100%);box-shadow:0 16px 34px rgba(15,47,95,.13);color:#fff;animation:cm-hero-enter .55s cubic-bezier(.2,.75,.25,1) both}
+.cm-hero:before{content:"";position:absolute;z-index:-1;right:-75px;top:-190px;width:370px;height:370px;border:1px solid rgba(255,255,255,.1);border-radius:50%;box-shadow:0 0 0 20px rgba(255,255,255,.025),0 0 0 42px rgba(255,255,255,.025),0 0 0 64px rgba(255,255,255,.02)}
+.cm-hero:after{content:"";position:absolute;z-index:-1;inset:0;opacity:.13;background-image:radial-gradient(rgba(255,255,255,.5) .7px,transparent .7px);background-size:22px 22px;mask-image:linear-gradient(90deg,transparent,#000 55%,#000)}
+.cm-hero-copy{display:flex;align-items:center;gap:20px;min-width:0}
+.cm-hero-icon{display:grid;place-items:center;flex:0 0 66px;width:66px;height:66px;border:1px solid rgba(255,255,255,.24);border-radius:18px;background:rgba(255,255,255,.13);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.12);transition:transform .25s ease,background .25s ease}
+.cm-hero:hover .cm-hero-icon{transform:translateY(-2px) rotate(-3deg);background:rgba(255,255,255,.19)}
+.cm-hero-text{min-width:0}
+.cm-hero .sk-kicker{margin:0 0 9px;color:#ff9a3d;font-weight:800;letter-spacing:.09em;text-transform:none}
+.cm-hero h1{margin:0;color:#fff;font-size:clamp(28px,2.3vw,36px);line-height:1.15;font-weight:800;letter-spacing:-.035em}
+.cm-hero p{max-width:720px;margin:10px 0 0;color:rgba(239,245,255,.84);font-size:15px;line-height:1.65}
+.cm-search{position:relative;z-index:1;width:min(320px,34%);flex:0 0 auto;min-height:46px;border:1px solid rgba(255,255,255,.28)!important;border-radius:12px!important;background:rgba(255,255,255,.12)!important;color:#fff!important;backdrop-filter:blur(8px);transition:border-color .2s ease,background .2s ease,box-shadow .2s ease}
+.cm-search:focus-within{border-color:rgba(255,255,255,.68)!important;background:rgba(255,255,255,.17)!important;box-shadow:0 0 0 3px rgba(255,255,255,.08)}
+.cm-search>svg{color:rgba(255,255,255,.78)}
+.cm-search input{min-width:0;color:#fff!important}
+.cm-search input::placeholder{color:rgba(239,245,255,.7)!important}
+.cm-clear{background:rgba(255,255,255,.16)!important;color:#fff!important}
+.cm-clear:hover{background:rgba(255,255,255,.26)!important}
+@keyframes cm-hero-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media (max-width:900px){.cm-hero{align-items:flex-start;flex-direction:column;padding:26px}.cm-search{width:100%;max-width:none}.cm-hero-copy{align-items:flex-start}}
+@media (max-width:560px){.cm-hero{min-height:0;padding:22px 18px;border-radius:17px}.cm-hero-copy{gap:13px}.cm-hero-icon{flex-basis:48px;width:48px;height:48px;border-radius:13px}.cm-hero-icon svg{width:21px;height:21px}.cm-hero h1{font-size:27px}.cm-hero p{font-size:13px;margin-top:8px}}
 
+.cm-search{width:290px;flex:0 0 auto}
 
+.cm-clear{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:0;border-radius:50%;background:var(--line-2);color:var(--muted);cursor:pointer}
 
+.cm-clear:hover{background:#D9E3F2}
 
-function Guideline({
+.cm-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,.7fr);gap:14px;align-items:start}
 
+.cm-side{display:flex;flex-direction:column;gap:12px;min-width:0}
 
+.cm-pinned{margin-bottom:12px;padding:14px 16px;border:1px solid #CFE0FA;border-left:4px solid #FF7900;border-radius:16px;background:linear-gradient(120deg,#F2F7FF 0%,#FFFFFF 72%,#FFF8F1 100%);transition:transform .3s var(--ease),box-shadow .3s ease}
 
-  number,
+.cm-pinned:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,47,95,.10)}
 
+.cm-pinned-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 
+.cm-pinned-label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--orange-2)}
 
-  text,
+.cm-pinned h2{margin:12px 0 6px;font-size:18px;line-height:1.35;font-weight:700;color:var(--navy)}
 
+.cm-pinned p{margin:0;font-size:14px;line-height:1.65;color:var(--muted)}
 
+.cm-pinned-foot{display:flex;gap:16px;margin-top:12px;font-size:12.5px;color:var(--muted)}
 
-}: {
+.cm-image{display:table;width:fit-content;max-width:min(100%,520px);margin-top:12px;overflow:hidden;border:1px solid #D8E4F5;border-radius:12px;background:linear-gradient(135deg,#F3F7FD,#FFFFFF);box-shadow:0 3px 10px rgba(15,47,95,.04)}
 
+.cm-image img{display:block;width:auto;max-width:100%;max-height:260px;object-fit:contain;transition:transform .35s var(--ease)}
 
+.cm-post:hover .cm-image img{transform:scale(1.01)}
 
-  number: string;
+.cm-composer{margin-bottom:14px}
 
+.cm-composer-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 
+.cm-composer-head strong{display:block;font-size:15px;color:var(--navy)}
 
-  text: string;
+.cm-composer-head span{display:block;margin-top:2px;font-size:12.5px;color:var(--muted)}
 
+.cm-preview{position:relative;width:fit-content;max-width:100%;margin-top:12px;overflow:hidden;border:1px solid var(--line);border-radius:12px;animation:sk-pop .35s var(--ease) both}
 
+.cm-preview img{display:block;width:min(360px,100%);max-height:220px;object-fit:cover}
 
-}) {
+.cm-preview button{position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:rgba(15,47,95,.8);color:#fff;cursor:pointer;transition:transform .25s var(--ease),background .2s ease}
 
+.cm-preview button:hover{transform:rotate(90deg);background:var(--red)}
 
+.cm-composer-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 
-  return (
+.cm-topic-select{width:auto;min-width:200px;height:36px;font-size:13px}
 
+.cm-attach input{display:none}
 
+.cm-hint{font-size:12px;color:var(--soft)}
 
-    <div style={guidelineStyle}>
+.cm-post-btn{margin-left:auto}
 
+.cm-respect{margin:10px 0 0;font-size:12px;color:var(--soft)}
 
+.cm-feed-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
 
-      <span style={guidelineNumberStyle}>
+.cm-feed-head h2{margin:0;font-size:20px;font-weight:700;color:var(--navy)}
 
+.cm-feed-head p{margin:3px 0 0;font-size:13px;color:var(--muted)}
 
+.cm-tabs{display:flex;flex-wrap:wrap;gap:6px}
 
-        {number}
+.cm-tab{height:34px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,transform .2s var(--ease),box-shadow .2s ease}
 
+.cm-tab:hover{border-color:#BFD3F2;color:var(--blue);transform:translateY(-1px)}
 
+.cm-tab.is-active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 6px 14px rgba(20,89,184,.25)}
 
-      </span>
+.cm-posts{display:flex;flex-direction:column;gap:12px}
 
+.cm-post{position:relative;min-width:0;padding:14px 16px 12px 19px;border:1px solid #DCE6F4;border-left:4px solid #1D5FC2;border-radius:15px;background:linear-gradient(115deg,#F5F9FF 0%,#FFFFFF 48%);box-shadow:0 2px 6px rgba(15,47,95,.045);transition:transform .25s var(--ease),box-shadow .25s ease,border-color .25s ease,background .25s ease;scroll-margin-top:90px;animation:cm-post-enter .38s var(--ease) both}
 
+.cm-post:hover{transform:translateY(-2px);border-color:#A9C6F0;box-shadow:0 10px 22px rgba(15,47,95,.09)}
+.cm-post:nth-child(4n + 2){border-left-color:#FF7900;background:linear-gradient(115deg,#FFF8F1 0%,#FFFFFF 48%)}
+.cm-post:nth-child(4n + 3){border-left-color:#153866;background:linear-gradient(115deg,#F1F5FB 0%,#FFFFFF 48%)}
+.cm-post:nth-child(4n + 4){border-left-color:#2F73C8;background:linear-gradient(115deg,#F2F8FF 0%,#FFFFFF 48%)}
+@keyframes cm-post-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
+.cm-post-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 
+.cm-author{display:flex;align-items:center;gap:12px;min-width:0}
 
+.cm-avatar{width:42px;height:42px;flex:0 0 42px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50%;font-size:13px;font-weight:700}
 
+.cm-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 
-      <span style={guidelineTextStyle}>
+.cm-avatar-sm{width:32px;height:32px;flex-basis:32px;font-size:11px}
 
+.role-admin{background:var(--navy);color:#fff}
 
+.role-trainer{background:var(--blue-tint);color:var(--blue)}
 
-        {text}
+.role-student{background:#EDF1F7;color:var(--muted)}
 
+.cm-author-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 
+.cm-author-row strong{font-size:14px;color:var(--navy)}
 
-      </span>
+.cm-time{display:block;margin-top:2px;font-size:12px;color:var(--soft)}
 
+.cm-author-row .cm-time{display:inline;margin:0}
 
+.cm-post-tools{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 
-    </div>
+.cm-menu-wrap{position:relative}
 
+.cm-menu-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;transition:background .2s ease,color .2s ease}
 
+.cm-menu-btn:hover,.cm-menu-btn[aria-expanded="true"]{background:var(--blue-tint);color:var(--blue)}
 
-  );
+.cm-menu{position:absolute;right:0;top:40px;z-index:30;width:140px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 14px 32px rgba(15,47,95,.18);animation:sk-modal-in .2s var(--ease) both;transform-origin:top right}
 
+.cm-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--navy);font:inherit;font-size:13px;cursor:pointer;text-align:left;transition:background .15s ease}
 
+.cm-menu button:hover{background:var(--blue-tint)}
+
+.cm-menu button.is-danger{color:var(--red)}
+
+.cm-menu button.is-danger:hover{background:var(--red-tint)}
+
+.cm-post h3{margin:11px 0 5px;font-size:16px;line-height:1.4;font-weight:750;color:var(--navy);word-break:break-word}
+
+.cm-content{margin:0;font-size:13.5px;line-height:1.65;color:#5F7190;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.cm-actions{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2)}
+
+.cm-action{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s ease,color .2s ease,transform .2s var(--ease)}
+
+.cm-action:hover{background:var(--blue-tint);color:var(--blue)}
+
+.cm-action:active{transform:scale(.95)}
+
+.cm-action.is-liked{color:var(--orange)}
+
+.cm-action.is-liked:hover{background:var(--orange-tint)}
+
+.cm-action.is-liked svg{animation:sk-pop .4s var(--ease) both}
+
+.cm-action.is-open{background:var(--blue-tint);color:var(--blue)}
+
+.cm-comments{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)}
+
+.cm-comments-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+
+.cm-comments-head strong{font-size:14px;color:var(--navy)}
+
+.cm-comments-head span{min-width:22px;height:22px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--line-2);color:var(--muted);font-size:12px;font-weight:700}
+
+.cm-muted{display:flex;align-items:center;gap:8px;padding:6px 0 14px;font-size:13px;color:var(--soft)}
+
+.cm-comment-list{display:grid;gap:12px;margin-bottom:14px}
+
+.cm-comment{display:flex;gap:10px;animation:sk-swap .35s var(--ease) both}
+
+.cm-comment-body{min-width:0;flex:1;padding:10px 12px;border-radius:12px;background:#F8FAFD;transition:background .2s ease}
+
+.cm-comment:hover .cm-comment-body{background:var(--blue-tint)}
+
+.cm-comment-body p{margin:5px 0 0;font-size:13.5px;line-height:1.6;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+
+.cm-reply{display:flex;align-items:flex-end;gap:10px}
+
+.cm-reply .sk-textarea{flex:1;min-height:62px}
+
+.cm-topics{display:flex;flex-direction:column;gap:6px}
+
+.cm-topic{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:11px;background:#FBFCFE;color:var(--muted);font:inherit;font-size:13.5px;text-align:left;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .2s var(--ease)}
+
+.cm-topic:hover{border-color:#9DBBEA;color:var(--blue);transform:translateX(4px)}
+
+.cm-topic b{min-width:26px;padding:3px 7px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;text-align:center}
+
+.cm-topic.is-active{border-color:var(--blue-2);background:var(--blue-tint);color:var(--blue);font-weight:600}
+
+.cm-topic.is-active b{background:var(--blue);color:#fff}
+
+.cm-guides{display:flex;flex-direction:column;gap:6px}
+
+.cm-guide{display:flex;align-items:flex-start;gap:10px;padding:8px;margin:0 -8px;border-radius:9px;transition:background .2s ease}
+
+.cm-guide:hover{background:#F5F8FD}
+
+.cm-guide span{width:26px;height:26px;flex:0 0 26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--orange-tint);color:var(--orange-2);font-size:11px;font-weight:700}
+
+.cm-guide p{margin:4px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+
+.cm-team{padding:14px 16px;border:1px solid #CFE0FA;border-radius:16px;background:linear-gradient(135deg,#F5F9FF,#fff);transition:transform .3s var(--ease),box-shadow .3s ease}
+
+.cm-team:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(15,47,95,.1)}
+
+.cm-team .sk-icon{margin-bottom:10px}
+
+.cm-team strong{display:block;font-size:15px;color:var(--navy)}
+
+.cm-team p{margin:5px 0 0;font-size:13px;line-height:1.55;color:var(--muted)}
+
+.cm-delete{text-align:center;padding:30px 24px 14px}
+
+.cm-delete-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;border-radius:14px;background:var(--red-tint);color:var(--red);animation:sk-pop .4s var(--ease) both}
+
+.cm-delete h2{margin:0;font-size:19px;color:var(--navy)}
+
+.cm-delete p{margin:8px 0 0;font-size:14px;color:var(--muted)}
+
+@media (max-width:1050px){.cm-layout{grid-template-columns:minmax(0,1fr)}}
+
+@media (max-width:760px){
+
+  .cm-search{width:100%}
+
+  .cm-post-btn{margin-left:0;width:100%}
+
+  .cm-topic-select{width:100%}
+
+  .cm-reply{flex-direction:column;align-items:stretch}
 
 }
 
+@media (prefers-reduced-motion:reduce){.cm-hero,.cm-post{animation:none!important}.cm-comment,.cm-menu,.cm-preview,.cm-action.is-liked svg,.cm-delete-icon{animation:none!important}.cm-post,.cm-pinned,.cm-team,.cm-topic{transition:none!important}}
 
-
-
-
-
-
-const pageStyle: CSSProperties = {
-
-
-
-  width: "100%",
-
-
-
-  minWidth: 0,
-
-
-
-  flex: 1,
-
-
-
-  boxSizing: "border-box",
-
-
-
-  padding: "28px 32px 38px",
-
-
-
-  background: "#f5f7fb",
-
-
-
-};
-
-
-
-
-
-
-
-const headerStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "flex-start",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 20,
-
-
-
-  marginBottom: 18,
-
-
-
-};
-
-
-
-
-
-
-
-const eyebrowStyle: CSSProperties = {
-
-
-
-  marginBottom: 5,
-
-
-
-  fontSize: 10.5,
-
-
-
-  fontWeight: 800,
-
-
-
-  letterSpacing: "0.11em",
-
-
-
-  color: "#a01441",
-
-
-
-};
-
-
-
-
-
-
-
-const titleStyle: CSSProperties = {
-
-
-
-  margin: 0,
-
-
-
-  fontSize: 27,
-
-
-
-  lineHeight: 1.2,
-
-
-
-  fontWeight: 800,
-
-
-
-  letterSpacing: "-0.02em",
-
-
-
-  color: "#111827",
-
-
-
-};
-
-
-
-
-
-
-
-const subtitleStyle: CSSProperties = {
-
-
-
-  maxWidth: 700,
-
-
-
-  margin: "6px 0 0",
-
-
-
-  fontSize: 13,
-
-
-
-  lineHeight: 1.6,
-
-
-
-  color: "#818b9b",
-
-
-
-};
-
-
-
-
-
-
-
-const headerActionsStyle: CSSProperties = {
-
-
-
-  flex: "0 0 auto",
-
-
-
-};
-
-
-
-
-
-
-
-const searchBoxStyle: CSSProperties = {
-
-
-
-  width: 270,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 8,
-
-
-
-  padding: "9px 11px",
-
-
-
-  border: "1px solid #dfe4ec",
-
-
-
-  borderRadius: 9,
-
-
-
-  background: "#ffffff",
-
-
-
-};
-
-
-
-
-
-
-
-const searchInputStyle: CSSProperties = {
-
-
-
-  width: "100%",
-
-
-
-  minWidth: 0,
-
-
-
-  border: 0,
-
-
-
-  outline: "none",
-
-
-
-  background: "transparent",
-
-
-
-  color: "#374151",
-
-
-
-  fontSize: 11.5,
-
-
-
-};
-
-
-
-
-
-
-
-const highlightCardStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 11,
-
-
-
-  minWidth: 0,
-
-
-
-  padding: 15,
-
-
-
-  border: "1px solid #e4e8ef",
-
-
-
-  borderRadius: 15,
-
-
-
-  background: "#ffffff",
-
-
-
-  boxShadow:
-
-
-
-    "0 4px 12px rgba(15,23,42,0.035)",
-
-
-
-};
-
-
-
-
-
-
-
-const highlightIconStyle: CSSProperties = {
-
-
-
-  width: 40,
-
-
-
-  height: 40,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  flex: "0 0 40px",
-
-
-
-  borderRadius: 11,
-
-
-
-};
-
-
-
-
-
-
-
-const highlightLabelStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  fontSize: 10.5,
-
-
-
-  color: "#8b95a4",
-
-
-
-};
-
-
-
-
-
-
-
-const highlightValueStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  marginTop: 2,
-
-
-
-  fontSize: 19,
-
-
-
-  lineHeight: 1.15,
-
-
-
-  color: "#111827",
-
-
-
-};
-
-
-
-
-
-
-
-const highlightDescriptionStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  marginTop: 3,
-
-
-
-  fontSize: 9.5,
-
-
-
-  color: "#9aa2af",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedCardStyle: CSSProperties = {
-
-
-
-  marginBottom: 13,
-
-
-
-  padding: 18,
-
-
-
-  border: "1px solid #e7d9ad",
-
-
-
-  borderRadius: 16,
-
-
-
-  background:
-
-
-
-    "linear-gradient(135deg,#fffdf5 0%,#fff8e8 100%)",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedTopStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 10,
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedLabelStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 5,
-
-
-
-  fontSize: 10,
-
-
-
-  fontWeight: 800,
-
-
-
-  color: "#a97011",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedSmallStyle: CSSProperties = {
-
-
-
-  fontSize: 9.5,
-
-
-
-  color: "#a09175",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedTitleStyle: CSSProperties = {
-
-
-
-  margin: "12px 0 6px",
-
-
-
-  fontSize: 15,
-
-
-
-  lineHeight: 1.35,
-
-
-
-  fontWeight: 800,
-
-
-
-  color: "#372f22",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedTextStyle: CSSProperties = {
-
-
-
-  margin: 0,
-
-
-
-  fontSize: 11.5,
-
-
-
-  lineHeight: 1.6,
-
-
-
-  color: "#736957",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedFooterStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  gap: 14,
-
-
-
-  marginTop: 11,
-
-
-
-  fontSize: 9.5,
-
-
-
-  color: "#9b8b70",
-
-
-
-};
-
-
-
-
-
-
-
-const composerCardStyle: CSSProperties = {
-
-
-
-  padding: 18,
-
-
-
-  marginBottom: 18,
-
-
-
-  border: "1px solid #e4e8ef",
-
-
-
-  borderRadius: 16,
-
-
-
-  background: "#ffffff",
-
-
-
-  boxShadow:
-
-
-
-    "0 4px 14px rgba(15,23,42,0.035)",
-
-
-
-};
-
-
-
-
-
-
-
-const composerHeaderStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 10,
-
-
-
-  marginBottom: 12,
-
-
-
-};
-
-
-
-
-
-
-
-const studentAvatarStyle: CSSProperties = {
-
-
-
-  width: 38,
-
-
-
-  height: 38,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  flex: "0 0 38px",
-
-
-
-  borderRadius: "50%",
-
-
-
-  background: "#2f6bff",
-
-
-
-  color: "#ffffff",
-
-
-
-  fontSize: 11,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const composerTitleStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  fontSize: 12.5,
-
-
-
-  color: "#273244",
-
-
-
-};
-
-
-
-
-
-
-
-const composerHintStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  marginTop: 2,
-
-
-
-  fontSize: 10,
-
-
-
-  color: "#969fac",
-
-
-
-};
-
-
-
-
-
-
-
-const composerTextareaStyle: CSSProperties = {
-
-
-
-  width: "100%",
-
-
-
-  minHeight: 104,
-
-
-
-  boxSizing: "border-box",
-
-
-
-  resize: "vertical",
-
-
-
-  border: "1px solid #dfe5ed",
-
-
-
-  borderRadius: 11,
-
-
-
-  padding: 11,
-
-
-
-  outline: "none",
-
-
-
-  fontFamily: "inherit",
-
-
-
-  fontSize: 11.5,
-
-
-
-  lineHeight: 1.55,
-
-
-
-  color: "#344054",
-
-
-
-  background: "#fbfcfd",
-
-
-
-};
-
-
-
-
-
-
-
-const composerFooterStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 12,
-
-
-
-  marginTop: 10,
-
-
-
-};
-
-
-
-
-
-
-
-const composerFooterHintStyle: CSSProperties = {
-
-
-
-  minWidth: 0,
-
-
-
-  fontSize: 9.5,
-
-
-
-  color: "#99a1ae",
-
-
-
-};
-
-
-
-
-
-
-
-const postButtonStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  gap: 6,
-
-
-
-  flex: "0 0 auto",
-
-
-
-  border: 0,
-
-
-
-  borderRadius: 8,
-
-
-
-  padding: "8px 12px",
-
-
-
-  background: "#2f6bff",
-
-
-
-  color: "#ffffff",
-
-
-
-  fontSize: 10.5,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const feedHeaderStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "flex-end",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 15,
-
-
-
-  marginBottom: 11,
-
-
-
-};
-
-
-
-
-
-
-
-const feedTitleStyle: CSSProperties = {
-
-
-
-  margin: 0,
-
-
-
-  fontSize: 16,
-
-
-
-  fontWeight: 800,
-
-
-
-  color: "#172033",
-
-
-
-};
-
-
-
-
-
-
-
-const feedSubtitleStyle: CSSProperties = {
-
-
-
-  margin: "3px 0 0",
-
-
-
-  fontSize: 10,
-
-
-
-  color: "#99a1ae",
-
-
-
-};
-
-
-
-
-
-
-
-const topicTabsStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexWrap: "wrap",
-
-
-
-  justifyContent: "flex-end",
-
-
-
-  gap: 6,
-
-
-
-};
-
-
-
-
-
-
-
-const topicButtonStyle: CSSProperties = {
-
-
-
-  border: "1px solid #dfe4ec",
-
-
-
-  borderRadius: 999,
-
-
-
-  padding: "6px 9px",
-
-
-
-  background: "#ffffff",
-
-
-
-  color: "#667184",
-
-
-
-  fontSize: 9.5,
-
-
-
-  fontWeight: 750,
-
-
-
-  cursor: "pointer",
-
-
-
-};
-
-
-
-
-
-
-
-const topicButtonActiveStyle: CSSProperties = {
-
-
-
-  borderColor: "#2f6bff",
-
-
-
-  background: "#2f6bff",
-
-
-
-  color: "#ffffff",
-
-
-
-};
-
-
-
-
-
-
-
-const postListStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexDirection: "column",
-
-
-
-  gap: 11,
-
-
-
-};
-
-
-
-
-
-
-
-const postCardStyle: CSSProperties = {
-
-
-
-  minWidth: 0,
-
-
-
-  padding: 18,
-
-
-
-  border: "1px solid #e4e8ef",
-
-
-
-  borderRadius: 15,
-
-
-
-  background: "#ffffff",
-
-
-
-  boxShadow:
-
-
-
-    "0 3px 10px rgba(15,23,42,0.025)",
-
-
-
-};
-
-
-
-
-
-
-
-const postHeaderStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "flex-start",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 12,
-
-
-
-};
-
-
-
-
-
-
-
-const authorStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 10,
-
-
-
-  minWidth: 0,
-
-
-
-};
-
-
-
-
-
-
-
-const authorAvatarStyle: CSSProperties = {
-
-
-
-  width: 38,
-
-
-
-  height: 38,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  flex: "0 0 38px",
-
-
-
-  borderRadius: "50%",
-
-
-
-  fontSize: 11,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const authorNameRowStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  flexWrap: "wrap",
-
-
-
-  gap: 6,
-
-
-
-};
-
-
-
-
-
-
-
-const authorNameStyle: CSSProperties = {
-
-
-
-  fontSize: 12.5,
-
-
-
-  color: "#202a3a",
-
-
-
-};
-
-
-
-
-
-
-
-const roleBadgeStyle: CSSProperties = {
-
-
-
-  borderRadius: 999,
-
-
-
-  padding: "3px 6px",
-
-
-
-  fontSize: 8.5,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const postTimeStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  marginTop: 2,
-
-
-
-  fontSize: 9.5,
-
-
-
-  color: "#99a1ae",
-
-
-
-};
-
-
-
-
-
-
-
-const pinnedFeedBadgeStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 4,
-
-
-
-  padding: "4px 6px",
-
-
-
-  borderRadius: 7,
-
-
-
-  background: "#fff7e3",
-
-
-
-  color: "#a97011",
-
-
-
-  fontSize: 8.5,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const postTitleStyle: CSSProperties = {
-
-
-
-  margin: "13px 0 6px",
-
-
-
-  fontSize: 14.5,
-
-
-
-  lineHeight: 1.35,
-
-
-
-  fontWeight: 800,
-
-
-
-  color: "#172033",
-
-
-
-};
-
-
-
-
-
-
-
-const postContentStyle: CSSProperties = {
-
-
-
-  margin: 0,
-
-
-
-  fontSize: 11.5,
-
-
-
-  lineHeight: 1.65,
-
-
-
-  color: "#687486",
-
-
-
-};
-
-
-
-
-
-
-
-const postActionsStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 15,
-
-
-
-  marginTop: 14,
-
-
-
-  paddingTop: 12,
-
-
-
-  borderTop: "1px solid #eef1f5",
-
-
-
-};
-
-
-
-
-
-
-
-const postActionButtonStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 5,
-
-
-
-  border: 0,
-
-
-
-  padding: 0,
-
-
-
-  background: "transparent",
-
-
-
-  fontSize: 10.5,
-
-
-
-  fontWeight: 700,
-
-
-
-  cursor: "pointer",
-
-
-
-};
-
-
-
-
-
-
-
-const composerFooterLeftStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 9,
-  minWidth: 0,
-  flexWrap: "wrap",
-};
-
-const attachImageButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 5,
-  padding: "7px 9px",
-  border: "1px solid #dfe4ec",
-  borderRadius: 8,
-  background: "#ffffff",
-  color: "#596579",
-  fontSize: 9.5,
-  fontWeight: 750,
-  cursor: "pointer",
-};
-
-const hiddenFileInputStyle: CSSProperties = {
-  display: "none",
-};
-
-const postImagePreviewStyle: CSSProperties = {
-  position: "relative",
-  width: "fit-content",
-  maxWidth: "100%",
-  marginTop: 11,
-  borderRadius: 11,
-  overflow: "hidden",
-  border: "1px solid #e2e7ee",
-  background: "#f8fafc",
-};
-
-const postImagePreviewImageStyle: CSSProperties = {
-  display: "block",
-  width: "min(360px, 100%)",
-  maxHeight: 220,
-  objectFit: "cover",
-};
-
-const postImageRemoveButtonStyle: CSSProperties = {
-  position: "absolute",
-  top: 7,
-  right: 7,
-  width: 27,
-  height: 27,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: 0,
-  borderRadius: "50%",
-  background: "rgba(17,24,39,0.78)",
-  color: "#ffffff",
-  cursor: "pointer",
-};
-
-const avatarImageStyle: CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-  borderRadius: "50%",
-  display: "block",
-};
-
-const postImageContainerStyle: CSSProperties = {
-  marginTop: 13,
-  width: "min(100%, 680px)",
-  maxWidth: "100%",
-  borderRadius: 12,
-  overflow: "hidden",
-  border: "1px solid #e5e9ef",
-  background: "#f8fafc",
-};
-
-const postImageStyle: CSSProperties = {
-  display: "block",
-  width: "100%",
-  maxHeight: 360,
-  objectFit: "contain",
-  background: "#f8fafc",
-};
-
-const errorBannerStyle: CSSProperties = {
-
-  marginBottom: 14,
-
-  padding: "11px 14px",
-
-  border: "1px solid #fecaca",
-
-  borderRadius: 12,
-
-  background: "#fff7f7",
-
-  color: "#b42318",
-
-  fontSize: 13,
-
-  lineHeight: 1.5,
-
-};
-
-
-
-const commentsSectionStyle: CSSProperties = {
-
-  marginTop: 14,
-
-  paddingTop: 14,
-
-  borderTop: "1px solid #edf0f4",
-
-};
-
-
-
-const commentsHeaderStyle: CSSProperties = {
-
-  display: "flex",
-
-  alignItems: "center",
-
-  gap: 7,
-
-  marginBottom: 11,
-
-};
-
-
-
-const commentsTitleStyle: CSSProperties = {
-
-  color: "#253044",
-
-  fontSize: 13,
-
-};
-
-
-
-const commentsCountStyle: CSSProperties = {
-
-  minWidth: 20,
-
-  height: 20,
-
-  padding: "0 6px",
-
-  borderRadius: 999,
-
-  display: "inline-flex",
-
-  alignItems: "center",
-
-  justifyContent: "center",
-
-  background: "#f1f4f8",
-
-  color: "#6b7687",
-
-  fontSize: 11,
-
-  fontWeight: 700,
-
-};
-
-
-
-const commentsMutedStyle: CSSProperties = {
-
-  padding: "8px 0 12px",
-
-  color: "#8a94a4",
-
-  fontSize: 12,
-
-};
-
-
-
-const commentsListStyle: CSSProperties = {
-
-  display: "grid",
-
-  gap: 12,
-
-  marginBottom: 12,
-
-};
-
-
-
-const commentItemStyle: CSSProperties = {
-
-  display: "flex",
-
-  gap: 10,
-
-};
-
-
-
-const commentAvatarStyle: CSSProperties = {
-
-  width: 30,
-
-  height: 30,
-
-  flexShrink: 0,
-
-  borderRadius: "50%",
-
-  display: "flex",
-
-  alignItems: "center",
-
-  justifyContent: "center",
-
-  background: "#eef2f6",
-
-  color: "#596579",
-
-  fontSize: 10,
-
-  fontWeight: 800,
-
-};
-
-
-
-const commentBodyStyle: CSSProperties = {
-
-  minWidth: 0,
-
-  flex: 1,
-
-  padding: "8px 10px",
-
-  borderRadius: 10,
-
-  background: "#f8fafc",
-
-};
-
-
-
-const commentAuthorRowStyle: CSSProperties = {
-
-  display: "flex",
-
-  alignItems: "center",
-
-  gap: 7,
-
-  flexWrap: "wrap",
-
-};
-
-
-
-const commentAuthorStyle: CSSProperties = {
-
-  color: "#344054",
-
-  fontSize: 12,
-
-};
-
-
-
-const commentTimeStyle: CSSProperties = {
-
-  color: "#98a2b3",
-
-  fontSize: 10,
-
-};
-
-
-
-const commentTextStyle: CSSProperties = {
-
-  margin: "5px 0 0",
-
-  color: "#596579",
-
-  fontSize: 12,
-
-  lineHeight: 1.55,
-
-  whiteSpace: "pre-wrap",
-
-  overflowWrap: "anywhere",
-
-};
-
-
-
-const commentComposerStyle: CSSProperties = {
-
-  display: "flex",
-
-  alignItems: "flex-end",
-
-  gap: 9,
-
-};
-
-
-
-const commentTextareaStyle: CSSProperties = {
-
-  flex: 1,
-
-  minHeight: 62,
-
-  resize: "vertical",
-
-  border: "1px solid #dfe4eb",
-
-  borderRadius: 10,
-
-  padding: "9px 11px",
-
-  outline: "none",
-
-  color: "#344054",
-
-  background: "#fff",
-
-  fontFamily: "inherit",
-
-  fontSize: 12,
-
-  lineHeight: 1.5,
-
-};
-
-
-
-const commentButtonStyle: CSSProperties = {
-
-  height: 36,
-
-  display: "inline-flex",
-
-  alignItems: "center",
-
-  gap: 6,
-
-  border: 0,
-
-  borderRadius: 9,
-
-  padding: "0 12px",
-
-  background: "#2f6bff",
-
-  color: "#fff",
-
-  fontSize: 12,
-
-  fontWeight: 700,
-
-};
-
-
-
-const sideColumnStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexDirection: "column",
-
-
-
-  gap: 13,
-
-
-
-  minWidth: 0,
-
-
-
-};
-
-
-
-
-
-
-
-const sideCardStyle: CSSProperties = {
-
-
-
-  padding: 17,
-
-
-
-  border: "1px solid #e4e8ef",
-
-
-
-  borderRadius: 15,
-
-
-
-  background: "#ffffff",
-
-
-
-  boxShadow:
-
-
-
-    "0 4px 12px rgba(15,23,42,0.03)",
-
-
-
-};
-
-
-
-
-
-
-
-const sideHeadingStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  gap: 9,
-
-
-
-};
-
-
-
-
-
-
-
-const sideHeadingIconStyle: CSSProperties = {
-
-
-
-  width: 35,
-
-
-
-  height: 35,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  flex: "0 0 35px",
-
-
-
-  borderRadius: 10,
-
-
-
-  background: "#f8e8ef",
-
-
-
-  color: "#a01441",
-
-
-
-};
-
-
-
-
-
-
-
-const sideHeadingTitleStyle: CSSProperties = {
-
-
-
-  margin: 0,
-
-
-
-  fontSize: 13.5,
-
-
-
-  fontWeight: 800,
-
-
-
-  color: "#1d2738",
-
-
-
-};
-
-
-
-
-
-
-
-const sideHeadingSubtitleStyle: CSSProperties = {
-
-
-
-  margin: "3px 0 0",
-
-
-
-  fontSize: 9.5,
-
-
-
-  lineHeight: 1.4,
-
-
-
-  color: "#969fad",
-
-
-
-};
-
-
-
-
-
-
-
-const topicListStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexDirection: "column",
-
-
-
-  gap: 5,
-
-
-
-  marginTop: 14,
-
-
-
-};
-
-
-
-
-
-
-
-const topicRowStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "space-between",
-
-
-
-  gap: 10,
-
-
-
-  width: "100%",
-
-
-
-  padding: "9px 10px",
-
-
-
-  border: "1px solid #eef1f5",
-
-
-
-  borderRadius: 9,
-
-
-
-  background: "#fbfcfd",
-
-
-
-  color: "#667184",
-
-
-
-  fontSize: 10.5,
-
-
-
-  textAlign: "left",
-
-
-
-  cursor: "pointer",
-
-
-
-};
-
-
-
-
-
-
-
-const topicCountStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  minWidth: 23,
-
-
-
-  padding: "3px 5px",
-
-
-
-  borderRadius: 999,
-
-
-
-  background: "#edf2ff",
-
-
-
-  color: "#3c68d8",
-
-
-
-  fontSize: 8.5,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const guidelinesCardStyle: CSSProperties = {
-
-
-
-  padding: 17,
-
-
-
-  border: "1px solid #e4e8ef",
-
-
-
-  borderRadius: 15,
-
-
-
-  background:
-
-
-
-    "linear-gradient(145deg,#ffffff 0%,#fafbfd 100%)",
-
-
-
-};
-
-
-
-
-
-
-
-const guidelineListStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexDirection: "column",
-
-
-
-  gap: 10,
-
-
-
-  marginTop: 14,
-
-
-
-};
-
-
-
-
-
-
-
-const guidelineStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "flex-start",
-
-
-
-  gap: 9,
-
-
-
-};
-
-
-
-
-
-
-
-const guidelineNumberStyle: CSSProperties = {
-
-
-
-  display: "inline-flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  width: 22,
-
-
-
-  height: 22,
-
-
-
-  flex: "0 0 22px",
-
-
-
-  borderRadius: 7,
-
-
-
-  background: "#eef2f7",
-
-
-
-  color: "#748092",
-
-
-
-  fontSize: 7.5,
-
-
-
-  fontWeight: 800,
-
-
-
-};
-
-
-
-
-
-
-
-const guidelineTextStyle: CSSProperties = {
-
-
-
-  paddingTop: 3,
-
-
-
-  fontSize: 10,
-
-
-
-  lineHeight: 1.45,
-
-
-
-  color: "#687486",
-
-
-
-};
-
-
-
-
-
-
-
-const teamCardStyle: CSSProperties = {
-
-
-
-  padding: 17,
-
-
-
-  border: "1px solid #dfe6f2",
-
-
-
-  borderRadius: 15,
-
-
-
-  background: "#f8faff",
-
-
-
-};
-
-
-
-
-
-
-
-const teamIconStyle: CSSProperties = {
-
-
-
-  width: 37,
-
-
-
-  height: 37,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  marginBottom: 9,
-
-
-
-  borderRadius: 10,
-
-
-
-  background: "#eaf0ff",
-
-
-
-  color: "#316cf2",
-
-
-
-};
-
-
-
-
-
-
-
-const teamTitleStyle: CSSProperties = {
-
-
-
-  display: "block",
-
-
-
-  fontSize: 12.5,
-
-
-
-  color: "#253044",
-
-
-
-};
-
-
-
-
-
-
-
-const teamTextStyle: CSSProperties = {
-
-
-
-  margin: "4px 0 0",
-
-
-
-  fontSize: 10,
-
-
-
-  lineHeight: 1.5,
-
-
-
-  color: "#8590a0",
-
-
-
-};
-
-
-
-
-
-
-
-const emptyCardStyle: CSSProperties = {
-
-
-
-  display: "flex",
-
-
-
-  flexDirection: "column",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  minHeight: 220,
-
-
-
-  padding: 25,
-
-
-
-  border: "1px dashed #dce2eb",
-
-
-
-  borderRadius: 15,
-
-
-
-  background: "#fbfcfd",
-
-
-
-  textAlign: "center",
-
-
-
-};
-
-
-
-
-
-
-
-const emptyIconStyle: CSSProperties = {
-
-
-
-  width: 45,
-
-
-
-  height: 45,
-
-
-
-  display: "flex",
-
-
-
-  alignItems: "center",
-
-
-
-  justifyContent: "center",
-
-
-
-  borderRadius: 12,
-
-
-
-  background: "#eff2f6",
-
-
-
-  color: "#919aaa",
-
-
-
-};
-
-
-
-
-
-
-
-const emptyTitleStyle: CSSProperties = {
-
-
-
-  marginTop: 9,
-
-
-
-  fontSize: 13,
-
-
-
-  color: "#4b5565",
-
-
-
-};
-
-
-
-
-
-
-
-const emptyTextStyle: CSSProperties = {
-
-
-
-  maxWidth: 340,
-
-
-
-  marginTop: 4,
-
-
-
-  fontSize: 10.5,
-
-
-
-  lineHeight: 1.5,
-
-
-
-  color: "#9aa2af",
-
-
-
-};
+`;

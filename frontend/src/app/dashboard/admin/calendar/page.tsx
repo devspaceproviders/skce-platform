@@ -2373,13 +2373,13 @@ export default function AdminCalendarPage() {
 
   return (
 
-    <main className="min-h-screen bg-[#F4F6FA]">
+    <main className="admin-calendar-page min-h-screen bg-[#F4F7FC]">
 
       {/* Header */}
 
-      <div className="border-b border-slate-200 bg-white">
+      <div className="admin-calendar-hero relative overflow-hidden border-b border-slate-200 bg-white">
 
-        <div className="px-8 py-6">
+        <div className="admin-calendar-hero-inner relative z-10 px-8 py-6">
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
@@ -2387,7 +2387,7 @@ export default function AdminCalendarPage() {
 
               <div className="flex items-center gap-3">
 
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#173B67] text-white">
+                <div className="admin-calendar-hero-icon flex h-11 w-11 items-center justify-center rounded-xl bg-[#173B67] text-white">
 
                   <CalendarDays size={22} />
 
@@ -2395,7 +2395,9 @@ export default function AdminCalendarPage() {
 
 
 
-                <div>
+                <div className="admin-calendar-heading">
+
+                  <p className="admin-calendar-eyebrow">ADMIN WORKSPACE</p>
 
                   <h1 className="text-2xl font-bold text-slate-900">
 
@@ -2405,7 +2407,7 @@ export default function AdminCalendarPage() {
 
 
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="admin-calendar-subtitle mt-1 text-sm text-slate-500">
 
                     Manage meetings and scheduled activities across SKCE.
 
@@ -2429,7 +2431,7 @@ export default function AdminCalendarPage() {
 
                 disabled={refreshing}
 
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="admin-calendar-refresh inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
 
               >
 
@@ -2453,7 +2455,7 @@ export default function AdminCalendarPage() {
 
                 onClick={openCreateModal}
 
-                className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#EA580C]"
+                className="admin-calendar-create inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#EA580C]"
 
               >
 
@@ -2473,7 +2475,7 @@ export default function AdminCalendarPage() {
 
 
 
-      <div className="space-y-6 px-8 py-6">
+      <div className="admin-calendar-content space-y-6 px-8 py-6">
 
         {/* Page-level errors are shown only when no modal is open. */}
         {!showCreateModal && !selectedMeeting && error && (
@@ -2490,9 +2492,9 @@ export default function AdminCalendarPage() {
 
         {/* Summary */}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="admin-calendar-stats grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="admin-calendar-stat rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-start justify-between">
 
@@ -2528,7 +2530,7 @@ export default function AdminCalendarPage() {
 
 
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="admin-calendar-stat rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-start justify-between">
 
@@ -2564,7 +2566,7 @@ export default function AdminCalendarPage() {
 
 
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="admin-calendar-stat rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-start justify-between">
 
@@ -2600,7 +2602,7 @@ export default function AdminCalendarPage() {
 
 
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="admin-calendar-stat rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
 
             <div className="flex items-start justify-between">
 
@@ -2638,9 +2640,181 @@ export default function AdminCalendarPage() {
 
 
 
+          <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="flex shrink-0 items-center gap-2">
+                <Filter size={16} className="text-[#173B67]" />
+                <span className="text-sm font-semibold text-slate-900">
+                  Filters
+                </span>
+              </div>
+
+              <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                <input
+                  type="text"
+                  value={calendarFilters.search}
+                  onChange={(event) =>
+                    updateCalendarFilter("search", event.target.value)
+                  }
+                  placeholder="Search meetings..."
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#173B67] lg:col-span-2 xl:col-span-1"
+                  aria-label="Search meetings"
+                />
+
+                <select
+                  value={calendarFilters.meetingType}
+                  onChange={(event) =>
+                    updateCalendarFilter(
+                      "meetingType",
+                      event.target.value as CalendarFilters["meetingType"]
+                    )
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by meeting type"
+                >
+                  <option value="">All types</option>
+                  <option value="BATCH_MEETING">Batch</option>
+                  <option value="STUDENT_MEETING">Student</option>
+                  <option value="INTERNAL_MEETING">Internal</option>
+                  <option value="ONE_TO_ONE">One-to-One</option>
+                  <option value="OTHER">Other</option>
+                  <option value="LIVE_CLASS">Live Class</option>
+                </select>
+
+                <select
+                  value={calendarFilters.organizerUserId}
+                  onChange={(event) =>
+                    updateCalendarFilter("organizerUserId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by organizer"
+                >
+                  <option value="">All organizers</option>
+                  {calendarOrganizerOptions.map((organizer) => (
+                    <option key={organizer.id} value={organizer.id}>
+                      {organizer.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.studentUserId}
+                  onChange={(event) =>
+                    updateCalendarFilter("studentUserId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by student"
+                >
+                  <option value="">All students</option>
+                  {calendarStudentOptions.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name || student.email || `Student #${student.id}`}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.courseId}
+                  onChange={(event) =>
+                    updateCalendarFilter("courseId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by course"
+                >
+                  <option value="">All courses</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.batchId}
+                  onChange={(event) =>
+                    updateCalendarFilter("batchId", event.target.value)
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by batch"
+                >
+                  <option value="">All batches</option>
+                  {filteredCalendarBatches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.displayId ? `${batch.displayId} • ` : ""}
+                      {batch.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={calendarFilters.status}
+                  onChange={(event) =>
+                    updateCalendarFilter(
+                      "status",
+                      event.target.value as CalendarFilters["status"]
+                    )
+                  }
+                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter by status"
+                >
+                  <option value="">All statuses</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="LIVE">Live</option>
+                </select>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <input
+                  type="date"
+                  value={calendarFilters.fromDate}
+                  onChange={(event) =>
+                    updateCalendarFilter("fromDate", event.target.value)
+                  }
+                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter from date"
+                  title="From date"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={calendarFilters.toDate}
+                  onChange={(event) =>
+                    updateCalendarFilter("toDate", event.target.value)
+                  }
+                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
+                  aria-label="Filter to date"
+                  title="To date"
+                />
+
+                {hasCalendarFilters && (
+                  <button
+                    type="button"
+                    onClick={clearCalendarFilters}
+                    className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-end">
+              <p className="text-xs text-slate-500">
+                Showing{" "}
+                <span className="font-semibold text-slate-700">
+                  {filteredCalendarMeetings.length}
+                </span>{" "}
+                of {calendarMeetings.length} meetings
+              </p>
+            </div>
+          </div>
+
+
         {/* Calendar Views */}
-        <section>
-          <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <section className="admin-calendar-schedule">
+          <div className="admin-calendar-schedule-heading mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
                 Calendar
@@ -2651,7 +2825,7 @@ export default function AdminCalendarPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center rounded-lg border border-slate-300 bg-white p-1">
+              <div className="admin-calendar-view-switch flex items-center rounded-lg border border-slate-300 bg-white p-1">
                 <button
                   type="button"
                   onClick={() => handleCalendarViewChange("month")}
@@ -2737,7 +2911,7 @@ export default function AdminCalendarPage() {
           </div>
 
           {calendarView === "month" ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="admin-calendar-board overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-center border-b border-slate-200 px-4 py-4">
                 <h3 className="text-base font-semibold text-slate-900">
                   {calendarMonthLabel}
@@ -2834,7 +3008,7 @@ export default function AdminCalendarPage() {
               </div>
             </div>
           ) : calendarView === "week" ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="admin-calendar-board overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-center border-b border-slate-200 px-4 py-4">
                 <h3 className="text-base font-semibold text-slate-900">
                   {calendarWeekLabel}
@@ -2950,7 +3124,7 @@ export default function AdminCalendarPage() {
               </div>
             </div>
           ) : calendarView === "day" ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="admin-calendar-board overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-col items-center justify-center border-b border-slate-200 px-4 py-4">
                 <h3 className="text-base font-semibold text-slate-900">
                   {calendarDayLabel}
@@ -3077,7 +3251,7 @@ export default function AdminCalendarPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="admin-calendar-board overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
@@ -3423,177 +3597,6 @@ export default function AdminCalendarPage() {
         </section>
 
 
-
-          <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-              <div className="flex shrink-0 items-center gap-2">
-                <Filter size={16} className="text-[#173B67]" />
-                <span className="text-sm font-semibold text-slate-900">
-                  Filters
-                </span>
-              </div>
-
-              <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-                <input
-                  type="text"
-                  value={calendarFilters.search}
-                  onChange={(event) =>
-                    updateCalendarFilter("search", event.target.value)
-                  }
-                  placeholder="Search meetings..."
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#173B67] lg:col-span-2 xl:col-span-1"
-                  aria-label="Search meetings"
-                />
-
-                <select
-                  value={calendarFilters.meetingType}
-                  onChange={(event) =>
-                    updateCalendarFilter(
-                      "meetingType",
-                      event.target.value as CalendarFilters["meetingType"]
-                    )
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by meeting type"
-                >
-                  <option value="">All types</option>
-                  <option value="BATCH_MEETING">Batch</option>
-                  <option value="STUDENT_MEETING">Student</option>
-                  <option value="INTERNAL_MEETING">Internal</option>
-                  <option value="ONE_TO_ONE">One-to-One</option>
-                  <option value="OTHER">Other</option>
-                  <option value="LIVE_CLASS">Live Class</option>
-                </select>
-
-                <select
-                  value={calendarFilters.organizerUserId}
-                  onChange={(event) =>
-                    updateCalendarFilter("organizerUserId", event.target.value)
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by organizer"
-                >
-                  <option value="">All organizers</option>
-                  {calendarOrganizerOptions.map((organizer) => (
-                    <option key={organizer.id} value={organizer.id}>
-                      {organizer.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={calendarFilters.studentUserId}
-                  onChange={(event) =>
-                    updateCalendarFilter("studentUserId", event.target.value)
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by student"
-                >
-                  <option value="">All students</option>
-                  {calendarStudentOptions.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name || student.email || `Student #${student.id}`}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={calendarFilters.courseId}
-                  onChange={(event) =>
-                    updateCalendarFilter("courseId", event.target.value)
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by course"
-                >
-                  <option value="">All courses</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={calendarFilters.batchId}
-                  onChange={(event) =>
-                    updateCalendarFilter("batchId", event.target.value)
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by batch"
-                >
-                  <option value="">All batches</option>
-                  {filteredCalendarBatches.map((batch) => (
-                    <option key={batch.id} value={batch.id}>
-                      {batch.displayId ? `${batch.displayId} • ` : ""}
-                      {batch.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={calendarFilters.status}
-                  onChange={(event) =>
-                    updateCalendarFilter(
-                      "status",
-                      event.target.value as CalendarFilters["status"]
-                    )
-                  }
-                  className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter by status"
-                >
-                  <option value="">All statuses</option>
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="LIVE">Live</option>
-                </select>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <input
-                  type="date"
-                  value={calendarFilters.fromDate}
-                  onChange={(event) =>
-                    updateCalendarFilter("fromDate", event.target.value)
-                  }
-                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter from date"
-                  title="From date"
-                />
-                <span className="text-xs text-slate-400">to</span>
-                <input
-                  type="date"
-                  value={calendarFilters.toDate}
-                  onChange={(event) =>
-                    updateCalendarFilter("toDate", event.target.value)
-                  }
-                  className="w-[135px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none focus:border-[#173B67]"
-                  aria-label="Filter to date"
-                  title="To date"
-                />
-
-                {hasCalendarFilters && (
-                  <button
-                    type="button"
-                    onClick={clearCalendarFilters}
-                    className="whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-2 flex items-center justify-end">
-              <p className="text-xs text-slate-500">
-                Showing{" "}
-                <span className="font-semibold text-slate-700">
-                  {filteredCalendarMeetings.length}
-                </span>{" "}
-                of {calendarMeetings.length} meetings
-              </p>
-            </div>
-          </div>
 
         {/* Upcoming */}
 
@@ -3966,7 +3969,7 @@ export default function AdminCalendarPage() {
 
         <div
 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          className="admin-calendar-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
 
           onClick={() => {
             setSelectedMeeting(null);
@@ -4597,7 +4600,7 @@ export default function AdminCalendarPage() {
 
         <div
 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          className="admin-calendar-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
 
           onClick={closeCreateModal}
 
@@ -5364,6 +5367,166 @@ export default function AdminCalendarPage() {
 
       )}
 
+
+      <style jsx global>{`
+        .admin-calendar-page {
+          --cal-navy: #173b67;
+          --cal-deep: #0f2f5f;
+          --cal-blue: #1459b8;
+          --cal-orange: #ff6b00;
+          color: #18345b;
+        }
+        .admin-calendar-page * { box-sizing: border-box; }
+        .admin-calendar-hero {
+          /* Align the hero's outer edges with the first and last summary cards. */
+          margin-inline: clamp(16px, 2.2vw, 36px);
+          position: relative !important;
+          isolation: isolate;
+          overflow: hidden;
+          border: 0;
+          border-bottom: 3px solid var(--cal-orange);
+          border-radius: 26px;
+          background:
+            radial-gradient(circle at 96% 0%, rgba(75,132,204,.38) 0%, rgba(75,132,204,0) 30%),
+            radial-gradient(circle at 0% 110%, rgba(255,107,0,.15) 0%, rgba(255,107,0,0) 36%),
+            linear-gradient(118deg, #071C3A 0%, #0F2F5F 45%, #1B4B82 100%);
+          box-shadow: 0 14px 32px rgba(15, 47, 95, .14);
+        }
+        .admin-calendar-hero::before {
+          content: "";
+          position: absolute;
+          z-index: 0;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,.12) .8px, transparent .8px);
+          background-size: 20px 20px;
+          opacity: .38;
+          pointer-events: none;
+        }
+        .admin-calendar-hero::after {
+          content: "";
+          position: absolute;
+          z-index: 0;
+          width: 360px;
+          height: 360px;
+          right: -12px;
+          top: -174px;
+          border: 1.5px solid rgba(255,255,255,.20);
+          border-radius: 50%;
+          box-shadow:
+            0 0 0 34px rgba(255,255,255,.075),
+            0 0 0 70px rgba(255,255,255,.055),
+            0 0 0 108px rgba(255,255,255,.035);
+          pointer-events: none;
+        }
+        .admin-calendar-hero-inner { position: relative; z-index: 1; }
+        @media (max-width: 640px) {
+          .admin-calendar-hero {
+            margin-inline: 12px;
+            border-radius: 22px;
+          }
+          .admin-calendar-hero::after {
+            width: 300px;
+            height: 300px;
+            right: -96px;
+            top: -132px;
+            box-shadow:
+              0 0 0 26px rgba(255,255,255,.075),
+              0 0 0 54px rgba(255,255,255,.05),
+              0 0 0 82px rgba(255,255,255,.03);
+          }
+        }
+        .admin-calendar-hero-inner { padding: 27px clamp(20px, 3vw, 42px); }
+        .admin-calendar-hero .admin-calendar-hero-icon {
+          width: 56px; height: 56px; border-radius: 17px;
+          background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+        }
+        .admin-calendar-eyebrow {
+          margin: 0 0 4px; color: #ff9a43; font-size: 12px; font-weight: 800;
+          letter-spacing: .15em; line-height: 1.3;
+        }
+        .admin-calendar-hero h1 { color: #fff; letter-spacing: -.035em; }
+        .admin-calendar-hero .admin-calendar-subtitle { color: #cbd9ed; }
+        .admin-calendar-refresh {
+          min-width: 132px; justify-content: center; color: #fff;
+          background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        }
+        .admin-calendar-refresh:hover { background: rgba(255,255,255,.2); }
+        .admin-calendar-create {
+          min-height: 44px; justify-content: center; border-radius: 12px;
+          background: linear-gradient(135deg, #ff7a00, #ff6500);
+          box-shadow: 0 7px 16px rgba(255,107,0,.22);
+        }
+        .admin-calendar-create:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(255,107,0,.28); }
+        .admin-calendar-content { padding: 26px clamp(16px, 2.2vw, 36px) 40px; }
+        .admin-calendar-stats { gap: 16px; }
+        .admin-calendar-stat {
+          position: relative; overflow: hidden; border-radius: 17px; border-color: #e0e8f3;
+          padding: 22px 22px; box-shadow: 0 2px 5px rgba(15,47,95,.035);
+          transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease;
+          animation: adminCalFadeUp .48s both;
+        }
+        .admin-calendar-stat:nth-child(1) { animation-delay: 40ms; }
+        .admin-calendar-stat:nth-child(2) { animation-delay: 100ms; }
+        .admin-calendar-stat:nth-child(3) { animation-delay: 160ms; }
+        .admin-calendar-stat:nth-child(4) { animation-delay: 220ms; }
+        .admin-calendar-stat::before {
+          content: ""; position: absolute; inset: 0 auto 0 0; width: 3px;
+          background: linear-gradient(180deg, #ff6b00, #ffb36b); opacity: 0;
+          transition: opacity .22s ease;
+        }
+        .admin-calendar-stat:hover { transform: translateY(-3px); border-color: #cbdaf0; box-shadow: 0 12px 25px rgba(15,47,95,.09); }
+        .admin-calendar-stat:hover::before { opacity: 1; }
+        .admin-calendar-stat p:nth-child(2) { color: var(--cal-navy); }
+        .admin-calendar-schedule { animation: adminCalFadeUp .5s .12s both; }
+        .admin-calendar-schedule-heading h2 { color: var(--cal-navy); font-weight: 800; letter-spacing: -.02em; }
+        .admin-calendar-view-switch {
+          border-color: #dce5f1; border-radius: 13px; padding: 4px;
+          box-shadow: 0 2px 5px rgba(15,47,95,.035);
+        }
+        .admin-calendar-view-switch button { min-height: 38px; border-radius: 9px; padding-inline: 15px; }
+        .admin-calendar-view-switch button[class*="bg-[#173B67]"] {
+          background: linear-gradient(135deg, #1459b8, #1c68c9); box-shadow: 0 4px 10px rgba(20,89,184,.2);
+        }
+        .admin-calendar-schedule-heading > div:last-child > button {
+          min-height: 40px; transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+        .admin-calendar-schedule-heading > div:last-child > button:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(15,47,95,.08); }
+        .admin-calendar-board {
+          border-color: #dfe7f2; border-radius: 18px; box-shadow: 0 4px 14px rgba(15,47,95,.045);
+          animation: adminCalFadeUp .42s both;
+        }
+        .admin-calendar-board > div:first-child { background: linear-gradient(90deg, #fff, #f5f9ff, #fff); }
+        .admin-calendar-board > div:first-child h3 { color: var(--cal-navy); font-size: 18px; font-weight: 800; }
+        .admin-calendar-board .bg-slate-50 { background: #f1f6fd; }
+        .admin-calendar-board .border-slate-200 { border-color: #e5ebf4; }
+        .admin-calendar-board button { transition: background-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+        .admin-calendar-board button:hover { box-shadow: 0 3px 9px rgba(15,47,95,.09); }
+        .admin-calendar-board .bg-blue-50 { background: #eaf2ff; border-color: #cbdfff; }
+        .admin-calendar-board .bg-blue-50:hover { background: #dceaff; }
+        .admin-calendar-board .bg-red-50:hover { background: #fff0f0; }
+        .admin-calendar-modal-backdrop { animation: adminCalBackdrop .18s ease both; backdrop-filter: blur(4px); }
+        .admin-calendar-modal-backdrop > div { animation: adminCalModalIn .22s cubic-bezier(.2,.75,.25,1) both; }
+        @keyframes adminCalFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes adminCalBackdrop { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes adminCalModalIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @media (max-width: 760px) {
+          .admin-calendar-hero-inner { padding: 22px 18px; }
+          .admin-calendar-hero-inner > div { align-items: flex-start; }
+          .admin-calendar-hero-inner > div > div:last-child { flex-wrap: wrap; }
+          .admin-calendar-content { padding: 18px 12px 28px; }
+          .admin-calendar-stat { padding: 17px; }
+          .admin-calendar-view-switch { width: 100%; justify-content: space-between; }
+          .admin-calendar-view-switch button { flex: 1; padding-inline: 8px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .admin-calendar-page *, .admin-calendar-page *::before, .admin-calendar-page *::after {
+            animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important; transition-duration: .01ms !important;
+          }
+        }
+      `}</style>
     </main>
 
   );

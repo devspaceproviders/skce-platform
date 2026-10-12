@@ -34,7 +34,6 @@ type Course = {
   description?: string | null;
   mode?: string | null;
   duration?: string | null;
-  imageUrl?: string | null;
   isActive?: boolean;
 };
 
@@ -46,7 +45,6 @@ type Lesson = {
   content?: string | null;
   videoUrl?: string | null;
   documentUrl?: string | null;
-  imageUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
 };
@@ -55,7 +53,6 @@ type CourseModule = {
   id: number;
   title: string;
   description?: string | null;
-  imageUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
   lessons: Lesson[];
@@ -94,8 +91,6 @@ const EMPTY_LESSON_FORM: LessonForm = {
 
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024;
 const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
-const MAX_LESSON_IMAGE_SIZE = 5 * 1024 * 1024;
-const MAX_MODULE_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function getToken() {
   if (typeof window === "undefined") {
@@ -115,26 +110,6 @@ function clearAuthAndRedirect(
   localStorage.removeItem("studentId");
 
   router.push("/login");
-}
-
-function getMediaUrl(
-  url: string | null | undefined
-) {
-  if (!url) {
-    return null;
-  }
-
-  const value = url.trim();
-
-  if (!value) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
-
-  return `${API_URL.replace(/\/api\/?$/, "")}/${value.replace(/^\/+/, "")}`;
 }
 
 export default function TrainerCourseContentPage() {
@@ -190,15 +165,6 @@ export default function TrainerCourseContentPage() {
     setSelectedDocumentFile,
   ] = useState<File | null>(null);
 
-  const [
-    selectedLessonImageFile,
-    setSelectedLessonImageFile,
-  ] = useState<File | null>(null);
-
-  const [
-    selectedModuleImageFile,
-    setSelectedModuleImageFile,
-  ] = useState<File | null>(null);
 
   const [actionError, setActionError] = useState("");
 
@@ -380,8 +346,6 @@ export default function TrainerCourseContentPage() {
             mode: item.mode ?? null,
             duration:
               item.duration ?? null,
-            imageUrl:
-              item.imageUrl ?? null,
             isActive:
               Boolean(item.isActive),
           })
@@ -564,8 +528,6 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
-    setSelectedLessonImageFile(null);
-    setSelectedModuleImageFile(null);
 
     setActionError("");
   }
@@ -603,7 +565,6 @@ export default function TrainerCourseContentPage() {
       description:
         module.description || "",
     });
-    setSelectedModuleImageFile(null);
   }
 
   function startCreateLesson(
@@ -618,7 +579,6 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
-    setSelectedLessonImageFile(null);
 
     setShowLessonFormForModuleId(
       moduleId
@@ -653,7 +613,6 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
-    setSelectedLessonImageFile(null);
 
     setExpandedModules((current) =>
       current.includes(
@@ -673,7 +632,6 @@ export default function TrainerCourseContentPage() {
     setModuleForm(
       EMPTY_MODULE_FORM
     );
-    setSelectedModuleImageFile(null);
   }
 
   function cancelLessonForm() {
@@ -689,7 +647,6 @@ export default function TrainerCourseContentPage() {
 
     setSelectedVideoFile(null);
     setSelectedDocumentFile(null);
-    setSelectedLessonImageFile(null);
   }
 
   function validateVideoFile(
@@ -800,89 +757,6 @@ export default function TrainerCourseContentPage() {
     setSelectedDocumentFile(file);
   }
 
-  function validateModuleImageFile(file: File) {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setActionError(
-        "Only JPG, PNG, and WEBP image files are allowed."
-      );
-      return false;
-    }
-
-    if (file.size > MAX_MODULE_IMAGE_SIZE) {
-      setActionError(
-        "Module image must be 5 MB or smaller."
-      );
-      return false;
-    }
-
-    return true;
-  }
-
-  function handleModuleImageFileChange(
-    file: File | null
-  ) {
-    setActionError("");
-
-    if (!file) {
-      setSelectedModuleImageFile(null);
-      return;
-    }
-
-    if (!validateModuleImageFile(file)) {
-      setSelectedModuleImageFile(null);
-      return;
-    }
-
-    setSelectedModuleImageFile(file);
-  }
-
-  function validateLessonImageFile(file: File) {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setActionError(
-        "Only JPG, PNG, and WEBP image files are allowed."
-      );
-      return false;
-    }
-
-    if (file.size > MAX_LESSON_IMAGE_SIZE) {
-      setActionError(
-        "Lesson image must be 5 MB or smaller."
-      );
-      return false;
-    }
-
-    return true;
-  }
-
-  function handleLessonImageFileChange(
-    file: File | null
-  ) {
-    setActionError("");
-
-    if (!file) {
-      setSelectedLessonImageFile(null);
-      return;
-    }
-
-    if (!validateLessonImageFile(file)) {
-      setSelectedLessonImageFile(null);
-      return;
-    }
-
-    setSelectedLessonImageFile(file);
-  }
 
   async function uploadLessonVideo(
     lessonId: number,
@@ -974,97 +848,13 @@ export default function TrainerCourseContentPage() {
     return result;
   }
 
-  async function uploadModuleImage(
-    moduleId: number,
-    file: File
-  ) {
-    const formData = new FormData();
-    formData.append("image", file);
-
-    const response =
-      await authenticatedFetch(
-        `${API_URL}/admin/course-content/modules/${moduleId}/image`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-    const result =
-      await parseResponse(response);
-
-    if (response.status === 403) {
-      throw new Error(
-        result?.message ||
-          "You do not have permission to manage content for this course."
-      );
-    }
-
-    if (
-      !response.ok ||
-      !result?.success
-    ) {
-      throw new Error(
-        result?.message ||
-          "Failed to upload module image."
-      );
-    }
-
-    return result;
-  }
-
-  async function uploadLessonImage(
-    lessonId: number,
-    file: File
-  ) {
-    const formData = new FormData();
-
-    formData.append(
-      "image",
-      file
-    );
-
-    const response =
-      await authenticatedFetch(
-        `${API_URL}/admin/course-content/lessons/${lessonId}/image`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-    const result =
-      await parseResponse(response);
-
-    if (
-      response.status === 403
-    ) {
-      throw new Error(
-        result?.message ||
-          "You do not have permission to manage content for this course."
-      );
-    }
-
-    if (
-      !response.ok ||
-      !result?.success
-    ) {
-      throw new Error(
-        result?.message ||
-          "Failed to upload lesson image."
-      );
-    }
-
-    return result;
-  }
 
   async function uploadSelectedLessonFiles(
     lessonId: number
   ) {
     if (
       !selectedVideoFile &&
-      !selectedDocumentFile &&
-      !selectedLessonImageFile
+      !selectedDocumentFile
     ) {
       return;
     }
@@ -1086,12 +876,6 @@ export default function TrainerCourseContentPage() {
         );
       }
 
-      if (selectedLessonImageFile) {
-        await uploadLessonImage(
-          lessonId,
-          selectedLessonImageFile
-        );
-      }
     } finally {
       setUploading(false);
     }
@@ -1244,23 +1028,11 @@ export default function TrainerCourseContentPage() {
         );
       }
 
-      const moduleImageUploaded =
-        Boolean(selectedModuleImageFile);
-
-      if (selectedModuleImageFile) {
-        await uploadModuleImage(
-          moduleId,
-          selectedModuleImageFile
-        );
-      }
-
       cancelModuleForm();
 
       setSuccess(
-        moduleImageUploaded
-          ? "Module updated and image uploaded successfully."
-          : result?.message ||
-              "Module updated successfully."
+        result?.message ||
+          "Module updated successfully."
       );
 
       await loadCourseContent(
@@ -1501,8 +1273,7 @@ export default function TrainerCourseContentPage() {
       if (
         createdLesson?.id &&
         (selectedVideoFile ||
-          selectedDocumentFile ||
-          selectedLessonImageFile)
+          selectedDocumentFile)
       ) {
         await uploadSelectedLessonFiles(
           createdLesson.id
@@ -1513,8 +1284,7 @@ export default function TrainerCourseContentPage() {
 
       setSuccess(
         selectedVideoFile ||
-          selectedDocumentFile ||
-          selectedLessonImageFile
+          selectedDocumentFile
           ? "Lesson created and selected files uploaded successfully."
           : result?.message ||
               "Lesson created successfully."
@@ -1610,8 +1380,7 @@ export default function TrainerCourseContentPage() {
 
       if (
         selectedVideoFile ||
-        selectedDocumentFile ||
-        selectedLessonImageFile
+        selectedDocumentFile
       ) {
         await uploadSelectedLessonFiles(
           lessonId
@@ -1622,8 +1391,7 @@ export default function TrainerCourseContentPage() {
 
       setSuccess(
         selectedVideoFile ||
-          selectedDocumentFile ||
-          selectedLessonImageFile
+          selectedDocumentFile
           ? "Lesson updated and selected files uploaded successfully."
           : result?.message ||
               "Lesson updated successfully."
@@ -1808,17 +1576,17 @@ export default function TrainerCourseContentPage() {
               )
             : handleCreateModule(event)
         }
-        className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+        className="rounded-xl border border-[#DCE6F2] bg-[#F4F7FC] p-4"
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-slate-900">
+            <h3 className="font-semibold text-[#173B67]">
               {isEditing
                 ? "Edit Module"
                 : "Create Module"}
             </h3>
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               Organize lessons under a course module.
             </p>
           </div>
@@ -1826,7 +1594,7 @@ export default function TrainerCourseContentPage() {
           <button
             type="button"
             onClick={cancelModuleForm}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-200"
+            className="rounded-lg p-2 text-[#647C99] hover:bg-[#EAF0F8]"
             aria-label="Close module form"
           >
             <X className="h-4 w-4" />
@@ -1835,7 +1603,7 @@ export default function TrainerCourseContentPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-[#24476E]">
               Module Title
             </span>
 
@@ -1851,13 +1619,13 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="e.g. Introduction to Java"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
               required
             />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-[#24476E]">
               Description
             </span>
 
@@ -1875,51 +1643,16 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="Optional module description"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
             />
           </label>
         </div>
-
-        {isEditing && (
-          <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-            <div className="flex items-center gap-2">
-              <Upload className="h-4 w-4 text-slate-600" />
-              <span className="text-sm font-semibold text-slate-800">
-                Module Image
-              </span>
-            </div>
-
-            <p className="mt-1 text-xs text-slate-500">
-              JPG, PNG or WEBP. Maximum 5 MB.
-            </p>
-
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) =>
-                handleModuleImageFileChange(
-                  event.target.files?.[0] || null
-                )
-              }
-              className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
-            />
-
-            {selectedModuleImageFile && (
-              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
-                Selected:{" "}
-                <span className="font-medium text-slate-900">
-                  {selectedModuleImageFile.name}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
             onClick={cancelModuleForm}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-[#C8D7E9] bg-white px-4 py-2 text-sm font-medium text-[#24476E] hover:bg-[#FFF4EA]"
           >
             Cancel
           </button>
@@ -1929,7 +1662,7 @@ export default function TrainerCourseContentPage() {
             disabled={
               saving || uploading
             }
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1965,17 +1698,17 @@ export default function TrainerCourseContentPage() {
                 moduleId
               )
         }
-        className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm"
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h4 className="font-semibold text-slate-900">
+            <h4 className="font-semibold text-[#173B67]">
               {isEditing
                 ? "Edit Lesson"
                 : "Create Lesson"}
             </h4>
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               Add lesson content, video and document links or upload files.
             </p>
           </div>
@@ -1983,7 +1716,7 @@ export default function TrainerCourseContentPage() {
           <button
             type="button"
             onClick={cancelLessonForm}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            className="rounded-lg p-2 text-[#647C99] hover:bg-[#FFF0E3]"
             aria-label="Close lesson form"
           >
             <X className="h-4 w-4" />
@@ -1992,7 +1725,7 @@ export default function TrainerCourseContentPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-[#24476E]">
               Lesson Title
             </span>
 
@@ -2008,13 +1741,13 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="e.g. Variables and Data Types"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
               required
             />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-[#24476E]">
               Description
             </span>
 
@@ -2032,13 +1765,13 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="Short lesson description"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
             />
           </label>
         </div>
 
         <label className="mt-4 block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">
+          <span className="mb-1 block text-sm font-medium text-[#24476E]">
             Lesson Content
           </span>
 
@@ -2055,13 +1788,13 @@ export default function TrainerCourseContentPage() {
             }
             placeholder="Enter the lesson content..."
             rows={7}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-lg border border-[#C8D7E9] px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
           />
         </label>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block">
-            <span className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <span className="mb-1 flex items-center gap-2 text-sm font-medium text-[#24476E]">
               <Video className="h-4 w-4" />
               Video URL
             </span>
@@ -2081,16 +1814,16 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="https://..."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
             />
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               Optional external video URL.
             </p>
           </label>
 
           <label className="block">
-            <span className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-700">
+            <span className="mb-1 flex items-center gap-2 text-sm font-medium text-[#24476E]">
               <FileText className="h-4 w-4" />
               Document URL
             </span>
@@ -2110,26 +1843,26 @@ export default function TrainerCourseContentPage() {
                 )
               }
               placeholder="https://..."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-lg border border-[#C8D7E9] px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
             />
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               Optional external document URL.
             </p>
           </label>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <div className="rounded-xl border border-dashed border-[#C8D7E9] bg-[#F4F7FC] p-4">
             <div className="flex items-center gap-2">
-              <Video className="h-4 w-4 text-slate-600" />
+              <Video className="h-4 w-4 text-[#526B8A]" />
 
-              <span className="text-sm font-semibold text-slate-800">
+              <span className="text-sm font-semibold text-[#173B67]">
                 Upload Video
               </span>
             </div>
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               MP4, WebM or MOV. Maximum 500 MB.
             </p>
 
@@ -2142,29 +1875,29 @@ export default function TrainerCourseContentPage() {
                     null
                 )
               }
-              className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
+              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#E85D04]"
             />
 
             {selectedVideoFile && (
-              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-[#526B8A]">
                 Selected:{" "}
-                <span className="font-medium text-slate-900">
+                <span className="font-medium text-[#173B67]">
                   {selectedVideoFile.name}
                 </span>
               </div>
             )}
           </div>
 
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <div className="rounded-xl border border-dashed border-[#C8D7E9] bg-[#F4F7FC] p-4">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-600" />
+              <FileText className="h-4 w-4 text-[#526B8A]" />
 
-              <span className="text-sm font-semibold text-slate-800">
+              <span className="text-sm font-semibold text-[#173B67]">
                 Upload Document
               </span>
             </div>
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[#647C99]">
               PDF, DOC, DOCX, PPT or PPTX. Maximum 20 MB.
             </p>
 
@@ -2177,13 +1910,13 @@ export default function TrainerCourseContentPage() {
                     null
                 )
               }
-              className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
+              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#E85D04]"
             />
 
             {selectedDocumentFile && (
-              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
+              <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-[#526B8A]">
                 Selected:{" "}
-                <span className="font-medium text-slate-900">
+                <span className="font-medium text-[#173B67]">
                   {selectedDocumentFile.name}
                 </span>
               </div>
@@ -2191,45 +1924,10 @@ export default function TrainerCourseContentPage() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-          <div className="flex items-center gap-2">
-            <Upload className="h-4 w-4 text-slate-600" />
-
-            <span className="text-sm font-semibold text-slate-800">
-              Lesson Image
-            </span>
-          </div>
-
-          <p className="mt-1 text-xs text-slate-500">
-            JPG, PNG or WEBP. Maximum 5 MB.
-          </p>
-
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) =>
-              handleLessonImageFileChange(
-                event.target.files?.[0] || null
-              )
-            }
-            className="mt-3 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
-          />
-
-          {selectedLessonImageFile && (
-            <div className="mt-2 rounded-lg bg-white px-3 py-2 text-xs text-slate-600">
-              Selected:{" "}
-              <span className="font-medium text-slate-900">
-                {selectedLessonImageFile.name}
-              </span>
-            </div>
-          )}
-        </div>
-
         {(uploading ||
           selectedVideoFile ||
-          selectedDocumentFile ||
-          selectedLessonImageFile) && (
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+          selectedDocumentFile) && (
+          <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F4F7FC] px-3 py-2.5 text-xs text-[#526B8A]">
             {uploading ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -2251,7 +1949,7 @@ export default function TrainerCourseContentPage() {
             disabled={
               saving || uploading
             }
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-[#C8D7E9] bg-white px-4 py-2 text-sm font-medium text-[#24476E] hover:bg-[#FFF4EA] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -2261,7 +1959,7 @@ export default function TrainerCourseContentPage() {
             disabled={
               saving || uploading
             }
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving || uploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -2281,53 +1979,35 @@ export default function TrainerCourseContentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-slate-900 p-2.5 text-white">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">
-                    Course Content
-                  </h1>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Manage modules, lessons, videos and documents for courses assigned to you.
-                  </p>
-                </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#F3F7FC] via-[#F8FAFD] to-[#EEF3FA] p-3 sm:p-4 md:p-6">
+      <div className="mx-auto w-full max-w-[1500px]">
+        <section className="relative isolate mb-6 overflow-hidden rounded-[26px] bg-gradient-to-br from-[#17263F] via-[#173B67] to-[#0D2A50] px-5 py-6 text-white shadow-[0_18px_45px_-25px_rgba(23,59,103,0.65)] sm:px-7 sm:py-7 lg:px-8">
+          <div className="pointer-events-none absolute -right-10 -top-28 -z-10 h-72 w-72 rounded-full border-[36px] border-white/[0.055]" />
+          <div className="pointer-events-none absolute -right-2 -top-20 -z-10 h-56 w-56 rounded-full border-[18px] border-orange-400/10" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/3 -z-10 h-48 w-48 rounded-full bg-orange-500/15 blur-3xl motion-safe:animate-pulse" />
+          <div className="absolute bottom-0 left-0 h-1 w-32 rounded-r-full bg-gradient-to-r from-orange-500 to-amber-300 sm:w-48" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-orange-300 shadow-inner backdrop-blur-sm sm:h-14 sm:w-14">
+                <BookOpen className="h-6 w-6 sm:h-7 sm:w-7" />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.22em] text-orange-300 sm:text-xs">Trainer Workspace</p>
+                <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Course Content</h1>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-blue-100/90 sm:text-[15px]">Manage modules, lessons, videos and learning documents for your assigned courses.</p>
               </div>
             </div>
-
             <button
               type="button"
-              onClick={() =>
-                void loadCourseContent(
-                  Number(selectedCourseId)
-                )
-              }
-              disabled={
-                loadingContent ||
-                !selectedCourseId
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void loadCourseContent(Number(selectedCourseId))}
+              disabled={loadingContent || !selectedCourseId}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white shadow-sm backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <RefreshCw
-                className={`h-4 w-4 ${
-                  loadingContent
-                    ? "animate-spin"
-                    : ""
-                }`}
-              />
-
+              <RefreshCw className={`h-4 w-4 ${loadingContent ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
-        </div>
+        </section>
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -2348,23 +2028,23 @@ export default function TrainerCourseContentPage() {
         )}
 
         {loading ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
-            <div className="flex items-center gap-3 text-sm text-slate-500">
+          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
+            <div className="flex items-center gap-3 text-sm text-[#647C99]">
               <Loader2 className="h-5 w-5 animate-spin" />
               Loading your course permissions...
             </div>
           </div>
         ) : allowedCourses.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
-              <BookOpen className="h-6 w-6 text-slate-500" />
+          <div className="rounded-2xl border border-[#DCE6F2] bg-white p-10 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF0F8]">
+              <BookOpen className="h-6 w-6 text-[#647C99]" />
             </div>
 
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-[#173B67]">
               No course content permissions
             </h2>
 
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#647C99]">
               You currently do not have the{" "}
               <span className="font-medium">
                 Can Manage Content
@@ -2374,10 +2054,10 @@ export default function TrainerCourseContentPage() {
           </div>
         ) : (
           <>
-            <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-6 rounded-2xl border border-[#DCE6F2] bg-white p-4 shadow-[0_8px_24px_-20px_rgba(23,59,103,0.45)] transition-shadow duration-300 hover:shadow-md sm:p-5">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  <span className="mb-2 block text-sm font-semibold text-[#24476E]">
                     Select Course
                   </span>
 
@@ -2392,7 +2072,7 @@ export default function TrainerCourseContentPage() {
                         event.target.value
                       );
                     }}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+                    className="w-full rounded-lg border border-[#C8D7E9] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/15"
                   >
                     {allowedCourses.map(
                       (item) => (
@@ -2407,8 +2087,8 @@ export default function TrainerCourseContentPage() {
                   </select>
                 </label>
 
-                <div className="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  <div className="font-medium text-slate-900">
+                <div className="rounded-lg bg-[#F4F7FC] px-4 py-3 text-sm text-[#526B8A]">
+                  <div className="font-medium text-[#173B67]">
                     Content management access
                   </div>
 
@@ -2422,43 +2102,24 @@ export default function TrainerCourseContentPage() {
             </div>
 
             {course && (
-              <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="flex min-w-0 items-start gap-4">
-                    {course.imageUrl ? (
-                      <img
-                        src={
-                          course.imageUrl.startsWith("http")
-                            ? course.imageUrl
-                            : `${API_URL.replace(
-                                "/api",
-                                ""
-                              )}${course.imageUrl}`
-                        }
-                        alt={course.title}
-                        className="h-20 w-28 shrink-0 rounded-xl border border-slate-200 object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-medium text-slate-400">
-                        No Image
-                      </div>
-                    )}
+              <div className="group relative mb-6 overflow-hidden rounded-2xl border border-[#C9D9EC] bg-gradient-to-br from-white via-white to-[#FFF0E3] p-5 shadow-[0_12px_32px_-22px_rgba(23,59,103,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-6">
+                <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#F97316] via-[#FF9B42] to-[#173B67]" />
+                <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full border-[18px] border-[#173B67]/[0.045]" />
+                <div className="relative flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="inline-flex items-center gap-2 rounded-full bg-[#173B67]/[0.07] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#173B67]">
+                      <span className="h-2 w-2 rounded-full bg-[#F97316]" /> Course
+                    </p>
 
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Course
+                    <h2 className="mt-2 text-xl font-extrabold tracking-tight text-[#173B67] sm:text-2xl">
+                      {course.title}
+                    </h2>
+
+                    {course.description && (
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#526B8A]">
+                        {course.description}
                       </p>
-
-                      <h2 className="mt-1 text-xl font-bold text-slate-900">
-                        {course.title}
-                      </h2>
-
-                      {course.description && (
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                          {course.description}
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
 
                   <button
@@ -2466,7 +2127,7 @@ export default function TrainerCourseContentPage() {
                     onClick={
                       startCreateModule
                     }
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md"
                   >
                     <Plus className="h-4 w-4" />
                     Add Module
@@ -2477,13 +2138,13 @@ export default function TrainerCourseContentPage() {
                   course.duration) && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {course.mode && (
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      <span className="rounded-full bg-[#EAF0F8] px-3 py-1 text-xs font-medium text-[#526B8A]">
                         {course.mode}
                       </span>
                     )}
 
                     {course.duration && (
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      <span className="rounded-full bg-[#EAF0F8] px-3 py-1 text-xs font-medium text-[#526B8A]">
                         {course.duration}
                       </span>
                     )}
@@ -2499,21 +2160,21 @@ export default function TrainerCourseContentPage() {
             )}
 
             {loadingContent ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
-                <div className="flex items-center gap-3 text-sm text-slate-500">
+              <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
+                <div className="flex items-center gap-3 text-sm text-[#647C99]">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Loading course content...
                 </div>
               </div>
             ) : modules.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-                <BookOpen className="mx-auto h-8 w-8 text-slate-400" />
+              <div className="rounded-2xl border border-dashed border-[#C8D7E9] bg-white p-10 text-center">
+                <BookOpen className="mx-auto h-8 w-8 text-[#8295AE]" />
 
-                <h3 className="mt-3 font-semibold text-slate-900">
+                <h3 className="mt-3 font-semibold text-[#173B67]">
                   No modules yet
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-[#647C99]">
                   Create the first module for this course.
                 </p>
 
@@ -2522,7 +2183,7 @@ export default function TrainerCourseContentPage() {
                   onClick={
                     startCreateModule
                   }
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md"
                 >
                   <Plus className="h-4 w-4" />
                   Create Module
@@ -2547,13 +2208,32 @@ export default function TrainerCourseContentPage() {
                     const showLessonForm =
                       showLessonFormForModuleId ===
                       module.id;
+                    const moduleIsOrange = moduleIndex % 2 === 0;
+                    const moduleAccent = moduleIsOrange
+                      ? {
+                          card: "border-[#F6C79F] hover:border-[#F97316]",
+                          header: "from-[#FFF8F1] via-white to-[#FFE9D6]",
+                          marker: "bg-[#F97316] text-white shadow-md shadow-orange-200/70",
+                          label: "text-[#C65308]",
+                          count: "border border-orange-200 bg-orange-100 text-[#A94300]",
+                          stripe: "from-[#F97316] to-[#FFB15C]",
+                        }
+                      : {
+                          card: "border-[#BDD0E7] hover:border-[#173B67]",
+                          header: "from-[#F1F6FC] via-white to-[#E2ECF8]",
+                          marker: "bg-[#173B67] text-white shadow-md shadow-blue-200/70",
+                          label: "text-[#173B67]",
+                          count: "border border-blue-200 bg-blue-100 text-[#173B67]",
+                          stripe: "from-[#173B67] to-[#4777AD]",
+                        };
 
                     return (
                       <section
                         key={module.id}
-                        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                        className={`group relative overflow-hidden rounded-2xl border bg-white shadow-[0_10px_30px_-22px_rgba(23,59,103,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${moduleAccent.card}`}
                       >
-                        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
+                        <div className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${moduleAccent.stripe}`} />
+                        <div className={`flex flex-col gap-3 border-b border-[#DCE6F2] bg-gradient-to-r p-4 pl-5 sm:p-5 sm:pl-6 md:flex-row md:items-center md:justify-between ${moduleAccent.header}`}>
                           <button
                             type="button"
                             onClick={() =>
@@ -2563,31 +2243,23 @@ export default function TrainerCourseContentPage() {
                             }
                             className="flex min-w-0 items-start gap-3 text-left"
                           >
-                            <div className="mt-0.5 rounded-lg bg-slate-100 p-2">
+                            <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${moduleAccent.marker}`}>
                               {isExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-slate-600" />
+                                <ChevronDown className="h-5 w-5" />
                               ) : (
-                                <ChevronUp className="h-4 w-4 text-slate-600" />
+                                <ChevronUp className="h-5 w-5" />
                               )}
                             </div>
 
-                            {module.imageUrl && (
-                              <img
-                                src={getMediaUrl(module.imageUrl) || ""}
-                                alt={module.title}
-                                className="h-12 w-16 rounded-lg object-cover"
-                              />
-                            )}
-
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                <span className={`text-xs font-extrabold uppercase tracking-[0.13em] ${moduleAccent.label}`}>
                                   Module{" "}
                                   {moduleIndex +
                                     1}
                                 </span>
 
-                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${moduleAccent.count}`}>
                                   {
                                     module
                                       .lessons
@@ -2603,12 +2275,12 @@ export default function TrainerCourseContentPage() {
                                 </span>
                               </div>
 
-                              <h3 className="mt-1 truncate font-semibold text-slate-900">
+                              <h3 className="mt-1 truncate text-base font-extrabold text-[#173B67]">
                                 {module.title}
                               </h3>
 
                               {module.description && (
-                                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                                <p className="mt-1 line-clamp-2 text-sm text-[#647C99]">
                                   {
                                     module.description
                                   }
@@ -2632,7 +2304,7 @@ export default function TrainerCourseContentPage() {
                                 moduleIndex ===
                                   0
                               }
-                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-lg p-2 text-[#647C99] hover:bg-[#FFF0E3] disabled:cursor-not-allowed disabled:opacity-30"
                               title="Move module up"
                             >
                               <ChevronUp className="h-4 w-4" />
@@ -2653,7 +2325,7 @@ export default function TrainerCourseContentPage() {
                                   modules.length -
                                     1
                               }
-                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-lg p-2 text-[#647C99] hover:bg-[#FFF0E3] disabled:cursor-not-allowed disabled:opacity-30"
                               title="Move module down"
                             >
                               <ChevronDown className="h-4 w-4" />
@@ -2666,7 +2338,7 @@ export default function TrainerCourseContentPage() {
                                   module
                                 )
                               }
-                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-[#526B8A] hover:bg-[#FFF0E3]"
                             >
                               <Pencil className="h-4 w-4" />
                               Edit
@@ -2692,20 +2364,20 @@ export default function TrainerCourseContentPage() {
                         </div>
 
                         {isEditing && (
-                          <div className="border-b border-slate-100 p-4">
+                          <div className="border-b border-[#E8EEF6] p-4">
                             {renderModuleForm()}
                           </div>
                         )}
 
                         {isExpanded && (
-                          <div className="bg-slate-50/60 p-4">
+                          <div className={`border-t-2 p-4 sm:p-5 ${moduleIsOrange ? "border-t-orange-200 bg-gradient-to-b from-orange-50/70 to-white" : "border-t-[#C7D8EC] bg-gradient-to-b from-[#F0F5FB] to-white"}`}>
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div>
-                                <h4 className="font-semibold text-slate-800">
+                                <h4 className="font-semibold text-[#173B67]">
                                   Lessons
                                 </h4>
 
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-[#647C99]">
                                   Add and organize the learning material inside this module.
                                 </p>
                               </div>
@@ -2717,7 +2389,7 @@ export default function TrainerCourseContentPage() {
                                     module.id
                                   )
                                 }
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#C8D7E9] bg-white px-3 py-2 text-sm font-semibold text-[#173B67] transition-all duration-200 hover:border-orange-300 hover:bg-orange-50 hover:text-[#C65308]"
                               >
                                 <Plus className="h-4 w-4" />
                                 Add Lesson
@@ -2732,10 +2404,10 @@ export default function TrainerCourseContentPage() {
                             {module.lessons
                               .length ===
                             0 ? (
-                              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center">
-                                <FileText className="mx-auto h-6 w-6 text-slate-400" />
+                              <div className="mt-4 rounded-xl border border-dashed border-[#C8D7E9] bg-white p-6 text-center">
+                                <FileText className="mx-auto h-6 w-6 text-[#8295AE]" />
 
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 text-sm text-[#647C99]">
                                   No lessons in this module yet.
                                 </p>
                               </div>
@@ -2755,39 +2427,23 @@ export default function TrainerCourseContentPage() {
                                         key={
                                           lesson.id
                                         }
-                                        className="rounded-xl border border-slate-200 bg-white p-4"
+                                        className={`rounded-xl border bg-white p-4 shadow-[0_4px_16px_-14px_rgba(23,59,103,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${moduleIsOrange ? "border-orange-100 hover:border-orange-300" : "border-[#DCE6F2] hover:border-[#9DB8D9]"}`}
                                       >
                                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                           <div className="flex min-w-0 gap-3">
-                                            {lesson.imageUrl ? (
-                                              <img
-                                                src={
-                                                  lesson.imageUrl.startsWith("http")
-                                                    ? lesson.imageUrl
-                                                    : `${API_URL.replace(
-                                                        "/api",
-                                                        ""
-                                                      )}${lesson.imageUrl}`
-                                                }
-                                                alt={lesson.title}
-                                                className="h-16 w-24 shrink-0 rounded-lg border border-slate-200 object-cover"
-                                              />
-                                            ) : (
-                                              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-600">
-                                                {lessonIndex +
-                                                  1}
-                                              </div>
-                                            )}
+                                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold ${moduleIsOrange ? "bg-orange-100 text-[#B84B00] ring-1 ring-orange-200" : "bg-[#173B67] text-white ring-1 ring-[#173B67]/20"}`}>
+                                              {lessonIndex + 1}
+                                            </div>
 
                                             <div className="min-w-0">
-                                              <h5 className="font-medium text-slate-900">
+                                              <h5 className="font-medium text-[#173B67]">
                                                 {
                                                   lesson.title
                                                 }
                                               </h5>
 
                                               {lesson.description && (
-                                                <p className="mt-1 text-sm leading-5 text-slate-500">
+                                                <p className="mt-1 text-sm leading-5 text-[#647C99]">
                                                   {
                                                     lesson.description
                                                   }
@@ -2795,28 +2451,23 @@ export default function TrainerCourseContentPage() {
                                               )}
 
                                               <div className="mt-2 flex flex-wrap gap-2">
-                                                {lesson.imageUrl && (
-                                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                                                    Image
-                                                  </span>
-                                                )}
 
                                                 {lesson.videoUrl && (
-                                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                                                  <span className="inline-flex items-center gap-1 rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-xs font-medium text-[#B84B00]">
                                                     <Video className="h-3.5 w-3.5" />
                                                     Video
                                                   </span>
                                                 )}
 
                                                 {lesson.documentUrl && (
-                                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                                                  <span className="inline-flex items-center gap-1 rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-xs font-medium text-[#B84B00]">
                                                     <FileText className="h-3.5 w-3.5" />
                                                     Document
                                                   </span>
                                                 )}
 
                                                 {lesson.content && (
-                                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+                                                  <span className="rounded-full border border-orange-100 bg-orange-50 px-2.5 py-1 text-xs font-medium text-[#B84B00]">
                                                     Content
                                                   </span>
                                                 )}
@@ -2839,7 +2490,7 @@ export default function TrainerCourseContentPage() {
                                                       }
                                                       target="_blank"
                                                       rel="noreferrer"
-                                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 underline hover:text-slate-900"
+                                                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#173B67] underline decoration-orange-400 decoration-2 underline-offset-4 transition-colors hover:text-[#F97316]"
                                                     >
                                                       <Video className="h-3.5 w-3.5" />
                                                       Open Video
@@ -2860,7 +2511,7 @@ export default function TrainerCourseContentPage() {
                                                       }
                                                       target="_blank"
                                                       rel="noreferrer"
-                                                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 underline hover:text-slate-900"
+                                                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#173B67] underline decoration-orange-400 decoration-2 underline-offset-4 transition-colors hover:text-[#F97316]"
                                                     >
                                                       <FileText className="h-3.5 w-3.5" />
                                                       Open Document
@@ -2886,7 +2537,7 @@ export default function TrainerCourseContentPage() {
                                                 lessonIndex ===
                                                   0
                                               }
-                                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                                              className="rounded-lg p-2 text-[#647C99] hover:bg-[#FFF0E3] disabled:cursor-not-allowed disabled:opacity-30"
                                               title="Move lesson up"
                                             >
                                               <ChevronUp className="h-4 w-4" />
@@ -2909,7 +2560,7 @@ export default function TrainerCourseContentPage() {
                                                     .length -
                                                     1
                                               }
-                                              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                                              className="rounded-lg p-2 text-[#647C99] hover:bg-[#FFF0E3] disabled:cursor-not-allowed disabled:opacity-30"
                                               title="Move lesson down"
                                             >
                                               <ChevronDown className="h-4 w-4" />
@@ -2922,7 +2573,7 @@ export default function TrainerCourseContentPage() {
                                                   lesson
                                                 )
                                               }
-                                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-[#526B8A] hover:bg-[#FFF0E3]"
                                             >
                                               <Pencil className="h-4 w-4" />
                                               Edit

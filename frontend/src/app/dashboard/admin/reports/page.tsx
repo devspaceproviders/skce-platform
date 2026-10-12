@@ -1,295 +1,154 @@
 ﻿"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-
 import type { ReactNode } from "react";
-
 import {
-
   Activity,
-
   Award,
-
   BarChart3,
-
   BookOpen,
-
   CalendarDays,
-
   CheckCircle2,
-
   Clock3,
-
   ChevronDown,
-
   Download,
-
   FileText,
-
+  Filter,
+  RotateCcw,
   IndianRupee,
-
   TrendingUp,
-
   UserCheck,
-
   Users,
-
 } from "lucide-react";
-
 type ReportType =
-
   | "overview"
-
   | "students"
-
   | "courses"
-
   | "trainers"
-
   | "payments";
-
 type ReportRange =
-
   | "today"
-
   | "this-week"
-
   | "this-month"
-
   | "last-month"
-
   | "this-year"
-
   | "all";
-
 type ReportData = {
-
   range: ReportRange;
-
   courseId: string | null;
-
   packageId: string | null;
-
   generatedAt: string;
-
   students: {
-
     total: number;
-
     active: number;
-
     inactive: number;
-
     newThisPeriod: number;
-
   };
-
   courses: {
-
     total: number;
-
     active: number;
-
     inactive: number;
-
     enrollments: number;
-
     rows: Array<{
-
       id: string;
-
       title: string;
-
       isActive: boolean;
-
       mode: string;
-
       enrollments: number;
-
     }>;
-
   };
-
   trainers: {
-
     total: number;
-
     active: number;
-
     inactive: number;
-
     withPermissions: number;
-
     withAvailability: number;
-
     totalAssignments: number;
-
     rows: Array<{
-
       id: string;
-
       name: string;
-
       email: string;
-
       isActive: boolean;
-
       specialization: string;
-
       qualification: string;
-
       experience: number | null;
-
       assignedCourses: number;
-
       totalCoursePermissions: number;
-
       availabilitySlots: number;
-
       hasAvailability: boolean;
-
     }>;
-
   };
-
   payments: {
-
     revenue: number;
-
     paid: number;
-
     pending: number;
-
     failed: number;
-
     refunded: number;
-
     transactions: number;
-
   };
-
   certificates: {
-
     total: number;
-
     issued: number;
-
   };
-
   enrollments: {
-
     total: number;
-
     active: number;
-
     completed: number;
-
     pending: number;
-
     cancelled: number;
-
   };
-
   analytics: {
     trend: Array<{ label: string; students: number; enrollments: number; revenue: number; certificates: number }>;
     paymentStatus: Array<{ label: string; value: number; status: string }>;
     coursePerformance: Array<{ id: string; title: string; enrollments: number; revenue: number }>;
     recentActivity: Array<{ type: string; label: string; date: string; amount: number | null }>;
   };
-
 };
-
 const API_URL =
-
-  process.env.NEXT_PUBLIC_API_URL || "http\://localhost:5000/api";
-
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const DATE_RANGES: Array<[ReportRange, string]> = [
-
   ["today", "Today"],
-
   ["this-week", "This Week"],
-
   ["this-month", "This Month"],
-
   ["last-month", "Last Month"],
-
   ["this-year", "This Year"],
-
   ["all", "All Time"],
-
 ];
-
 const REPORT_TYPES: Array<{
-
   key: ReportType;
-
   label: string;
-
   icon: ReactNode;
-
 }> = [
-
   { key: "overview", label: "Overview", icon: <BarChart3 size={17} /> },
-
   { key: "students", label: "Students", icon: <Users size={17} /> },
-
   { key: "courses", label: "Courses", icon: <BookOpen size={17} /> },
-
   { key: "trainers", label: "Trainers", icon: <UserCheck size={17} /> },
-
   {
-
     key: "payments",
-
     label: "Payments & Revenue",
-
     icon: <IndianRupee size={17} />,
-
   },
-
 ];
-
 function getToken() {
-
   if (typeof window === "undefined") return null;
-
   return (
-
     localStorage.getItem("token") ||
-
     localStorage.getItem("accessToken") ||
-
     sessionStorage.getItem("token") ||
-
     sessionStorage.getItem("accessToken")
-
   );
-
 }
-
 async function authenticatedFetch(url: string) {
-
   const token = getToken();
-
   return fetch(url, {
-
     headers: token
-
       ? {
-
           Authorization: `Bearer ${token}`,
-
         }
-
       : {},
-
     cache: "no-store",
-
   });
-
 }
-
 function normalizeReportData(data: any): ReportData {
   const overview = data?.overview ?? {};
   const students = data?.students ?? {};
@@ -397,456 +256,231 @@ function normalizeReportData(data: any): ReportData {
     },
   };
 }
-
 function emptyReportData(): ReportData {
-
   return {
-
     range: "this-month",
-
     courseId: null,
-
     packageId: null,
-
     generatedAt: "",
-
     students: {
-
       total: 0,
-
       active: 0,
-
       inactive: 0,
-
       newThisPeriod: 0,
-
     },
-
     courses: {
-
       total: 0,
-
       active: 0,
-
       inactive: 0,
-
       enrollments: 0,
-
       rows: [],
-
     },
-
     trainers: {
-
       total: 0,
-
       active: 0,
-
       inactive: 0,
-
       withPermissions: 0,
-
       withAvailability: 0,
-
       totalAssignments: 0,
-
       rows: [],
-
     },
-
     payments: {
-
       revenue: 0,
-
       paid: 0,
-
       pending: 0,
-
       failed: 0,
-
       refunded: 0,
-
       transactions: 0,
-
     },
-
     certificates: {
-
       total: 0,
-
       issued: 0,
-
     },
-
     enrollments: {
-
       total: 0,
-
       active: 0,
-
       completed: 0,
-
       pending: 0,
-
       cancelled: 0,
-
     },
-
     analytics: { trend: [], paymentStatus: [], coursePerformance: [], recentActivity: [] },
   };
-
 }
-
 export default function ReportsPage() {
-
   const [reportType, setReportType] =
-
     useState<ReportType>("overview");
-
   const [dateRange, setDateRange] =
-
     useState<ReportRange>("this-month");
-
   const [courseFilter, setCourseFilter] = useState("all");
-
   const [packageFilter, setPackageFilter] = useState("all");
-
   const [showDateMenu, setShowDateMenu] = useState(false);
-
   const [courses, setCourses] = useState<
-
     Array<{ id: string; title: string; isActive: boolean }>
-
   >([]);
-
   const [packages, setPackages] = useState<
-
     Array<{ id: string; title: string; isActive: boolean; price: number }>
-
   >([]);
-
   const [reportData, setReportData] =
-
     useState<ReportData>(emptyReportData);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
-
   const dateRangeLabel =
-
     DATE_RANGES.find(([value]) => value === dateRange)?.[1] ??
-
     "This Month";
-
   useEffect(() => {
-
     const loadFilters = async () => {
-
       try {
-
         const [coursesResponse, packagesResponse] = await Promise.all([
-
           authenticatedFetch(`${API_URL}/admin/courses`),
-
           authenticatedFetch(`${API_URL}/admin/packages`),
-
         ]);
-
         if (coursesResponse.ok) {
-
           const json = await coursesResponse.json();
-
           const rows = Array.isArray(json.data) ? json.data : [];
-
           setCourses(
-
             rows.map((course: any) => ({
-
               id: String(course.id),
-
               title: String(course.title ?? "Untitled Course"),
-
               isActive: Boolean(course.isActive),
-
             }))
-
           );
-
         }
-
         if (packagesResponse.ok) {
-
           const json = await packagesResponse.json();
-
           const rows = Array.isArray(json.data) ? json.data : [];
-
           setPackages(
-
             rows.map((item: any) => ({
-
               id: String(item.id),
-
               title: String(item.title ?? "Untitled Package"),
-
               isActive: Boolean(item.isActive),
-
               price: Number(item.price ?? 0),
-
             }))
-
           );
-
         }
-
       } catch (err) {
-
         console.error(err);
-
       }
-
     };
-
     loadFilters();
-
   }, []);
-
   useEffect(() => {
-
     let cancelled = false;
-
     const loadReport = async () => {
-
       setLoading(true);
-
       setError("");
-
       try {
-
         const params = new URLSearchParams();
-
         params.set("range", dateRange);
-
         if (courseFilter !== "all") {
-
           params.set("courseId", courseFilter);
-
         }
-
         if (packageFilter !== "all") {
-
           params.set("packageId", packageFilter);
-
         }
-
         const response = await authenticatedFetch(
-
           `${API_URL}/admin/reports?${params.toString()}`
-
         );
-
         if (!response.ok) {
-
           const json = await response.json().catch(() => null);
-
           throw new Error(
-
             json?.message || "Unable to load reports"
-
           );
-
         }
-
         const json = await response.json();
-
         if (!cancelled) {
-
           setReportData(
-
             json?.data
-
               ? normalizeReportData(json.data)
-
               : emptyReportData()
-
           );
-
         }
-
       } catch (err) {
-
         if (!cancelled) {
-
           setError(
-
             err instanceof Error
-
               ? err.message
-
               : "Unable to load reports"
-
           );
-
         }
-
       } finally {
-
         if (!cancelled) {
-
           setLoading(false);
-
         }
-
       }
-
     };
-
     loadReport();
-
     return () => {
-
       cancelled = true;
-
     };
-
   }, [dateRange, courseFilter, packageFilter]);
-
   const selectedCourseLabel = useMemo(() => {
-
     if (courseFilter === "all") return "All Courses";
-
     return (
-
       courses.find(
-
         (course) => String(course.id) === courseFilter
-
       )?.title || "Selected Course"
-
     );
-
   }, [courseFilter, courses]);
-
   const selectedPackageLabel = useMemo(() => {
-
     if (packageFilter === "all") return "All Packages";
-
     return (
-
       packages.find(
-
         (item) => String(item.id) === packageFilter
-
       )?.title || "Selected Package"
-
     );
-
   }, [packageFilter, packages]);
-
   const handleExport = () => {
-
     const rows: string[][] = [
-
       ["SKCE Reports & Analytics"],
-
       ["Generated At", new Date().toLocaleString("en-IN")],
-
       ["Date Range", dateRangeLabel],
-
       ["Course", selectedCourseLabel],
-
       ["Package", selectedPackageLabel],
-
       [],
-
       ["Overview"],
-
       ["Metric", "Value"],
-
       ["Total Students", String(reportData.students.total)],
-
       ["Active Students", String(reportData.students.active)],
-
       ["New Students This Period", String(reportData.students.newThisPeriod)],
-
       ["Total Courses", String(reportData.courses.total)],
-
       ["Active Courses", String(reportData.courses.active)],
-
       ["Total Enrollments", String(reportData.enrollments.total)],
-
       ["Active Trainers", String(reportData.trainers.active)],
-
       ["Revenue", `₹${reportData.payments.revenue.toLocaleString("en-IN")}`],
-
       ["Successful Payments", String(reportData.payments.paid)],
-
       ["Pending Payments", String(reportData.payments.pending)],
-
       ["Failed Payments", String(reportData.payments.failed)],
-
       ["Refunded Payments", String(reportData.payments.refunded)],
-
       ["Certificates Issued", String(reportData.certificates.issued)],
-
       [],
-
       ["Course Performance"],
-
       ["Course", "Enrollments", "Revenue"],
-
       ...reportData.analytics.coursePerformance.map((item) => [
-
         item.title,
-
         String(item.enrollments),
-
         `₹${item.revenue.toLocaleString("en-IN")}`,
-
       ]),
-
       [],
-
       ["Activity Trend"],
-
       ["Period", "Students", "Enrollments", "Revenue", "Certificates"],
-
       ...reportData.analytics.trend.map((item) => [
-
         item.label,
-
         String(item.students),
-
         String(item.enrollments),
-
         `₹${item.revenue.toLocaleString("en-IN")}`,
-
         String(item.certificates),
-
       ]),
-
       [],
-
       ["Recent Activity"],
-
       ["Type", "Activity", "Date", "Amount"],
-
       ...reportData.analytics.recentActivity.map((item) => [
-
         item.type,
-
         item.label,
-
         item.date,
-
         item.amount == null ? "" : `₹${item.amount.toLocaleString("en-IN")}`,
-
       ]),
-
     ];
-
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
-
     worksheet["!cols"] = [
       { wch: 30 },
       { wch: 24 },
@@ -854,321 +488,210 @@ export default function ReportsPage() {
       { wch: 18 },
       { wch: 18 },
     ];
-
     const workbook = XLSX.utils.book_new();
-
     XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-
     const filename = `skce-report-${dateRange}${packageFilter !== "all" ? `-package-${packageFilter}` : ""}${courseFilter !== "all" ? `-course-${courseFilter}` : ""}.xlsx`;
-
     XLSX.writeFile(workbook, filename);
-
   };
-
   return (
-
-    <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6 lg:p-8">
-
+    <div className="min-h-screen bg-[#F3F6FB] p-4 text-slate-900 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1600px]">
-
-        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
-          <div>
-
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-500">
-
-              <BarChart3 size={15} />
-
-              Business Intelligence
-
+        <section className="relative mb-7 overflow-hidden rounded-[28px] border-b-4 border-[#FF7900] bg-gradient-to-r from-[#202233] via-[#173B67] to-[#2F639A] px-6 py-7 text-white shadow-[0_18px_35px_-22px_rgba(23,59,103,0.65)] sm:px-8 sm:py-8">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-28 h-80 w-80 rounded-full border border-orange-300/20">
+            <div className="absolute inset-6 rounded-full border-[18px] border-white/[0.035]">
+              <div className="absolute inset-6 rounded-full border-[18px] border-white/[0.035]" />
             </div>
-
-            <h1 className="text-2xl font-bold text-[#173B67] sm:text-3xl">
-
-              Reports & Analytics
-
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-
-              Monitor platform performance, student activity and business metrics.
-
-            </p>
-
           </div>
-
-          <button
-
-            onClick={handleExport}
-
-            disabled={loading}
-
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-
-          >
-
-            <Download size={18} />
-
-            Export Excel
-
-          </button>
-
-        </div>
-
-        {error && (
-
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-
-            {error}
-
-          </div>
-
-        )}
-
-        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
-
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-
-            <CalendarDays size={18} />
-
-            Date Range
-
-          </div>
-
-          <div className="relative">
-
-            <button
-
-              onClick={() => setShowDateMenu((current) => !current)}
-
-              className="flex h-11 min-w-[175px] items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:border-orange-300"
-
-            >
-
-              {dateRangeLabel}
-
-              <ChevronDown size={16} />
-
-            </button>
-
-            {showDateMenu && (
-
-              <div className="absolute left-0 top-12 z-50 w-[175px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-
-                {DATE_RANGES.map(([value, label]) => (
-
-                  <button
-
-                    key={value}
-
-                    onClick={() => {
-
-                      setDateRange(value);
-
-                      setShowDateMenu(false);
-
-                    }}
-
-                    className={`w-full rounded-lg px-3 py-2.5 text-left text-sm ${
-
-                      dateRange === value
-
-                        ? "bg-blue-50 font-semibold text-[#173B67]"
-
-                        : "text-slate-600 hover:bg-slate-50"
-
-                    }`}
-
-                  >
-
-                    {label}
-
-                  </button>
-
-                ))}
-
+          <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="hidden h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-inner sm:flex">
+                <BarChart3 size={34} strokeWidth={1.8} />
               </div>
-
-            )}
-
-          </div>
-
-          <select
-
-            value={courseFilter}
-
-            onChange={(event) =>
-
-              setCourseFilter(event.target.value)
-
-            }
-
-            className="h-11 min-w-[220px] rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-
-          >
-
-            <option value="all">All Courses</option>
-
-            {courses.map((course) => (
-
-              <option key={course.id} value={course.id}>
-
-                {course.title}
-
-              </option>
-
-            ))}
-
-          </select>
-
-          <select
-
-            value={packageFilter}
-
-            onChange={(event) =>
-
-              setPackageFilter(event.target.value)
-
-            }
-
-            className="h-11 min-w-[220px] rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-
-          >
-
-            <option value="all">All Packages</option>
-
-            {packages.map((item) => (
-
-              <option key={item.id} value={item.id}>
-
-                {item.title}
-
-              </option>
-
-            ))}
-
-          </select>
-
-          <div className="sm:ml-auto text-sm text-slate-500">
-
-            Showing:{" "}
-
-            <strong className="text-slate-700">
-
-              {dateRangeLabel}
-
-            </strong>
-
-            {" · "}
-
-            <strong className="text-slate-700">
-
-              {selectedCourseLabel}
-
-            </strong>
-
-            {" · "}
-
-            <strong className="text-slate-700">
-
-              {selectedPackageLabel}
-
-            </strong>
-
-          </div>
-
-        </div>
-
-        <div className="mb-6 flex flex-wrap gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-
-          {REPORT_TYPES.map((report) => (
-
-            <button
-
-              key={report.key}
-
-              onClick={() => setReportType(report.key)}
-
-              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
-
-                reportType === report.key
-
-                  ? "bg-[#173B67] text-white shadow-sm"
-
-                  : "text-slate-600 hover:bg-slate-50 hover:text-[#173B67]"
-
-              }`}
-
-            >
-
-              {report.icon}
-
-              {report.label}
-
-            </button>
-
-          ))}
-
-        </div>
-
-        {loading ? (
-
-          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-            <div className="text-sm text-slate-500">
-
-              Loading report data...
-
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FFB15C]">
+                  <BarChart3 size={15} />
+                  Business Intelligence
+                </div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                  Reports & Analytics
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
+                  Monitor platform performance, student activity and business metrics.
+                </p>
+              </div>
             </div>
-
+            <button
+              onClick={handleExport}
+              disabled={loading}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-orange-300/40 bg-[#FF7900] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-[#F06D00] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:ring-offset-2 focus:ring-offset-[#173B67] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Download size={18} />
+              Export Excel
+            </button>
           </div>
-
-        ) : (
-
-          <>
-
-            {reportType === "overview" && (
-
-              <OverviewReport data={reportData} />
-
-            )}
-
-            {reportType === "students" && (
-
-              <StudentsReport data={reportData} />
-
-            )}
-
-            {reportType === "courses" && (
-
-              <CoursesReport data={reportData} />
-
-            )}
-
-            {reportType === "trainers" && (
-
-              <TrainersReport data={reportData} />
-
-            )}
-
-            {reportType === "payments" && (
-
-              <PaymentsReport data={reportData} />
-
-            )}
-
-          </>
-
+          <div aria-hidden="true" className="absolute bottom-0 left-0 h-1 w-44 bg-gradient-to-r from-[#FF7900] via-[#FFB15C] to-transparent" />
+        </section>
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
-
+        <section className="relative mb-5 overflow-visible rounded-2xl border border-[#D8E3F1] bg-gradient-to-r from-white via-white to-[#FFF8F1] shadow-[0_8px_24px_-20px_rgba(23,59,103,0.5)]">
+          <div className="h-[3px] rounded-t-2xl bg-gradient-to-r from-[#173B67] via-[#5D86B5] to-[#FF7900]" />
+          <div className="p-4 sm:p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173B67]">
+                  <Filter size={18} className="text-[#FF7900]" />
+                  Filter reports
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Refine analytics by date range, course and package.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-[#D6E4F5] bg-[#EDF4FC] px-3.5 py-2 text-xs font-bold text-[#173B67]">
+                  Showing: {dateRangeLabel} · {selectedCourseLabel} · {selectedPackageLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateRange("this-month");
+                    setCourseFilter("all");
+                    setPackageFilter("all");
+                    setShowDateMenu(false);
+                  }}
+                  disabled={dateRange === "this-month" && courseFilter === "all" && packageFilter === "all"}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition duration-200 hover:border-orange-300 hover:bg-orange-50 hover:text-[#173B67] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <RotateCcw size={15} />
+                  Clear filters
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <CalendarDays size={15} className="text-[#FF7900]" />
+                  Date range
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowDateMenu((current) => !current)}
+                    aria-expanded={showDateMenu}
+                    className="flex h-11 w-full items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                  >
+                    {dateRangeLabel}
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${showDateMenu ? "rotate-180" : ""}`} />
+                  </button>
+                  {showDateMenu && (
+                    <div className="absolute left-0 top-12 z-50 w-full min-w-[175px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                      {DATE_RANGES.map(([value, label]) => (
+                        <button
+                          type="button"
+                          key={value}
+                          onClick={() => {
+                            setDateRange(value);
+                            setShowDateMenu(false);
+                          }}
+                          className={`w-full rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                            dateRange === value
+                              ? "bg-[#EDF4FC] font-bold text-[#173B67]"
+                              : "text-slate-600 hover:bg-orange-50 hover:text-[#173B67]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="reports-course-filter" className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Course
+                </label>
+                <select
+                  id="reports-course-filter"
+                  value={courseFilter}
+                  onChange={(event) => setCourseFilter(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                >
+                  <option value="all">All Courses</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="reports-package-filter" className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Package
+                </label>
+                <select
+                  id="reports-package-filter"
+                  value={packageFilter}
+                  onChange={(event) => setPackageFilter(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                >
+                  <option value="all">All Packages</option>
+                  {packages.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div className="mb-6 flex flex-wrap gap-1.5 rounded-2xl border border-[#D8E3F1] bg-white p-2 shadow-sm">
+          {REPORT_TYPES.map((report) => (
+            <button
+              key={report.key}
+              onClick={() => setReportType(report.key)}
+              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+                reportType === report.key
+                  ? "bg-gradient-to-r from-[#173B67] to-[#28598A] text-white shadow-md"
+                  : "text-slate-600 hover:bg-orange-50 hover:text-[#173B67]"
+              }`}
+            >
+              {report.icon}
+              {report.label}
+            </button>
+          ))}
+        </div>
+        {loading ? (
+          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="text-sm text-slate-500">
+              Loading report data...
+            </div>
+          </div>
+        ) : (
+          <>
+            {reportType === "overview" && (
+              <OverviewReport data={reportData} />
+            )}
+            {reportType === "students" && (
+              <StudentsReport data={reportData} />
+            )}
+            {reportType === "courses" && (
+              <CoursesReport data={reportData} />
+            )}
+            {reportType === "trainers" && (
+              <TrainersReport data={reportData} />
+            )}
+            {reportType === "payments" && (
+              <PaymentsReport data={reportData} />
+            )}
+          </>
+        )}
       </div>
-
     </div>
-
   );
-
 }
-
 function OverviewReport({ data }: { data: ReportData }) {
   return (
     <>
@@ -1194,11 +717,9 @@ function OverviewReport({ data }: { data: ReportData }) {
     </>
   );
 }
-
 function TrendPanel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: ReactNode; children: ReactNode }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]">{icon}{title}</h3><p className="mt-1 text-xs text-slate-400">{subtitle}</p></div><Activity size={17} className="text-slate-300" /></div>{children}</div>;
+  return <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]">{icon}{title}</h3><p className="mt-1 text-xs text-slate-400">{subtitle}</p></div><Activity size={17} className="text-slate-300" /></div>{children}</div>;
 }
-
 function TrendChart({ data }: { data: ReportData["analytics"]["trend"] }) {
   if (!data.length) return <EmptyState message="No activity is available for this period." />;
   const width = 700, height = 250, padX = 34, padY = 24;
@@ -1207,733 +728,374 @@ function TrendChart({ data }: { data: ReportData["analytics"]["trend"] }) {
   const labelStep = Math.max(1, Math.ceil(data.length / 7));
   return <div><div className="mb-3 flex items-center gap-5 text-xs font-medium text-slate-500"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#173B67]" />Students</span><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-orange-500" />Enrollments</span></div><svg viewBox={`0 0 ${width} ${height}`} className="h-[245px] w-full" role="img" aria-label="Student and enrollment activity chart">{[0,1,2,3].map((line) => { const y = padY + (line * (height - padY * 2)) / 3; return <line key={line} x1={padX} x2={width-padX} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />; })}<polyline fill="none" stroke="#173B67" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points("students")} /><polyline fill="none" stroke="#f97316" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points("enrollments")} />{data.map((item,index) => { if (index % labelStep !== 0 && index !== data.length-1) return null; const x=padX+(index*(width-padX*2))/Math.max(1,data.length-1); return <text key={item.label+index} x={x} y={height-5} textAnchor="middle" className="fill-slate-400 text-[10px]">{item.label}</text>; })}</svg></div>;
 }
-
 function RevenueChart({ data }: { data: ReportData["analytics"]["trend"] }) {
   if (!data.length) return <EmptyState message="No revenue activity is available for this period." />;
   const maxValue=Math.max(1,...data.map((item)=>item.revenue)); const labelStep=Math.max(1,Math.ceil(data.length/7));
   return <div className="h-[290px]"><div className="flex h-[245px] items-end gap-1.5 px-1 sm:gap-2">{data.map((item,index)=>{ const barHeight=item.revenue===0?3:Math.max(8,(item.revenue/maxValue)*205); return <div key={item.label+index} className="group flex h-full min-w-0 flex-1 flex-col justify-end"><div className="relative flex justify-center"><div className="pointer-events-none absolute bottom-full mb-2 hidden rounded-lg bg-[#173B67] px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-lg group-hover:block">₹{item.revenue.toLocaleString("en-IN")}</div><div className="w-full max-w-[30px] rounded-t-md bg-orange-500 transition-all duration-300 group-hover:bg-[#173B67]" style={{height:barHeight}} /></div>{index%labelStep===0||index===data.length-1?<span className="mt-2 truncate text-center text-[10px] text-slate-400">{item.label}</span>:<span className="mt-2 text-center text-[10px] text-transparent">.</span>}</div>; })}</div></div>;
 }
-
 function CoursePerformance({ data }: { data: ReportData["analytics"]["coursePerformance"] }) {
   if (!data.length) return <EmptyState message="No course enrollment data for this period." />; const max=Math.max(1,...data.map((item)=>item.enrollments));
   return <div className="space-y-4 py-2">{data.map((item)=><div key={item.id}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-slate-700">{item.title}</span><span className="shrink-0 font-bold text-[#173B67]">{item.enrollments}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#173B67] transition-all duration-500" style={{width:`${Math.max(2,(item.enrollments/max)*100)}%`}} /></div><div className="mt-1 text-[11px] text-slate-400">₹{item.revenue.toLocaleString("en-IN")} revenue</div></div>)}</div>;
 }
-
 function PaymentStatusChart({ data }: { data: ReportData["analytics"]["paymentStatus"] }) {
   const total=data.reduce((sum,item)=>sum+item.value,0); if(!total) return <EmptyState message="No payment transactions for this period." />; const paid=data.find((item)=>item.status==="SUCCESS")?.value??0; const pending=data.find((item)=>item.status==="PENDING")?.value??0; const failed=data.find((item)=>item.status==="FAILED")?.value??0; const refunded=data.find((item)=>item.status==="REFUNDED")?.value??0; const paidEnd=paid/total*100; const pendingEnd=(paid+pending)/total*100; const failedEnd=(paid+pending+failed)/total*100;
   return <div className="flex min-h-[245px] items-center gap-5"><div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style={{background:`conic-gradient(#16a34a 0 ${paidEnd}%, #f59e0b ${paidEnd}% ${pendingEnd}%, #ef4444 ${pendingEnd}% ${failedEnd}%, #94a3b8 ${failedEnd}% 100%)`}}><div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-center"><div><p className="text-2xl font-bold text-[#173B67]">{total}</p><p className="text-[10px] uppercase tracking-wide text-slate-400">Transactions</p></div></div></div><div className="min-w-0 flex-1 space-y-3"><StatusLegend label="Paid" value={paid} className="bg-green-500" /><StatusLegend label="Pending" value={pending} className="bg-amber-500" /><StatusLegend label="Failed" value={failed} className="bg-red-500" /><StatusLegend label="Refunded" value={refunded} className="bg-slate-400" /></div></div>;
 }
-
 function StatusLegend({ label, value, className }: { label: string; value: number; className: string }) { return <div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2 text-slate-500"><span className={`h-2.5 w-2.5 rounded-full ${className}`} />{label}</span><strong className="text-slate-800">{value}</strong></div>; }
-
 function RecentActivity({ activities }: { activities: ReportData["analytics"]["recentActivity"] }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><div className="mb-4"><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]"><Clock3 size={18} />Recent Activity</h3><p className="mt-1 text-xs text-slate-400">Latest activity from the selected period</p></div>{activities.length===0?<EmptyState message="No recent activity for this period." />:<div className="divide-y divide-slate-100">{activities.map((activity,index)=><div key={`${activity.type}-${activity.date}-${index}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activity.type==="Payment"?"bg-green-50 text-green-600":activity.type==="Certificate"?"bg-amber-50 text-amber-600":"bg-blue-50 text-blue-600"}`}>{activity.type==="Payment"?<IndianRupee size={16}/>:activity.type==="Certificate"?<Award size={16}/>:<Users size={16}/>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-700">{activity.label}</p><p className="text-xs text-slate-400">{new Date(activity.date).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p></div>{activity.amount!=null&&<span className="shrink-0 text-sm font-semibold text-green-700">₹{activity.amount.toLocaleString("en-IN")}</span>}</div>)}</div>}</div>;
+  return <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4"><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]"><Clock3 size={18} />Recent Activity</h3><p className="mt-1 text-xs text-slate-400">Latest activity from the selected period</p></div>{activities.length===0?<EmptyState message="No recent activity for this period." />:<div className="divide-y divide-slate-100">{activities.map((activity,index)=><div key={`${activity.type}-${activity.date}-${index}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activity.type==="Payment"?"bg-green-50 text-green-600":activity.type==="Certificate"?"bg-amber-50 text-amber-600":"bg-blue-50 text-blue-600"}`}>{activity.type==="Payment"?<IndianRupee size={16}/>:activity.type==="Certificate"?<Award size={16}/>:<Users size={16}/>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-700">{activity.label}</p><p className="text-xs text-slate-400">{new Date(activity.date).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p></div>{activity.amount!=null&&<span className="shrink-0 text-sm font-semibold text-green-700">₹{activity.amount.toLocaleString("en-IN")}</span>}</div>)}</div>}</div>;
 }
-
 function StudentsReport({ data }: { data: ReportData }) {
-
   return (
-
     <ReportSection title="Student Report">
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         <SummaryCard
-
           title="Total Students"
-
           value={data.students.total}
-
           icon={<Users size={20} />}
-
           iconClass="bg-blue-50 text-blue-600"
-
         />
-
         <SummaryCard
-
           title="Active"
-
           value={data.students.active}
-
           icon={<CheckCircle2 size={20} />}
-
           iconClass="bg-green-50 text-green-600"
-
         />
-
         <SummaryCard
-
           title="Inactive"
-
           value={data.students.inactive}
-
           icon={<Users size={20} />}
-
           iconClass="bg-slate-100 text-slate-600"
-
         />
-
         <SummaryCard
-
           title="New This Period"
-
           value={data.students.newThisPeriod}
-
           icon={<Users size={20} />}
-
           iconClass="bg-amber-50 text-amber-600"
-
         />
-
       </div>
-
     </ReportSection>
-
   );
-
 }
-
 function CoursesReport({ data }: { data: ReportData }) {
-
   return (
-
     <ReportSection title="Course Report">
-
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         <SummaryCard
-
           title="Total Courses"
-
           value={data.courses.total}
-
           icon={<BookOpen size={20} />}
-
           iconClass="bg-blue-50 text-blue-600"
-
         />
-
         <SummaryCard
-
           title="Active Courses"
-
           value={data.courses.active}
-
           icon={<CheckCircle2 size={20} />}
-
           iconClass="bg-green-50 text-green-600"
-
         />
-
         <SummaryCard
-
           title="Inactive Courses"
-
           value={data.courses.inactive}
-
           icon={<BookOpen size={20} />}
-
           iconClass="bg-slate-100 text-slate-600"
-
         />
-
         <SummaryCard
-
           title="Enrollments"
-
           value={data.courses.enrollments}
-
           icon={<Users size={20} />}
-
           iconClass="bg-violet-50 text-violet-600"
-
         />
-
       </div>
-
       <ReportPanel title="Course Performance">
-
         {data.courses.rows.length === 0 ? (
-
           <EmptyState message="No course data available for the selected filters." />
-
         ) : (
-
           <div className="overflow-x-auto">
-
             <table className="w-full min-w-[700px] text-left text-sm">
-
               <thead>
-
                 <tr className="border-b border-slate-200 text-slate-500">
-
                   <th className="px-3 py-3 font-medium">Course</th>
-
                   <th className="px-3 py-3 font-medium">Status</th>
-
                   <th className="px-3 py-3 font-medium">Mode</th>
-
                   <th className="px-3 py-3 text-right font-medium">
-
                     Enrollments
-
                   </th>
-
                 </tr>
-
               </thead>
-
               <tbody>
-
                 {data.courses.rows.map((course) => (
-
                   <tr
-
                     key={course.id}
-
                     className="border-b border-slate-100 last:border-0"
-
                   >
-
                     <td className="px-3 py-4 font-medium text-slate-800">
-
                       {course.title}
-
                     </td>
-
                     <td className="px-3 py-4">
-
                       <StatusBadge active={course.isActive} />
-
                     </td>
-
                     <td className="px-3 py-4 text-slate-500">
-
                       {course.mode}
-
                     </td>
-
                     <td className="px-3 py-4 text-right font-semibold text-slate-800">
-
                       {course.enrollments}
-
                     </td>
-
                   </tr>
-
                 ))}
-
               </tbody>
-
             </table>
-
           </div>
-
         )}
-
       </ReportPanel>
-
     </ReportSection>
-
   );
-
 }
-
 function TrainersReport({ data }: { data: ReportData }) {
-
   return (
-
     <ReportSection title="Trainer Report">
-
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         <SummaryCard
-
           title="Total Trainers"
-
           value={data.trainers.total}
-
           icon={<Users size={20} />}
-
           iconClass="bg-blue-50 text-blue-600"
-
         />
-
         <SummaryCard
-
           title="Active Trainers"
-
           value={data.trainers.active}
-
           icon={<CheckCircle2 size={20} />}
-
           iconClass="bg-green-50 text-green-600"
-
         />
-
         <SummaryCard
-
           title="With Permissions"
-
           value={data.trainers.withPermissions}
-
           icon={<UserCheck size={20} />}
-
           iconClass="bg-violet-50 text-violet-600"
-
         />
-
         <SummaryCard
-
           title="With Availability"
-
           value={data.trainers.withAvailability}
-
           icon={<CalendarDays size={20} />}
-
           iconClass="bg-amber-50 text-amber-600"
-
         />
-
       </div>
-
       <ReportPanel title="Trainer Overview">
-
         <div className="mb-4">
-
           <MetricRow
-
             label="Total Course Assignments"
-
             value={data.trainers.totalAssignments}
-
           />
-
         </div>
-
         {data.trainers.rows.length === 0 ? (
-
           <EmptyState message="No trainers found." />
-
         ) : (
-
           <div className="overflow-x-auto">
-
             <table className="w-full min-w-[900px] text-left text-sm">
-
               <thead>
-
                 <tr className="border-b border-slate-200 text-slate-500">
-
                   <th className="px-3 py-3 font-medium">Trainer</th>
-
                   <th className="px-3 py-3 font-medium">Status</th>
-
                   <th className="px-3 py-3 font-medium">Specialization</th>
-
                   <th className="px-3 py-3 text-center font-medium">
-
                     Assigned Courses
-
                   </th>
-
                   <th className="px-3 py-3 text-center font-medium">
-
                     Availability
-
                   </th>
-
                 </tr>
-
               </thead>
-
               <tbody>
-
                 {data.trainers.rows.map((trainer) => (
-
                   <tr
-
                     key={trainer.id}
-
                     className="border-b border-slate-100 last:border-0"
-
                   >
-
                     <td className="px-3 py-4">
-
                       <p className="font-semibold text-slate-800">
-
                         {trainer.name}
-
                       </p>
-
                       <p className="mt-1 text-xs text-slate-500">
-
                         {trainer.email}
-
                       </p>
-
                     </td>
-
                     <td className="px-3 py-4">
-
                       <StatusBadge active={trainer.isActive} />
-
                     </td>
-
                     <td className="px-3 py-4 text-slate-500">
-
                       {trainer.specialization || "—"}
-
                     </td>
-
                     <td className="px-3 py-4 text-center font-semibold text-slate-800">
-
                       {trainer.assignedCourses}
-
                     </td>
-
                     <td className="px-3 py-4 text-center">
-
                       {trainer.hasAvailability ? (
-
                         <span className="font-medium text-green-600">
-
                           Configured ({trainer.availabilitySlots})
-
                         </span>
-
                       ) : (
-
                         <span className="text-slate-400">
-
                           Not configured
-
                         </span>
-
                       )}
-
                     </td>
-
                   </tr>
-
                 ))}
-
               </tbody>
-
             </table>
-
           </div>
-
         )}
-
       </ReportPanel>
-
     </ReportSection>
-
   );
-
 }
-
 function PaymentsReport({ data }: { data: ReportData }) {
-
   return (
-
     <ReportSection title="Payments & Revenue Report">
-
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
         <MoneyCard
-
           title="Total Revenue"
-
           value={data.payments.revenue}
-
           icon={<IndianRupee size={20} />}
-
           iconClass="bg-blue-50 text-blue-600"
-
         />
-
         <SummaryCard
-
           title="Paid"
-
           value={data.payments.paid}
-
           icon={<CheckCircle2 size={20} />}
-
           iconClass="bg-green-50 text-green-600"
-
         />
-
         <SummaryCard
-
           title="Pending"
-
           value={data.payments.pending}
-
           icon={<FileText size={20} />}
-
           iconClass="bg-amber-50 text-amber-600"
-
         />
-
         <SummaryCard
-
           title="Transactions"
-
           value={data.payments.transactions}
-
           icon={<FileText size={20} />}
-
           iconClass="bg-violet-50 text-violet-600"
-
         />
-
       </div>
-
       <ReportPanel title="Payment Status">
-
         <MetricRow label="Successful / Paid" value={data.payments.paid} />
-
         <MetricRow label="Pending / Created" value={data.payments.pending} />
-
         <MetricRow label="Failed" value={data.payments.failed} />
-
         <MetricRow label="Refunded" value={data.payments.refunded} />
-
       </ReportPanel>
-
     </ReportSection>
-
   );
-
 }
-
 function SummaryCard({
-
   title,
-
   value,
-
   icon,
-
   iconClass,
-
 }: {
-
   title: string;
-
   value: string | number;
-
   icon: ReactNode;
-
   iconClass: string;
-
 }) {
-
   return (
-
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
+    <div className="relative flex items-center gap-4 overflow-hidden rounded-2xl border border-[#D8E3F1] bg-white p-5 pt-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-gradient-to-r before:from-[#173B67] before:via-[#5D86B5] before:to-[#FF7900]">
       <div
-
         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
-
       >
-
         {icon}
-
       </div>
-
       <div>
-
         <p className="text-sm text-slate-500">{title}</p>
-
         <p className="mt-1 text-2xl font-bold text-slate-800">
-
           {value}
-
         </p>
-
       </div>
-
     </div>
-
   );
-
 }
-
 function MoneyCard({
-
   title,
-
   value,
-
   icon,
-
   iconClass,
-
 }: {
-
   title: string;
-
   value: number;
-
   icon: ReactNode;
-
   iconClass: string;
-
 }) {
-
   return (
-
     <SummaryCard
-
       title={title}
-
       value={`₹${value.toLocaleString("en-IN")}`}
-
       icon={icon}
-
       iconClass={iconClass}
-
     />
-
   );
-
 }
-
 function ReportPanel({
-
   title,
-
   children,
-
 }: {
-
   title: string;
-
   children: ReactNode;
-
 }) {
-
   return (
-
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-
+    <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6">
       <h3 className="mb-3 text-base font-bold text-[#173B67]">
-
         {title}
-
       </h3>
-
       {children}
-
     </div>
-
   );
-
 }
-
 function MetricRow({
-
   label,
-
   value,
-
 }: {
-
   label: string;
-
   value: string | number;
-
 }) {
-
   return (
-
     <div className="flex items-center justify-between border-b border-slate-100 py-3 last:border-0">
-
       <span className="text-sm text-slate-500">{label}</span>
-
       <strong className="text-sm text-slate-800">{value}</strong>
-
     </div>
-
   );
-
 }
-
 function ReportSection({
-
   title,
-
   children,
-
 }: {
-
   title: string;
-
   children: ReactNode;
-
 }) {
-
   return (
-
     <section>
-
       <h2 className="mb-5 text-xl font-bold text-[#173B67]">
-
         {title}
-
       </h2>
-
       {children}
-
     </section>
-
   );
-
 }
-
 function StatusBadge({ active }: { active: boolean }) {
-
   return (
-
     <span
-
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-
         active
-
           ? "bg-green-50 text-green-700"
-
           : "bg-slate-100 text-slate-500"
-
       }`}
-
     >
-
       {active ? "Active" : "Inactive"}
-
     </span>
-
   );
-
 }
-
 function EmptyState({ message }: { message: string }) {
-
   return (
-
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-
       {message}
-
     </div>
-
   );
-
 }

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import Reveal from "./Reveal";
-import SectionHeading from "./SectionHeading";
+import { Check } from "lucide-react";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -122,93 +122,84 @@ export default function CEOSection() {
     DEFAULT_CEO.highlight2;
 
   return (
-    <section className="w-full bg-white px-6 py-12 sm:py-16">
-      <div className="mx-auto w-full max-w-6xl">
-        {/* Heading */}
-        <SectionHeading
-          eyebrow="Our Leadership"
-          title="Meet Our Founder & CEO"
-        />
+    <section className="w-full bg-[#F7F9FC] px-6 py-12 sm:py-16">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-br from-[#071C3A] via-[#0F2F5F] to-[#173B67] p-6 shadow-2xl shadow-blue-950/20 sm:p-10 lg:p-14">
+            <div className="sk-dots pointer-events-none absolute inset-0 -z-10" />
+            <div className="sk-hero-orb pointer-events-none absolute -right-20 -top-20 -z-10 h-72 w-72 rounded-full bg-orange-500/25 blur-3xl" />
+            <div className="sk-hero-orb-2 pointer-events-none absolute -bottom-24 -left-16 -z-10 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-orange-500 via-blue-500 to-[#0B2A52]" />
 
-        {/* CEO Content */}
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* CEO IMAGE */}
-          <Reveal direction="left" className="flex w-full justify-center">
-            <div className="relative w-full max-w-[400px]">
-              {/* Keeps the container perfectly square */}
-              <div className="relative aspect-square w-full">
-                {/* Orange outer ring */}
-                <div className="absolute inset-0 rounded-full border-[8px] border-orange-500" />
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:gap-16">
+              {/* CEO Image */}
+              <Reveal direction="left" className="flex w-full justify-center">
+                <div className="relative aspect-square w-full max-w-[360px]">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-400 via-orange-500 to-blue-400 shadow-2xl shadow-black/30" />
+                  <div className="absolute inset-[8px] rounded-full bg-[#0F2F5F]" />
+                  <div className="absolute inset-[16px] overflow-hidden rounded-full ring-4 ring-white/90">
+                    <Image
+                      src={ceoPhoto}
+                      alt={`${ceoName} - ${ceoDesignation} of SK Computer Education`}
+                      width={400}
+                      height={500}
+                      sizes="(min-width: 1024px) 360px, 80vw"
+                      className="h-full w-full object-cover object-center"
+                    />
+                  </div>
+                  <div className="absolute right-1 top-[16%] h-8 w-8 rounded-full bg-orange-500 shadow-lg ring-4 ring-[#0F2F5F]" />
+                  <div className="absolute bottom-[8%] left-[8%] h-6 w-6 rounded-full bg-blue-400 ring-4 ring-[#0F2F5F]" />
+                </div>
+              </Reveal>
 
-                {/* Blue ring */}
-                <div className="absolute inset-[10px] rounded-full bg-[#173B67]" />
+              {/* CEO Content */}
+              <Reveal direction="right" delay={120} className="w-full min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300 sm:text-sm">
+                  Our Leadership
+                </p>
 
-                {/* White ring */}
-                <div className="absolute inset-[18px] rounded-full bg-white" />
+                <h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl">
+                  Meet Our Founder &amp; CEO
+                </h2>
 
-                {/* IMAGE */}
-                <div className="absolute inset-[24px] overflow-hidden rounded-full">
-                  <Image
-                    src={ceoPhoto}
-                    alt={`${ceoName} - ${ceoDesignation} of SK Computer Education`}
-                    width={400}
-                    height={500}
-                    sizes="(min-width: 1024px) 400px, 80vw"
-                    className="h-full w-full object-cover object-center"
-                  />
+                <div className="mt-4 flex items-center gap-1.5" aria-hidden="true">
+                  <div className="h-1 w-16 rounded-full bg-orange-500" />
+                  <div className="h-1 w-5 rounded-full bg-white/60" />
                 </div>
 
-                {/* Orange decoration */}
-                <div className="absolute right-0 top-[18%] h-8 w-8 rounded-full bg-orange-500 shadow-md sm:h-9 sm:w-9" />
+                <h3 className="mt-6 text-2xl font-bold text-white">
+                  {ceoName}
+                </h3>
 
-                {/* Blue decoration */}
-                <div className="absolute bottom-[6%] left-[10%] h-6 w-6 rounded-full bg-[#173B67]" />
-              </div>
-            </div>
-          </Reveal>
-
-          {/* CEO TEXT */}
-          <Reveal
-            direction="right"
-            delay={150}
-            className="w-full min-w-0 text-center lg:text-left"
-          >
-            <h3 className="text-2xl font-bold tracking-tight text-[#173B67] sm:text-3xl">
-              {ceoName}
-            </h3>
-
-            <p className="mt-1 font-semibold text-orange-500">
-              {ceoDesignation}
-            </p>
-
-            {/* Dynamic Biography */}
-            <div className="mt-6 space-y-5 text-left text-base leading-8 text-slate-600">
-              <p className="whitespace-pre-line">{bioParagraph1}</p>
-
-              <p className="whitespace-pre-line">{bioParagraph2}</p>
-            </div>
-
-            {/* Dynamic Highlights */}
-            <div className="mt-7 space-y-3 text-left">
-              <div className="flex items-start gap-3 rounded-xl bg-orange-50/60 p-3.5">
-                <div className="mt-0.5 h-9 w-1 shrink-0 rounded-full bg-orange-500" />
-
-                <p className="text-sm font-semibold leading-6 text-[#173B67]">
-                  {highlight1}
+                <p className="mt-1 text-base font-semibold text-orange-300">
+                  {ceoDesignation}
                 </p>
-              </div>
 
-              <div className="flex items-start gap-3 rounded-xl bg-blue-50/70 p-3.5">
-                <div className="mt-0.5 h-9 w-1 shrink-0 rounded-full bg-[#173B67]" />
+                <div className="mt-5 space-y-4 text-base leading-8 text-blue-100/90">
+                  <p className="whitespace-pre-line">{bioParagraph1}</p>
 
-                <p className="text-sm font-semibold leading-6 text-[#173B67]">
-                  {highlight2}
-                </p>
-              </div>
+                  <p className="whitespace-pre-line">{bioParagraph2}</p>
+                </div>
+
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  {[highlight1, highlight2].map((text, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-orange-300/40 hover:bg-white/10"
+                    >
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white">
+                        <Check size={14} strokeWidth={3} />
+                      </span>
+
+                      <p className="text-sm font-semibold leading-6 text-white">
+                        {text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Reveal>
             </div>
-          </Reveal>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
   );
 }

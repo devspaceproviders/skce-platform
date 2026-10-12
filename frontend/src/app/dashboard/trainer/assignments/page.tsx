@@ -228,8 +228,8 @@ function typeLabel(type: AssessmentType) {
 
 function typeClasses(type: AssessmentType) {
   return type === "ASSIGNMENT"
-    ? "bg-blue-50 text-blue-700"
-    : "bg-emerald-50 text-emerald-700";
+    ? "bg-orange-50 text-orange-700 ring-1 ring-orange-100"
+    : "bg-[#EAF0F8] text-[#173B67] ring-1 ring-[#D8E3F1]";
 }
 
 function submissionStatusLabel(
@@ -1294,11 +1294,14 @@ export default function TrainerAssignmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
         {/* HEADER */}
-        <header className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <header className="animate-in fade-in slide-in-from-top-2 duration-500 relative isolate mb-7 overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-7">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-32 h-80 w-80 rounded-full border-[28px] border-white/[0.05]" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-1 top-[-5rem] h-64 w-64 rounded-full border-[16px] border-orange-400/[0.10]" />
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-40 rounded-r-full bg-gradient-to-r from-orange-500 to-amber-300" />
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
                 <ClipboardList
@@ -1324,7 +1327,7 @@ export default function TrainerAssignmentsPage() {
                     true
                   )
                 }
-                className="inline-flex w-fit items-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
+                className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-900/15 transition-all duration-200 hover:-translate-y-0.5 hover:from-orange-600 hover:to-orange-700 hover:shadow-lg"
               >
                 <Plus size={17} />
                 Create New
@@ -1419,7 +1422,7 @@ export default function TrainerAssignmentsPage() {
         </div>
 
         {/* FILTERS */}
-        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="mb-6 rounded-2xl border border-slate-200/90 bg-white/95 p-4 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search
@@ -1575,9 +1578,9 @@ function SummaryCard({
   value: number | string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="group rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_16px_35px_-24px_rgba(23,59,103,0.45)]">
       <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100 transition-transform duration-300 group-hover:scale-105">
           {icon}
         </div>
 
@@ -1615,14 +1618,14 @@ function AssessmentCard({
     "ASSIGNMENT";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+    <div className={`group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_35px_-24px_rgba(23,59,103,0.45)] sm:p-5 ${isAssignment ? "before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-orange-500" : "before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#173B67]"}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           <div
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
               isAssignment
-                ? "bg-blue-50 text-blue-600"
-                : "bg-emerald-50 text-emerald-600"
+                ? "bg-orange-50 text-orange-600 ring-1 ring-orange-100"
+                : "bg-[#EAF0F8] text-[#173B67] ring-1 ring-[#D8E3F1]"
             }`}
           >
             {isAssignment ? (
@@ -1730,7 +1733,7 @@ function AssessmentCard({
               <button
                 type="button"
                 onClick={onView}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-[#123052]"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#173B67] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#102B4D] hover:shadow-md"
               >
                 <Eye size={15} />
                 {isAssignment
@@ -1806,7 +1809,7 @@ function CreateChoiceModal({
             }
             title="Assignment"
             description="Create a course-based assignment for students."
-            iconClass="bg-blue-50 text-blue-600"
+            iconClass="bg-orange-50 text-orange-600 ring-1 ring-orange-100"
             onClick={() =>
               onSelect(
                 "ASSIGNMENT"
@@ -1822,7 +1825,7 @@ function CreateChoiceModal({
             }
             title="Quiz"
             description="Create a multiple-choice quiz with questions and marks."
-            iconClass="bg-emerald-50 text-emerald-600"
+            iconClass="bg-[#EAF0F8] text-[#173B67] ring-1 ring-[#D8E3F1]"
             onClick={() =>
               onSelect(
                 "QUIZ"
@@ -2429,7 +2432,7 @@ function AssessmentFormPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         <button
           type="button"
@@ -2445,7 +2448,9 @@ function AssessmentFormPage({
         </button>
 
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-[#173B67] p-5 text-white sm:p-6">
+          <div className="relative isolate overflow-hidden bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white sm:p-6">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-56 w-56 rounded-full border-[18px] border-white/[0.06]" />
+            <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
               Trainer Portal
             </p>
@@ -2466,6 +2471,7 @@ function AssessmentFormPage({
                 ? "Create an assignment for students enrolled in a selected course."
                 : "Create a multiple-choice quiz with questions and marks."}
             </p>
+            </div>
           </div>
 
           <div className="p-5 sm:p-6">
@@ -2736,7 +2742,7 @@ function AssessmentFormPage({
                 disabled={
                   saving
                 }
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? (
                   <Loader2
@@ -2987,7 +2993,7 @@ function SubmissionsPage({
   ).length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
         <button type="button" onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#173B67]">
           <ArrowLeft size={16} /> Back to Assignments
@@ -2996,12 +3002,16 @@ function SubmissionsPage({
         {error && <ErrorBanner error={error} />}
         {successMessage && <SuccessBanner message={successMessage} />}
 
-        <div className="mb-6 rounded-2xl bg-[#173B67] p-5 text-white sm:p-6">
+        <div className="relative isolate mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-6">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full border-[20px] border-white/[0.06]" />
+          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-32 bg-gradient-to-r from-orange-500 to-amber-300" />
+          <div className="relative z-10">
           <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">Assignment Submissions</p>
           <h1 className="mt-1 text-2xl font-bold">{assessment.title}</h1>
           <p className="mt-1 text-sm text-blue-100">
             {assessment.courseTitle || "Course unavailable"} · Total Marks: {assessment.totalMarks}
           </p>
+          </div>
         </div>
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -3035,7 +3045,7 @@ function SubmissionsPage({
                           <p className="font-semibold text-slate-900">{student.studentName}</p>
                           <p className="mt-1 text-xs text-slate-500">{student.studentEmail}</p>
                         </div>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                        <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 ring-1 ring-orange-100">
                           {attempts.length} {attempts.length === 1 ? "attempt" : "attempts"}
                         </span>
                       </div>
@@ -3126,7 +3136,7 @@ function SubmissionGradePanel({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">Attempt {selectedSubmission.attemptNumber}</p>
@@ -3313,7 +3323,7 @@ function QuizResultsPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px]">
         <button
           type="button"
@@ -3323,7 +3333,9 @@ function QuizResultsPage({
           <ArrowLeft size={17} /> Back to Assignments
         </button>
 
-        <section className="rounded-2xl bg-[#173B67] p-6 text-white shadow-sm sm:p-7">
+        <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-6 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-7">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-60 w-60 rounded-full border-[18px] border-white/[0.06]" />
+          <div className="relative z-10">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-300">
             Quiz Results
           </p>
@@ -3332,6 +3344,7 @@ function QuizResultsPage({
             {assessment.courseTitle} · Total Marks: {assessment.totalMarks}
             {assessment.durationMinutes ? ` · ${assessment.durationMinutes} minutes` : ""}
           </p>
+          </div>
         </section>
 
         {error ? (
@@ -3390,7 +3403,7 @@ function QuizResultsPage({
                           <span className="font-semibold text-slate-900">
                             {student.studentName || "Student"}
                           </span>
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                          <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 ring-1 ring-orange-100">
                             {attempts.length} attempt{attempts.length === 1 ? "" : "s"}
                           </span>
                         </div>

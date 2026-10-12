@@ -3,9 +3,9 @@ import { Clock, BookOpen, Users, ArrowRight } from "lucide-react";
 import { Course } from "@/types";
 
 const MODE_STYLES: Record<string, string> = {
-  Online: "bg-blue-50 text-blue-700",
-  Offline: "bg-slate-100 text-slate-600",
-  Hybrid: "bg-emerald-50 text-emerald-700",
+  Online: "bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/30",
+  Offline: "bg-white/10 text-blue-100 ring-1 ring-white/15",
+  Hybrid: "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/30",
 };
 
 /**
@@ -49,17 +49,18 @@ export default function CourseCard({ course }: { course: Course }) {
 
   return (
     <div
-      className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-t-4 border-slate-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg ${course.accentColor ?? ""}`}
+      className={`group flex h-full flex-col overflow-hidden relative isolate rounded-2xl border border-t-4 border-white/10 bg-gradient-to-b from-[#0F2F5F] to-[#0B2A52] text-white shadow-lg shadow-blue-950/15 ring-1 ring-[#173B67]/20 transition duration-300 hover:-translate-y-1.5 hover:border-orange-400/50 hover:shadow-2xl hover:shadow-blue-950/30 ${course.accentColor ?? ""}`}
     >
       {/* Course Image */}
       {course.imageUrl ? (
-        <div className="h-48 w-full overflow-hidden bg-slate-100">
+        <div className="relative h-48 w-full overflow-hidden bg-slate-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={course.imageUrl}
             alt={course.title}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0F2F5F] to-transparent" />
         </div>
       ) : (
         <div className="flex h-48 w-full items-center justify-center bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200">
@@ -74,8 +75,10 @@ export default function CourseCard({ course }: { course: Course }) {
 
       {/* Card Content */}
       <div className="flex flex-1 flex-col p-6">
+        <div className="pointer-events-none absolute -right-16 bottom-0 -z-10 h-48 w-48 rounded-full bg-orange-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 top-1/3 -z-10 h-48 w-48 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="text-lg font-semibold leading-snug text-[#173B67]">
+          <h3 className="text-lg font-bold leading-snug text-white">
             {course.title}
           </h3>
 
@@ -90,15 +93,15 @@ export default function CourseCard({ course }: { course: Course }) {
           )}
         </div>
 
-        <p className="mb-5 flex-1 text-sm leading-relaxed text-slate-500">
+        <p className="mb-5 line-clamp-3 flex-1 text-sm leading-relaxed text-blue-100/80">
           {course.description}
         </p>
 
         {stats.length > 0 && (
-          <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+          <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-blue-100/80">
             {stats.map(({ icon: Icon, value, singular, plural }) => (
               <span key={plural} className="flex items-center gap-1.5">
-                <Icon size={14} className="text-slate-400" />
+                <Icon size={14} className="text-orange-300" />
                 {singular === "Enrolled"
                   ? `${value} Enrolled`
                   : `${value} ${value === 1 ? singular : plural}`}
@@ -108,10 +111,10 @@ export default function CourseCard({ course }: { course: Course }) {
         )}
 
         {/* Actions */}
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-white/10 pt-4">
           <Link
             href={`/courses/${course.slug}`}
-            className="inline-flex items-center gap-1.5 rounded text-sm font-semibold text-blue-600 transition-all duration-300 hover:gap-2.5 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            className="inline-flex items-center gap-1.5 rounded text-sm font-semibold text-white transition-all duration-300 hover:gap-2.5 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             View Details
             <ArrowRight size={15} />

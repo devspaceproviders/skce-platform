@@ -32,6 +32,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import AdminVisualEffects from "@/components/dashboard/AdminVisualEffects";
+
 type TrainerStatus = "Active" | "Inactive";
 
 type Trainer = {
@@ -127,11 +129,15 @@ export default function TrainersPage() {
   const photoInputRef =
     useRef<HTMLInputElement | null>(null);
 
-  const [search, setSearch] =
-    useState("");
-
-  const [statusFilter, setStatusFilter] =
-    useState<"All" | TrainerStatus>("All");
+  const [trainerFilters, setTrainerFilters] = useState({
+    name: "All",
+    id: "All",
+    phone: "All",
+    specialization: "All",
+    experience: "All",
+    batches: "All",
+    status: "All",
+  });
 
   const [showAddModal, setShowAddModal] =
     useState(false);
@@ -341,50 +347,40 @@ export default function TrainersPage() {
     void loadTrainers();
   }, []);
 
-  const filteredTrainers =
-    useMemo(() => {
-      const searchText =
-        search
-          .trim()
-          .toLowerCase();
+  const trainerFilterOptions = useMemo(() => ({
+    name: [...new Set<string>(trainers.map((trainer) => trainer.name).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    id: [...new Set<string>(trainers.map((trainer) => trainer.id).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    phone: [...new Set<string>(trainers.map((trainer) => trainer.phone).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    specialization: [...new Set<string>(trainers.map((trainer) => trainer.specialization).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    experience: [...new Set<string>(trainers.map((trainer) => trainer.experience).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    batches: [...new Set<string>(trainers.map((trainer) => String(trainer.batches)))].sort((a, b) => Number(a) - Number(b)),
+  }), [trainers]);
 
-      return trainers.filter(
-        (trainer) => {
-          const matchesSearch =
-            !searchText ||
-            trainer.name
-              .toLowerCase()
-              .includes(searchText) ||
-            trainer.email
-              .toLowerCase()
-              .includes(searchText) ||
-            trainer.id
-              .toLowerCase()
-              .includes(searchText) ||
-            trainer.phone.includes(
-              search
-            ) ||
-            trainer.specialization
-              .toLowerCase()
-              .includes(searchText);
+  const filteredTrainers = useMemo(() => {
+    return trainers.filter((trainer) =>
+      (trainerFilters.name === "All" || trainer.name === trainerFilters.name) &&
+      (trainerFilters.id === "All" || trainer.id === trainerFilters.id) &&
+      (trainerFilters.phone === "All" || trainer.phone === trainerFilters.phone) &&
+      (trainerFilters.specialization === "All" || trainer.specialization === trainerFilters.specialization) &&
+      (trainerFilters.experience === "All" || trainer.experience === trainerFilters.experience) &&
+      (trainerFilters.batches === "All" || String(trainer.batches) === trainerFilters.batches) &&
+      (trainerFilters.status === "All" || trainer.status === trainerFilters.status)
+    );
+  }, [trainers, trainerFilters]);
 
-          const matchesStatus =
-            statusFilter ===
-              "All" ||
-            trainer.status ===
-              statusFilter;
+  const clearTrainerFilters = () => {
+    setTrainerFilters({
+      name: "All",
+      id: "All",
+      phone: "All",
+      specialization: "All",
+      experience: "All",
+      batches: "All",
+      status: "All",
+    });
+  };
 
-          return (
-            matchesSearch &&
-            matchesStatus
-          );
-        }
-      );
-    }, [
-      trainers,
-      search,
-      statusFilter,
-    ]);
+  const hasTrainerFilters = Object.values(trainerFilters).some((value) => value !== "All");
 
   const activeTrainers =
     trainers.filter(
@@ -1217,7 +1213,8 @@ export default function TrainersPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8 skce-page-enter">
+      <AdminVisualEffects />
       <input
         ref={photoInputRef}
         type="file"
@@ -1247,19 +1244,26 @@ export default function TrainersPage() {
           </div>
         )}
 
-        <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-orange-500">
-              Trainer Management
-            </p>
+        <div className="relative mb-7 flex flex-col justify-between gap-5 overflow-hidden rounded-3xl border-b-4 border-orange-500 bg-gradient-to-r from-[#202333] via-[#173B67] to-[#2D6099] p-6 text-white shadow-xl sm:flex-row sm:items-center sm:p-8">
+          <div className="skce-banner-orbit pointer-events-none absolute -right-10 -top-24 h-72 w-72 rounded-full border-[24px] border-white/5" />
+          <div className="pointer-events-none absolute -right-2 -top-16 h-56 w-56 rounded-full border-[18px] border-white/5" />
+          <div className="relative flex items-center gap-4">
+            <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 sm:flex">
+              <Users className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-300">
+                Trainer Management
+              </p>
 
-            <h1 className="text-2xl font-bold tracking-tight text-[#173B67] sm:text-3xl">
-              Trainers
-            </h1>
+              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                Trainers
+              </h1>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Manage trainers, specializations, batches and account status.
-            </p>
+              <p className="mt-1 max-w-2xl text-sm text-blue-100/85">
+                Manage trainers, specializations, batches and account status.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -1272,7 +1276,7 @@ export default function TrainersPage() {
                 loading ||
                 saving
               }
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw
                 size={17}
@@ -1357,52 +1361,23 @@ export default function TrainersPage() {
           />
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div className="relative w-full sm:max-w-xl">
-              <Search
-                size={18}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) =>
-                  setSearch(
-                    e.target.value
-                  )
-                }
-                placeholder="Search by name, email, phone, ID or specialization..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100"
-              />
+        <section className="skce-interactive-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-white via-orange-50/30 to-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div>
+              <p className="text-sm font-semibold text-[#173B67]">Filter trainers</p>
+              <p className="mt-1 text-xs text-slate-500">Choose a dropdown beneath any column heading to filter the list.</p>
             </div>
-
-            <select
-              value={
-                statusFilter
-              }
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as
-                    | "All"
-                    | TrainerStatus
-                )
-              }
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-            >
-              <option value="All">
-                All Status
-              </option>
-
-              <option value="Active">
-                Active
-              </option>
-
-              <option value="Inactive">
-                Inactive
-              </option>
-            </select>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-500">Showing <strong className="text-[#173B67]">{filteredTrainers.length}</strong> of {trainers.length} trainers</span>
+              <button
+                type="button"
+                onClick={clearTrainerFilters}
+                disabled={!hasTrainerFilters}
+                className="rounded-lg border border-orange-200 bg-white px-3.5 py-2 text-sm font-semibold text-orange-600 transition hover:border-orange-400 hover:bg-orange-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -1431,10 +1406,8 @@ export default function TrainersPage() {
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
-                {search ||
-                statusFilter !==
-                  "All"
-                  ? "Try changing your search or status filter."
+                {hasTrainerFilters
+                  ? "Try changing the selected column filters."
                   : 'Click "Add Trainer" to create the first trainer.'}
               </p>
             </div>
@@ -1443,37 +1416,38 @@ export default function TrainersPage() {
               <table className="w-full min-w-[1100px]">
                 <thead>
                   <tr className="bg-slate-50">
-                    <TableHeader>
-                      Trainer
-                    </TableHeader>
-
-                    <TableHeader>
-                      Trainer ID
-                    </TableHeader>
-
-                    <TableHeader>
-                      Phone
-                    </TableHeader>
-
-                    <TableHeader>
-                      Specialization
-                    </TableHeader>
-
-                    <TableHeader>
-                      Experience
-                    </TableHeader>
-
-                    <TableHeader>
-                      Batches
-                    </TableHeader>
-
-                    <TableHeader>
-                      Status
-                    </TableHeader>
-
-                    <TableHeader>
-                      Actions
-                    </TableHeader>
+                    <TableHeader>Trainer</TableHeader>
+                    <TableHeader>Trainer ID</TableHeader>
+                    <TableHeader>Phone</TableHeader>
+                    <TableHeader>Specialization</TableHeader>
+                    <TableHeader>Experience</TableHeader>
+                    <TableHeader>Batches</TableHeader>
+                    <TableHeader>Status</TableHeader>
+                    <TableHeader>Actions</TableHeader>
+                  </tr>
+                  <tr className="border-y border-slate-200 bg-white">
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.name} onChange={(value) => setTrainerFilters((current) => ({ ...current, name: value }))} options={trainerFilterOptions.name} allLabel="All Trainers" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.id} onChange={(value) => setTrainerFilters((current) => ({ ...current, id: value }))} options={trainerFilterOptions.id} allLabel="All IDs" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.phone} onChange={(value) => setTrainerFilters((current) => ({ ...current, phone: value }))} options={trainerFilterOptions.phone} allLabel="All Phones" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.specialization} onChange={(value) => setTrainerFilters((current) => ({ ...current, specialization: value }))} options={trainerFilterOptions.specialization} allLabel="All Specializations" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.experience} onChange={(value) => setTrainerFilters((current) => ({ ...current, experience: value }))} options={trainerFilterOptions.experience} allLabel="All Experience" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.batches} onChange={(value) => setTrainerFilters((current) => ({ ...current, batches: value }))} options={trainerFilterOptions.batches} allLabel="All Batches" />
+                    </FilterCell>
+                    <FilterCell>
+                      <ColumnFilter value={trainerFilters.status} onChange={(value) => setTrainerFilters((current) => ({ ...current, status: value }))} options={["Active", "Inactive"]} allLabel="All Statuses" />
+                    </FilterCell>
+                    <th className="px-3 py-2" aria-label="No filter for actions" />
                   </tr>
                 </thead>
 
@@ -3545,7 +3519,7 @@ function SummaryCard({
   description: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div className="skce-interactive-card group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">
@@ -3566,6 +3540,36 @@ function SummaryCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function FilterCell({ children }: { children: ReactNode }) {
+  return <th className="min-w-[125px] px-2.5 py-2 align-top">{children}</th>;
+}
+
+function ColumnFilter({
+  value,
+  onChange,
+  options,
+  allLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  allLabel: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={allLabel}
+      className="w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-medium text-slate-700 outline-none transition focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-100 hover:border-orange-200"
+    >
+      <option value="All">{allLabel}</option>
+      {options.map((option) => (
+        <option key={option} value={option}>{option || "Not provided"}</option>
+      ))}
+    </select>
   );
 }
 

@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import {
 
   Bell,
@@ -13,6 +11,7 @@ import {
   Edit3,
 
   Heart,
+
   ImageIcon,
 
   Loader2,
@@ -51,11 +50,7 @@ import {
 
 } from "react";
 
-
-
 type PostRole = "Admin" | "Trainer" | "Student";
-
-
 
 type CommunityPost = {
 
@@ -84,12 +79,12 @@ type CommunityPost = {
   pinned: boolean;
 
   liked: boolean;
+
   profilePhotoUrl?: string | null;
+
   imageUrl?: string | null;
 
 };
-
-
 
 type CommunityComment = {
 
@@ -108,11 +103,10 @@ type CommunityComment = {
   createdAt: string;
 
   updatedAt?: string;
+
   profilePhotoUrl?: string | null;
 
 };
-
-
 
 const TOPICS = [
 
@@ -136,19 +130,20 @@ const CREATE_TOPICS = [
 
 ];
 
-
-
 const API_URL =
 
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-
-
 function getPhotoUrl(photoUrl?: string | null) {
+
   if (!photoUrl) return null;
+
   if (photoUrl.startsWith("http://") || photoUrl.startsWith("https://")) return photoUrl;
+
   const backendUrl = API_URL.replace(/\/api\/?$/, "");
+
   return `${backendUrl}${photoUrl.startsWith("/") ? "" : "/"}${photoUrl}`;
+
 }
 
 export default function TrainerCommunityPage() {
@@ -162,14 +157,14 @@ export default function TrainerCommunityPage() {
   const [activeTopic, setActiveTopic] = useState("All Posts");
 
   const [newPost, setNewPost] = useState("");
+
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
+
   const [newPostImagePreview, setNewPostImagePreview] = useState<string | null>(null);
 
   const [selectedTopic, setSelectedTopic] =
 
     useState("General Discussion");
-
-
 
   const [loading, setLoading] = useState(true);
 
@@ -178,8 +173,6 @@ export default function TrainerCommunityPage() {
   const [error, setError] = useState("");
 
   const [trainerInitials, setTrainerInitials] = useState("TR");
-
-
 
   const [expandedPostId, setExpandedPostId] =
 
@@ -201,8 +194,6 @@ export default function TrainerCommunityPage() {
 
     useState<number | null>(null);
 
-
-
   const [editingPost, setEditingPost] =
 
     useState<CommunityPost | null>(null);
@@ -217,8 +208,6 @@ export default function TrainerCommunityPage() {
 
   const [editSubmitting, setEditSubmitting] = useState(false);
 
-
-
   const [deletePostId, setDeletePostId] =
 
     useState<number | null>(null);
@@ -226,8 +215,6 @@ export default function TrainerCommunityPage() {
   const [deleteSubmitting, setDeleteSubmitting] =
 
     useState(false);
-
-
 
   const [deleteCommentId, setDeleteCommentId] =
 
@@ -237,29 +224,46 @@ export default function TrainerCommunityPage() {
 
     useState(false);
 
-
-
   function handlePostImageChange(file?: File) {
+
     if (!file) return;
+
     const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
     if (!allowed.has(file.type)) {
+
       setError("Only JPG, PNG, WEBP, and GIF images are allowed.");
+
       return;
+
     }
+
     if (file.size > 5 * 1024 * 1024) {
+
       setError("Image size must be 5 MB or less.");
+
       return;
+
     }
+
     setError("");
+
     if (newPostImagePreview) URL.revokeObjectURL(newPostImagePreview);
+
     setNewPostImage(file);
+
     setNewPostImagePreview(URL.createObjectURL(file));
+
   }
 
   function clearPostImage() {
+
     if (newPostImagePreview) URL.revokeObjectURL(newPostImagePreview);
+
     setNewPostImage(null);
+
     setNewPostImagePreview(null);
+
   }
 
   function getToken() {
@@ -272,21 +276,15 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   function getCurrentUserId() {
 
     if (typeof window === "undefined") return null;
-
-
 
     try {
 
       const raw = localStorage.getItem("user");
 
       if (!raw) return null;
-
-
 
       const user = JSON.parse(raw) as {
 
@@ -295,8 +293,6 @@ export default function TrainerCommunityPage() {
         userId?: number;
 
       };
-
-
 
       const id = Number(user.id ?? user.userId);
 
@@ -310,13 +306,9 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   function clearAuthAndRedirect() {
 
     if (typeof window === "undefined") return;
-
-
 
     [
 
@@ -332,13 +324,9 @@ export default function TrainerCommunityPage() {
 
     ].forEach((key) => localStorage.removeItem(key));
 
-
-
     window.location.href = "/login";
 
   }
-
-
 
   async function authenticatedFetch(
 
@@ -350,8 +338,6 @@ export default function TrainerCommunityPage() {
 
     const token = getToken();
 
-
-
     if (!token) {
 
       clearAuthAndRedirect();
@@ -359,8 +345,6 @@ export default function TrainerCommunityPage() {
       throw new Error("Authentication required");
 
     }
-
-
 
     const response = await fetch(`${API_URL}${path}`, {
 
@@ -380,8 +364,6 @@ export default function TrainerCommunityPage() {
 
     });
 
-
-
     if (response.status === 401 || response.status === 403) {
 
       clearAuthAndRedirect();
@@ -390,23 +372,15 @@ export default function TrainerCommunityPage() {
 
     }
 
-
-
     return response;
 
   }
-
-
 
   function initialsFor(name: string) {
 
     const parts = name.trim().split(/\s+/).filter(Boolean);
 
-
-
     if (!parts.length) return "SK";
-
-
 
     return parts
 
@@ -418,8 +392,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   function normalizeRole(role: string): PostRole {
 
     if (role === "ADMIN") return "Admin";
@@ -430,19 +402,13 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   function formatTime(value: string | undefined) {
 
     if (!value) return "Just now";
 
-
-
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) return value;
-
-
 
     const diff = Date.now() - date.getTime();
 
@@ -451,8 +417,6 @@ export default function TrainerCommunityPage() {
     const hours = Math.floor(diff / 3600000);
 
     const days = Math.floor(diff / 86400000);
-
-
 
     if (minutes < 1) return "Just now";
 
@@ -466,19 +430,13 @@ export default function TrainerCommunityPage() {
 
       return `${days} day${days === 1 ? "" : "s"} ago`;
 
-
-
     return date.toLocaleDateString();
 
   }
 
-
-
   function mapPost(row: any): CommunityPost {
 
     const author = String(row?.author || "SKCE User");
-
-
 
     return {
 
@@ -507,20 +465,18 @@ export default function TrainerCommunityPage() {
       pinned: Boolean(row?.pinned ?? row?.isPinned),
 
       liked: Boolean(row?.liked ?? row?.likedByCurrentUser ?? row?.isLiked),
+
       profilePhotoUrl: row?.profilePhotoUrl ? String(row.profilePhotoUrl) : null,
+
       imageUrl: row?.imageUrl ? String(row.imageUrl) : null,
 
     };
 
   }
 
-
-
   function mapComment(row: any): CommunityComment {
 
     const author = String(row?.author || "SKCE User");
-
-
 
     return {
 
@@ -539,13 +495,12 @@ export default function TrainerCommunityPage() {
       createdAt: String(row?.createdAt || ""),
 
       updatedAt: row?.updatedAt ? String(row.updatedAt) : undefined,
+
       profilePhotoUrl: row?.profilePhotoUrl ? String(row.profilePhotoUrl) : null,
 
     };
 
   }
-
-
 
   useEffect(() => {
 
@@ -553,15 +508,11 @@ export default function TrainerCommunityPage() {
 
       const raw = localStorage.getItem("user");
 
-
-
       if (!raw) {
 
         return;
 
       }
-
-
 
       const user = JSON.parse(raw) as {
 
@@ -569,19 +520,13 @@ export default function TrainerCommunityPage() {
 
       };
 
-
-
       const name = user.name?.trim();
-
-
 
       if (!name) {
 
         return;
 
       }
-
-
 
       const initials = name
 
@@ -594,8 +539,6 @@ export default function TrainerCommunityPage() {
         .map((part) => part.charAt(0).toUpperCase())
 
         .join("");
-
-
 
       if (initials) {
 
@@ -611,8 +554,6 @@ export default function TrainerCommunityPage() {
 
   }, []);
 
-
-
   async function loadCommunityStats() {
 
     try {
@@ -625,8 +566,6 @@ export default function TrainerCommunityPage() {
 
       const result = await response.json();
 
-
-
       if (!response.ok || !result?.success) {
 
         throw new Error(
@@ -638,8 +577,6 @@ export default function TrainerCommunityPage() {
         );
 
       }
-
-
 
       setCommunityMembers(
 
@@ -657,8 +594,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -670,8 +605,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -687,8 +620,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function loadPosts() {
 
     try {
@@ -697,8 +628,6 @@ export default function TrainerCommunityPage() {
 
       setError("");
 
-
-
       const response = await authenticatedFetch(
 
         "/community/posts"
@@ -706,8 +635,6 @@ export default function TrainerCommunityPage() {
       );
 
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -721,15 +648,11 @@ export default function TrainerCommunityPage() {
 
       }
 
-
-
       const rows = Array.isArray(result.data)
 
         ? result.data
 
         : [];
-
-
 
       setPosts(rows.map(mapPost));
 
@@ -743,8 +666,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -756,8 +677,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -777,8 +696,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   useEffect(() => {
 
     void Promise.all([
@@ -791,8 +708,6 @@ export default function TrainerCommunityPage() {
 
   }, []);
 
-
-
   async function createPost() {
 
     const content = newPost.trim();
@@ -800,35 +715,50 @@ export default function TrainerCommunityPage() {
     if ((!content && !newPostImage) || submitting) return;
 
     try {
+
       setSubmitting(true);
+
       setError("");
 
       const title = content
+
         ? content.length > 80
+
           ? `${content.slice(0, 77)}...`
+
           : content
+
         : "Community Image Post";
 
       const formData = new FormData();
+
       formData.append("title", title);
+
       formData.append("content", content || "");
+
       formData.append("topic", selectedTopic);
 
       if (newPostImage) {
+
         formData.append("image", newPostImage);
+
       }
 
       const response = await authenticatedFetch(
+
         "/community/posts",
+
         {
+
           method: "POST",
+
           body: formData,
+
         }
+
       );
 
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -841,8 +771,6 @@ export default function TrainerCommunityPage() {
         );
 
       }
-
-
 
       setNewPost("");
 
@@ -862,8 +790,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -875,8 +801,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -896,15 +820,11 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function toggleLike(post: CommunityPost) {
 
     try {
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -918,11 +838,7 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -936,8 +852,6 @@ export default function TrainerCommunityPage() {
 
       }
 
-
-
       await loadPosts();
 
     } catch (err) {
@@ -950,8 +864,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -963,8 +875,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -980,8 +890,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function toggleComments(postId: number) {
 
     if (expandedPostId === postId) {
@@ -992,23 +900,15 @@ export default function TrainerCommunityPage() {
 
     }
 
-
-
     setExpandedPostId(postId);
 
-
-
     if (commentsByPost[postId]) return;
-
-
 
     try {
 
       setCommentsLoading(postId);
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -1017,8 +917,6 @@ export default function TrainerCommunityPage() {
       );
 
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -1030,15 +928,11 @@ export default function TrainerCommunityPage() {
 
       }
 
-
-
       const rows = Array.isArray(result.data)
 
         ? result.data
 
         : [];
-
-
 
       setCommentsByPost((current) => ({
 
@@ -1058,8 +952,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -1071,8 +963,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -1092,8 +982,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function createComment(postId: number) {
 
     const content = (
@@ -1102,23 +990,17 @@ export default function TrainerCommunityPage() {
 
     ).trim();
 
-
-
     if (!content || commentSubmitting === postId) {
 
       return;
 
     }
 
-
-
     try {
 
       setCommentSubmitting(postId);
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -1134,11 +1016,7 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -1150,8 +1028,6 @@ export default function TrainerCommunityPage() {
 
       }
 
-
-
       setCommentDrafts((current) => ({
 
         ...current,
@@ -1159,8 +1035,6 @@ export default function TrainerCommunityPage() {
         [postId]: "",
 
       }));
-
-
 
       await loadComments(postId);
 
@@ -1176,8 +1050,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -1189,8 +1061,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -1210,8 +1080,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function loadComments(postId: number) {
 
     const response = await authenticatedFetch(
@@ -1221,8 +1089,6 @@ export default function TrainerCommunityPage() {
     );
 
     const result = await response.json();
-
-
 
     if (!response.ok || !result?.success) {
 
@@ -1234,15 +1100,11 @@ export default function TrainerCommunityPage() {
 
     }
 
-
-
     const rows = Array.isArray(result.data)
 
       ? result.data
 
       : [];
-
-
 
     setCommentsByPost((current) => ({
 
@@ -1253,8 +1115,6 @@ export default function TrainerCommunityPage() {
     }));
 
   }
-
-
 
   function openEdit(post: CommunityPost) {
 
@@ -1270,13 +1130,9 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   function closeEdit() {
 
     if (editSubmitting) return;
-
-
 
     setEditingPost(null);
 
@@ -1288,23 +1144,15 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function saveEdit(event?: FormEvent) {
 
     event?.preventDefault();
 
-
-
     if (!editingPost || editSubmitting) return;
-
-
 
     const title = editTitle.trim();
 
     const content = editContent.trim();
-
-
 
     if (!title || !content) {
 
@@ -1314,15 +1162,11 @@ export default function TrainerCommunityPage() {
 
     }
 
-
-
     try {
 
       setEditSubmitting(true);
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -1346,11 +1190,7 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -1361,8 +1201,6 @@ export default function TrainerCommunityPage() {
         );
 
       }
-
-
 
       closeEdit();
 
@@ -1378,8 +1216,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -1391,8 +1227,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -1412,21 +1246,15 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function confirmDeletePost() {
 
     if (!deletePostId || deleteSubmitting) return;
-
-
 
     try {
 
       setDeleteSubmitting(true);
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -1436,11 +1264,7 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -1454,19 +1278,13 @@ export default function TrainerCommunityPage() {
 
       }
 
-
-
       setDeletePostId(null);
-
-
 
       if (expandedPostId === deletePostId) {
 
         setExpandedPostId(null);
 
       }
-
-
 
       await loadPosts();
 
@@ -1480,8 +1298,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -1493,8 +1309,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -1514,8 +1328,6 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   async function confirmDeleteComment(
 
     postId: number
@@ -1534,15 +1346,11 @@ export default function TrainerCommunityPage() {
 
     }
 
-
-
     try {
 
       setDeleteCommentSubmitting(true);
 
       setError("");
-
-
 
       const response = await authenticatedFetch(
 
@@ -1552,11 +1360,7 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       const result = await response.json();
-
-
 
       if (!response.ok || !result?.success) {
 
@@ -1569,8 +1373,6 @@ export default function TrainerCommunityPage() {
         );
 
       }
-
-
 
       setDeleteCommentId(null);
 
@@ -1588,8 +1390,6 @@ export default function TrainerCommunityPage() {
 
       );
 
-
-
       if (
 
         err instanceof Error &&
@@ -1601,8 +1401,6 @@ export default function TrainerCommunityPage() {
         return;
 
       }
-
-
 
       setError(
 
@@ -1622,17 +1420,11 @@ export default function TrainerCommunityPage() {
 
   }
 
-
-
   const currentUserId = getCurrentUserId();
-
-
 
   const filteredPosts = useMemo(() => {
 
     const query = search.trim().toLowerCase();
-
-
 
     return posts.filter((post) => {
 
@@ -1646,15 +1438,11 @@ export default function TrainerCommunityPage() {
 
         post.author.toLowerCase().includes(query);
 
-
-
       const matchesTopic =
 
         activeTopic === "All Posts" ||
 
         post.topic === activeTopic;
-
-
 
       return matchesSearch && matchesTopic;
 
@@ -1662,11 +1450,7 @@ export default function TrainerCommunityPage() {
 
   }, [activeTopic, posts, search]);
 
-
-
   const pinnedPost = posts.find((post) => post.pinned);
-
-
 
   const topicCounts = TOPICS.reduce<
 
@@ -1684,89 +1468,36 @@ export default function TrainerCommunityPage() {
 
   }, {});
 
-
-
   return (
 
     <>
 
-      <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="trainer-community-page min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
 
         <div className="mx-auto max-w-[1500px]">
-
-          <div className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
-
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-
-              <div>
-
-                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
-
-                  <BookOpen size={17} />
-
-                  Trainer Portal
-
-                </div>
-
-
-
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-
-                  Community
-
-                </h1>
-
-
-
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
-
-                  Connect with students, trainers and the
-
-                  SKCE team. Share knowledge, answer
-
-                  questions and support the learning
-
-                  community.
-
-                </p>
-
-              </div>
-
-
-
-              <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-4 py-3">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-200">
-
-                  <Users size={20} />
-
-                </div>
-
-                <div>
-
-                  <p className="text-xs text-blue-100">
-
-                    Community discussions
-
-                  </p>
-
-                  <p className="text-xl font-bold">
-
-                    {posts.length}
-
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-
-          {error ? (
+               <section className="tc-hero mb-7 rounded-2xl bg-[#173B67] p-6 text-white shadow-sm sm:p-8 lg:p-10">
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "32px" }}>
+                     <div style={{ flex: "1 1 420px", minWidth: 0, maxWidth: "720px", textAlign: "left" }}>
+                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-orange-200">
+                           <BookOpen size={18} />
+                           <span>Trainer Portal</span>
+                        </div>
+                        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ textAlign: "left" }}>Community</h1>
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base" style={{ textAlign: "left" }}>
+                           Connect with students, trainers and the SKCE team. Share knowledge, answer questions, and support the learning community.
+                        </p>
+                     </div>
+                     <div className="flex items-center gap-4 rounded-2xl border border-white/15 bg-white/10 px-5 py-4" style={{ flex: "0 1 320px", minWidth: "260px", boxSizing: "border-box" }}>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-200"><Users size={22} /></div>
+                        <div style={{ minWidth: 0, textAlign: "left" }}>
+                           <p className="text-xs font-medium text-blue-100" style={{ textAlign: "left" }}>Community discussions</p>
+                           <p className="mt-1 text-2xl font-bold" style={{ textAlign: "left" }}>{posts.length}</p>
+                           <p className="mt-0.5 text-xs text-blue-100/80" style={{ textAlign: "left" }}>Shared conversations</p>
+                        </div>
+                     </div>
+                  </div>
+               </section>
+               {error ? (
 
             <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
 
@@ -1790,9 +1521,7 @@ export default function TrainerCommunityPage() {
 
           ) : null}
 
-
-
-          <section className="mb-7 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="tc-stats mb-7 grid grid-cols-1 gap-4 md:grid-cols-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "16px", width: "100%", alignItems: "stretch" }}>
 
             <StatCard
 
@@ -1842,15 +1571,13 @@ export default function TrainerCommunityPage() {
 
           </section>
 
-
-
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
 
             <div className="min-w-0">
 
               {pinnedPost ? (
 
-                <section className="mb-6 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm">
+                <section className="tc-pinned mb-6 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm">
 
                   <div className="mb-3 flex items-center justify-between gap-3">
 
@@ -1870,15 +1597,11 @@ export default function TrainerCommunityPage() {
 
                   </div>
 
-
-
                   <h2 className="text-lg font-bold text-slate-900">
 
                     {pinnedPost.title}
 
                   </h2>
-
-
 
                   <p className="mt-2 text-sm leading-6 text-slate-600">
 
@@ -1887,32 +1610,36 @@ export default function TrainerCommunityPage() {
                   </p>
 
                   {pinnedPost.imageUrl ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-orange-200 bg-white">
+
+                    <div className="tc-post-image tc-pinned-image mt-4 overflow-hidden rounded-xl border border-orange-200 bg-white">
+
                       <img
+
                         src={getPhotoUrl(pinnedPost.imageUrl) as string}
+
                         alt="Pinned post attachment"
+
                         className="mx-auto block max-h-[260px] w-full object-contain"
+
                       />
+
                     </div>
+
                   ) : null}
 
                 </section>
 
               ) : null}
 
-
-
-              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="tc-composer mb-6 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md">
 
                 <div className="mb-4 flex items-center gap-3">
 
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1BAA5E] text-sm font-bold text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F97316] text-sm font-bold text-white">
 
                     {trainerInitials}
 
                   </div>
-
-
 
                   <div>
 
@@ -1934,8 +1661,6 @@ export default function TrainerCommunityPage() {
 
                 </div>
 
-
-
                 <textarea
 
                   value={newPost}
@@ -1950,43 +1675,61 @@ export default function TrainerCommunityPage() {
 
                   rows={4}
 
-                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#1BAA5E] focus:bg-white focus:ring-2 focus:ring-[#1BAA5E]/10"
+                  className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/10"
 
                 />
 
-
-
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+
                     <ImageIcon size={15} /> Add image
+
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(event) => handlePostImageChange(event.target.files?.[0])} />
+
                   </label>
+
                   {newPostImagePreview ? <button type="button" onClick={clearPostImage} className="rounded-lg px-2 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">Remove</button> : null}
+
                 </div>
+
                 {newPostImagePreview ? (
-                  <div className="relative mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+
+                  <div className="tc-preview-image relative mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+
                     <img src={newPostImagePreview} alt="Selected attachment preview" className="max-h-56 w-full object-contain" />
+
                     <button type="button" onClick={clearPostImage} className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white"><X size={15} /></button>
+
                   </div>
+
                 ) : null}
 
                 <div className="mt-3">
+
                   <select
+
                     value={selectedTopic}
+
                     onChange={(event) => setSelectedTopic(event.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-[#1BAA5E] sm:w-auto"
+
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-orange-500 sm:w-auto"
+
                   >
+
                     {CREATE_TOPICS.map((topic) => (
+
                       <option key={topic} value={topic}>{topic}</option>
+
                     ))}
+
                   </select>
+
                 </div>
 
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                   <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 sm:w-auto">General Discussion</div>
-
-
 
                   <button
 
@@ -2000,7 +1743,7 @@ export default function TrainerCommunityPage() {
 
                     }
 
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#1BAA5E] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#169451] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F97316] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-50"
 
                   >
 
@@ -2028,8 +1771,6 @@ export default function TrainerCommunityPage() {
 
               </section>
 
-
-
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 
                 <div>
@@ -2055,8 +1796,6 @@ export default function TrainerCommunityPage() {
                   </p>
 
                 </div>
-
-
 
                 <div className="flex flex-wrap gap-2">
 
@@ -2084,9 +1823,9 @@ export default function TrainerCommunityPage() {
 
                         activeTopic === topic
 
-                          ? "bg-[#1BAA5E] text-white shadow-sm"
+                          ? "bg-[#F97316] text-white shadow-sm"
 
-                          : "border border-slate-200 bg-white text-slate-600 hover:border-[#1BAA5E]/30 hover:text-[#1BAA5E]"
+                          : "border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-[#F97316]"
 
                       }`}
 
@@ -2102,8 +1841,6 @@ export default function TrainerCommunityPage() {
 
               </div>
 
-
-
               {loading ? (
 
                 <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
@@ -2114,7 +1851,7 @@ export default function TrainerCommunityPage() {
 
                       size={30}
 
-                      className="mx-auto animate-spin text-[#1BAA5E]"
+                      className="mx-auto animate-spin text-[#F97316]"
 
                     />
 
@@ -2164,15 +1901,13 @@ export default function TrainerCommunityPage() {
 
                       post.authorId === currentUserId;
 
-
-
                     return (
 
                       <article
 
                         key={post.id}
 
-                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                        className="tc-post rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
 
                       >
 
@@ -2183,18 +1918,24 @@ export default function TrainerCommunityPage() {
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-sm font-bold text-slate-600">
 
                               {getPhotoUrl(post.profilePhotoUrl) ? (
+
                                 <img
+
                                   src={getPhotoUrl(post.profilePhotoUrl) as string}
+
                                   alt={post.author}
+
                                   className="h-full w-full object-cover"
+
                                 />
+
                               ) : (
+
                                 post.initials
+
                               )}
 
                             </div>
-
-
 
                             <div className="min-w-0">
 
@@ -2206,13 +1947,9 @@ export default function TrainerCommunityPage() {
 
                                 </span>
 
-
-
                                 <RoleBadge role={post.role} />
 
                               </div>
-
-
 
                               <p className="mt-0.5 text-xs text-slate-400">
 
@@ -2228,8 +1965,6 @@ export default function TrainerCommunityPage() {
 
                           </div>
 
-
-
                           {isOwner ? (
 
                             <div className="relative">
@@ -2241,8 +1976,6 @@ export default function TrainerCommunityPage() {
                                   <MoreHorizontal size={18} />
 
                                 </summary>
-
-
 
                                 <div className="absolute right-0 top-9 z-20 w-32 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
 
@@ -2265,8 +1998,6 @@ export default function TrainerCommunityPage() {
                                     Edit
 
                                   </button>
-
-
 
                                   <button
 
@@ -2302,8 +2033,6 @@ export default function TrainerCommunityPage() {
 
                         </div>
 
-
-
                         <div className="mt-4">
 
                           <h3 className="text-base font-bold text-slate-900">
@@ -2312,8 +2041,6 @@ export default function TrainerCommunityPage() {
 
                           </h3>
 
-
-
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
 
                             {post.content}
@@ -2321,18 +2048,24 @@ export default function TrainerCommunityPage() {
                           </p>
 
                           {post.imageUrl ? (
-                            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+
+                            <div className="tc-post-image mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+
                               <img
+
                                 src={getPhotoUrl(post.imageUrl) as string}
+
                                 alt="Community post attachment"
+
                                 className="mx-auto block max-h-[360px] w-full object-contain"
+
                               />
+
                             </div>
+
                           ) : null}
 
                         </div>
-
-
 
                         <div className="mt-4 flex items-center gap-5 border-t border-slate-100 pt-3">
 
@@ -2384,8 +2117,6 @@ export default function TrainerCommunityPage() {
 
                           </button>
 
-
-
                           <button
 
                             type="button"
@@ -2396,7 +2127,7 @@ export default function TrainerCommunityPage() {
 
                             }
 
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-[#1BAA5E]"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-[#F97316]"
 
                           >
 
@@ -2413,8 +2144,6 @@ export default function TrainerCommunityPage() {
                           </button>
 
                         </div>
-
-
 
                         {expandedPostId === post.id ? (
 
@@ -2502,11 +2231,9 @@ export default function TrainerCommunityPage() {
 
             </div>
 
+            <aside className="tc-sidebar space-y-5">
 
-
-            <aside className="space-y-5">
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md">
 
                 <SideHeading
 
@@ -2517,8 +2244,6 @@ export default function TrainerCommunityPage() {
                   subtitle="Search the community feed"
 
                 />
-
-
 
                 <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
 
@@ -2550,9 +2275,7 @@ export default function TrainerCommunityPage() {
 
               </div>
 
-
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md">
 
                 <SideHeading
 
@@ -2563,8 +2286,6 @@ export default function TrainerCommunityPage() {
                   subtitle="Browse discussions by theme"
 
                 />
-
-
 
                 <div className="mt-4 space-y-2">
 
@@ -2583,8 +2304,6 @@ export default function TrainerCommunityPage() {
                     }
 
                   />
-
-
 
                   {TOPICS.map((topic) => (
 
@@ -2612,9 +2331,7 @@ export default function TrainerCommunityPage() {
 
               </div>
 
-
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md">
 
                 <SideHeading
 
@@ -2625,8 +2342,6 @@ export default function TrainerCommunityPage() {
                   subtitle="Keep the learning space useful"
 
                 />
-
-
 
                 <div className="mt-4 space-y-3">
 
@@ -2666,9 +2381,7 @@ export default function TrainerCommunityPage() {
 
               </div>
 
-
-
-              <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+              <div className="tc-team-panel rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#173B67] shadow-sm">
 
@@ -2702,8 +2415,6 @@ export default function TrainerCommunityPage() {
 
       </main>
 
-
-
       {editingPost ? (
 
         <Modal onClose={closeEdit}>
@@ -2728,8 +2439,6 @@ export default function TrainerCommunityPage() {
 
               </div>
 
-
-
               <button
 
                 type="button"
@@ -2745,8 +2454,6 @@ export default function TrainerCommunityPage() {
               </button>
 
             </div>
-
-
 
             <div className="space-y-4 p-5">
 
@@ -2768,13 +2475,11 @@ export default function TrainerCommunityPage() {
 
                   }
 
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#1BAA5E] focus:ring-2 focus:ring-[#1BAA5E]/10"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
 
                 />
 
               </div>
-
-
 
               <div>
 
@@ -2784,15 +2489,17 @@ export default function TrainerCommunityPage() {
 
                 </label>
 
-                <select value={editTopic} onChange={(event) => setEditTopic(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-[#1BAA5E]">
+                <select value={editTopic} onChange={(event) => setEditTopic(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-orange-500">
+
                   {CREATE_TOPICS.map((topic) => (
+
                     <option key={topic} value={topic}>{topic}</option>
+
                   ))}
+
                 </select>
 
               </div>
-
-
 
               <div>
 
@@ -2814,15 +2521,13 @@ export default function TrainerCommunityPage() {
 
                   rows={6}
 
-                  className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-[#1BAA5E] focus:ring-2 focus:ring-[#1BAA5E]/10"
+                  className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm leading-6 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
 
                 />
 
               </div>
 
             </div>
-
-
 
             <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
 
@@ -2840,15 +2545,13 @@ export default function TrainerCommunityPage() {
 
               </button>
 
-
-
               <button
 
                 type="submit"
 
                 disabled={editSubmitting}
 
-                className="inline-flex items-center gap-2 rounded-lg bg-[#1BAA5E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#169451] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white hover:bg-[#EA580C] disabled:opacity-50"
 
               >
 
@@ -2884,8 +2587,6 @@ export default function TrainerCommunityPage() {
 
       ) : null}
 
-
-
       {deletePostId ? (
 
         <ConfirmModal
@@ -2903,8 +2604,6 @@ export default function TrainerCommunityPage() {
         />
 
       ) : null}
-
-
 
       {deleteCommentId ? (
 
@@ -2924,8 +2623,6 @@ export default function TrainerCommunityPage() {
 
               expandedPostId || 0;
 
-
-
             if (postId) {
 
               void confirmDeleteComment(postId);
@@ -2938,13 +2635,36 @@ export default function TrainerCommunityPage() {
 
       ) : null}
 
+
+      <style jsx global>{`
+        .trainer-community-page{--skce-navy:#173B67;--skce-orange:#F97316;--skce-orange-deep:#EA580C;--skce-gold:#D7A94B;color:#183653}
+        .trainer-community-page .tc-hero{position:relative;isolation:isolate;overflow:hidden;border:1px solid rgba(255,255,255,.14);border-bottom:4px solid var(--skce-orange);border-radius:22px;background:linear-gradient(112deg,#202334 0%,#173B67 56%,#244f80 100%);box-shadow:0 16px 34px rgba(15,47,95,.13);padding:30px 32px!important}
+        .trainer-community-page .tc-hero:after{content:"";position:absolute;z-index:-1;right:-90px;top:-190px;width:390px;height:390px;border:1px solid rgba(255,255,255,.13);border-radius:50%;box-shadow:0 0 0 20px rgba(255,255,255,.025),0 0 0 44px rgba(255,255,255,.025),0 0 0 68px rgba(255,255,255,.02);pointer-events:none}
+        .trainer-community-page .tc-hero h1{font-size:clamp(28px,2.4vw,36px);line-height:1.15;letter-spacing:-.035em}
+        .trainer-community-page .tc-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important}
+        .trainer-community-page .tc-stats>div{min-height:112px;border-color:#DFE8F4;border-radius:17px;background:linear-gradient(135deg,#fff 0%,#fff 68%,#FFF8F0 100%);box-shadow:0 3px 10px rgba(15,47,95,.045);transition:transform .2s ease,box-shadow .2s ease}
+        .trainer-community-page .tc-stats>div:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,47,95,.09)}
+        .trainer-community-page .tc-stats>div:nth-child(1) .rounded-xl{background:#EDF4FF!important;color:var(--skce-navy)!important}.trainer-community-page .tc-stats>div:nth-child(2) .rounded-xl{background:#FFF0E3!important;color:var(--skce-orange-deep)!important}.trainer-community-page .tc-stats>div:nth-child(3) .rounded-xl{background:#FFF6DF!important;color:#946B13!important}
+        .trainer-community-page .tc-pinned{border:1px solid #F3D3A9!important;border-left:4px solid var(--skce-orange)!important;border-radius:16px!important;background:linear-gradient(120deg,#FFF7EC 0%,#fff 68%,#F4F7FC 100%)!important;box-shadow:0 4px 14px rgba(15,47,95,.045)}
+        .trainer-community-page .tc-composer{border:1px solid #DCE6F4;border-radius:17px;background:linear-gradient(135deg,#fff 0%,#fff 75%,#FFF8F0 100%);box-shadow:0 3px 12px rgba(15,47,95,.045)}
+        .trainer-community-page .tc-composer textarea:focus,.trainer-community-page input:focus,.trainer-community-page select:focus{outline:none;border-color:var(--skce-orange)!important;box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+        .trainer-community-page .tc-post{position:relative;min-width:0;padding:18px 20px 14px;border:1px solid #DCE6F4;border-left:4px solid var(--skce-navy);border-radius:16px;background:linear-gradient(115deg,#F3F7FD 0%,#fff 52%);box-shadow:0 3px 8px rgba(15,47,95,.05);scroll-margin-top:90px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+        .trainer-community-page .tc-post:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,47,95,.09);border-color:#B8CDE8}
+        .trainer-community-page .tc-post:nth-child(4n + 2){border-left-color:var(--skce-orange);background:linear-gradient(115deg,#FFF7EF 0%,#fff 55%)}.trainer-community-page .tc-post:nth-child(4n + 3){border-left-color:var(--skce-gold);background:linear-gradient(115deg,#FFFAEB 0%,#fff 55%)}.trainer-community-page .tc-post:nth-child(4n + 4){border-left-color:#7E3448;background:linear-gradient(115deg,#FCF3F5 0%,#fff 55%)}
+        .trainer-community-page .tc-post h3{color:var(--skce-navy);font-size:16px;line-height:1.4}
+        .trainer-community-page .tc-post-image{width:min(100%,560px);margin-top:14px;overflow:hidden;border:1px solid #D7E2F0;border-radius:12px;background:linear-gradient(135deg,#F6F8FC,#fff);box-shadow:0 3px 10px rgba(15,47,95,.04)}
+        .trainer-community-page .tc-post-image img{display:block;width:100%;height:260px;max-height:260px;margin:0 auto;object-fit:contain;object-position:center;background:#fff}
+        .trainer-community-page .tc-pinned-image{border-color:#F0D6B5!important}.trainer-community-page .tc-preview-image{width:min(100%,440px);background:#fff}.trainer-community-page .tc-preview-image img{display:block;width:100%;height:220px;max-height:220px;object-fit:contain;background:#fff}
+        .trainer-community-page .tc-sidebar>div{border-color:#DFE8F4;border-radius:16px;box-shadow:0 3px 10px rgba(15,47,95,.04)}.trainer-community-page .tc-team-panel{border-color:#D7E3F3!important;background:linear-gradient(130deg,#F1F6FD,#fff 75%,#FFF6EC)!important}.trainer-community-page .tc-team-panel h3{color:var(--skce-navy)}
+        @media(max-width:900px){.trainer-community-page .tc-hero{padding:24px!important}.trainer-community-page .tc-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+        @media(max-width:560px){.trainer-community-page{padding-left:12px!important;padding-right:12px!important}.trainer-community-page .tc-hero{padding:22px 18px!important;border-radius:17px}.trainer-community-page .tc-stats{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}.trainer-community-page .tc-stats>div{min-height:92px;padding:16px}.trainer-community-page .tc-post{padding:14px 13px 12px;border-radius:14px}.trainer-community-page .tc-post-image{width:100%}.trainer-community-page .tc-post-image img{height:220px;max-height:220px}.trainer-community-page .tc-preview-image img{height:190px;max-height:190px}}
+        @media(prefers-reduced-motion:reduce){.trainer-community-page .tc-post,.trainer-community-page .tc-stats>div{transition:none!important}}
+      `}</style>
     </>
 
   );
 
 }
-
-
 
 function StatCard({
 
@@ -2974,9 +2694,8 @@ function StatCard({
 
   return (
 
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md" style={{ minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+      <div className="flex items-center gap-4" style={{ display: "flex", alignItems: "center", gap: "16px", justifyContent: "flex-start", textAlign: "left" }}>
 
         <div
 
@@ -2988,28 +2707,10 @@ function StatCard({
 
         </div>
 
-
-
-        <div>
-
-          <p className="text-xs font-medium text-slate-400">
-
-            {label}
-
-          </p>
-
-          <p className="mt-1 text-2xl font-bold text-slate-900">
-
-            {value}
-
-          </p>
-
-          <p className="mt-0.5 text-[11px] text-slate-400">
-
-            {description}
-
-          </p>
-
+        <div style={{ minWidth: 0, textAlign: "left" }}>
+          <p className="text-xs font-medium text-slate-400" style={{ textAlign: "left" }}>{label}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900" style={{ textAlign: "left" }}>{value}</p>
+          <p className="mt-0.5 text-[11px] text-slate-400" style={{ textAlign: "left" }}>{description}</p>
         </div>
 
       </div>
@@ -3019,8 +2720,6 @@ function StatCard({
   );
 
 }
-
-
 
 function RoleBadge({ role }: { role: PostRole }) {
 
@@ -3032,11 +2731,9 @@ function RoleBadge({ role }: { role: PostRole }) {
 
       : role === "Trainer"
 
-        ? "bg-emerald-50 text-emerald-700"
+        ? "bg-orange-50 text-orange-700"
 
         : "bg-slate-100 text-slate-600";
-
-
 
   return (
 
@@ -3053,8 +2750,6 @@ function RoleBadge({ role }: { role: PostRole }) {
   );
 
 }
-
-
 
 function CommentsSection({
 
@@ -3104,7 +2799,7 @@ function CommentsSection({
 
           size={15}
 
-          className="text-[#1BAA5E]"
+          className="text-[#F97316]"
 
         />
 
@@ -3116,8 +2811,6 @@ function CommentsSection({
 
       </div>
 
-
-
       {loading ? (
 
         <div className="flex items-center justify-center py-6">
@@ -3126,7 +2819,7 @@ function CommentsSection({
 
             size={20}
 
-            className="animate-spin text-[#1BAA5E]"
+            className="animate-spin text-[#F97316]"
 
           />
 
@@ -3152,8 +2845,6 @@ function CommentsSection({
 
               comment.authorId === currentUserId;
 
-
-
             return (
 
               <div
@@ -3169,14 +2860,18 @@ function CommentsSection({
                   <div className="flex min-w-0 items-center gap-2">
 
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+
                         {getPhotoUrl(comment.profilePhotoUrl) ? (
+
                           <img src={getPhotoUrl(comment.profilePhotoUrl) as string} alt={comment.author} className="h-full w-full object-cover" />
+
                         ) : (
+
                           comment.author.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("")
+
                         )}
+
                       </div>
-
-
 
                     <div className="min-w-0">
 
@@ -3206,8 +2901,6 @@ function CommentsSection({
 
                   </div>
 
-
-
                   {isOwner ? (
 
                     <button
@@ -3234,8 +2927,6 @@ function CommentsSection({
 
                 </div>
 
-
-
                 <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-slate-600">
 
                   {comment.content}
@@ -3251,8 +2942,6 @@ function CommentsSection({
         </div>
 
       )}
-
-
 
       <div className="mt-3 flex gap-2">
 
@@ -3286,11 +2975,9 @@ function CommentsSection({
 
           placeholder="Write a reply..."
 
-          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#1BAA5E] focus:ring-2 focus:ring-[#1BAA5E]/10"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
 
         />
-
-
 
         <button
 
@@ -3300,7 +2987,7 @@ function CommentsSection({
 
           disabled={!draft.trim() || submitting}
 
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#1BAA5E] px-3 text-white hover:bg-[#169451] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#F97316] px-3 text-white hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-50"
 
           title="Send reply"
 
@@ -3332,8 +3019,6 @@ function CommentsSection({
 
 }
 
-
-
 function SideHeading({
 
   icon: Icon,
@@ -3356,13 +3041,11 @@ function SideHeading({
 
     <div className="flex items-start gap-3">
 
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[#1BAA5E]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#F97316]">
 
         <Icon size={17} />
 
       </div>
-
-
 
       <div>
 
@@ -3385,8 +3068,6 @@ function SideHeading({
   );
 
 }
-
-
 
 function TopicButton({
 
@@ -3422,7 +3103,7 @@ function TopicButton({
 
         active
 
-          ? "border-emerald-100 bg-emerald-50 text-[#1BAA5E]"
+          ? "border-orange-100 bg-orange-50 text-[#F97316]"
 
           : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
 
@@ -3438,7 +3119,7 @@ function TopicButton({
 
           active
 
-            ? "bg-white text-[#1BAA5E]"
+            ? "bg-white text-[#F97316]"
 
             : "bg-white text-slate-400"
 
@@ -3455,8 +3136,6 @@ function TopicButton({
   );
 
 }
-
-
 
 function Guideline({
 
@@ -3494,8 +3173,6 @@ function Guideline({
 
 }
 
-
-
 function Modal({
 
   children,
@@ -3526,8 +3203,6 @@ function Modal({
 
       />
 
-
-
       <div className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
 
         {children}
@@ -3539,8 +3214,6 @@ function Modal({
   );
 
 }
-
-
 
 function ConfirmModal({
 
@@ -3580,23 +3253,17 @@ function ConfirmModal({
 
         </div>
 
-
-
         <h2 className="mt-4 text-base font-bold text-slate-900">
 
           {title}
 
         </h2>
 
-
-
         <p className="mt-1 text-sm leading-6 text-slate-500">
 
           {message}
 
         </p>
-
-
 
         <div className="mt-5 flex justify-end gap-2">
 
@@ -3615,8 +3282,6 @@ function ConfirmModal({
             Cancel
 
           </button>
-
-
 
           <button
 
@@ -3660,19 +3325,13 @@ function ConfirmModal({
 
 }
 
-
-
 function formatCommentTime(value: string) {
 
   if (!value) return "Just now";
 
-
-
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) return value;
-
-
 
   const diff = Date.now() - date.getTime();
 
@@ -3681,8 +3340,6 @@ function formatCommentTime(value: string) {
   const hours = Math.floor(diff / 3600000);
 
   const days = Math.floor(diff / 86400000);
-
-
 
   if (minutes < 1) return "Just now";
 
@@ -3695,8 +3352,6 @@ function formatCommentTime(value: string) {
   if (days < 7)
 
     return `${days} day${days === 1 ? "" : "s"} ago`;
-
-
 
   return date.toLocaleDateString();
 
