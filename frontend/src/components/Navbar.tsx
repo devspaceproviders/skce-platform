@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -14,6 +15,33 @@ const NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
+
+
+/* Social icons in the SKCE navy / blue / orange palette. */
+function SocialGlyph({ name }: { name: "instagram" | "facebook" | "youtube" }) {
+  if (name === "facebook") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
+        <path fill="#fff" d="M13.5 21.5v-7.6h2.5l.4-3h-2.9V8.9c0-.9.3-1.5 1.5-1.5h1.5V4.7c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.5H8.1v3h2.5v7.6h2.9z" />
+      </svg>
+    );
+  }
+  if (name === "youtube") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-[24px] w-[24px]" aria-hidden="true">
+        <rect x="2.5" y="5.5" width="19" height="13" rx="4" fill="#fff" />
+        <path fill="#F97316" d="M10.2 9.2v5.6l4.9-2.8z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3.9" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <circle cx="17" cy="7" r="1.2" fill="#F97316" />
+    </svg>
+  );
+}
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -130,6 +158,25 @@ export default function Navbar() {
             Register Now
             <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
+
+          <span aria-hidden="true" className="mx-1 h-8 w-px bg-slate-200" />
+
+          <div className="flex items-center gap-2.5">
+            {SOCIAL_LINKS.map(({ key, label, href }) => (
+              <a
+                key={key}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="group relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#0B2A55] via-[#0F2F5F] to-[#1459B8] shadow-md shadow-blue-900/25 ring-1 ring-[#0F2F5F]/20 transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2"
+              >
+                <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-br from-[#F97316] to-[#FB8A2E] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                <span className="relative transition-transform duration-200 group-hover:scale-110"><SocialGlyph name={key} /></span>
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* Tablet / Mobile Actions */}
