@@ -168,6 +168,14 @@ export default function PublicShell({
             radial-gradient(800px 360px at -5% 110%, rgba(37, 99, 235, 0.4), transparent 60%),
             linear-gradient(135deg, #071c3a 0%, #0f2f5f 50%, #173b67 100%) !important;
         }
+        /* Use the width of large screens instead of leaving wide empty sides. */
+        @media (min-width: 1280px) {
+          .sk-public .max-w-7xl {
+            max-width: 1900px;
+            padding-left: clamp(1.5rem, 3.5vw, 4rem);
+            padding-right: clamp(1.5rem, 3.5vw, 4rem);
+          }
+        }
         .sk-public footer { overflow: hidden; }
         .sk-public footer::after,
         .sk-public section[class*="bg-[#173B67]"]::after {

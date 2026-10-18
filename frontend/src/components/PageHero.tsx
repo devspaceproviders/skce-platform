@@ -20,17 +20,18 @@ export default function PageHero({
   eyebrow,
   title,
   description,
-  align = "center",
+  align: _align = "center",
   contentWidth = "max-w-3xl",
   children,
 }: PageHeroProps) {
-  const center = align === "center";
+  // Page headers are always centred so every inner page matches.
+  const center = true;
 
   return (
     <section className="relative isolate overflow-hidden bg-gradient-to-br from-[#071C3A] via-[#0F2F5F] to-[#173B67] px-6 py-14 text-white sm:py-16">
       {/* Animated navy backdrop */}
       <div className="sk-dots pointer-events-none absolute inset-0 -z-10" />
-      <div className="sk-hero-orb pointer-events-none absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full bg-orange-500/25 blur-3xl" />
+      <div className="sk-hero-orb pointer-events-none absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full bg-sky-400/25 blur-3xl" />
       <div className="sk-hero-orb-2 pointer-events-none absolute -bottom-28 -left-16 -z-10 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-orange-500 via-blue-500 to-[#0B2A52]" />
 

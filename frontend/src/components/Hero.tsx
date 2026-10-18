@@ -130,7 +130,9 @@ export default function Hero() {
               className="sk-rise mt-5 max-w-2xl text-base leading-7 text-blue-50/90 sm:text-lg"
               style={{ animationDelay: "180ms" }}
             >
-              Empowering learners with practical skills, hands-on training, and expert guidance to build confidence and achieve career success.  
+              SK Computer Education offers practical training in Computer
+              Basics, MS Office, DCA, PGDCA, Programming, Python, Java, AI
+              Skills, Digital Marketing and job-oriented courses.
             </p>
 
             <p
@@ -183,7 +185,7 @@ export default function Hero() {
 
           {/* ================= RIGHT VISUAL ================= */}
           <div className="sk-slide-in relative flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-[600px]">
+            <div className="relative w-full max-w-[600px] 2xl:max-w-[780px]">
               {/* brand accent shapes behind the photo */}
               <div aria-hidden="true" className="absolute -bottom-4 -right-4 h-3/4 w-3/4 rounded-[2rem] bg-gradient-to-br from-[#F97316] to-[#FFB15C] opacity-90" />
               <div aria-hidden="true" className="absolute -left-4 -top-4 h-1/2 w-1/2 rounded-[2rem] border-2 border-white/20" />
