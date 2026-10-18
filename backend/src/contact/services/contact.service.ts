@@ -38,7 +38,7 @@ export interface ContactMessageInput {
 
 const DEFAULT_CONTACT_SETTINGS = {
   phone: "+91 98854 22483",
-  email: "admissions@skce.in",
+  email: "skce.snpuram@gmail.com",
   address:
     "Door NO: 22-8-215/2a, Old Grand world, Marasa Sarovar Premium, SLV Nagar, Tirupati, Andhra Pradesh 517501",
   workingHours: "Contact us for current timings",

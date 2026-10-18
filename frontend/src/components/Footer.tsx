@@ -31,7 +31,7 @@ function FooterHeading({ children }: { children: React.ReactNode }) {
 
 export default function Footer() {
   return (
-    <footer className="relative bg-[#0B1220] text-slate-300">
+    <footer className="relative bg-[linear-gradient(180deg,#12365F_0%,#0F2F5F_55%,#0B2A55_100%)] text-slate-300">
       {/* Brand accent line */}
       <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-[#1459B8] to-[#173B67]" />
 
@@ -138,10 +138,10 @@ export default function Footer() {
                 <Mail size={15} />
               </span>
               <a
-                href="mailto:admissions@skce.in"
+                href="mailto:skce.snpuram@gmail.com"
                 className="break-all pt-1 transition-colors duration-200 hover:text-orange-400"
               >
-                admissions@skce.in
+                skce.snpuram@gmail.com
               </a>
             </li>
 

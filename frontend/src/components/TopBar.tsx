@@ -21,7 +21,7 @@ const ITEMS: Item[] = [
   { key: "slogan", icon: Sparkles, text: "Learn · Practice · Succeed" },
   { key: "tag", icon: Sparkles, text: "SK Computer Education — Skills for a Brighter Tomorrow" },
   { key: "phone", icon: Phone, text: "+91 98854 22483", href: "tel:+919885422483" },
-  { key: "email", icon: Mail, text: "admissions@skce.in", href: "mailto:admissions@skce.in" },
+  { key: "email", icon: Mail, text: "skce.snpuram@gmail.com", href: "mailto:skce.snpuram@gmail.com" },
   { key: "place", icon: MapPin, text: "Tirupati, Andhra Pradesh" },
 ];
 

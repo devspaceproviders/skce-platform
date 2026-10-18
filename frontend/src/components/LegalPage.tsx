@@ -69,10 +69,10 @@ export function LegalContact() {
       <p className="mt-2">
         Email:{" "}
         <a
-          href="mailto:admissions@skce.in"
+          href="mailto:skce.snpuram@gmail.com"
           className="font-medium text-[#173B67] transition-colors hover:text-orange-500"
         >
-          admissions@skce.in
+          skce.snpuram@gmail.com
         </a>
       </p>
 

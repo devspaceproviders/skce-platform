@@ -1094,7 +1094,7 @@ function ContactSettingsForm({
               email: value,
             })
           }
-          placeholder="admissions@skce.in"
+          placeholder="skce.snpuram@gmail.com"
           icon={<Mail size={16} />}
         />
         <div className="lg:col-span-2">
