@@ -1,4 +1,7 @@
-import { Mail, MapPin, Phone, Sparkles } from "lucide-react";
+import { Facebook, Instagram, Mail, MapPin, Phone, Sparkles, Youtube } from "lucide-react";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
+
+const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, youtube: Youtube };
 
 const TICKER_CSS = `
 @keyframes skTicker {
@@ -72,7 +75,24 @@ export default function TopBar() {
         <Row hidden />
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#F97316] to-transparent" />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#FFB15C] to-transparent" />
+      <div className="absolute inset-y-0 right-0 flex items-center gap-1.5 bg-gradient-to-l from-[#FFB15C] from-75% to-transparent pl-10 pr-3 sm:pr-5">
+        {SOCIAL_LINKS.map(({ key, label, href }) => {
+          const Icon = SOCIAL_ICONS[key];
+          return (
+            <a
+              key={key}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+              title={label}
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-[#071C3A] text-white transition hover:-translate-y-px hover:bg-white hover:text-[#F97316]"
+            >
+              <Icon size={11} />
+            </a>
+          );
+        })}
+      </div>
     </div>
   );
 }

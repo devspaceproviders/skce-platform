@@ -2398,7 +2398,7 @@ function RegisterForm() {
             {/* ===================== SUMMARY PANEL ===================== */}
             <aside className="order-last space-y-4 lg:sticky lg:top-24">
               <div className="sk-side-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B2A52] via-[#173B67] to-[#1d4d85] p-5 text-white shadow-xl shadow-blue-900/25">
-                <div className="sk-reg-orb-sm pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-orange-500/30 blur-3xl" />
+                <div className="sk-reg-orb-sm pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-sky-400/25 blur-3xl" />
                 <p className="relative text-xs font-semibold uppercase tracking-wider text-blue-200/80">
                   Your Selection
                 </p>
@@ -2485,7 +2485,7 @@ function RegisterForm() {
 
           .sk-reg-band {
             background:
-              radial-gradient(900px 380px at 85% -20%, rgba(249, 115, 22, 0.25), transparent 60%),
+              radial-gradient(900px 380px at 85% -20%, rgba(59, 130, 246, 0.3), transparent 60%),
               radial-gradient(800px 360px at -5% 110%, rgba(37, 99, 235, 0.4), transparent 60%),
               linear-gradient(135deg, #071c3a 0%, #0f2f5f 50%, #173b67 100%);
           }
@@ -2513,8 +2513,8 @@ function RegisterForm() {
             height: 260px;
             right: 6%;
             top: 40px;
-            background: #f97316;
-            opacity: 0.35;
+            background: #3b82f6;
+            opacity: 0.3;
             animation: skRegFloat 18s ease-in-out -5s infinite reverse;
           }
           .sk-reg-icon::after {

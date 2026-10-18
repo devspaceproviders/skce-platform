@@ -316,7 +316,7 @@ export default function HomepagePopup() {
               {/* Banner-style decoration: dot grid, rings, glows, orange edge */}
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(135deg,#000,transparent_80%)]" />
               <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full border border-white/10 shadow-[0_0_0_26px_rgba(255,255,255,0.03),0_0_0_54px_rgba(255,255,255,0.02)]" />
-              <div className="pointer-events-none absolute -bottom-24 -right-10 h-64 w-64 rounded-full bg-orange-500/30 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-24 -right-10 h-64 w-64 rounded-full bg-sky-400/25 blur-3xl" />
               <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-blue-400/25 blur-3xl" />
               <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-gradient-to-b from-[#F97316] via-[#FFB15C] to-transparent md:block" />
               <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-[#F97316] via-[#FB8A2E]/60 to-transparent" />
@@ -416,7 +416,7 @@ export default function HomepagePopup() {
           top: 12%;
           background: radial-gradient(
             circle,
-            rgba(251, 146, 60, 0.22),
+            rgba(96, 165, 250, 0.22),
             transparent 68%
           );
         }
@@ -437,7 +437,7 @@ export default function HomepagePopup() {
           bottom: -100px;
           background: radial-gradient(
             circle,
-            rgba(251, 146, 60, 0.16),
+            rgba(96, 165, 250, 0.16),
             transparent 68%
           );
           animation-delay: 4s;

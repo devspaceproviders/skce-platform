@@ -153,7 +153,32 @@ export default function MyCoursesPage() {
   const [hoverTile, setHoverTile] = useState<TileKey | null>(null);
   const [pinnedTile, setPinnedTile] = useState<TileKey | null>(null);
   const [lastTile, setLastTile] = useState<TileKey>("total");
-  const shownTile = hoverTile ?? pinnedTile;
+  /* The summary dropdown opens on click only (no hover), and pins survive refresh. */
+  const shownTile = pinnedTile;
+  const [pinsReady, setPinsReady] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("skce_mycourses_pins");
+      if (raw) {
+        const saved = JSON.parse(raw) as { course?: number | null; tile?: TileKey | null };
+        if (typeof saved.course === "number") setPinnedId(saved.course);
+        if (saved.tile === "total" || saved.tile === "active" || saved.tile === "completed" || saved.tile === "lessons") {
+          setPinnedTile(saved.tile);
+          setFilter(saved.tile === "active" ? "ACTIVE" : saved.tile === "completed" ? "COMPLETED" : "ALL");
+        }
+      }
+    } catch {}
+    setPinsReady(true);
+  }, []);
+  useEffect(() => {
+    if (!pinsReady) return;
+    try {
+      localStorage.setItem(
+        "skce_mycourses_pins",
+        JSON.stringify({ course: pinnedId, tile: pinnedTile })
+      );
+    } catch {}
+  }, [pinnedId, pinnedTile, pinsReady]);
   useEffect(() => {
     if (shownTile) {
       setLastTile(shownTile);
@@ -375,7 +400,7 @@ export default function MyCoursesPage() {
   const tileProps = (key: TileKey) => ({
     active: shownTile === key,
     pinned: pinnedTile === key,
-    onEnter: () => setHoverTile(key),
+    onEnter: () => {},
     onToggle: () => toggleTile(key),
   });
   if (loading) {

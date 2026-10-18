@@ -321,7 +321,7 @@ export default function ForgotPasswordPage() {
 
           .sk-auth-bg {
             background:
-              radial-gradient(1100px 520px at 85% -10%, rgba(249, 115, 22, 0.22), transparent 60%),
+              radial-gradient(1100px 520px at 85% -10%, rgba(59, 130, 246, 0.3), transparent 60%),
               radial-gradient(900px 500px at -10% 110%, rgba(37, 99, 235, 0.35), transparent 60%),
               linear-gradient(135deg, #071c3a 0%, #0f2f5f 48%, #173b67 100%);
           }
@@ -333,7 +333,8 @@ export default function ForgotPasswordPage() {
           }
           .sk-orb { border-radius: 9999px; filter: blur(70px); opacity: 0.55; }
           .sk-orb-a { width: 340px; height: 340px; left: -80px; top: 8%; background: #2563eb; animation: skFloat 14s ease-in-out infinite; }
-          .sk-orb-b { width: 300px; height: 300px; right: 4%; bottom: -90px; background: #f97316; opacity: 0.4; animation: skFloat 17s ease-in-out -4s infinite reverse; }
+          .sk-orb-b { width: 300px; height: 300px; right: 4%; bottom: -90px; background: #3b82f6;
+            opacity: 0.3; animation: skFloat 17s ease-in-out -4s infinite reverse; }
           .sk-orb-c { width: 220px; height: 220px; left: 42%; top: -70px; background: #38bdf8; opacity: 0.25; animation: skFloat 20s ease-in-out -8s infinite; }
           .sk-card-in { animation: skCardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
           .sk-card-head { background: linear-gradient(135deg, #0b2a52 0%, #173b67 60%, #1d4d85 100%); }

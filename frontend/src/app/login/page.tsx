@@ -393,7 +393,7 @@ export default function LoginPage() {
               <div className="w-full overflow-hidden rounded-[25px] bg-white shadow-2xl shadow-black/30">
                 {/* Header */}
                 <div className="sk-card-head relative overflow-hidden px-6 py-8 text-center text-white sm:px-8">
-                  <div className="sk-orb-sm pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-orange-500/30 blur-3xl" />
+                  <div className="sk-orb-sm pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-sky-400/25 blur-3xl" />
                   <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl" />
 
                   <div className="relative">
@@ -623,7 +623,7 @@ export default function LoginPage() {
         <style jsx global>{`
           .sk-auth-bg {
             background:
-              radial-gradient(1100px 520px at 85% -10%, rgba(249, 115, 22, 0.22), transparent 60%),
+              radial-gradient(1100px 520px at 85% -10%, rgba(59, 130, 246, 0.3), transparent 60%),
               radial-gradient(900px 500px at -10% 110%, rgba(37, 99, 235, 0.35), transparent 60%),
               linear-gradient(135deg, #071c3a 0%, #0f2f5f 48%, #173b67 100%);
           }
@@ -653,8 +653,8 @@ export default function LoginPage() {
             height: 300px;
             right: 4%;
             bottom: -90px;
-            background: #f97316;
-            opacity: 0.4;
+            background: #3b82f6;
+            opacity: 0.3;
             animation: skFloat 17s ease-in-out -4s infinite reverse;
           }
           .sk-orb-c {

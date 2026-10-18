@@ -92,7 +92,7 @@ export default function Hero() {
       />
       <div
         aria-hidden="true"
-        className="sk-glow pointer-events-none absolute -bottom-32 left-[28%] -z-10 h-80 w-80 rounded-full bg-orange-500/25 blur-3xl"
+        className="sk-glow pointer-events-none absolute -bottom-32 left-[28%] -z-10 h-80 w-80 rounded-full bg-sky-400/20 blur-3xl"
       />
       <div
         aria-hidden="true"

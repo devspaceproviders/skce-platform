@@ -117,6 +117,57 @@ export default function PublicShell({
             radial-gradient(circle at 95% -14%, transparent 0 130px, rgba(255, 255, 255, 0.16) 130px 131px, rgba(255, 255, 255, 0.055) 131px 154px, rgba(255, 255, 255, 0.035) 154px 180px, transparent 180px),
             radial-gradient(circle at 3% 112%, transparent 0 90px, rgba(255, 255, 255, 0.13) 90px 91px, rgba(255, 255, 255, 0.045) 91px 108px, rgba(255, 255, 255, 0.03) 108px 128px, transparent 128px);
         }
+        /* Replace muddy orange-on-navy glows with clean blue light.
+           Orange stays only on lines, buttons and small accents. */
+        .sk-public .sk-auth-bg,
+        .sk-public .sk-reg-band {
+          background:
+            radial-gradient(900px 420px at 85% -15%, rgba(59, 130, 246, 0.3), transparent 60%),
+            radial-gradient(800px 380px at -5% 110%, rgba(37, 99, 235, 0.38), transparent 60%),
+            linear-gradient(135deg, #071c3a 0%, #0f2f5f 50%, #173b67 100%);
+        }
+        .sk-public [class*="bg-orange-"][class*="blur-"],
+        .sk-public [class*="sk-hero-orb"][class*="bg-orange"] {
+          background-color: rgba(96, 165, 250, 0.2) !important;
+        }
+        .sk-public .sk-reg-orb, .sk-public .sk-orb { background-image: none !important; }
+        .sk-public .sk-orb-b,
+        .sk-public .sk-reg-orb-b {
+          background: #3b82f6;
+          opacity: 0.3;
+        }
+        .sk-public .sk-orb-sm,
+        .sk-public .sk-reg-orb-sm,
+        .sk-public .sk-hero-orb {
+          background-color: rgba(96, 165, 250, 0.28);
+        }
+        /* Orange glows blended over navy turn muddy brown, so on navy
+           surfaces the glows are a clean sky blue instead. Orange stays
+           for buttons, lines and accents. */
+        .sk-public [class*="from-[#071C3A]"] [class*="bg-orange-"][class*="blur-"],
+        .sk-public [class*="from-[#0F2F5F]"] [class*="bg-orange-"][class*="blur-"],
+        .sk-public .sk-auth-bg [class*="bg-orange-"][class*="blur-"],
+        .sk-public section[class*="bg-[#173B67]"] [class*="bg-orange-"][class*="blur-"],
+        .sk-public footer [class*="bg-orange-"][class*="blur-"] {
+          background-color: rgba(96, 165, 250, 0.22) !important;
+        }
+        .sk-public .sk-orb-b,
+        .sk-public .sk-reg-orb-b {
+          background: #3b82f6 !important;
+          opacity: 0.3 !important;
+        }
+        .sk-public .sk-auth-bg {
+          background:
+            radial-gradient(1100px 520px at 85% -10%, rgba(59, 130, 246, 0.3), transparent 60%),
+            radial-gradient(900px 500px at -10% 110%, rgba(37, 99, 235, 0.35), transparent 60%),
+            linear-gradient(135deg, #071c3a 0%, #0f2f5f 48%, #173b67 100%) !important;
+        }
+        .sk-public .sk-reg-band {
+          background:
+            radial-gradient(900px 380px at 85% -20%, rgba(59, 130, 246, 0.3), transparent 60%),
+            radial-gradient(800px 360px at -5% 110%, rgba(37, 99, 235, 0.4), transparent 60%),
+            linear-gradient(135deg, #071c3a 0%, #0f2f5f 50%, #173b67 100%) !important;
+        }
         .sk-public footer { overflow: hidden; }
         .sk-public footer::after,
         .sk-public section[class*="bg-[#173B67]"]::after {
