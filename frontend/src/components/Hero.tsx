@@ -130,9 +130,7 @@ export default function Hero() {
               className="sk-rise mt-5 max-w-2xl text-base leading-7 text-blue-50/90 sm:text-lg"
               style={{ animationDelay: "180ms" }}
             >
-              SK Computer Education offers practical training in Computer
-              Basics, MS Office, DCA, PGDCA, Programming, Python, Java, AI
-              Skills, Digital Marketing and job-oriented courses.
+              Empowering learners with practical skills, hands-on training, and expert guidance to build confidence and achieve career success.  
             </p>
 
             <p

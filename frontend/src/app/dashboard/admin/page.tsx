@@ -527,6 +527,25 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .adm-navy::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+          background:
+            radial-gradient(circle at 94% -8%, transparent 0 118px, rgba(255,255,255,.07) 119px 150px, rgba(255,255,255,.035) 151px 190px, transparent 191px),
+            radial-gradient(circle at 3% 112%, transparent 0 80px, rgba(255,255,255,.06) 81px 110px, transparent 111px),
+            radial-gradient(rgba(255,255,255,.10) 1px, transparent 1px);
+          background-size:auto,auto,24px 24px;}
+        .adm-shine::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;transform:skewX(-20deg);
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transition:left .7s ease;pointer-events:none;}
+        .adm-shine:hover::after{left:130%;}
+        .adm-tile::after{content:"";position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:9999px;
+          border:14px solid rgba(23,59,103,.05);pointer-events:none;transition:border-color .3s ease, transform .5s ease;}
+        .adm-card::after{content:"";position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:9999px;border:18px solid rgba(23,59,103,.045);pointer-events:none;z-index:-1;}
+        .adm-tile:hover::after{border-color:rgba(255,255,255,.10);transform:scale(1.25);}
+        .sk-scroll{scrollbar-width:thin;scrollbar-color:#9DB6DA transparent;}
+        .sk-scroll::-webkit-scrollbar{height:6px;}
+        .sk-scroll::-webkit-scrollbar-thumb{background:#9DB6DA;border-radius:9999px;}
+        @media (prefers-reduced-motion: reduce){.adm-shine::after,.adm-tile::after{transition:none;}}
+      ` }} />
       <div className="mx-auto w-full max-w-[1680px] space-y-6">
         {/* Hero */}
         <Reveal>
@@ -574,21 +593,22 @@ export default function AdminDashboardPage() {
 
             return (
               <Reveal key={stat.label} delay={index * 70}>
-                <div className="group relative h-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-900/5">
-                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tone.bar}`} />
+                <div className="adm-tile group relative isolate h-full overflow-hidden rounded-2xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl hover:shadow-blue-900/20">
+                  <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8] transition-all duration-300 group-hover:w-full group-hover:opacity-0" />
+                  <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-[#0B2A55] via-[#0F2F5F] to-[#173B67] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-colors duration-300 group-hover:text-blue-100/80">
                         {stat.label}
                       </p>
-                      <p className="mt-2 truncate text-3xl font-extrabold tracking-tight text-[#173B67]">
+                      <p className="mt-2 truncate text-3xl font-extrabold tracking-tight text-[#173B67] transition-colors duration-300 group-hover:text-white">
                         {stat.display ?? <CountUp end={stat.value} duration={1100} />}
                       </p>
-                      <p className="mt-1.5 text-xs leading-5 text-slate-500">
+                      <p className="mt-1.5 text-xs leading-5 text-slate-500 transition-colors duration-300 group-hover:text-blue-100/80">
                         {stat.detail}
                       </p>
                     </div>
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${tone.chip}`}>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#173B67] to-[#1459B8] text-white shadow-md shadow-blue-900/20 transition duration-300 group-hover:scale-110 group-hover:from-orange-400 group-hover:to-orange-600">
                       <Icon size={21} />
                     </div>
                   </div>
@@ -599,8 +619,8 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Activity + Enrollment status */}
-        <section className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-          <Reveal>
+        <section className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+          <Reveal className="min-w-0">
             <Card className="h-full">
               <CardHeader
                 icon={<TrendingUp size={18} />}
@@ -638,49 +658,58 @@ export default function AdminDashboardPage() {
               {trend.length === 0 ? (
                 <EmptyState>No activity trend data is available yet.</EmptyState>
               ) : (
-                <div className="relative mt-6">
-                  {/* gridlines */}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 flex h-44 flex-col justify-between">
-                    {[0, 1, 2, 3].map((i) => (
-                      <div key={i} className="border-t border-dashed border-slate-100" />
-                    ))}
-                  </div>
+                <div className="mt-6">
+                  <div className="sk-scroll relative overflow-x-auto pb-3">
+                    <div className="relative w-max min-w-full">
+                      {/* gridlines */}
+                      <div className="pointer-events-none absolute inset-x-0 top-0 flex h-60 flex-col justify-between">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div key={i} className="border-t border-dashed border-slate-100" />
+                        ))}
+                      </div>
 
-                  <div className="relative flex items-end gap-2 overflow-x-auto pb-1 sm:gap-3">
-                    {trend.map((item, i) => {
-                      const value = item[metric];
-                      const pct = Math.max(value > 0 ? 6 : 2, Math.round((value / maxTrend) * 100));
+                      <div className="relative flex items-end gap-2">
+                        {trend.map((item, i) => {
+                          const value = item[metric];
+                          const pct = Math.max(value > 0 ? 6 : 2, Math.round((value / maxTrend) * 100));
 
-                      return (
-                        <div key={`${item.label}-${i}`} className="group min-w-[44px] flex-1" title={`${item.label}: ${formatMetric(value)}`}>
-                          <div className="relative flex h-44 items-end justify-center">
-                            <span className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-[#173B67] px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow transition group-hover:opacity-100">
-                              {formatMetric(value)}
-                            </span>
-                            <div
-                              className="w-full max-w-[34px] rounded-t-lg bg-gradient-to-t from-[#173B67] to-[#2F6BFF] transition-[height,filter] duration-700 ease-out group-hover:brightness-110"
-                              style={{
-                                height: barsReady ? `${pct}%` : "0%",
-                                transitionDelay: `${i * 40}ms`,
-                              }}
-                            />
-                          </div>
-                          <div className="mt-2 truncate text-center text-[10px] font-medium text-slate-400">
-                            {item.label}
-                          </div>
-                          <div className="mt-0.5 truncate text-center text-xs font-bold text-slate-700">
-                            {formatMetric(value)}
-                          </div>
-                        </div>
-                      );
-                    })}
+                          return (
+                            <div key={`${item.label}-${i}`} className="group w-[46px] flex-none" title={`${item.label}: ${formatMetric(value)}`}>
+                              <div className="relative flex h-60 items-end justify-center">
+                                <span className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-[#173B67] px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow transition group-hover:opacity-100">
+                                  {formatMetric(value)}
+                                </span>
+                                <div
+                                  className="w-7 rounded-t-lg bg-gradient-to-t from-[#173B67] to-[#2F6BFF] transition-[height,filter] duration-700 ease-out group-hover:brightness-110"
+                                  style={{
+                                    height: barsReady ? `${pct}%` : "0%",
+                                    transitionDelay: `${i * 40}ms`,
+                                  }}
+                                />
+                              </div>
+                              <div className="mt-2 truncate text-center text-[10px] font-medium text-slate-400">
+                                {item.label}
+                              </div>
+                              <div className="mt-0.5 truncate text-center text-xs font-bold text-slate-700">
+                                {formatMetric(value)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
+                  {trend.length > 12 && (
+                    <p className="mt-1 flex items-center justify-end gap-1 text-[11px] font-medium text-slate-400">
+                      Scroll sideways to see all {trend.length} days <ArrowRight size={11} />
+                    </p>
+                  )}
                 </div>
               )}
             </Card>
           </Reveal>
 
-          <Reveal delay={90}>
+          <Reveal delay={90} className="min-w-0">
             <Card className="h-full">
               <CardHeader
                 icon={<BarChart3 size={18} />}
@@ -710,14 +739,14 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
 
-              <div className="mt-6 space-y-4">
+              <div className="mt-5 space-y-2.5">
                 <StatusRow label="Active" value={data.enrollments.active} total={enrollTotal} tone="green" ready={barsReady} />
                 <StatusRow label="Completed" value={data.enrollments.completed} total={enrollTotal} tone="blue" ready={barsReady} />
                 <StatusRow label="Pending" value={data.enrollments.pending} total={enrollTotal} tone="amber" ready={barsReady} />
                 <StatusRow label="Cancelled" value={data.enrollments.cancelled} total={enrollTotal} tone="slate" ready={barsReady} />
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
                 <MiniMetric label="Total enrollments" value={data.enrollments.total} icon={<Layers size={14} />} />
                 <MiniMetric label="Certificates" value={data.certificates.issued} icon={<Award size={14} />} />
               </div>
@@ -726,7 +755,7 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Course performance + Recent activity */}
-        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <Reveal>
             <Card className="h-full">
               <CardHeader
@@ -748,21 +777,23 @@ export default function AdminDashboardPage() {
                   {topCourses.map((course, index) => (
                     <div
                       key={course.id || index}
-                      className="group rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3 transition duration-200 hover:border-orange-300 hover:bg-white hover:shadow-sm"
+                      className="adm-tile group relative isolate overflow-hidden rounded-xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] px-4 py-3 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-transparent hover:shadow-lg hover:shadow-blue-900/20"
                     >
+                      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8] transition-all duration-300 group-hover:w-full group-hover:opacity-0" />
+                      <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-[#0B2A55] via-[#0F2F5F] to-[#173B67] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                       <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-extrabold text-[#173B67] shadow-sm transition group-hover:bg-[#F97316] group-hover:text-white">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#173B67] to-[#1459B8] text-xs font-extrabold text-white shadow-md shadow-blue-900/20 transition duration-300 group-hover:scale-110 group-hover:from-orange-400 group-hover:to-orange-600">
                           {index + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-800">{course.title}</p>
-                          <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-slate-400">
+                          <p className="truncate text-sm font-semibold text-[#173B67] transition-colors duration-300 group-hover:text-white">{course.title}</p>
+                          <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-slate-500 transition-colors duration-300 group-hover:text-blue-100/80">
                             <span>{course.enrollments} enrollments</span>
                             <span>{formatCurrency(course.revenue)}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-200/70">
+                      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-200/70 transition-colors duration-300 group-hover:bg-white/20">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-[#173B67] via-[#1459B8] to-[#F97316] transition-[width] duration-700 ease-out"
                           style={{ width: barsReady ? `${(course.enrollments / maxCourse) * 100}%` : "0%" }}
@@ -787,13 +818,13 @@ export default function AdminDashboardPage() {
               {data.analytics.recentActivity.length === 0 ? (
                 <EmptyState>No recent activity is available yet.</EmptyState>
               ) : (
-                <ol className="relative mt-5 space-y-1 before:absolute before:bottom-3 before:left-4 before:top-3 before:w-px before:bg-slate-100">
+                <ol className="relative mt-5 space-y-1 before:absolute before:bottom-3 before:left-[26px] before:top-3 before:w-px before:bg-[#173B67]/10">
                   {data.analytics.recentActivity.slice(0, 6).map((item, index) => (
                     <li
                       key={`${item.type}-${item.label}-${index}`}
-                      className="relative flex items-start gap-3 rounded-xl px-0 py-2 transition hover:bg-slate-50"
+                      className="relative flex items-start gap-3 rounded-xl border border-transparent px-2.5 py-2 transition duration-300 hover:border-[#173B67]/10 hover:bg-gradient-to-br hover:from-white hover:to-[#EEF4FF] hover:shadow-sm"
                     >
-                      <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-blue-50 text-blue-600 shadow-sm">
+                      <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#173B67] to-[#1459B8] text-white shadow-md shadow-blue-900/20">
                         {activityIcon(item.type)}
                       </span>
                       <div className="min-w-0 flex-1 pr-2">
@@ -829,16 +860,18 @@ export default function AdminDashboardPage() {
                   <Link
                     key={action.title}
                     href={action.href}
-                    className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:bg-white hover:shadow-md"
+                    className="adm-tile group relative isolate flex h-full items-center gap-3 overflow-hidden rounded-xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl hover:shadow-blue-900/20"
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500 transition group-hover:bg-orange-500 group-hover:text-white">
-                      <Icon size={19} />
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8] transition-all duration-300 group-hover:w-full group-hover:opacity-0" />
+                    <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-[#0B2A55] via-[#0F2F5F] to-[#173B67] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#173B67] to-[#1459B8] text-white shadow-md shadow-blue-900/20 transition duration-300 group-hover:scale-110 group-hover:from-orange-400 group-hover:to-orange-600">
+                      <Icon size={18} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-slate-800">{action.title}</span>
-                      <span className="mt-0.5 block text-[11px] leading-5 text-slate-500">{action.description}</span>
+                      <span className="block text-sm font-semibold text-[#173B67] transition-colors duration-300 group-hover:text-white">{action.title}</span>
+                      <span className="mt-0.5 block text-[11px] leading-5 text-slate-500 transition-colors duration-300 group-hover:text-blue-100/80">{action.description}</span>
                     </span>
-                    <ArrowRight size={15} className="shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-orange-500" />
+                    <ArrowRight size={16} className="shrink-0 text-[#173B67]/40 transition duration-300 group-hover:translate-x-1 group-hover:text-orange-300" />
                   </Link>
                 );
               })}
@@ -849,9 +882,12 @@ export default function AdminDashboardPage() {
         {/* Management */}
         <section>
           <Reveal>
-            <div className="mb-4">
-              <h2 className="text-base font-bold text-[#173B67]">Management</h2>
-              <p className="mt-1 text-xs text-slate-500">Access the main administration areas</p>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-8 w-1.5 rounded-full bg-gradient-to-b from-orange-500 to-[#1459B8]" />
+              <div>
+                <h2 className="text-base font-bold text-[#173B67]">Management</h2>
+                <p className="mt-0.5 text-xs text-slate-500">Access the main administration areas</p>
+              </div>
             </div>
           </Reveal>
 
@@ -862,16 +898,18 @@ export default function AdminDashboardPage() {
                 <Reveal key={item.title} delay={(index % 4) * 60}>
                   <Link
                     href={item.href}
-                    className="group flex h-full items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md"
+                    className="adm-tile group relative isolate flex h-full items-center gap-3 overflow-hidden rounded-xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-transparent hover:shadow-xl hover:shadow-blue-900/20"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#173B67]/5 text-[#173B67] transition group-hover:bg-orange-50 group-hover:text-orange-500">
-                      <Icon size={17} />
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8] transition-all duration-300 group-hover:w-full group-hover:opacity-0" />
+                    <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-br from-[#0B2A55] via-[#0F2F5F] to-[#173B67] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#173B67] to-[#1459B8] text-white shadow-md shadow-blue-900/20 transition duration-300 group-hover:scale-110 group-hover:from-orange-400 group-hover:to-orange-600">
+                      <Icon size={18} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-slate-800">{item.title}</span>
-                      <span className="mt-0.5 block text-[11px] leading-5 text-slate-500">{item.description}</span>
+                      <span className="block text-sm font-semibold text-[#173B67] transition-colors duration-300 group-hover:text-white">{item.title}</span>
+                      <span className="mt-0.5 block text-[11px] leading-5 text-slate-500 transition-colors duration-300 group-hover:text-blue-100/80">{item.description}</span>
                     </span>
-                    <ChevronRight size={15} className="mt-1 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-orange-500" />
+                    <ChevronRight size={16} className="shrink-0 text-[#173B67]/40 transition duration-300 group-hover:translate-x-1 group-hover:text-orange-300" />
                   </Link>
                 </Reveal>
               );
@@ -893,7 +931,8 @@ export default function AdminDashboardPage() {
 
 function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}>
+    <div className={`adm-card relative isolate overflow-hidden rounded-2xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] p-5 shadow-sm transition-shadow duration-300 hover:shadow-lg hover:shadow-blue-900/10 sm:p-6 ${className}`}>
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8]" />
       {children}
     </div>
   );
@@ -914,16 +953,16 @@ function CardHeader({
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TONES[tone].chip}`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#173B67] to-[#1459B8] text-white shadow-md shadow-blue-900/20">
           {icon}
         </span>
-        <div>
+        <div className="min-w-0">
           <h2 className="text-base font-bold leading-tight text-[#173B67]">{title}</h2>
           <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
         </div>
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -932,6 +971,39 @@ function EmptyState({ children }: { children: ReactNode }) {
   return (
     <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-xs text-slate-400">
       {children}
+    </div>
+  );
+}
+
+function StatusTile({
+  label,
+  value,
+  total,
+  tone,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  tone: "green" | "blue" | "amber" | "slate";
+}) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const dot = {
+    green: "bg-emerald-500",
+    blue: "bg-blue-500",
+    amber: "bg-orange-500",
+    slate: "bg-slate-400",
+  }[tone];
+
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+        {label}
+      </div>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <span className="text-2xl font-extrabold leading-none text-[#173B67]">{value}</span>
+        <span className="text-xs font-semibold text-slate-400">{pct}%</span>
+      </div>
     </div>
   );
 }
@@ -959,7 +1031,8 @@ function StatusRow({
   }[tone];
 
   return (
-    <div>
+    <div className="relative overflow-hidden rounded-xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] px-4 py-3 pl-5 shadow-sm">
+      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${toneClass}`} />
       <div className="mb-1.5 flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-xs font-medium text-slate-600">
           <span className={`h-2 w-2 rounded-full ${toneClass}`} />
@@ -981,7 +1054,7 @@ function StatusRow({
 
 function MiniMetric({ label, value, icon }: { label: string; value: number; icon: ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3">
+    <div className="relative overflow-hidden rounded-xl border border-[#173B67]/10 bg-gradient-to-br from-white to-[#EEF4FF] px-3.5 py-3 pl-4 shadow-sm"><span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-orange-500 to-[#1459B8]" />
       <div className="flex items-center gap-2 text-[11px] text-slate-400">
         {icon}
         {label}
@@ -1003,11 +1076,11 @@ function DashboardSkeleton() {
             <div key={i} className={`${block} h-32`} />
           ))}
         </div>
-        <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
           <div className={`${block} h-80`} />
           <div className={`${block} h-80`} />
         </div>
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <div className={`${block} h-72`} />
           <div className={`${block} h-72`} />
         </div>

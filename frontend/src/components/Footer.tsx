@@ -1,31 +1,61 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail, MapPin, ArrowRight, Facebook, Instagram, Youtube } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Navigation,
+  MessageCircle,
+  ArrowRight,
+  Facebook,
+  Instagram,
+  Youtube,
+} from "lucide-react";
 import { SOCIAL_LINKS } from "@/lib/socialLinks";
-import { COURSE_OPTIONS } from "@/lib/courseList";
 
-import Reveal from "@/components/Reveal";
-
-const QUICK_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "Courses", href: "/courses" },
-  { label: "Packages", href: "/packages" },
-  { label: "Trainers", href: "/trainers" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+const PORTAL_LINKS = [
+  { label: "Student & Trainer Login", href: "/login" },
+  { label: "Register Now", href: "/register" },
+  { label: "Book a Free Demo", href: "/contact" },
 ];
 
-const LINK_CLASS =
-  "inline-block rounded text-slate-300 transition duration-200 hover:translate-x-1 hover:text-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60";
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  facebook: Facebook,
+  youtube: Youtube,
+};
+
+const DIRECTIONS_URL =
+  "https://www.google.com/maps/dir/?api=1&destination=" +
+  encodeURIComponent(
+    "SK Computer Education, Door NO: 22-8-215/2a, Old Grand world, Marasa Sarovar Premium, SLV Nagar, Tirupati, Andhra Pradesh 517501"
+  );
 
 function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-5">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
+    <div className="mb-3">
+      <h3 className="text-[13px] font-bold uppercase tracking-wider text-white">
         {children}
       </h3>
-      <span className="mt-2 block h-0.5 w-8 rounded-full bg-orange-500" />
+      <span className="mt-1.5 block h-0.5 w-7 rounded-full bg-orange-500" />
     </div>
+  );
+}
+
+function ContactRow({
+  icon: Icon,
+  children,
+}: {
+  icon: typeof Phone;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="group flex items-start gap-2.5">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
+        <Icon size={14} />
+      </span>
+      <div className="min-w-0 pt-0.5 leading-5">{children}</div>
+    </li>
   );
 }
 
@@ -35,181 +65,148 @@ export default function Footer() {
       {/* Brand accent line */}
       <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-[#1459B8] to-[#173B67]" />
 
-      {/* Main Footer */}
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 py-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1.3fr_1fr] lg:gap-10">
         {/* Brand */}
-        <Reveal>
+        <div>
           <Link
             href="/"
-            className="inline-flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            className="inline-flex focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
           >
-            <div className="overflow-hidden rounded-xl bg-white px-3 py-2 transition duration-300 hover:shadow-lg hover:shadow-orange-500/10">
+            <span className="overflow-hidden rounded-lg bg-white px-2.5 py-1.5">
               <Image
                 src="/images/skce-logo.png"
                 alt="SK Computer Education"
                 width={190}
                 height={62}
-                className="h-auto w-[170px]"
+                className="h-auto w-[130px]"
               />
-            </div>
+            </span>
           </Link>
 
-          <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">
-            SK Computer Education provides practical computer and digital
-            learning for school students, college students, jobseekers,
-            professionals and lifelong learners.
+          <p className="mt-3 max-w-xs text-[13px] leading-6 text-slate-400">
+            Practical computer and digital learning for students, jobseekers
+            and professionals in Tirupati.
           </p>
 
-          <Link
-            href="/about"
-            className="group mt-5 inline-flex items-center gap-2 rounded text-sm font-semibold text-orange-400 transition duration-200 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
+          <div className="mt-4 flex items-center gap-2">
+            {SOCIAL_LINKS.map(({ key, label, href }) => {
+              const Icon = SOCIAL_ICONS[key];
+              return (
+                <a
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  title={label}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white transition duration-200 hover:-translate-y-0.5 hover:border-orange-400 hover:bg-orange-500"
+                >
+                  <Icon size={16} />
+                </a>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Get in touch */}
+        <div>
+          <FooterHeading>Get in Touch</FooterHeading>
+          <ul className="space-y-2.5 text-[13px]">
+            <ContactRow icon={Phone}>
+              <a
+                href="tel:+919885422483"
+                className="transition-colors duration-200 hover:text-orange-400"
+              >
+                +91 98854 22483
+              </a>
+            </ContactRow>
+            <ContactRow icon={MessageCircle}>
+              <a
+                href="https://wa.me/919885422483"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors duration-200 hover:text-orange-400"
+              >
+                Chat on WhatsApp
+              </a>
+            </ContactRow>
+            <ContactRow icon={Mail}>
+              <a
+                href="mailto:skce.snpuram@gmail.com"
+                className="break-all transition-colors duration-200 hover:text-orange-400"
+              >
+                skce.snpuram@gmail.com
+              </a>
+            </ContactRow>
+          </ul>
+        </div>
+
+        {/* Visit us */}
+        <div>
+          <FooterHeading>Visit Us</FooterHeading>
+          <div className="flex items-start gap-2.5 text-[13px] leading-5">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400">
+              <MapPin size={14} />
+            </span>
+            <address className="pt-0.5 not-italic">
+              Door NO: 22-8-215/2a, Old Grand world, Marasa Sarovar Premium,
+              SLV Nagar, Tirupati, Andhra Pradesh 517501
+            </address>
+          </div>
+          <a
+            href={DIRECTIONS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-orange-500/20 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-600"
           >
-            Learn More About SK Computer Education
-            <ArrowRight
-              size={15}
-              className="transition-transform duration-200 group-hover:translate-x-1"
-            />
-          </Link>
-        </Reveal>
+            <Navigation size={13} />
+            Get Directions
+          </a>
+        </div>
 
-        {/* Quick Links */}
-        <Reveal delay={100}>
-          <FooterHeading>Quick Links</FooterHeading>
-
-          <ul className="space-y-3 text-sm">
-            {QUICK_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} className={LINK_CLASS}>
+        {/* Student corner */}
+        <nav aria-label="Student portal and admissions">
+          <FooterHeading>Admissions &amp; Portal</FooterHeading>
+          <ul className="space-y-2 text-[13px]">
+            {PORTAL_LINKS.map((link) => (
+              <li key={link.href + link.label}>
+                <Link
+                  href={link.href}
+                  className="group inline-flex items-center gap-1.5 rounded text-slate-300 transition duration-200 hover:text-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
+                >
+                  <ArrowRight
+                    size={13}
+                    className="text-orange-400 transition-transform duration-200 group-hover:translate-x-0.5"
+                  />
                   {link.label}
                 </Link>
               </li>
             ))}
           </ul>
-        </Reveal>
-
-        {/* Popular Courses */}
-        <Reveal delay={200}>
-          <FooterHeading>Popular Courses</FooterHeading>
-
-          <ul className="space-y-3 text-sm">
-            {COURSE_OPTIONS.slice(0, 6).map((course) => (
-              <li key={course.slug}>
-                <Link
-                  href={`/courses/${course.slug}`}
-                  className={LINK_CLASS}
-                >
-                  {course.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <Link
-            href="/courses"
-            className="group mt-5 inline-flex items-center gap-2 rounded text-sm font-semibold text-orange-400 transition duration-200 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
-          >
-            View All Courses
-            <ArrowRight
-              size={14}
-              className="transition-transform duration-200 group-hover:translate-x-1"
-            />
-          </Link>
-        </Reveal>
-
-        {/* Contact */}
-        <Reveal delay={300}>
-          <FooterHeading>Contact Us</FooterHeading>
-
-          <ul className="space-y-4 text-sm">
-            <li className="group flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
-                <Phone size={15} />
-              </span>
-              <a
-                href="tel:+919885422483"
-                className="pt-1 transition-colors duration-200 hover:text-orange-400"
-              >
-                +91 98854 22483
-              </a>
-            </li>
-
-            <li className="group flex items-start gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
-                <Mail size={15} />
-              </span>
-              <a
-                href="mailto:skce.snpuram@gmail.com"
-                className="break-all pt-1 transition-colors duration-200 hover:text-orange-400"
-              >
-                skce.snpuram@gmail.com
-              </a>
-            </li>
-
-            <li className="group flex items-start gap-3 leading-6">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 text-orange-400 transition duration-200 group-hover:bg-orange-500 group-hover:text-white">
-                <MapPin size={15} />
-              </span>
-              <span className="pt-0.5">
-                Door NO: 22-8-215/2a,
-                <br />
-                Old Grand world,
-                <br />
-                Marasa Sarovar Premium,
-                <br />
-                SLV Nagar, Tirupati,
-                <br />
-                Andhra Pradesh 517501
-              </span>
-            </li>
-          </ul>
-
-          <div className="mt-6">
-            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-300">Follow Us</p>
-            <div className="flex items-center gap-2.5">
-              {SOCIAL_LINKS.map(({ key, label, href }) => {
-                const Icon = key === "instagram" ? Instagram : key === "facebook" ? Facebook : Youtube;
-                return (
-                  <a
-                    key={key}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={label}
-                    title={label}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition duration-200 hover:-translate-y-0.5 hover:border-orange-400 hover:bg-orange-500"
-                  >
-                    <Icon size={18} />
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        </Reveal>
+        </nav>
       </div>
 
-      {/* Bottom Footer */}
+      {/* Bottom bar */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 text-xs text-slate-400 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-3.5 text-xs text-slate-400 sm:flex-row">
           <p className="text-center sm:text-left">
             © {new Date().getFullYear()} SK Computer Education. All rights
             reserved.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1">
             <Link
               href="/privacy-policy"
               className="transition-colors duration-200 hover:text-orange-400"
             >
               Privacy Policy
             </Link>
-
             <Link
               href="/terms"
               className="transition-colors duration-200 hover:text-orange-400"
             >
               Terms of Use
             </Link>
-
             <Link
               href="/refund-policy"
               className="transition-colors duration-200 hover:text-orange-400"

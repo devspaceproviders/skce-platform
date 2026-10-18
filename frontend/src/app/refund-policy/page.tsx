@@ -74,16 +74,6 @@ export default function RefundPolicyPage() {
         <LegalContact />
       </LegalSection>
 
-      <div className="rounded-xl border border-orange-100 bg-orange-50 p-5 text-sm text-slate-600">
-        <p className="font-semibold text-[#173B67]">Important</p>
-
-        <p className="mt-1">
-          This policy is intended as a website draft and should be reviewed
-          and finalized according to SK Computer Education&apos;s actual
-          commercial, payment, and legal requirements before publishing it
-          as a final legal policy.
-        </p>
-      </div>
     </LegalPage>
   );
 }
