@@ -1,10 +1,16 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { TrainerEngagementData } from "../../../../components/dashboard/TrainerEngagementPanel";
-
 import {
   Search,
   UserPlus,
@@ -31,11 +37,8 @@ import {
   Camera,
   ShieldCheck,
 } from "lucide-react";
-
 import AdminVisualEffects from "@/components/dashboard/AdminVisualEffects";
-
 type TrainerStatus = "Active" | "Inactive";
-
 type Trainer = {
   profileId: number;
   id: string;
@@ -49,7 +52,6 @@ type Trainer = {
   status: TrainerStatus;
   profilePhotoUrl: string | null;
 };
-
 type TrainerAssessment = {
   id: number;
   courseId: number;
@@ -77,7 +79,6 @@ type TrainerAssessment = {
     role?: string | null;
   } | null;
 };
-
 type TrainerForm = {
   name: string;
   email: string;
@@ -87,7 +88,6 @@ type TrainerForm = {
   password: string;
   status: TrainerStatus;
 };
-
 const EMPTY_FORM: TrainerForm = {
   name: "",
   email: "",
@@ -97,38 +97,27 @@ const EMPTY_FORM: TrainerForm = {
   password: "",
   status: "Active",
 };
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
-
 export default function TrainersPage() {
   const router = useRouter();
-
   const [trainers, setTrainers] =
     useState<Trainer[]>([]);
-
   const [loading, setLoading] =
     useState(true);
-
   const [saving, setSaving] =
     useState(false);
-
   const [error, setError] =
     useState("");
-
   const [uploadingPhotoId, setUploadingPhotoId] =
     useState<number | null>(null);
-
   const [photoError, setPhotoError] =
     useState("");
-
   const [photoTargetProfileId, setPhotoTargetProfileId] =
     useState<number | null>(null);
-
   const photoInputRef =
     useRef<HTMLInputElement | null>(null);
-
   const [trainerFilters, setTrainerFilters] = useState({
     name: "All",
     id: "All",
@@ -138,73 +127,54 @@ export default function TrainersPage() {
     batches: "All",
     status: "All",
   });
-
   const [showAddModal, setShowAddModal] =
     useState(false);
-
   const [showEditModal, setShowEditModal] =
     useState(false);
-
   const [showViewModal, setShowViewModal] =
     useState(false);
-
   const [engagementLoading, setEngagementLoading] =
     useState(false);
-
   const [engagementError, setEngagementError] =
     useState("");
-
   const [trainerAssessments, setTrainerAssessments] =
     useState<TrainerAssessment[]>([]);
-
   const [assignmentsLoading, setAssignmentsLoading] =
     useState(false);
-
   const [assignmentsError, setAssignmentsError] =
     useState("");
-
   const [engagementData, setEngagementData] =
     useState<TrainerEngagementData | null>(null);
-
   const [activeTrainerTab, setActiveTrainerTab] =
     useState<"overview" | "engagement" | "courses" | "assignments" | "batches" | "meetings">("overview");
-
   const [selectedTrainer, setSelectedTrainer] =
     useState<Trainer | null>(null);
-
   const [openMenuId, setOpenMenuId] =
     useState<string | null>(null);
-
   const [menuPosition, setMenuPosition] =
     useState({
       top: 0,
       left: 0,
     });
-
   const [form, setForm] =
     useState<TrainerForm>(EMPTY_FORM);
-
   const getToken = () => {
     if (typeof window === "undefined") {
       return null;
     }
-
     return localStorage.getItem("token");
   };
-
   async function authenticatedFetch(
     url: string,
     options: RequestInit = {}
   ) {
     const token = getToken();
-
     if (!token) {
       router.push("/admin/login");
       throw new Error(
         "Authentication required"
       );
     }
-
     const response = await fetch(
       url,
       {
@@ -222,7 +192,6 @@ export default function TrainersPage() {
         },
       }
     );
-
     if (
       response.status === 401 ||
       response.status === 403
@@ -232,17 +201,13 @@ export default function TrainersPage() {
       localStorage.removeItem("role");
       localStorage.removeItem("student");
       localStorage.removeItem("studentId");
-
       router.push("/admin/login");
-
       throw new Error(
         "Authentication required"
       );
     }
-
     return response;
   }
-
   const toTrainer = (
     value: any
   ): Trainer => ({
@@ -250,25 +215,19 @@ export default function TrainersPage() {
       value.profileId ??
         value.id
     ),
-
     id:
       value.displayId ||
       `TR${String(
         value.profileId ??
           value.id
       ).padStart(3, "0")}`,
-
     name: value.name || "",
-
     email:
       value.email || "",
-
     phone:
       value.phone || "",
-
     specialization:
       value.specialization || "",
-
     experience:
       value.experience === null ||
       value.experience ===
@@ -276,11 +235,9 @@ export default function TrainersPage() {
       value.experience === ""
         ? ""
         : `${value.experience} Years`,
-
     batches: Number(
       value.batches || 0
     ),
-
     joinedDate:
       value.joinedDate
         ? new Date(
@@ -289,29 +246,23 @@ export default function TrainersPage() {
             "en-IN"
           )
         : "",
-
     status:
       value.status === "Active"
         ? "Active"
         : "Inactive",
-
     profilePhotoUrl:
       value.profilePhotoUrl ||
       null,
   });
-
   const loadTrainers = async () => {
     try {
       setError("");
-
       const response =
         await authenticatedFetch(
           `${API_URL}/admin/trainers`
         );
-
       const json =
         await response.json();
-
       if (
         !response.ok ||
         !json?.success
@@ -321,7 +272,6 @@ export default function TrainersPage() {
             "Unable to load trainers."
         );
       }
-
       setTrainers(
         (json.data || []).map(
           toTrainer
@@ -332,7 +282,6 @@ export default function TrainersPage() {
         "Load trainers error:",
         err
       );
-
       setError(
         err instanceof Error
           ? err.message
@@ -342,11 +291,9 @@ export default function TrainersPage() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     void loadTrainers();
   }, []);
-
   const trainerFilterOptions = useMemo(() => ({
     name: [...new Set<string>(trainers.map((trainer) => trainer.name).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     id: [...new Set<string>(trainers.map((trainer) => trainer.id).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
@@ -355,7 +302,6 @@ export default function TrainersPage() {
     experience: [...new Set<string>(trainers.map((trainer) => trainer.experience).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     batches: [...new Set<string>(trainers.map((trainer) => String(trainer.batches)))].sort((a, b) => Number(a) - Number(b)),
   }), [trainers]);
-
   const filteredTrainers = useMemo(() => {
     return trainers.filter((trainer) =>
       (trainerFilters.name === "All" || trainer.name === trainerFilters.name) &&
@@ -367,7 +313,6 @@ export default function TrainersPage() {
       (trainerFilters.status === "All" || trainer.status === trainerFilters.status)
     );
   }, [trainers, trainerFilters]);
-
   const clearTrainerFilters = () => {
     setTrainerFilters({
       name: "All",
@@ -379,30 +324,25 @@ export default function TrainersPage() {
       status: "All",
     });
   };
-
   const hasTrainerFilters = Object.values(trainerFilters).some((value) => value !== "All");
-
   const activeTrainers =
     trainers.filter(
       (trainer) =>
         trainer.status ===
         "Active"
     ).length;
-
   const inactiveTrainers =
     trainers.filter(
       (trainer) =>
         trainer.status ===
         "Inactive"
     ).length;
-
   const totalBatches =
     trainers.reduce(
       (total, trainer) =>
         total + trainer.batches,
       0
     );
-
   const updateForm = (
     field: keyof TrainerForm,
     value: string
@@ -414,37 +354,31 @@ export default function TrainersPage() {
       })
     );
   };
-
   const createTrainer =
     async (
       e: React.FormEvent<HTMLFormElement>
     ) => {
       e.preventDefault();
-
       if (!form.name.trim()) {
         alert(
           "Please enter trainer name."
         );
         return;
       }
-
       if (!form.email.trim()) {
         alert(
           "Please enter trainer email."
         );
         return;
       }
-
       if (!form.password.trim()) {
         alert(
           "Please create a password."
         );
         return;
       }
-
       setSaving(true);
       setError("");
-
       try {
         const response =
           await authenticatedFetch(
@@ -455,18 +389,14 @@ export default function TrainersPage() {
                 {
                   name:
                     form.name.trim(),
-
                   email:
                     form.email.trim(),
-
                   phone:
                     form.phone.trim() ||
                     null,
-
                   specialization:
                     form.specialization.trim() ||
                     null,
-
                   experience:
                     form.experience.trim()
                       ? Number.parseInt(
@@ -477,10 +407,8 @@ export default function TrainersPage() {
                           10
                         )
                       : null,
-
                   password:
                     form.password,
-
                   isActive:
                     form.status ===
                     "Active",
@@ -488,10 +416,8 @@ export default function TrainersPage() {
               ),
             }
           );
-
         const json =
           await response.json();
-
         if (
           !response.ok ||
           !json?.success
@@ -501,41 +427,33 @@ export default function TrainersPage() {
               "Unable to create trainer."
           );
         }
-
         setForm(EMPTY_FORM);
-
         setShowAddModal(
           false
         );
-
         await loadTrainers();
       } catch (err) {
         console.error(
           "Create trainer error:",
           err
         );
-
         const message =
           err instanceof Error
             ? err.message
             : "Unable to create trainer.";
-
         setError(message);
         alert(message);
       } finally {
         setSaving(false);
       }
     };
-
   const openEditModal = (
     trainer: Trainer
   ) => {
     setOpenMenuId(null);
-
     setSelectedTrainer(
       trainer
     );
-
     setForm({
       name: trainer.name,
       email: trainer.email,
@@ -547,30 +465,24 @@ export default function TrainersPage() {
       password: "",
       status: trainer.status,
     });
-
     setShowEditModal(true);
   };
-
   const updateTrainer =
     async (
       e: React.FormEvent<HTMLFormElement>
     ) => {
       e.preventDefault();
-
       if (!selectedTrainer) {
         return;
       }
-
       if (!form.name.trim()) {
         alert(
           "Please enter trainer name."
         );
         return;
       }
-
       setSaving(true);
       setError("");
-
       try {
         const response =
           await authenticatedFetch(
@@ -581,18 +493,14 @@ export default function TrainersPage() {
                 {
                   name:
                     form.name.trim(),
-
                   email:
                     form.email.trim(),
-
                   phone:
                     form.phone.trim() ||
                     null,
-
                   specialization:
                     form.specialization.trim() ||
                     null,
-
                   experience:
                     form.experience.trim()
                       ? Number.parseInt(
@@ -603,11 +511,9 @@ export default function TrainersPage() {
                           10
                         )
                       : null,
-
                   password:
                     form.password.trim() ||
                     undefined,
-
                   isActive:
                     form.status ===
                     "Active",
@@ -615,10 +521,8 @@ export default function TrainersPage() {
               ),
             }
           );
-
         const json =
           await response.json();
-
         if (
           !response.ok ||
           !json?.success
@@ -628,36 +532,29 @@ export default function TrainersPage() {
               "Unable to update trainer."
           );
         }
-
         setShowEditModal(
           false
         );
-
         setSelectedTrainer(
           null
         );
-
         setForm(EMPTY_FORM);
-
         await loadTrainers();
       } catch (err) {
         console.error(
           "Update trainer error:",
           err
         );
-
         const message =
           err instanceof Error
             ? err.message
             : "Unable to update trainer.";
-
         setError(message);
         alert(message);
       } finally {
         setSaving(false);
       }
     };
-
   const toggleStatus =
     async (
       trainer: Trainer
@@ -665,7 +562,6 @@ export default function TrainersPage() {
       setOpenMenuId(null);
       setSaving(true);
       setError("");
-
       try {
         const response =
           await authenticatedFetch(
@@ -681,10 +577,8 @@ export default function TrainersPage() {
               ),
             }
           );
-
         const json =
           await response.json();
-
         if (
           !response.ok ||
           !json?.success
@@ -694,61 +588,50 @@ export default function TrainersPage() {
               "Unable to update trainer status."
           );
         }
-
         await loadTrainers();
       } catch (err) {
         console.error(
           "Toggle trainer status error:",
           err
         );
-
         const message =
           err instanceof Error
             ? err.message
             : "Unable to update trainer status.";
-
         setError(message);
         alert(message);
       } finally {
         setSaving(false);
       }
     };
-
   const openViewModal = (
     trainer: Trainer
   ) => {
     setOpenMenuId(null);
-
     setSelectedTrainer(
       trainer
     );
-
     setActiveTrainerTab("overview");
     setEngagementData(null);
     setEngagementError("");
     setEngagementLoading(false);
     setShowViewModal(true);
   };
-
   const openMoreMenu = (
     e: React.MouseEvent<HTMLButtonElement>,
     trainerId: string
   ) => {
     const rect =
       e.currentTarget.getBoundingClientRect();
-
     const menuWidth = 235;
     const menuHeight = 300;
     const gap = 8;
     const padding = 12;
-
     let left =
       rect.right - menuWidth;
-
     if (left < padding) {
       left = padding;
     }
-
     if (
       left + menuWidth >
       window.innerWidth -
@@ -759,10 +642,8 @@ export default function TrainersPage() {
         menuWidth -
         padding;
     }
-
     let top =
       rect.bottom + gap;
-
     if (
       top + menuHeight >
       window.innerHeight -
@@ -773,51 +654,41 @@ export default function TrainersPage() {
         menuHeight -
         gap;
     }
-
     if (top < padding) {
       top = padding;
     }
-
     setMenuPosition({
       top,
       left,
     });
-
     setOpenMenuId(
       openMenuId === trainerId
         ? null
         : trainerId
     );
   };
-
   const loadTrainerEngagement = async (
     trainer: Trainer
   ) => {
     setEngagementData(null);
     setEngagementError("");
     setEngagementLoading(true);
-
     try {
       const response =
         await authenticatedFetch(
           `${API_URL}/admin/trainers/${trainer.profileId}/engagements`
         );
-
       const json =
         await response.json();
-
       if (!response.ok || !json?.success) {
         throw new Error(
           json?.message ||
             "Unable to load trainer engagements."
         );
       }
-
       const engagement =
         json.data as TrainerEngagementData;
-
       setEngagementData(engagement);
-
       void loadTrainerAssessments(
         engagement
       );
@@ -826,7 +697,6 @@ export default function TrainersPage() {
         "Load trainer engagements error:",
         err
       );
-
       setEngagementError(
         err instanceof Error
           ? err.message
@@ -836,27 +706,22 @@ export default function TrainersPage() {
       setEngagementLoading(false);
     }
   };
-
   const loadTrainerAssessments = async (
     engagement: TrainerEngagementData
   ) => {
     setAssignmentsLoading(true);
     setAssignmentsError("");
-
     try {
       const response = await authenticatedFetch(
         `${API_URL}/admin/assessments`
       );
-
       const json = await response.json();
-
       if (!response.ok || !json?.success) {
         throw new Error(
           json?.message ||
             "Unable to load trainer assessments."
         );
       }
-
       const manageableCourseIds = new Set(
         (Array.isArray(engagement.permissions)
           ? engagement.permissions
@@ -872,11 +737,9 @@ export default function TrainersPage() {
             Number.isInteger(id) && id > 0
           )
       );
-
       const rows = Array.isArray(json.data)
         ? json.data
         : [];
-
       setTrainerAssessments(
         rows.filter(
           (assessment: any) =>
@@ -890,7 +753,6 @@ export default function TrainersPage() {
         "Load trainer assessments error:",
         err
       );
-
       setAssignmentsError(
         err instanceof Error
           ? err.message
@@ -900,7 +762,6 @@ export default function TrainersPage() {
       setAssignmentsLoading(false);
     }
   };
-
   const handleMoreAction =
     async (
       action:
@@ -912,7 +773,6 @@ export default function TrainersPage() {
       trainer: Trainer
     ) => {
       setOpenMenuId(null);
-
       if (action === "engagements") {
         setSelectedTrainer(trainer);
         setActiveTrainerTab("engagement");
@@ -920,32 +780,27 @@ export default function TrainersPage() {
         void loadTrainerEngagement(trainer);
         return;
       }
-
       if (action === "availability") {
         router.push(
           `/dashboard/admin/trainer-availability?trainerId=${trainer.profileId}`
         );
         return;
       }
-
       if (action === "permissions") {
         router.push(
           `/dashboard/admin/trainer-permissions?trainerId=${trainer.profileId}`
         );
         return;
       }
-
       const newPassword =
         window.prompt(
           `Enter a new password for ${trainer.name}:`
         );
-
       if (
         newPassword === null
       ) {
         return;
       }
-
       if (
         newPassword.trim()
           .length < 8
@@ -955,10 +810,8 @@ export default function TrainersPage() {
         );
         return;
       }
-
       setSaving(true);
       setError("");
-
       try {
         const response =
           await authenticatedFetch(
@@ -973,10 +826,8 @@ export default function TrainersPage() {
               ),
             }
           );
-
         const json =
           await response.json();
-
         if (
           !response.ok ||
           !json?.success
@@ -986,7 +837,6 @@ export default function TrainersPage() {
               "Unable to reset password."
           );
         }
-
         alert(
           "Trainer password has been updated successfully."
         );
@@ -995,26 +845,22 @@ export default function TrainersPage() {
           "Reset trainer password error:",
           err
         );
-
         const message =
           err instanceof Error
             ? err.message
             : "Unable to reset password.";
-
         setError(message);
         alert(message);
       } finally {
         setSaving(false);
       }
     };
-
   const getPhotoUrl = (
     photoUrl?: string | null
   ): string | null => {
     if (!photoUrl) {
       return null;
     }
-
     if (
       photoUrl.startsWith(
         "http://"
@@ -1025,49 +871,39 @@ export default function TrainersPage() {
     ) {
       return photoUrl;
     }
-
     const backendUrl =
       API_URL.replace(
         /\/api\/?$/,
         ""
       );
-
     return `${backendUrl}${
       photoUrl.startsWith("/")
         ? ""
         : "/"
     }${photoUrl}`;
   };
-
   const openPhotoPicker = (
     trainer: Trainer
   ) => {
     setPhotoError("");
-
     setPhotoTargetProfileId(
       trainer.profileId
     );
-
     photoInputRef.current?.click();
   };
-
   const uploadTrainerPhoto =
     async (
       event: React.ChangeEvent<HTMLInputElement>
     ) => {
       const file =
         event.target.files?.[0];
-
       const profileId =
         photoTargetProfileId;
-
       if (!file || !profileId) {
         event.target.value = "";
         return;
       }
-
       setPhotoError("");
-
       const allowedTypes =
         new Set([
           "image/jpeg",
@@ -1075,7 +911,6 @@ export default function TrainersPage() {
           "image/webp",
           "image/gif",
         ]);
-
       if (
         !allowedTypes.has(
           file.type
@@ -1084,12 +919,9 @@ export default function TrainersPage() {
         setPhotoError(
           "Please select a JPG, PNG, WEBP, or GIF image."
         );
-
         event.target.value = "";
-
         return;
       }
-
       if (
         file.size >
         5 * 1024 * 1024
@@ -1097,25 +929,19 @@ export default function TrainersPage() {
         setPhotoError(
           "Profile photo must be 5 MB or smaller."
         );
-
         event.target.value = "";
-
         return;
       }
-
       try {
         setUploadingPhotoId(
           profileId
         );
-
         const formData =
           new FormData();
-
         formData.append(
           "photo",
           file
         );
-
         const response =
           await authenticatedFetch(
             `${API_URL}/admin/trainers/${profileId}/photo`,
@@ -1124,10 +950,8 @@ export default function TrainersPage() {
               body: formData,
             }
           );
-
         const json =
           await response.json();
-
         if (
           !response.ok ||
           !json?.success
@@ -1137,12 +961,10 @@ export default function TrainersPage() {
               "Unable to update trainer profile photo."
           );
         }
-
         const profilePhotoUrl =
           json?.data
             ?.profilePhotoUrl ||
           null;
-
         setTrainers(
           (current) =>
             current.map(
@@ -1156,7 +978,6 @@ export default function TrainersPage() {
                   : trainer
             )
         );
-
         setSelectedTrainer(
           (current) =>
             current &&
@@ -1173,30 +994,24 @@ export default function TrainersPage() {
           "Upload trainer profile photo error:",
           err
         );
-
         const message =
           err instanceof Error
             ? err.message
             : "Unable to update trainer profile photo.";
-
         setPhotoError(
           message
         );
-
         alert(message);
       } finally {
         setUploadingPhotoId(
           null
         );
-
         setPhotoTargetProfileId(
           null
         );
-
         event.target.value = "";
       }
     };
-
   const closeAll = () => {
     setShowAddModal(false);
     setShowEditModal(false);
@@ -1207,13 +1022,10 @@ export default function TrainersPage() {
     setEngagementLoading(false);
     setSelectedTrainer(null);
     setOpenMenuId(null);
-
-
     setForm(EMPTY_FORM);
   };
-
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8 skce-page-enter">
+    <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7 skce-page-enter">
       <AdminVisualEffects />
       <input
         ref={photoInputRef}
@@ -1224,14 +1036,12 @@ export default function TrainersPage() {
           uploadTrainerPhoto
         }
       />
-
-      <div className="mx-auto max-w-[1500px]">
+      <div className="mx-auto w-full max-w-[1680px]">
         {error && (
           <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <span>
               {error}
             </span>
-
             <button
               type="button"
               onClick={() =>
@@ -1243,74 +1053,38 @@ export default function TrainersPage() {
             </button>
           </div>
         )}
-
-        <div className="relative mb-7 flex flex-col justify-between gap-5 overflow-hidden rounded-3xl border-b-4 border-orange-500 bg-gradient-to-r from-[#202333] via-[#173B67] to-[#2D6099] p-6 text-white shadow-xl sm:flex-row sm:items-center sm:p-8">
-          <div className="skce-banner-orbit pointer-events-none absolute -right-10 -top-24 h-72 w-72 rounded-full border-[24px] border-white/5" />
-          <div className="pointer-events-none absolute -right-2 -top-16 h-56 w-56 rounded-full border-[18px] border-white/5" />
-          <div className="relative flex items-center gap-4">
-            <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 sm:flex">
-              <Users className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-300">
-                Trainer Management
-              </p>
-
-              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                Trainers
-              </h1>
-
-              <p className="mt-1 max-w-2xl text-sm text-blue-100/85">
-                Manage trainers, specializations, batches and account status.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                void loadTrainers()
-              }
-              disabled={
-                loading ||
-                saving
-              }
-              className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw
-                size={17}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setForm(
-                  EMPTY_FORM
-                );
-                setShowAddModal(
-                  true
-                );
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 hover:shadow-md"
-            >
-              <UserPlus
-                size={18}
-              />
-
-              Add Trainer
-            </button>
-          </div>
+        <div className="mb-6">
+          <AdminPageHeader
+            icon={Users}
+            label="Trainer Management"
+            title="Trainers"
+            subtitle="Manage trainers, specializations, batches and account status."
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={() => void loadTrainers()}
+                  disabled={loading || saving}
+                  className={ADMIN_BTN_GHOST}
+                >
+                  <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm(EMPTY_FORM);
+                    setShowAddModal(true);
+                  }}
+                  className={ADMIN_BTN_PRIMARY}
+                >
+                  <UserPlus size={18} />
+                  Add Trainer
+                </button>
+              </>
+            }
+          />
         </div>
-
         <div className="mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             icon={
@@ -1322,7 +1096,6 @@ export default function TrainersPage() {
             title="Total Trainers"
             description="Trainers in the system"
           />
-
           <SummaryCard
             icon={
               <CheckCircle2
@@ -1335,7 +1108,6 @@ export default function TrainersPage() {
             title="Active Trainers"
             description="Currently active"
           />
-
           <SummaryCard
             icon={
               <XCircle size={21} />
@@ -1346,7 +1118,6 @@ export default function TrainersPage() {
             title="Inactive Trainers"
             description="Currently inactive"
           />
-
           <SummaryCard
             icon={
               <CalendarDays
@@ -1360,7 +1131,6 @@ export default function TrainersPage() {
             description="Across all trainers"
           />
         </div>
-
         <section className="skce-interactive-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-white via-orange-50/30 to-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div>
@@ -1379,32 +1149,28 @@ export default function TrainersPage() {
               </button>
             </div>
           </div>
-
           {loading ? (
-            <div className="flex min-h-[360px] items-center justify-center">
+            <div className="flex min-h-[200px] items-center justify-center">
               <div className="inline-flex items-center gap-2 text-sm text-slate-500">
                 <Loader2
                   size={18}
                   className="animate-spin"
                 />
-
                 Loading trainers...
               </div>
             </div>
           ) : filteredTrainers.length ===
             0 ? (
-            <div className="px-6 py-20 text-center">
+            <div className="px-6 py-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
                 <Users
                   size={28}
                   className="text-orange-500"
                 />
               </div>
-
               <h3 className="mt-5 text-lg font-semibold text-[#173B67]">
                 No trainers found
               </h3>
-
               <p className="mt-2 text-sm text-slate-500">
                 {hasTrainerFilters
                   ? "Try changing the selected column filters."
@@ -1450,7 +1216,6 @@ export default function TrainersPage() {
                     <th className="px-3 py-2" aria-label="No filter for actions" />
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredTrainers.map(
                     (trainer) => (
@@ -1484,14 +1249,12 @@ export default function TrainersPage() {
                                 </span>
                               )}
                             </div>
-
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-800">
                                 {
                                   trainer.name
                                 }
                               </p>
-
                               <p className="mt-1 max-w-[260px] truncate text-xs text-slate-500">
                                 {
                                   trainer.email
@@ -1500,7 +1263,6 @@ export default function TrainersPage() {
                             </div>
                           </div>
                         </TableCell>
-
                         <TableCell>
                           <span className="font-semibold text-[#173B67]">
                             {
@@ -1508,24 +1270,20 @@ export default function TrainersPage() {
                             }
                           </span>
                         </TableCell>
-
                         <TableCell>
                           {trainer.phone ||
                             "Not provided"}
                         </TableCell>
-
                         <TableCell>
                           <span className="inline-flex max-w-[190px] rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600">
                             {trainer.specialization ||
                               "Not specified"}
                           </span>
                         </TableCell>
-
                         <TableCell>
                           {trainer.experience ||
                             "Not specified"}
                         </TableCell>
-
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-500">
@@ -1533,7 +1291,6 @@ export default function TrainersPage() {
                                 size={15}
                               />
                             </span>
-
                             <span className="font-medium">
                               {
                                 trainer.batches
@@ -1541,7 +1298,6 @@ export default function TrainersPage() {
                             </span>
                           </div>
                         </TableCell>
-
                         <TableCell>
                           <span
                             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -1556,7 +1312,6 @@ export default function TrainersPage() {
                             }
                           </span>
                         </TableCell>
-
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <ActionButton
@@ -1569,7 +1324,6 @@ export default function TrainersPage() {
                             >
                               <Eye size={16} />
                             </ActionButton>
-
                             <ActionButton
                               title="Edit trainer"
                               onClick={() =>
@@ -1582,7 +1336,6 @@ export default function TrainersPage() {
                                 size={16}
                               />
                             </ActionButton>
-
                             <ActionButton
                               title={
                                 trainer.status ===
@@ -1607,7 +1360,6 @@ export default function TrainersPage() {
                                 />
                               )}
                             </ActionButton>
-
                             <ActionButton
                               title="Change profile photo"
                               onClick={() =>
@@ -1628,7 +1380,6 @@ export default function TrainersPage() {
                                 />
                               )}
                             </ActionButton>
-
                             <ActionButton
                               title="More actions"
                               onClick={(e) =>
@@ -1652,12 +1403,10 @@ export default function TrainersPage() {
             </div>
           )}
         </section>
-
         <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
           <p className="text-xs font-semibold text-blue-800">
             Trainer Accounts
           </p>
-
           <p className="mt-1 text-xs leading-5 text-blue-700/80">
             Trainer accounts are stored in PostgreSQL and use the same
             authentication system as the rest of the application.
@@ -1665,7 +1414,6 @@ export default function TrainersPage() {
           </p>
         </div>
       </div>
-
       {openMenuId && (
         <div
           className="fixed z-[99999] w-[235px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
@@ -1681,11 +1429,9 @@ export default function TrainersPage() {
                   item.id ===
                   openMenuId
               );
-
             if (!trainer) {
               return null;
             }
-
             return (
               <>
                 <MoreMenuItem
@@ -1702,7 +1448,6 @@ export default function TrainersPage() {
                     )
                   }
                 />
-
                 <MoreMenuItem
                   icon={
                     <Activity
@@ -1717,7 +1462,6 @@ export default function TrainersPage() {
                     )
                   }
                 />
-
                 <MoreMenuItem
                   icon={
                     <CalendarDays
@@ -1732,7 +1476,6 @@ export default function TrainersPage() {
                     )
                   }
                 />
-
                 <MoreMenuItem
                   icon={
                     <ShieldCheck
@@ -1747,7 +1490,6 @@ export default function TrainersPage() {
                     )
                   }
                 />
-
                 <MoreMenuItem
                   icon={
                     trainer.status ===
@@ -1778,7 +1520,6 @@ export default function TrainersPage() {
           })()}
         </div>
       )}
-
       {showAddModal && (
         <TrainerFormModal
           title="Add New Trainer"
@@ -1791,7 +1532,6 @@ export default function TrainersPage() {
           saving={saving}
         />
       )}
-
       {showEditModal && (
         <TrainerFormModal
           title="Edit Trainer"
@@ -1805,7 +1545,6 @@ export default function TrainersPage() {
           saving={saving}
         />
       )}
-
       {showViewModal &&
         selectedTrainer && (
           <ModalOverlay
@@ -1817,7 +1556,6 @@ export default function TrainersPage() {
                 subtitle="Trainer profile, engagement, courses, batches and meetings."
                 onClose={closeAll}
               />
-
               <div className="p-6">
                 <div className="mb-6 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-500">
@@ -1844,21 +1582,18 @@ export default function TrainersPage() {
                       </span>
                     )}
                   </div>
-
                   <div className="min-w-0">
                     <h3 className="text-lg font-bold text-[#173B67]">
                       {
                         selectedTrainer.name
                       }
                     </h3>
-
                     <p className="mt-1 text-xs text-slate-500">
                       {
                         selectedTrainer.id
                       }
                     </p>
                   </div>
-
                   <div className="ml-auto flex shrink-0 items-center gap-2">
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -1872,7 +1607,6 @@ export default function TrainersPage() {
                         selectedTrainer.status
                       }
                     </span>
-
                     <button
                       type="button"
                       onClick={() =>
@@ -1897,12 +1631,10 @@ export default function TrainersPage() {
                           size={14}
                         />
                       )}
-
                       Change Photo
                     </button>
                   </div>
                 </div>
-
                 <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-100 pb-2">
                   {(
                     [
@@ -1919,7 +1651,6 @@ export default function TrainersPage() {
                       type="button"
                       onClick={() => {
                         setActiveTrainerTab(tab);
-
                         if (
                           tab !== "overview" &&
                           !engagementData &&
@@ -1941,7 +1672,6 @@ export default function TrainersPage() {
                     </button>
                   ))}
                 </div>
-
                 {activeTrainerTab === "overview" && (
                   <div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -1951,21 +1681,18 @@ export default function TrainersPage() {
                       selectedTrainer.name
                     }
                   />
-
                   <DetailBox
                     label="Trainer ID"
                     value={
                       selectedTrainer.id
                     }
                   />
-
                   <DetailBox
                     label="Email"
                     value={
                       selectedTrainer.email
                     }
                   />
-
                   <DetailBox
                     label="Phone"
                     value={
@@ -1973,7 +1700,6 @@ export default function TrainersPage() {
                       "Not provided"
                     }
                   />
-
                   <DetailBox
                     label="Specialization"
                     value={
@@ -1981,7 +1707,6 @@ export default function TrainersPage() {
                       "Not specified"
                     }
                   />
-
                   <DetailBox
                     label="Experience"
                     value={
@@ -1989,21 +1714,18 @@ export default function TrainersPage() {
                       "Not specified"
                     }
                   />
-
                   <DetailBox
                     label="Assigned Batches"
                     value={String(
                       selectedTrainer.batches
                     )}
                   />
-
                   <DetailBox
                     label="Joined Date"
                     value={
                       selectedTrainer.joinedDate
                     }
                   />
-
                   <DetailBox
                     label="Profile Photo"
                     value={
@@ -2013,19 +1735,16 @@ export default function TrainersPage() {
                     }
                   />
                     </div>
-
                     <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50/50 p-4">
                   <div className="flex items-center gap-2">
                     <Award
                       size={18}
                       className="text-orange-500"
                     />
-
                     <p className="text-sm font-semibold text-[#173B67]">
                       Trainer Account
                     </p>
                   </div>
-
                   <p className="mt-2 text-xs leading-5 text-slate-500">
                     This trainer has a real SKCE login account.
                     The password is stored only as a secure bcrypt hash.
@@ -2033,7 +1752,6 @@ export default function TrainersPage() {
                     </div>
                   </div>
                 )}
-
                 {activeTrainerTab === "engagement" && (
                   <TrainerEngagementTab
                     data={engagementData}
@@ -2045,11 +1763,9 @@ export default function TrainersPage() {
                     }
                   />
                 )}
-
                 {activeTrainerTab === "courses" && (
                   <TrainerCoursesTab data={engagementData} loading={engagementLoading} error={engagementError} />
                 )}
-
                 {activeTrainerTab === "assignments" && (
                   <TrainerAssignmentsTab
                     data={engagementData}
@@ -2058,31 +1774,25 @@ export default function TrainersPage() {
                     error={engagementError || assignmentsError}
                   />
                 )}
-
                 {activeTrainerTab === "batches" && (
                   <TrainerBatchesTab data={engagementData} loading={engagementLoading} error={engagementError} />
                 )}
-
                 {activeTrainerTab === "meetings" && (
                   <TrainerMeetingsTab data={engagementData} loading={engagementLoading} error={engagementError} />
                 )}
               </div>
-
               <ModalFooter
                 onClose={closeAll}
               />
             </div>
           </ModalOverlay>
         )}
-
     </main>
   );
 }
-
 /* ============================================================
    TRAINER ENGAGEMENT TABS
 ============================================================ */
-
 function TrainerEngagementTab({
   data,
   loading,
@@ -2098,7 +1808,7 @@ function TrainerEngagementTab({
 }) {
   if (loading) {
     return (
-      <div className="flex min-h-[280px] items-center justify-center">
+      <div className="flex min-h-[200px] items-center justify-center">
         <div className="text-center">
           <Loader2
             size={30}
@@ -2111,7 +1821,6 @@ function TrainerEngagementTab({
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
@@ -2131,11 +1840,9 @@ function TrainerEngagementTab({
       </div>
     );
   }
-
   if (!data) {
     return null;
   }
-
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -2170,7 +1877,6 @@ function TrainerEngagementTab({
           description="Total trainer meetings"
         />
       </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -2183,7 +1889,6 @@ function TrainerEngagementTab({
           </div>
           <ShieldCheck size={20} className="text-orange-500" />
         </div>
-
         <div className="mt-5 space-y-4">
           <PermissionBar
             label="Can Teach"
@@ -2202,7 +1907,6 @@ function TrainerEngagementTab({
           />
         </div>
       </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-center gap-2">
           <Activity size={19} className="text-orange-500" />
@@ -2215,7 +1919,6 @@ function TrainerEngagementTab({
             </p>
           </div>
         </div>
-
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <InfoMetric
             label="Teaching responsibilities"
@@ -2238,7 +1941,6 @@ function TrainerEngagementTab({
     </div>
   );
 }
-
 function TrainerCoursesTab({
   data,
   loading,
@@ -2251,9 +1953,7 @@ function TrainerCoursesTab({
   if (loading) return <TabLoading label="Loading courses..." />;
   if (error) return <TabError message={error} />;
   if (!data) return null;
-
   const rows = Array.isArray(data.permissions) ? data.permissions : [];
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
       <div className="border-b border-slate-100 p-5">
@@ -2296,7 +1996,6 @@ function TrainerCoursesTab({
     </div>
   );
 }
-
 function getAssessmentCourseTitle(
   assessment: TrainerAssessment,
   data: TrainerEngagementData
@@ -2304,23 +2003,18 @@ function getAssessmentCourseTitle(
   if (assessment.course?.title) {
     return assessment.course.title;
   }
-
   const course = (Array.isArray(data.courses) ? data.courses : []).find(
     (item: any) => Number(item.courseId) === Number(assessment.courseId)
   );
-
   return course?.courseTitle || "Not available";
 }
-
 function getPersonLabel(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
   }
-
   if (typeof value === "string" || typeof value === "number") {
     return String(value);
   }
-
   if (Array.isArray(value)) {
     for (const item of value) {
       const label = getPersonLabel(item);
@@ -2328,65 +2022,51 @@ function getPersonLabel(value: unknown): string {
     }
     return "";
   }
-
   if (typeof value === "object") {
     const person = value as Record<string, unknown>;
-
     const name =
       person.name ??
       person.fullName ??
       person.displayName ??
       person.username;
-
     const email = person.email;
     const role = person.role;
     const id = person.id ?? person.userId;
-
     if (name !== null && name !== undefined && String(name).trim()) {
       const roleText =
         role !== null && role !== undefined && String(role).trim()
           ? ` (${String(role).toUpperCase()})`
           : "";
-
       return `${String(name)}${roleText}`;
     }
-
     if (email !== null && email !== undefined && String(email).trim()) {
       const roleText =
         role !== null && role !== undefined && String(role).trim()
           ? ` (${String(role).toUpperCase()})`
           : "";
-
       return `${String(email)}${roleText}`;
     }
-
     if (id !== null && id !== undefined) {
       return `User #${String(id)}`;
     }
   }
-
   return "";
 }
-
 function getAssessmentCreatorLabel(assessment: TrainerAssessment) {
   const candidates: unknown[] = [
     assessment.createdByName,
     assessment.createdBy,
     assessment.createdByUser,
   ];
-
   for (const candidate of candidates) {
     const label = getPersonLabel(candidate);
     if (label) return label;
   }
-
   if (assessment.createdByUserId) {
     return `User #${assessment.createdByUserId}`;
   }
-
   return "Not available";
 }
-
 function TrainerAssignmentsTab({
   data,
   assessments,
@@ -2404,7 +2084,6 @@ function TrainerAssignmentsTab({
   const [creatorFilter, setCreatorFilter] = useState("All");
   const [dueDateFilter, setDueDateFilter] = useState<"All" | "Due" | "No due date">("All");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive">("All");
-
   const courseOptions = useMemo(() => {
     const values = new Set<string>();
     assessments.forEach((assessment) => {
@@ -2413,7 +2092,6 @@ function TrainerAssignmentsTab({
     });
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [assessments, data]);
-
   const creatorOptions = useMemo(() => {
     const values = new Set<string>();
     assessments.forEach((assessment) => {
@@ -2421,10 +2099,8 @@ function TrainerAssignmentsTab({
     });
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [assessments]);
-
   const filteredAssessments = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     return assessments.filter((assessment) => {
       const courseTitle = getAssessmentCourseTitle(
         assessment,
@@ -2433,31 +2109,24 @@ function TrainerAssignmentsTab({
       const creator = getAssessmentCreatorLabel(assessment);
       const status = assessment.isActive === false ? "Inactive" : "Active";
       const assessmentType = assessment.type === "QUIZ" ? "QUIZ" : "ASSIGNMENT";
-
       const matchesSearch =
         !query ||
         [assessment.title, String(assessment.id), courseTitle, creator]
           .join(" ")
           .toLowerCase()
           .includes(query);
-
       const matchesType =
         typeFilter === "All" || assessmentType === typeFilter;
-
       const matchesCourse =
         courseFilter === "All" || courseTitle === courseFilter;
-
       const matchesCreator =
         creatorFilter === "All" || creator === creatorFilter;
-
       const matchesDueDate =
         dueDateFilter === "All" ||
         (dueDateFilter === "Due" && Boolean(assessment.dueAt)) ||
         (dueDateFilter === "No due date" && !assessment.dueAt);
-
       const matchesStatus =
         statusFilter === "All" || status === statusFilter;
-
       return (
         matchesSearch &&
         matchesType &&
@@ -2477,23 +2146,18 @@ function TrainerAssignmentsTab({
     dueDateFilter,
     statusFilter,
   ]);
-
   const assignments = filteredAssessments.filter(
     (item) => item.type === "ASSIGNMENT"
   );
-
   const quizzes = filteredAssessments.filter(
     (item) => item.type === "QUIZ"
   );
-
   const activeCount = filteredAssessments.filter(
     (item) => item.isActive !== false
   ).length;
-
   const publishedCount = filteredAssessments.filter(
     (item) => String(item.approvalStatus || "") === "PUBLISHED"
   ).length;
-
   function clearFilters() {
     setSearch("");
     setTypeFilter("All");
@@ -2502,19 +2166,15 @@ function TrainerAssignmentsTab({
     setDueDateFilter("All");
     setStatusFilter("All");
   }
-
   if (loading) {
     return <TabLoading label="Loading assignments and quizzes..." />;
   }
-
   if (error) {
     return <TabError message={error} />;
   }
-
   if (!data) {
     return null;
   }
-
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2539,7 +2199,6 @@ function TrainerAssignmentsTab({
           icon={<CheckCircle2 size={17} />}
         />
       </div>
-
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
         <div className="border-b border-slate-100 p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -2559,7 +2218,6 @@ function TrainerAssignmentsTab({
               Clear Filters
             </button>
           </div>
-
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="xl:col-span-2">
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
@@ -2572,7 +2230,6 @@ function TrainerAssignmentsTab({
                 className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               />
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Type
@@ -2591,7 +2248,6 @@ function TrainerAssignmentsTab({
                 <option value="QUIZ">Quiz</option>
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Course
@@ -2607,7 +2263,6 @@ function TrainerAssignmentsTab({
                 ))}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Created By
@@ -2623,7 +2278,6 @@ function TrainerAssignmentsTab({
                 ))}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Due Date
@@ -2642,7 +2296,6 @@ function TrainerAssignmentsTab({
                 <option value="No due date">No due date</option>
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
                 Status
@@ -2662,12 +2315,10 @@ function TrainerAssignmentsTab({
               </select>
             </div>
           </div>
-
           <div className="mt-3 text-xs text-slate-500">
             Showing <span className="font-semibold text-slate-700">{filteredAssessments.length}</span> of {assessments.length} assessments.
           </div>
         </div>
-
         {filteredAssessments.length === 0 ? (
           <EmptyTab label="No assignments or quizzes match the selected filters." />
         ) : (
@@ -2729,7 +2380,6 @@ function TrainerAssignmentsTab({
     </div>
   );
 }
-
 function TrainerBatchesTab({
   data,
   loading,
@@ -2742,9 +2392,7 @@ function TrainerBatchesTab({
   if (loading) return <TabLoading label="Loading batches..." />;
   if (error) return <TabError message={error} />;
   if (!data) return null;
-
   const rows = Array.isArray(data.batches) ? data.batches : [];
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
       <div className="border-b border-slate-100 p-5">
@@ -2789,7 +2437,6 @@ function TrainerBatchesTab({
     </div>
   );
 }
-
 function TrainerMeetingsTab({
   data,
   loading,
@@ -2806,38 +2453,30 @@ function TrainerMeetingsTab({
   const [organizerFilter, setOrganizerFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState<"All" | "Upcoming" | "Past">("All");
-
   const rows = Array.isArray(data?.meetings) ? data.meetings : [];
-
   const typeOptions = useMemo(
     () => Array.from(new Set(rows.map((meeting: any) => String(meeting.meetingType || "Not specified")))).sort(),
     [rows]
   );
-
   const courseOptions = useMemo(
     () => Array.from(new Set(rows.map((meeting: any) => String(meeting.courseTitle || "No course")))).sort(),
     [rows]
   );
-
   const batchOptions = useMemo(
     () => Array.from(new Set(rows.map((meeting: any) => String(meeting.batchName || "No batch")))).sort(),
     [rows]
   );
-
   const organizerOptions = useMemo(
     () => Array.from(new Set(rows.map((meeting: any) => getPersonLabel(meeting.organizer) || "Not available"))).sort(),
     [rows]
   );
-
   const statusOptions = useMemo(
     () => Array.from(new Set(rows.map((meeting: any) => String(meeting.status || "Not specified")))).sort(),
     [rows]
   );
-
   const filteredMeetings = useMemo(() => {
     const query = search.trim().toLowerCase();
     const now = Date.now();
-
     return rows.filter((meeting: any) => {
       const course = String(meeting.courseTitle || "No course");
       const batch = String(meeting.batchName || "No batch");
@@ -2849,7 +2488,6 @@ function TrainerMeetingsTab({
         .join(" ")
         .toLowerCase();
       const start = meeting.startAt ? new Date(meeting.startAt).getTime() : 0;
-
       const matchesSearch = !query || text.includes(query);
       const matchesType = typeFilter === "All" || type === typeFilter;
       const matchesCourse = courseFilter === "All" || course === courseFilter;
@@ -2860,7 +2498,6 @@ function TrainerMeetingsTab({
         dateFilter === "All" ||
         (dateFilter === "Upcoming" && start >= now) ||
         (dateFilter === "Past" && start < now);
-
       return (
         matchesSearch &&
         matchesType &&
@@ -2872,7 +2509,6 @@ function TrainerMeetingsTab({
       );
     });
   }, [rows, search, typeFilter, courseFilter, batchFilter, organizerFilter, statusFilter, dateFilter]);
-
   function clearFilters() {
     setSearch("");
     setTypeFilter("All");
@@ -2882,11 +2518,9 @@ function TrainerMeetingsTab({
     setStatusFilter("All");
     setDateFilter("All");
   }
-
   if (loading) return <TabLoading label="Loading meetings..." />;
   if (error) return <TabError message={error} />;
   if (!data) return null;
-
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
@@ -2906,7 +2540,6 @@ function TrainerMeetingsTab({
               Clear Filters
             </button>
           </div>
-
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="xl:col-span-2">
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Search</label>
@@ -2917,7 +2550,6 @@ function TrainerMeetingsTab({
                 className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               />
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Type</label>
               <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2925,7 +2557,6 @@ function TrainerMeetingsTab({
                 {typeOptions.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Status</label>
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2933,7 +2564,6 @@ function TrainerMeetingsTab({
                 {statusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Course</label>
               <select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2941,7 +2571,6 @@ function TrainerMeetingsTab({
                 {courseOptions.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Batch</label>
               <select value={batchFilter} onChange={(event) => setBatchFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2949,7 +2578,6 @@ function TrainerMeetingsTab({
                 {batchOptions.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Scheduled By</label>
               <select value={organizerFilter} onChange={(event) => setOrganizerFilter(event.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2957,7 +2585,6 @@ function TrainerMeetingsTab({
                 {organizerOptions.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Date</label>
               <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value as "All" | "Upcoming" | "Past")} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-400">
@@ -2967,12 +2594,10 @@ function TrainerMeetingsTab({
               </select>
             </div>
           </div>
-
           <div className="mt-3 text-xs text-slate-500">
             Showing <span className="font-semibold text-slate-700">{filteredMeetings.length}</span> of {rows.length} meetings.
           </div>
         </div>
-
         {filteredMeetings.length === 0 ? (
           <EmptyTab label="No meetings match the selected filters." />
         ) : (
@@ -3007,7 +2632,6 @@ function TrainerMeetingsTab({
     </div>
   );
 }
-
 function PermissionBar({
   label,
   enabled,
@@ -3018,7 +2642,6 @@ function PermissionBar({
   total: number;
 }) {
   const percentage = total > 0 ? Math.round((enabled / total) * 100) : 0;
-
   return (
     <div>
       <div className="mb-2 flex items-center justify-between text-xs">
@@ -3031,7 +2654,6 @@ function PermissionBar({
     </div>
   );
 }
-
 function PermissionBadge({ enabled }: { enabled: boolean }) {
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
@@ -3039,19 +2661,16 @@ function PermissionBadge({ enabled }: { enabled: boolean }) {
     </span>
   );
 }
-
 function StatusBadge({ value }: { value?: string | null }) {
   const normalized = String(value || "Not specified").toUpperCase();
   const positive = ["ACTIVE", "SCHEDULED", "COMPLETED", "CONFIRMED"].includes(normalized);
   const negative = ["CANCELLED", "CANCELED", "INACTIVE"].includes(normalized);
-
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${positive ? "bg-emerald-50 text-emerald-700" : negative ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>
       {String(value || "Not specified")}
     </span>
   );
 }
-
 function InfoMetric({
   label,
   value,
@@ -3071,10 +2690,9 @@ function InfoMetric({
     </div>
   );
 }
-
 function TabLoading({ label }: { label: string }) {
   return (
-    <div className="flex min-h-[260px] items-center justify-center">
+    <div className="flex min-h-[200px] items-center justify-center">
       <div className="text-center">
         <Loader2 size={28} className="mx-auto animate-spin text-orange-500" />
         <p className="mt-3 text-sm font-semibold text-slate-600">{label}</p>
@@ -3082,7 +2700,6 @@ function TabLoading({ label }: { label: string }) {
     </div>
   );
 }
-
 function TabError({ message }: { message: string }) {
   return (
     <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
@@ -3091,22 +2708,19 @@ function TabError({ message }: { message: string }) {
     </div>
   );
 }
-
 function EmptyTab({ label }: { label: string }) {
   return (
-    <div className="px-6 py-14 text-center">
+    <div className="px-6 py-9 text-center">
       <p className="text-sm font-semibold text-slate-700">{label}</p>
     </div>
   );
 }
-
 function formatTrainerDate(value: string | null | undefined) {
   if (!value) return "Not provided";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString("en-IN");
 }
-
 function formatTrainerDateTime(value: string | null | undefined) {
   if (!value) return "Not provided";
   const date = new Date(value);
@@ -3116,11 +2730,9 @@ function formatTrainerDateTime(value: string | null | undefined) {
     timeStyle: "short",
   });
 }
-
 /* ============================================================
    TRAINER FORM MODAL
 ============================================================ */
-
 function TrainerFormModal({
   title,
   subtitle,
@@ -3157,7 +2769,6 @@ function TrainerFormModal({
       })
     );
   };
-
   return (
     <ModalOverlay
       onClose={onClose}
@@ -3168,7 +2779,6 @@ function TrainerFormModal({
           subtitle={subtitle}
           onClose={onClose}
         />
-
         <form
           onSubmit={onSubmit}
         >
@@ -3189,7 +2799,6 @@ function TrainerFormModal({
               }
               placeholder="Enter trainer name"
             />
-
             <FormField
               label="Email"
               type="email"
@@ -3207,7 +2816,6 @@ function TrainerFormModal({
               }
               placeholder="trainer@skce.in"
             />
-
             <FormField
               label="Phone"
               value={
@@ -3223,7 +2831,6 @@ function TrainerFormModal({
               }
               placeholder="Enter phone number"
             />
-
             <FormField
               label="Experience"
               value={
@@ -3239,7 +2846,6 @@ function TrainerFormModal({
               }
               placeholder="Example: 5 Years"
             />
-
             <div className="sm:col-span-2">
               <FormField
                 label="Specialization"
@@ -3257,7 +2863,6 @@ function TrainerFormModal({
                 placeholder="Example: Java, Python, MS Office"
               />
             </div>
-
             <FormField
               label={
                 isEdit
@@ -3283,12 +2888,10 @@ function TrainerFormModal({
                   : "Create login password"
               }
             />
-
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Status
               </label>
-
               <select
                 value={
                   form.status
@@ -3304,14 +2907,12 @@ function TrainerFormModal({
                 <option value="Active">
                   Active
                 </option>
-
                 <option value="Inactive">
                   Inactive
                 </option>
               </select>
             </div>
           </div>
-
           <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
             <button
               type="button"
@@ -3321,7 +2922,6 @@ function TrainerFormModal({
             >
               Cancel
             </button>
-
             <button
               type="submit"
               disabled={saving}
@@ -3332,7 +2932,6 @@ function TrainerFormModal({
               ) : (
                 <UserPlus size={17} />
               )}
-
               {submitLabel}
             </button>
           </div>
@@ -3341,11 +2940,9 @@ function TrainerFormModal({
     </ModalOverlay>
   );
 }
-
 /* ============================================================
    FORM FIELD
 ============================================================ */
-
 function FormField({
   label,
   value,
@@ -3367,14 +2964,12 @@ function FormField({
     <div>
       <label className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
-
         {required && (
           <span className="ml-1 text-red-500">
             *
           </span>
         )}
       </label>
-
       <input
         type={type}
         required={required}
@@ -3392,11 +2987,9 @@ function FormField({
     </div>
   );
 }
-
 /* ============================================================
    MODAL OVERLAY
 ============================================================ */
-
 function ModalOverlay({
   children,
   onClose,
@@ -3420,11 +3013,9 @@ function ModalOverlay({
     </div>
   );
 }
-
 /* ============================================================
    MODAL HEADER
 ============================================================ */
-
 function ModalHeader({
   title,
   subtitle,
@@ -3440,12 +3031,10 @@ function ModalHeader({
         <h2 className="text-xl font-bold text-[#173B67]">
           {title}
         </h2>
-
         <p className="mt-1 text-xs text-slate-500">
           {subtitle}
         </p>
       </div>
-
       <button
         type="button"
         onClick={onClose}
@@ -3456,11 +3045,9 @@ function ModalHeader({
     </div>
   );
 }
-
 /* ============================================================
    MODAL FOOTER
 ============================================================ */
-
 function ModalFooter({
   onClose,
 }: {
@@ -3478,11 +3065,9 @@ function ModalFooter({
     </div>
   );
 }
-
 /* ============================================================
    DETAIL BOX
 ============================================================ */
-
 function DetailBox({
   label,
   value,
@@ -3495,18 +3080,15 @@ function DetailBox({
       <p className="text-xs font-semibold text-slate-400">
         {label}
       </p>
-
       <p className="mt-2 break-words text-sm font-semibold text-slate-800">
         {value}
       </p>
     </div>
   );
 }
-
 /* ============================================================
    SUMMARY CARD
 ============================================================ */
-
 function SummaryCard({
   icon,
   value,
@@ -3525,16 +3107,13 @@ function SummaryCard({
           <p className="text-sm font-medium text-slate-500">
             {title}
           </p>
-
           <p className="mt-2 text-3xl font-bold text-[#173B67]">
             {value}
           </p>
-
           <p className="mt-1 text-xs text-slate-400">
             {description}
           </p>
         </div>
-
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-500 transition group-hover:bg-orange-100">
           {icon}
         </div>
@@ -3542,11 +3121,9 @@ function SummaryCard({
     </div>
   );
 }
-
 function FilterCell({ children }: { children: ReactNode }) {
   return <th className="min-w-[125px] px-2.5 py-2 align-top">{children}</th>;
 }
-
 function ColumnFilter({
   value,
   onChange,
@@ -3572,11 +3149,9 @@ function ColumnFilter({
     </select>
   );
 }
-
 /* ============================================================
    TABLE HEADER
 ============================================================ */
-
 function TableHeader({
   children,
 }: {
@@ -3588,11 +3163,9 @@ function TableHeader({
     </th>
   );
 }
-
 /* ============================================================
    TABLE CELL
 ============================================================ */
-
 function TableCell({
   children,
 }: {
@@ -3604,11 +3177,9 @@ function TableCell({
     </td>
   );
 }
-
 /* ============================================================
    ACTION BUTTON
 ============================================================ */
-
 function ActionButton({
   children,
   title,
@@ -3629,11 +3200,9 @@ function ActionButton({
     </button>
   );
 }
-
 /* ============================================================
    MORE MENU ITEM
 ============================================================ */
-
 function MoreMenuItem({
   icon,
   label,

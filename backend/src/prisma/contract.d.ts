@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0c8bf35af0869191f00ea9f070cee5a46905a76f58370e26b3611c942682835a'>;
+  StorageHashBase<'f5a12edf46f5a695714f7ee33a9c5729acecb5e2236eee24a5830e5d8d4ce47b'>;
 export type ExecutionHash =
-  ExecutionHashBase<'70987de9487a30feb3266646ce378304f726653ad3345752d818d95b045130af'>;
+  ExecutionHashBase<'b0bb0619d864c3f345f032813cc06b0ea6da8914960e12ceb2589bde5a8bc31c'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -542,6 +542,19 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly PhoneOtpChallenge: {
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+      readonly purpose: CodecTypes['pg/text@1']['output'];
+      readonly destinationPhone: CodecTypes['pg/text@1']['output'];
+      readonly codeHash: CodecTypes['pg/text@1']['output'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly lastSentAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly RegistrationIntent: {
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
@@ -663,6 +676,7 @@ export type FieldOutputTypes = {
       readonly passwordHash: CodecTypes['pg/text@1']['output'] | null;
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly phone: CodecTypes['pg/text@1']['output'] | null;
+      readonly phoneVerifiedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly profilePhotoUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'STUDENT' | 'TRAINER';
       readonly isActive: CodecTypes['pg/bool@1']['output'];
@@ -973,6 +987,19 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
+    readonly PhoneOtpChallenge: {
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+      readonly purpose: CodecTypes['pg/text@1']['input'];
+      readonly destinationPhone: CodecTypes['pg/text@1']['input'];
+      readonly codeHash: CodecTypes['pg/text@1']['input'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly lastSentAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
     readonly RegistrationIntent: {
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
@@ -1094,6 +1121,7 @@ export type FieldInputTypes = {
       readonly passwordHash: CodecTypes['pg/text@1']['input'] | null;
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly phone: CodecTypes['pg/text@1']['input'] | null;
+      readonly phoneVerifiedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly profilePhotoUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'STUDENT' | 'TRAINER';
       readonly isActive: CodecTypes['pg/bool@1']['input'];
@@ -1404,6 +1432,19 @@ export type StorageColumnTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly userId: CodecTypes['pg/int4@1']['output'] | null;
     };
+    readonly phoneOtpChallenge: {
+      readonly attempts: CodecTypes['pg/int4@1']['output'];
+      readonly codeHash: CodecTypes['pg/text@1']['output'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly destinationPhone: CodecTypes['pg/text@1']['output'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly lastSentAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly purpose: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly userId: CodecTypes['pg/int4@1']['output'];
+    };
     readonly registrationIntent: {
       readonly address: CodecTypes['pg/text@1']['output'] | null;
       readonly city: CodecTypes['pg/text@1']['output'] | null;
@@ -1527,6 +1568,7 @@ export type StorageColumnTypes = {
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly passwordHash: CodecTypes['pg/text@1']['output'] | null;
       readonly phone: CodecTypes['pg/text@1']['output'] | null;
+      readonly phoneVerifiedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly profilePhotoUrl: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'STUDENT' | 'TRAINER';
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -1835,6 +1877,19 @@ export type StorageColumnInputTypes = {
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly userId: CodecTypes['pg/int4@1']['input'] | null;
     };
+    readonly phoneOtpChallenge: {
+      readonly attempts: CodecTypes['pg/int4@1']['input'];
+      readonly codeHash: CodecTypes['pg/text@1']['input'];
+      readonly consumedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly destinationPhone: CodecTypes['pg/text@1']['input'];
+      readonly expiresAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly lastSentAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly purpose: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly userId: CodecTypes['pg/int4@1']['input'];
+    };
     readonly registrationIntent: {
       readonly address: CodecTypes['pg/text@1']['input'] | null;
       readonly city: CodecTypes['pg/text@1']['input'] | null;
@@ -1958,6 +2013,7 @@ export type StorageColumnInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly passwordHash: CodecTypes['pg/text@1']['input'] | null;
       readonly phone: CodecTypes['pg/text@1']['input'] | null;
+      readonly phoneVerifiedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly profilePhotoUrl: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'STUDENT' | 'TRAINER';
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -1972,6 +2028,7 @@ export namespace Models {
     passwordHash: CodecTypes['pg/text@1']['output'] | null;
     name: CodecTypes['pg/text@1']['output'];
     phone: CodecTypes['pg/text@1']['output'] | null;
+    phoneVerifiedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
     profilePhotoUrl: CodecTypes['pg/text@1']['output'] | null;
     role: 'ADMIN' | 'STUDENT' | 'TRAINER';
     isActive: CodecTypes['pg/bool@1']['output'];
@@ -1990,6 +2047,7 @@ export namespace Models {
     meetingParticipants: public_MeetingParticipant[];
     organizedMeetings: public_Meeting[];
     payments: public_Payment[];
+    phoneOtpChallenges: public_PhoneOtpChallenge[];
     reviewedAssessments: public_Assessment[];
     reviewedCourseModules: public_CourseModule[];
     reviewedLessons: public_Lesson[];
@@ -2011,6 +2069,7 @@ export namespace Models {
       | 'meetingParticipants'
       | 'organizedMeetings'
       | 'payments'
+      | 'phoneOtpChallenges'
       | 'reviewedAssessments'
       | 'reviewedCourseModules'
       | 'reviewedLessons'
@@ -2559,6 +2618,21 @@ export namespace Models {
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     readonly [RelationKeys]?: never;
   };
+  export type public_PhoneOtpChallenge = {
+    id: CodecTypes['pg/int4@1']['output'];
+    userId: CodecTypes['pg/int4@1']['output'];
+    purpose: CodecTypes['pg/text@1']['output'];
+    destinationPhone: CodecTypes['pg/text@1']['output'];
+    codeHash: CodecTypes['pg/text@1']['output'];
+    expiresAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    attempts: CodecTypes['pg/int4@1']['output'];
+    lastSentAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    consumedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    user: public_User;
+    readonly [RelationKeys]?: 'user';
+  };
 }
 
 export declare const models: {
@@ -2596,6 +2670,7 @@ export declare const models: {
     ContactSetting: Models.public_ContactSetting;
     DemoRequest: Models.public_DemoRequest;
     ContactMessage: Models.public_ContactMessage;
+    PhoneOtpChallenge: Models.public_PhoneOtpChallenge;
   };
 };
 
@@ -5327,6 +5402,111 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly phoneOtpChallenge: {
+              columns: {
+                readonly id: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                };
+                readonly userId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                };
+                readonly purpose: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly destinationPhone: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly codeHash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly expiresAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+                readonly attempts: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                };
+                readonly lastSentAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly consumedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'phoneOtpChallenge_userId_purpose_idx_e49c32f0';
+                  readonly prefix: 'phoneOtpChallenge_userId_purpose_idx';
+                  readonly columns: readonly ['userId', 'purpose'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'phoneOtpChallenge_expiresAt_idx_6b6b8c10';
+                  readonly prefix: 'phoneOtpChallenge_expiresAt_idx';
+                  readonly columns: readonly ['expiresAt'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'phoneOtpChallenge_userId_idx_a489d58a';
+                  readonly prefix: 'phoneOtpChallenge_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'phoneOtpChallenge';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'user';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly registrationIntent: {
               columns: {
                 readonly id: {
@@ -6250,6 +6430,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
+                readonly phoneVerifiedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
                 readonly profilePhotoUrl: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -6518,6 +6703,10 @@ type ContractBase = Omit<
     readonly contactMessage: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'ContactMessage';
+    };
+    readonly phoneOtpChallenge: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'PhoneOtpChallenge';
     };
   };
   readonly domain: {
@@ -8969,6 +9158,97 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly PhoneOtpChallenge: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly purpose: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly destinationPhone: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly codeHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly expiresAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly attempts: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly lastSentAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly consumedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: {
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'phoneOtpChallenge';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly userId: { readonly column: 'userId' };
+                readonly purpose: { readonly column: 'purpose' };
+                readonly destinationPhone: { readonly column: 'destinationPhone' };
+                readonly codeHash: { readonly column: 'codeHash' };
+                readonly expiresAt: { readonly column: 'expiresAt' };
+                readonly attempts: { readonly column: 'attempts' };
+                readonly lastSentAt: { readonly column: 'lastSentAt' };
+                readonly consumedAt: { readonly column: 'consumedAt' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
           readonly RegistrationIntent: {
             readonly fields: {
               readonly id: {
@@ -9812,6 +10092,13 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly phoneVerifiedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
               readonly profilePhotoUrl: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -9984,6 +10271,17 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['userId'];
                 };
               };
+              readonly phoneOtpChallenges: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'PhoneOtpChallenge';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['userId'];
+                };
+              };
               readonly reviewedAssessments: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -10073,6 +10371,7 @@ type ContractBase = Omit<
                 readonly passwordHash: { readonly column: 'passwordHash' };
                 readonly name: { readonly column: 'name' };
                 readonly phone: { readonly column: 'phone' };
+                readonly phoneVerifiedAt: { readonly column: 'phoneVerifiedAt' };
                 readonly profilePhotoUrl: { readonly column: 'profilePhotoUrl' };
                 readonly role: { readonly column: 'role' };
                 readonly isActive: { readonly column: 'isActive' };
@@ -10463,6 +10762,15 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'payment';
+            readonly column: 'updatedAt';
+          };
+          readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
+          readonly onUpdate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
+        },
+        {
+          readonly ref: {
+            readonly namespace: 'public';
+            readonly table: 'phoneOtpChallenge';
             readonly column: 'updatedAt';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };

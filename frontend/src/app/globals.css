@@ -2,10 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* SKCE brand tokens (also available as Tailwind colors: skce-navy, skce-orange, ...) */
+:root {
+  --skce-navy: #0f2f5f;
+  --skce-navy-2: #173b67;
+  --skce-blue: #1459b8;
+  --skce-orange: #F97316;
+  --skce-orange-2: #f97316;
+  --skce-line: #dce6f2;
+  --skce-tint: #f4f7fb;
+}
+
 html {
   width: 100%;
   max-width: 100%;
   scroll-behavior: auto;
+  /* Keeps the layout from jumping when a pop-up locks page scroll */
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -18,6 +32,12 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+button,
+[role="button"],
+a {
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
@@ -35,6 +55,15 @@ h3 {
 :focus-visible {
   outline: 2px solid rgb(249 115 22 / 0.6);
   outline-offset: 2px;
+}
+
+/* Browser autofill should not flash yellow/white inside SKCE forms */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 40px #f4f8fd inset;
+  -webkit-text-fill-color: #0f2f5f;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 /* Navy hero / panel decoration shared by public pages */

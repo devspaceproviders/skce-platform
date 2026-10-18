@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
 import type {
   Dispatch,
   FormEvent,
@@ -1548,60 +1556,51 @@ export default function AssignmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f6fb] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-[1600px]">
-        <header className="relative mb-6 overflow-hidden rounded-[24px] border border-[#244b78] bg-gradient-to-br from-[#102d50] via-[#173B67] to-[#28517d] px-5 py-5 text-white shadow-[0_16px_38px_-24px_rgba(16,45,80,0.75)] sm:px-7 sm:py-6">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-24 h-64 w-64 rounded-full border border-[#F59E0B]/30" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-12 h-48 w-48 rounded-full border-[18px] border-white/[0.035]" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-44 bg-gradient-to-r from-orange-500 via-amber-300 to-transparent" />
-          <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-orange-400/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-200">
-                <span className="flex h-5 w-5 items-center justify-center rounded-md bg-orange-400 text-[#173B67]"><ClipboardList size={13} /></span>
-                SK Computer Education <span className="text-white/45">·</span> Assessments
-              </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-                Assignments <span className="text-orange-300">&amp;</span> Quizzes
-              </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-blue-100/85">
-                Create and manage assignments, quizzes, questions and student submissions in one place.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Total <strong className="ml-1 text-white">{assessments.length}</strong></span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Assignments <strong className="ml-1 text-white">{totalAssignments}</strong></span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Quizzes <strong className="ml-1 text-white">{totalQuizzes}</strong></span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-blue-50">Drafts <strong className="ml-1 text-white">{totalDrafts}</strong></span>
-              </div>
-            </div>
-            <div className="relative flex shrink-0 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={refreshPage}
-                disabled={refreshing || loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
-                Refresh
-              </button>
-              <button
-                type="button"
-                onClick={() => openCreateModal("Assignment")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/20 transition duration-200 hover:-translate-y-0.5 hover:from-orange-400 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2 focus:ring-offset-[#173B67]"
-              >
-                <FileText size={17} />
-                Create Assignment
-              </button>
-              <button
-                type="button"
-                onClick={() => openCreateModal("Quiz")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200/40 bg-white px-4 py-3 text-sm font-bold text-[#173B67] shadow-lg shadow-slate-950/10 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2 focus:ring-offset-[#173B67]"
-              >
-                <HelpCircle size={17} className="text-orange-600" />
-                Create Quiz
-              </button>
-            </div>
-          </div>
-        </header>
+    <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-[1680px]">
+        <div className="mb-6">
+          <AdminPageHeader
+            icon={ClipboardList}
+            label="Administration Portal · Assessments"
+            title="Assignments & Quizzes"
+            subtitle="Create and manage assignments, quizzes, questions and student submissions in one place."
+            chips={[
+              { label: "Total", value: assessments.length },
+              { label: "Assignments", value: totalAssignments },
+              { label: "Quizzes", value: totalQuizzes },
+              { label: "Drafts", value: totalDrafts },
+            ]}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={refreshPage}
+                  disabled={refreshing || loading}
+                  className={ADMIN_BTN_GHOST}
+                >
+                  <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openCreateModal("Assignment")}
+                  className={ADMIN_BTN_PRIMARY}
+                >
+                  <FileText size={17} />
+                  Create Assignment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openCreateModal("Quiz")}
+                  className={ADMIN_BTN_LIGHT}
+                >
+                  <HelpCircle size={17} className="text-orange-600" />
+                  Create Quiz
+                </button>
+              </>
+            }
+          />
+        </div>
 
         {error && (
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -1828,7 +1827,7 @@ export default function AssignmentsPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-5 py-20 text-center"
+                      className="px-5 py-10 text-center"
                     >
                       <div className="mx-auto flex items-center justify-center gap-2 text-sm text-slate-500">
                         <RefreshCw
@@ -1843,7 +1842,7 @@ export default function AssignmentsPage() {
                   <tr>
                     <td
                       colSpan={9}
-                      className="px-5 py-20 text-center"
+                      className="px-5 py-10 text-center"
                     >
                       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-500">
                         <ClipboardList size={27} />

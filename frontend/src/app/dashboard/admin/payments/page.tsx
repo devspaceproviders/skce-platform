@@ -3,6 +3,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Search,
   CreditCard,
   CheckCircle2,
   Clock3,
@@ -17,6 +18,12 @@ import {
   SlidersHorizontal,
   FilterX,
 } from "lucide-react";
+
+import {
+  AdminPageShell,
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -65,6 +72,7 @@ const normalize = (value: unknown) => String(value ?? "").trim().toLowerCase();
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [search, setSearch] = useState("");
   // Dropdown-only column filters, consistent with the Students and Assessments admin tables.
   const [studentFilter, setStudentFilter] = useState("All");
   const [studentIdFilter, setStudentIdFilter] = useState("All");
@@ -154,6 +162,7 @@ export default function PaymentsPage() {
   }, [payments]);
 
   const filteredPayments = useMemo(() => payments.filter((payment) => (
+    (!normalize(search) || normalize(`${payment.studentName} ${payment.studentId} ${payment.course} ${payment.transactionId} ${payment.method} ${payment.status} ${payment.amount}`).includes(normalize(search))) &&
     (studentFilter === "All" || payment.studentName === studentFilter) &&
     (studentIdFilter === "All" || payment.studentId === studentIdFilter) &&
     (courseFilter === "All" || payment.course === courseFilter) &&
@@ -162,7 +171,7 @@ export default function PaymentsPage() {
     (transactionFilter === "All" || payment.transactionId === transactionFilter) &&
     (dateFilter === "All" || toDateInputValue(payment.paymentDate) === dateFilter) &&
     (statusFilter === "All" || payment.status === statusFilter)
-  )), [payments, studentFilter, studentIdFilter, courseFilter, amountFilter, methodFilter, transactionFilter, dateFilter, statusFilter]);
+  )), [payments, search, studentFilter, studentIdFilter, courseFilter, amountFilter, methodFilter, transactionFilter, dateFilter, statusFilter]);
 
   const totalRevenue = payments
     .filter((payment) => payment.status === "Paid")
@@ -174,6 +183,7 @@ export default function PaymentsPage() {
   const transactionCount = payments.length;
 
   const clearFilters = () => {
+    setSearch("");
     setStudentFilter("All");
     setStudentIdFilter("All");
     setCourseFilter("All");
@@ -185,6 +195,7 @@ export default function PaymentsPage() {
   };
 
   const hasFilters = Boolean(
+    search.trim() ||
     studentFilter !== "All" || studentIdFilter !== "All" || courseFilter !== "All" || amountFilter !== "All" ||
     methodFilter !== "All" || transactionFilter !== "All" || dateFilter !== "All" || statusFilter !== "All"
   );
@@ -224,48 +235,32 @@ export default function PaymentsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F3F6FB] px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1700px]">
-        {/* SKCE branded page banner */}
-        <section className="skce-banner relative mb-6 overflow-hidden rounded-[26px] border-b-[4px] border-[#FF7900] bg-gradient-to-r from-[#1C2236] via-[#173B67] to-[#2C639C] px-6 py-7 text-white shadow-[0_14px_30px_rgba(23,59,103,0.14)] sm:px-8">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-72 w-72 rounded-full border border-orange-300/20 shadow-[0_0_0_18px_rgba(255,255,255,0.025),0_0_0_40px_rgba(255,255,255,0.025)]" />
-          <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 right-36 h-44 w-44 rounded-full border border-orange-300/15" />
-          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-orange-300 shadow-inner">
-                <WalletCards size={27} />
-              </div>
-              <div>
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-300/30 bg-orange-300/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-300">
-                  <CreditCard size={13} /> Administration Portal <span className="text-white/50">·</span> Finance
-                </div>
-                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Payments</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                  Manage student payments, transactions, receipts and payment status in one place.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 lg:pl-6">
-              <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 backdrop-blur-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100/75">Finance workspace</p>
-                <p className="mt-0.5 text-sm font-semibold">Payment Management</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => void loadPayments(true)}
-                disabled={refreshing}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-bold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 disabled:cursor-wait disabled:opacity-70"
-              >
-                <RotateCcw size={16} className={refreshing ? "animate-spin" : ""} />
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-0 h-[3px] w-36 bg-gradient-to-r from-[#FF7900] via-amber-300 to-transparent" />
-        </section>
+    <>
+      <AdminPageShell>
+        <AdminPageHeader
+          label="Administration Portal · Finance"
+          title="Payments"
+          subtitle="Manage student payments, transactions, receipts and payment status in one place."
+          icon={WalletCards}
+          chips={[
+            { label: "Transactions", value: transactionCount },
+            { label: "Showing", value: filteredPayments.length },
+          ]}
+          actions={
+            <button
+              type="button"
+              onClick={() => void loadPayments(true)}
+              disabled={refreshing}
+              className={ADMIN_BTN_GHOST}
+            >
+              <RotateCcw size={16} className={refreshing ? "animate-spin motion-reduce:animate-none" : ""} />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          }
+        />
 
         {/* Summary cards */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard icon={<IndianRupee size={20} />} value={totalRevenue} title="Total Revenue" currency tone="navy" />
           <SummaryCard icon={<CheckCircle2 size={20} />} value={paidAmount} title="Paid Amount" currency tone="green" />
           <SummaryCard icon={<Clock3 size={20} />} value={pendingAmount} title="Pending Amount" currency tone="orange" />
@@ -273,17 +268,28 @@ export default function PaymentsPage() {
         </div>
 
         {/* Filters and payment table */}
-        <section className="overflow-hidden rounded-2xl border border-[#DCE5F1] bg-white shadow-[0_5px_18px_rgba(23,59,103,0.045)]">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-[#DCE5F1] bg-gradient-to-r from-white via-[#FBFCFE] to-[#FFF7EF] p-4 sm:p-5">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-sm font-extrabold text-[#173B67]">
-                  <SlidersHorizontal size={17} className="text-[#FF7900]" />
+                  <SlidersHorizontal size={17} className="text-[#F97316]" />
                   Filter payments
                 </div>
-                <p className="mt-1 text-xs text-slate-500">Choose a dropdown under any column to filter the payment records.</p>
+                <p className="mt-1 text-xs text-slate-500">Search, or choose a dropdown under any column to filter the payment records.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full sm:w-72">
+                  <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search student, ID, course, transaction..."
+                    aria-label="Search payments"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
+                  />
+                </div>
                 <span className="rounded-full border border-[#D7E4F4] bg-[#EEF4FC] px-3 py-1.5 text-xs font-bold text-[#173B67]">
                   Showing {filteredPayments.length} of {payments.length} payments
                 </span>
@@ -376,7 +382,7 @@ export default function PaymentsPage() {
                     </FilterSelect>
                   </FilterCell>
                   <FilterCell>
-                    <button type="button" onClick={clearFilters} disabled={!hasFilters} className="h-9 whitespace-nowrap rounded-lg border border-[#D7E2F0] bg-white px-2 text-xs font-semibold text-[#173B67] transition hover:border-[#FF7900] hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40">Clear</button>
+                    <button type="button" onClick={clearFilters} disabled={!hasFilters} className="h-9 whitespace-nowrap rounded-lg border border-[#D7E2F0] bg-white px-2 text-xs font-semibold text-[#173B67] transition hover:border-[#F97316] hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40">Clear</button>
                   </FilterCell>
                 </tr>
               </thead>
@@ -387,7 +393,7 @@ export default function PaymentsPage() {
                 ) : error ? (
                   <tr>
                     <td colSpan={9}>
-                      <div className="flex min-h-[280px] flex-col items-center justify-center px-5 text-center">
+                      <div className="flex min-h-[200px] flex-col items-center justify-center px-5 text-center">
                         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500"><XCircle size={27} /></div>
                         <h3 className="text-lg font-bold text-slate-800">Unable to load payments</h3>
                         <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500">{error}</p>
@@ -400,7 +406,7 @@ export default function PaymentsPage() {
                     colSpan={9}
                     icon={<CreditCard size={27} />}
                     title={payments.length === 0 ? "No payment records" : "No matching payments"}
-                    description={payments.length === 0 ? "No payment records are currently available." : "Choose different dropdown values or clear the filters to see more payments."}
+                    description={payments.length === 0 ? "No payment records are currently available." : "Change the search or dropdown values, or clear the filters to see more payments."}
                   />
                 ) : (
                   filteredPayments.map((payment) => (
@@ -437,7 +443,7 @@ export default function PaymentsPage() {
             <span className="font-semibold text-[#173B67]">{filteredPayments.length} record{filteredPayments.length === 1 ? "" : "s"} displayed</span>
           </div>
         </section>
-      </div>
+      </AdminPageShell>
 
       {/* Floating actions menu */}
       {openMenuId && (
@@ -456,11 +462,11 @@ export default function PaymentsPage() {
       {/* Payment details modal */}
       {showViewModal && selectedPayment && (
         <ModalOverlay onClose={closeAll}>
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl animate-[modalIn_180ms_ease-out]">
+          <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-2xl animate-[modalIn_180ms_ease-out] motion-reduce:animate-none">
             <ModalHeader title="Payment Details" subtitle="Complete transaction information." onClose={closeAll} />
             <div className="p-5 sm:p-6">
-              <div className="mb-6 flex items-center gap-3 rounded-xl bg-[#F3F6FB] p-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#FF7900]"><IndianRupee size={23} /></div>
+              <div className="mb-6 flex items-center gap-3 rounded-xl bg-[#F4F7FB] p-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#F97316]"><IndianRupee size={23} /></div>
                 <div className="min-w-0">
                   <h3 className="text-xl font-bold text-slate-800">{formatCurrency(selectedPayment.amount)}</h3>
                   <p className="mt-0.5 break-all text-sm text-slate-500">{selectedPayment.transactionId}</p>
@@ -486,11 +492,11 @@ export default function PaymentsPage() {
       {/* Receipt preview modal */}
       {showReceiptModal && selectedPayment && (
         <ModalOverlay onClose={closeAll}>
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl animate-[modalIn_180ms_ease-out]">
+          <div className="w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white shadow-2xl animate-[modalIn_180ms_ease-out] motion-reduce:animate-none">
             <ModalHeader title="Payment Receipt" subtitle="Receipt preview." onClose={closeAll} />
             <div className="p-6 sm:p-7">
               <div className="border-b border-dashed border-slate-300 pb-5 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-[#FF7900]"><Receipt size={23} /></div>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-[#F97316]"><Receipt size={23} /></div>
                 <h2 className="text-xl font-extrabold text-[#173B67]">SK Computer Education</h2>
                 <p className="mt-1 text-sm text-slate-500">Payment Receipt</p>
               </div>
@@ -503,7 +509,7 @@ export default function PaymentsPage() {
                 <ReceiptRow label="Transaction ID" value={selectedPayment.transactionId} />
                 <ReceiptRow label="Date" value={formatDate(selectedPayment.paymentDate)} />
               </div>
-              <div className="rounded-xl bg-[#F3F6FB] p-4 text-center">
+              <div className="rounded-xl bg-[#F4F7FB] p-4 text-center">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Payment Status</p>
                 <div className="mt-2"><StatusBadge status={selectedPayment.status} /></div>
               </div>
@@ -516,7 +522,7 @@ export default function PaymentsPage() {
         @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
       `}</style>
-    </main>
+    </>
   );
 }
 
@@ -534,8 +540,8 @@ function SummaryCard({ icon, value, title, currency = false, tone }: {
     slate: "bg-slate-100 text-slate-600",
   };
   return (
-    <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-[#DCE5F1] bg-white p-5 shadow-[0_3px_10px_rgba(23,59,103,0.035)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(23,59,103,0.09)]">
-      <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#173B67] via-[#4F83B8] to-[#FF7900] opacity-75`} />
+    <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(23,59,103,0.09)]">
+      <div className={`absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#173B67] via-[#4F83B8] to-[#F97316] opacity-75`} />
       <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${styles[tone]}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-2xl font-extrabold tracking-tight text-[#173B67]">{currency ? formatCurrency(value) : value.toLocaleString("en-IN")}</div>
@@ -546,7 +552,7 @@ function SummaryCard({ icon, value, title, currency = false, tone }: {
 }
 
 function TableHeader({ children }: { children: ReactNode }) {
-  return <th scope="col" className="whitespace-nowrap border-b border-[#DCE5F1] border-t-2 border-t-[#FF7900] px-3 py-3.5 text-left text-[11px] font-extrabold uppercase tracking-wider text-[#173B67]">{children}</th>;
+  return <th scope="col" className="whitespace-nowrap border-b border-[#DCE5F1] border-t-2 border-t-[#F97316] px-3 py-3.5 text-left text-[11px] font-extrabold uppercase tracking-wider text-[#173B67]">{children}</th>;
 }
 function TableCell({ children }: { children: ReactNode }) {
   return <td className="overflow-hidden border-b border-slate-100 px-3 py-4 text-sm text-slate-600 last:border-b-0">{children}</td>;
@@ -560,7 +566,7 @@ function FilterSelect({ ariaLabel, value, onChange, children }: {
   onChange: (value: string) => void;
   children: ReactNode;
 }) {
-  return <select aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-[#D7E2F0] bg-white px-1.5 text-xs text-[#173B67] outline-none transition duration-200 hover:border-[#B8CBE2] focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100">{children}</select>;
+  return <select aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-full min-w-0 rounded-lg border border-[#D7E2F0] bg-white px-1.5 text-xs text-[#173B67] outline-none transition duration-200 hover:border-[#B8CBE2] focus:border-[#F97316] focus:ring-2 focus:ring-orange-100">{children}</select>;
 }
 function StateRow({ colSpan, icon, title, description }: {
   colSpan: number;
@@ -568,8 +574,8 @@ function StateRow({ colSpan, icon, title, description }: {
   title: string;
   description: string;
 }) {
-  return <tr><td colSpan={colSpan}><div className="flex min-h-[270px] flex-col items-center justify-center px-5 text-center">
-    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-[#FF7900]">{icon}</div>
+  return <tr><td colSpan={colSpan}><div className="flex min-h-[200px] flex-col items-center justify-center px-5 text-center">
+    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-[#F97316]">{icon}</div>
     <h3 className="text-lg font-bold text-slate-800">{title}</h3>
     <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{description}</p>
   </div></td></tr>;
@@ -582,7 +588,7 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
     Paid: "bg-emerald-50 text-emerald-700 ring-emerald-100",
     Pending: "bg-amber-50 text-amber-700 ring-amber-100",
     Failed: "bg-red-50 text-red-700 ring-red-100",
-    Refunded: "bg-indigo-50 text-indigo-700 ring-indigo-100",
+    Refunded: "bg-sky-50 text-sky-700 ring-sky-100",
   };
   return <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${config[status]}`}>{status}</span>;
 }

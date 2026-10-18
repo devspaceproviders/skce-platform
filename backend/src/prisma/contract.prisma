@@ -172,9 +172,14 @@ model User {
   passwordHash   String?
   name           String
   phone          String?
+  // Set only after the phone number has been verified by OTP.
+  phoneVerifiedAt TimestamptzString?
   profilePhotoUrl String?
   role           UserRole   @default(STUDENT)
   isActive       Boolean    @default(true)
+
+  // Short-lived OTP challenges used for login and phone changes.
+  phoneOtpChallenges PhoneOtpChallenge[]
 
   studentProfile StudentProfile?
   trainerProfile TrainerProfile?
@@ -1569,4 +1574,34 @@ model ContactMessage {
   @@index([phone])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============================================================
+// PHONE OTP CHALLENGE
+// ============================================================
+
+// Stores only a hash of the OTP, never the plaintext code.
+// Purpose is enforced by the backend (for example LOGIN or PHONE_CHANGE).
+model PhoneOtpChallenge {
+  id              Int    @id @default(autoincrement())
+  userId          Int
+  purpose         String
+  destinationPhone String
+  codeHash        String
+  expiresAt       TimestamptzString
+  attempts        Int    @default(0)
+  lastSentAt      TimestamptzString @default(now())
+  consumedAt      TimestamptzString?
+
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
 }

@@ -73,8 +73,22 @@ const MENU_SECTIONS: MenuSection[] = [
 
 // Only this area scrolls. Thin scrollbar, contained wheel scrolling,
 // and soft fade shadows at the top/bottom edges when content overflows.
+const SIDEBAR_CSS = `
+@keyframes skSbIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes skSbOrbit{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-8px,6px) scale(1.04)}}
+@keyframes skSbPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.sk-sb-item{animation:skSbIn .45s cubic-bezier(.2,.7,.2,1) backwards}
+.sk-sb-ring{animation:skSbOrbit 9s ease-in-out infinite}
+.sk-sb-dot{animation:skSbPulse 2.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.sk-sb-item,.sk-sb-ring,.sk-sb-dot{animation:none}}
+`;
+
+const ASIDE_CLASS =
+  "relative isolate sticky top-0 flex h-screen w-[260px] shrink-0 flex-col self-start overflow-hidden border-r border-white/10 " +
+  "bg-[linear-gradient(172deg,#071C3A_0%,#0F2F5F_52%,#173B67_100%)] text-white shadow-[6px_0_24px_-12px_rgba(7,28,58,0.55)]";
+
 const NAV_SCROLL =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 " +
+  "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 " +
   "[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.22)_transparent] " +
   "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent " +
   "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 " +
@@ -82,11 +96,81 @@ const NAV_SCROLL =
 
 const NAV_SHADOW = {
   background:
-    "linear-gradient(#173B67 30%, rgba(23,59,103,0)) 0 0 / 100% 28px no-repeat local, " +
-    "linear-gradient(rgba(23,59,103,0), #173B67 70%) 0 100% / 100% 28px no-repeat local, " +
-    "radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 0 / 100% 10px no-repeat scroll, " +
-    "radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.35), rgba(0,0,0,0)) 0 100% / 100% 10px no-repeat scroll",
+    "linear-gradient(#0B2547 20%, rgba(11,37,71,0)) 0 0 / 100% 24px no-repeat local, " +
+    "linear-gradient(rgba(14,42,80,0), #0E2A50 80%) 0 100% / 100% 24px no-repeat local, " +
+    "radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.3), rgba(0,0,0,0)) 0 0 / 100% 8px no-repeat scroll, " +
+    "radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.3), rgba(0,0,0,0)) 0 100% / 100% 8px no-repeat scroll",
 } as const;
+
+const LINK_BASE =
+  "sk-sb-item group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold outline-none " +
+  "transition-all duration-200 focus-visible:ring-2 focus-visible:ring-orange-300";
+const LINK_ACTIVE =
+  "bg-[linear-gradient(100deg,#F97316,#FB8A2E)] text-white shadow-[0_8px_18px_-8px_rgba(249,115,22,0.75)]";
+const LINK_IDLE = "text-blue-50/80 hover:translate-x-0.5 hover:bg-white/[0.09] hover:text-white";
+
+function SidebarDecor() {
+  return (
+    <>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 opacity-70 [background-image:radial-gradient(rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:20px_20px] [mask-image:linear-gradient(180deg,#000,transparent_70%)]" />
+      <div aria-hidden="true" className="sk-sb-ring pointer-events-none absolute -right-20 -top-24 -z-10 h-56 w-56 rounded-full border border-white/10 shadow-[0_0_0_22px_rgba(255,255,255,0.03),0_0_0_46px_rgba(255,255,255,0.02)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-16 -left-10 -z-10 h-44 w-44 rounded-full bg-orange-500/20 blur-3xl" />
+    </>
+  );
+}
+
+function SidebarBrand({ href, portal }: { href: string; portal: string }) {
+  return (
+    <div className="relative shrink-0 px-4 pb-4 pt-5">
+      <Link href={href} className="flex items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5 shadow-lg shadow-black/25 ring-2 ring-orange-400/70">
+          <Image src="/images/skce-logo.png" alt="SK Computer Education" width={44} height={44} className="h-full w-full object-contain" />
+        </span>
+        <span className="min-w-0 leading-tight">
+          <span className="block truncate text-[14px] font-bold text-white">SK Computer Education</span>
+          <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-orange-300/30 bg-orange-500/15 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-orange-200">
+            <span className="sk-sb-dot h-1.5 w-1.5 rounded-full bg-orange-400" />
+            {portal}
+          </span>
+        </span>
+      </Link>
+      <div aria-hidden="true" className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-gradient-to-r from-[#F97316] via-[#F97316]/40 to-transparent" />
+    </div>
+  );
+}
+
+function SidebarLink({ href, label, Icon, active, index }: { href: string; label: string; Icon: LucideIcon; active: boolean; index: number }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      style={{ animationDelay: `${Math.min(index, 14) * 35}ms` }}
+      className={`${LINK_BASE} ${active ? LINK_ACTIVE : LINK_IDLE}`}
+    >
+      {active && <span aria-hidden="true" className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white" />}
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${active ? "bg-white/20" : "bg-white/[0.06] group-hover:bg-orange-500/20"}`}>
+        <Icon size={17} strokeWidth={active ? 2.3 : 1.9} className={active ? "text-white" : "text-blue-100/75 group-hover:text-orange-300"} />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {active && <ChevronRight size={15} className="shrink-0 text-white/90" />}
+    </Link>
+  );
+}
+
+function LogoutButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-blue-50/80 outline-none transition hover:bg-red-500/15 hover:text-red-200 focus-visible:ring-2 focus-visible:ring-red-300"
+    >
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] transition-colors group-hover:bg-red-500/20">
+        <LogOut size={16} strokeWidth={1.9} />
+      </span>
+      <span>Logout</span>
+    </button>
+  );
+}
 
 export default function AdminSidebar() {
   const pathname = usePathname() ?? "";
@@ -102,79 +186,47 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside
-      aria-label="Admin navigation"
-      className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col self-start overflow-hidden border-r border-white/5 bg-[#173B67] text-white"
-    >
-      {/* Brand — fixed */}
-      <div className="shrink-0 border-b border-white/10 px-5 py-4">
-        <Link href={ROOT} className="flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
-            <Image src="/images/skce-logo.png" alt="SK Computer Education" width={40} height={40} className="h-full w-full object-contain" />
-          </span>
-          <span className="min-w-0 leading-tight">
-            <span className="block truncate text-[14px] font-bold tracking-tight">SK Computer Education</span>
-            <span className="mt-0.5 block text-[11px] font-medium text-blue-100/65">Admin Portal</span>
-          </span>
-        </Link>
-      </div>
+    <aside aria-label="Admin navigation" className={ASIDE_CLASS}>
+      <style dangerouslySetInnerHTML={{ __html: SIDEBAR_CSS }} />
+      <SidebarDecor />
+      <SidebarBrand href={ROOT} portal="Admin Portal" />
 
-      {/* Profile — fixed */}
-      <div className="shrink-0 px-3 pt-3">
+      <div className="relative shrink-0 px-3 pb-2">
         <Link
           href={`${ROOT}/profile`}
-          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-2.5 outline-none transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-2.5 outline-none transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-orange-300"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold">A</span>
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F97316] to-[#FB8A2E] text-sm font-bold shadow-md shadow-orange-950/30 ring-2 ring-white/20">
+            A
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0F2F5F] bg-emerald-400" />
+          </span>
           <span className="min-w-0 leading-tight">
-            <span className="block truncate text-[13px] font-semibold">Administrator</span>
-            <span className="block truncate text-[11px] text-blue-100/60">Admin Account</span>
+            <span className="block truncate text-[13px] font-bold">Administrator</span>
+            <span className="mt-0.5 block truncate text-[11px] text-blue-100/65">Admin Account</span>
           </span>
         </Link>
       </div>
 
-      {/* Navigation — the ONLY scrolling area */}
       <nav aria-label="Admin menu" className={NAV_SCROLL} style={NAV_SHADOW}>
-        <div className="space-y-6">
-          {MENU_SECTIONS.map((section) => (
+        <div className="space-y-5">
+          {MENU_SECTIONS.map((section, sIndex) => (
             <div key={section.label}>
-              <p className="px-3 pb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-blue-100/45">{section.label}</p>
-              <div className="space-y-0.5">
-                {section.items.map(({ href, label, icon: Icon }) => {
-                  const active = isActive(href);
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-orange-400 ${
-                        active
-                          ? "bg-orange-500 text-white shadow-md shadow-orange-950/25"
-                          : "text-blue-50/75 hover:bg-white/[0.08] hover:text-white"
-                      }`}
-                    >
-                      <Icon size={17} strokeWidth={active ? 2.2 : 1.9} className={`shrink-0 transition-colors ${active ? "text-white" : "text-blue-100/60 group-hover:text-orange-300"}`} />
-                      <span className="min-w-0 flex-1 truncate">{label}</span>
-                      {active && <ChevronRight size={14} className="shrink-0 text-white/80" />}
-                    </Link>
-                  );
-                })}
+              <p className="flex items-center gap-2 px-3 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em] text-blue-100/50">
+                <span aria-hidden="true" className="h-1 w-3 rounded-full bg-orange-400/80" />
+                {section.label}
+              </p>
+              <div className="space-y-1">
+                {section.items.map(({ href, label, icon }, iIndex) => (
+                  <SidebarLink key={href} href={href} label={label} Icon={icon} active={isActive(href)} index={sIndex + iIndex} />
+                ))}
               </div>
             </div>
           ))}
         </div>
       </nav>
 
-      {/* Footer — fixed */}
-      <div className="shrink-0 border-t border-white/10 p-3">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-blue-50/75 outline-none transition hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-300"
-        >
-          <LogOut size={17} strokeWidth={1.9} />
-          <span>Logout</span>
-        </button>
+      <div className="relative shrink-0 border-t border-white/10 bg-[#071C3A]/40 p-3 backdrop-blur-sm">
+        <LogoutButton onClick={handleLogout} />
       </div>
     </aside>
   );

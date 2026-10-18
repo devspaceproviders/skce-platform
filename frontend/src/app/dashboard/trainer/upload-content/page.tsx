@@ -9,9 +9,10 @@ import {
   X,
   CheckCircle2,
   Clock3,
-  GraduationCap,
   FolderOpen,
 } from "lucide-react";
+
+import { AdminPageHeader } from "@/components/dashboard/admin/AdminPageHeader";
 
 type UploadType = "video" | "doc" | "pdf";
 
@@ -104,31 +105,15 @@ export default function UploadContentPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1200px]">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         {/* Header */}
-        <div className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
-                <GraduationCap size={17} />
-                Trainer Portal
-              </div>
-
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Upload Content
-              </h1>
-
-              <p className="mt-2 text-sm leading-6 text-blue-100">
-                Share lecture recordings, slides and reading material with your batches.
-              </p>
-            </div>
-
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-orange-300">
-              <FolderOpen size={21} />
-            </div>
-          </div>
-        </div>
+        <AdminPageHeader
+          label="Trainer Portal"
+          icon={FolderOpen}
+          title="Upload Content"
+          subtitle="Share lecture recordings, slides and reading material with your batches."
+        />
 
         {/* Development notice */}
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
@@ -208,7 +193,7 @@ export default function UploadContentPage() {
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-600"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#EA580C]"
               >
                 <UploadCloud size={17} />
                 Choose File

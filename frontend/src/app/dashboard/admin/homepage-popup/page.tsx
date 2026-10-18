@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
 
 
 import Image from "next/image";
@@ -1156,9 +1164,9 @@ export default function HomepagePopupPage() {
 
     return (
 
-      <main className="min-h-screen w-full bg-[#F3F6FB] px-4 py-5 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
 
-        <div className="mx-auto w-full">
+        <div className="mx-auto w-full max-w-[1680px]">
 
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
 
@@ -1190,47 +1198,35 @@ export default function HomepagePopupPage() {
 
   return (
 
-    <main className="min-h-screen w-full bg-[#F3F6FB] px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
 
-      <div className="mx-auto w-full">
+      <div className="mx-auto w-full max-w-[1680px]">
 
         {/* SKCE PAGE BANNER */}
-        <section className="relative mb-7 overflow-hidden rounded-3xl border-b-4 border-orange-500 bg-gradient-to-r from-[#20283b] via-[#173B67] to-[#32659A] px-5 py-6 text-white shadow-xl sm:px-7 sm:py-7 lg:px-9">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-64 w-64 rounded-full border-[22px] border-white/5" />
-          <div aria-hidden="true" className="pointer-events-none absolute right-20 -top-16 h-52 w-52 rounded-full border-[16px] border-white/5" />
-          <div className="relative z-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-orange-300 shadow-inner">
-                <Megaphone size={27} />
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-300">
-                  System Management
-                </p>
-                <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-                  Homepage Popup
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                  Manage the announcement displayed on the SKCE homepage.
-                </p>
-              </div>
-            </div>
-            <div
-              className={`inline-flex w-fit shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-xs font-bold shadow-sm backdrop-blur-sm ${
-                isActive
-                  ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
-                  : "border-white/20 bg-white/10 text-blue-100"
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  isActive ? "bg-emerald-400" : "bg-slate-300"
+        <div className="mb-6">
+          <AdminPageHeader
+            icon={Megaphone}
+            label="System Management"
+            title="Homepage Popup"
+            subtitle="Manage the announcement displayed on the SK Computer Education homepage."
+            actions={
+              <div
+                className={`inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold ${
+                  isActive
+                    ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
+                    : "border-white/20 bg-white/10 text-blue-100"
                 }`}
-              />
-              {isActive ? "Popup Active" : "Popup Inactive"}
-            </div>
-          </div>
-        </section>
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    isActive ? "bg-emerald-400" : "bg-slate-300"
+                  }`}
+                />
+                {isActive ? "Popup Active" : "Popup Inactive"}
+              </div>
+            }
+          />
+        </div>
 
         {/* STATUS */}
 
@@ -1792,7 +1788,7 @@ export default function HomepagePopupPage() {
 
                 <div className="mb-4 flex items-center gap-3">
 
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
 
                     <Video size={20} />
 

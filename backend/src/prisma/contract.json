@@ -104,6 +104,10 @@
       "model": "Payment",
       "namespace": "public"
     },
+    "phoneOtpChallenge": {
+      "model": "PhoneOtpChallenge",
+      "namespace": "public"
+    },
     "registrationIntent": {
       "model": "RegistrationIntent",
       "namespace": "public"
@@ -4444,6 +4448,144 @@
               "table": "payment"
             }
           },
+          "PhoneOtpChallenge": {
+            "fields": {
+              "attempts": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "codeHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "consumedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "destinationPhone": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastSentAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "purpose": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "attempts": {
+                  "column": "attempts"
+                },
+                "codeHash": {
+                  "column": "codeHash"
+                },
+                "consumedAt": {
+                  "column": "consumedAt"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "destinationPhone": {
+                  "column": "destinationPhone"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "lastSentAt": {
+                  "column": "lastSentAt"
+                },
+                "purpose": {
+                  "column": "purpose"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "phoneOtpChallenge"
+            }
+          },
           "RegistrationIntent": {
             "fields": {
               "address": {
@@ -5879,6 +6021,13 @@
                   "kind": "scalar"
                 }
               },
+              "phoneVerifiedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
               "profilePhotoUrl": {
                 "nullable": true,
                 "type": {
@@ -6104,6 +6253,21 @@
                   "namespace": "public"
                 }
               },
+              "phoneOtpChallenges": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "PhoneOtpChallenge",
+                  "namespace": "public"
+                }
+              },
               "reviewedAssessments": {
                 "cardinality": "1:N",
                 "on": {
@@ -6234,6 +6398,9 @@
                 },
                 "phone": {
                   "column": "phone"
+                },
+                "phoneVerifiedAt": {
+                  "column": "phoneVerifiedAt"
                 },
                 "profilePhotoUrl": {
                   "column": "profilePhotoUrl"
@@ -9803,6 +9970,133 @@
                 }
               ]
             },
+            "phoneOtpChallenge": {
+              "columns": {
+                "attempts": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "codeHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "consumedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "destinationPhone": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "lastSentAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "purpose": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "phoneOtpChallenge"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "expiresAt"
+                  ],
+                  "name": "phoneOtpChallenge_expiresAt_idx_6b6b8c10",
+                  "prefix": "phoneOtpChallenge_expiresAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "phoneOtpChallenge_userId_idx_a489d58a",
+                  "prefix": "phoneOtpChallenge_userId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId",
+                    "purpose"
+                  ],
+                  "name": "phoneOtpChallenge_userId_purpose_idx_e49c32f0",
+                  "prefix": "phoneOtpChallenge_userId_purpose_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "registrationIntent": {
               "checks": [
                 {
@@ -10963,6 +11257,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "phoneVerifiedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
                 "profilePhotoUrl": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -11181,10 +11480,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0c8bf35af0869191f00ea9f070cee5a46905a76f58370e26b3611c942682835a"
+    "storageHash": "f5a12edf46f5a695714f7ee33a9c5729acecb5e2236eee24a5830e5d8d4ce47b"
   },
   "execution": {
-    "executionHash": "70987de9487a30feb3266646ce378304f726653ad3345752d818d95b045130af",
+    "executionHash": "b0bb0619d864c3f345f032813cc06b0ea6da8914960e12ceb2589bde5a8bc31c",
     "mutations": {
       "defaults": [
         {
@@ -11500,6 +11799,21 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "payment"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "phoneOtpChallenge"
           }
         },
         {

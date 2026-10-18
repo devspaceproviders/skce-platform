@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -804,47 +812,40 @@ export default function AdminSettingsPage() {
 
   return (
 
-    <div className="min-h-screen bg-[#F4F7FB] p-4 text-slate-900 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7 text-slate-900">
 
-      <div className="mx-auto max-w-[1600px]">
+      <div className="mx-auto w-full max-w-[1680px]">
 
-        <div className="relative mb-7 overflow-hidden rounded-3xl bg-gradient-to-r from-[#173B67] via-[#204D80] to-[#2C5D91] px-6 py-7 text-white shadow-lg shadow-[#173B67]/15 sm:px-8 sm:py-8">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full border border-white/10" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-10 h-48 w-48 rounded-full border border-white/10" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-[#FF7900] via-[#FF9A3D] to-[#FFC078]" />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-orange-200">
-                <SettingsIcon size={15} />
-                Platform Configuration
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Settings</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                Live platform configuration, certificate branding and operational status.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
-                liveStatus === "Operational"
-                  ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
-                  : liveStatus === "Loading"
-                    ? "border-sky-300/30 bg-sky-400/15 text-sky-100"
-                    : "border-red-300/30 bg-red-400/15 text-red-100"
-              }`}>
-                <span className="h-2 w-2 rounded-full bg-current" />
-                {liveStatus}
-              </span>
-              <button
-                type="button"
-                onClick={() => loadSettings(true)}
-                disabled={refreshing}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white px-4 py-2.5 text-sm font-bold text-[#173B67] shadow-sm transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-                Refresh
-              </button>
-            </div>
-          </div>
+        <div className="mb-6">
+          <AdminPageHeader
+            icon={SettingsIcon}
+            label="Platform Configuration"
+            title="Settings"
+            subtitle="Live platform configuration, certificate branding and operational status."
+            actions={
+              <>
+                <span className={`inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-semibold ${
+                  liveStatus === "Operational"
+                    ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+                    : liveStatus === "Loading"
+                      ? "border-sky-300/30 bg-sky-400/15 text-sky-100"
+                      : "border-red-300/30 bg-red-400/15 text-red-100"
+                }`}>
+                  <span className="h-2 w-2 rounded-full bg-current" />
+                  {liveStatus}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => loadSettings(true)}
+                  disabled={refreshing}
+                  className={ADMIN_BTN_LIGHT}
+                >
+                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </>
+            }
+          />
         </div>
 
         {error && (

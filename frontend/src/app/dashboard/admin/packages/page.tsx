@@ -14,7 +14,13 @@ Power,
 PowerOff,
 Image as ImageIcon,
 Trash2,
+RotateCcw,
 } from "lucide-react";
+import {
+AdminPageShell,
+AdminPageHeader,
+ADMIN_BTN_PRIMARY,
+} from "@/components/dashboard/admin/AdminPageHeader";
 const API_URL =
 process.env.NEXT_PUBLIC_API_URL ||
 "http://localhost:5000/api";
@@ -66,6 +72,33 @@ const [createImageFile, setCreateImageFile] = useState<File | null>(null);
 const [createImagePreview, setCreateImagePreview] = useState<string | null>(null);
 const [editImageFile, setEditImageFile] = useState<File | null>(null);
 const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+const [listSearch, setListSearch] = useState("");
+const [statusFilter, setStatusFilter] = useState("");
+const [coursesFilter, setCoursesFilter] = useState("");
+const hasListFilters = Boolean(listSearch.trim() || statusFilter || coursesFilter);
+function clearListFilters() {
+setListSearch("");
+setStatusFilter("");
+setCoursesFilter("");
+}
+const visiblePackages = useMemo(() => {
+const q = listSearch.trim().toLowerCase();
+return packages.filter((item) => {
+if (statusFilter === "active" && !item.isActive) return false;
+if (statusFilter === "inactive" && item.isActive) return false;
+const count = item.courses?.length || 0;
+if (coursesFilter === "with" && count === 0) return false;
+if (coursesFilter === "without" && count > 0) return false;
+if (!q) return true;
+return (
+item.title.toLowerCase().includes(q) ||
+item.slug.toLowerCase().includes(q) ||
+(item.description || "").toLowerCase().includes(q) ||
+String(item.price).includes(q) ||
+(item.courses || []).some((course) => course.title.toLowerCase().includes(q))
+);
+});
+}, [packages, listSearch, statusFilter, coursesFilter]);
 /*
 * ---------------------------------------------------------
 * LOAD PACKAGES
@@ -640,19 +673,17 @@ setSaving(false);
 */
 if (loading) {
 return (
-<main className="min-h-screen bg-[#F4F7FB] px-4 py-6 sm:px-6 sm:py-8">
-<div className="mx-auto max-w-7xl">
-<div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-slate-200/80 bg-white shadow-sm animate-in fade-in duration-500">
-<div className="flex items-center gap-3 text-sm font-medium text-slate-500">
+<AdminPageShell>
+<div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+<div className="flex items-center gap-3 text-sm font-medium text-slate-500" role="status">
 <Loader2
 size={20}
-className="animate-spin"
+className="animate-spin motion-reduce:animate-none"
 />
 Loading packages...
 </div>
 </div>
-</div>
-</main>
+</AdminPageShell>
 );
 }
 /*
@@ -661,39 +692,27 @@ Loading packages...
 * ---------------------------------------------------------
 */
 return (
-<main className="min-h-screen bg-[#F4F7FB] px-4 py-6 sm:px-6 sm:py-8">
-<div className="mx-auto max-w-7xl">
-{/* SKCE branded package banner */}
-<section className="group relative isolate mb-7 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#173B67] via-[#1D4778] to-[#102D50] px-6 py-7 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:px-8 sm:py-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-  <div className="pointer-events-none absolute -right-12 -top-20 -z-10 h-64 w-64 rounded-full border border-white/10 transition-transform duration-700 group-hover:scale-110" />
-  <div className="pointer-events-none absolute right-16 top-8 -z-10 h-36 w-36 rounded-full bg-[#FF7900]/10 blur-2xl" />
-  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#FF7900] via-[#FF9B22] to-[#FFD166]" />
-  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-    <div className="flex items-start gap-4">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-[#FF9B22] shadow-inner backdrop-blur-sm transition duration-300 group-hover:rotate-3 group-hover:scale-105">
-        <Package size={27} strokeWidth={2.2} />
-      </div>
-      <div className="min-w-0">
-        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FFB15C]">SK COMPUTER EDUCATION · PACKAGE MANAGEMENT</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Packages</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100/85 sm:text-base">Manage package pricing, course bundles and learning options in one place.</p>
-      </div>
-    </div>
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="min-w-[140px] rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center shadow-sm backdrop-blur-sm">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-blue-100/75">Active Packages</p>
-        <p className="mt-0.5 text-2xl font-extrabold tabular-nums text-white">{packages.filter((item) => item.isActive).length}</p>
-      </div>
-      <button type="button" onClick={openCreatePackage} className="flex items-center justify-center gap-2 rounded-xl bg-[#FF7900] px-5 py-3.5 text-sm font-bold text-white shadow-[0_8px_20px_-8px_rgba(255,121,0,0.85)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#F26C00] hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-orange-300/40 active:translate-y-0">
-        <Plus size={18} strokeWidth={2.5} />
-        Add New Package
-      </button>
-    </div>
-  </div>
-</section>
+<>
+<AdminPageShell>
+<AdminPageHeader
+label="SK Computer Education · Package Management"
+title="Packages"
+subtitle="Manage package pricing, course bundles and learning options in one place."
+icon={Package}
+chips={[
+{ label: "Active packages", value: packages.filter((item) => item.isActive).length },
+{ label: "Total", value: packages.length },
+]}
+actions={
+<button type="button" onClick={openCreatePackage} className={ADMIN_BTN_PRIMARY}>
+<Plus size={18} strokeWidth={2.5} />
+Add New Package
+</button>
+}
+/>
 {/* Error */}
 {error && (
-<div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+<div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
 <X
 size={18}
 className="mt-0.5 shrink-0"
@@ -701,26 +720,75 @@ className="mt-0.5 shrink-0"
 <span>{error}</span>
 </div>
 )}
+{/* Search + filters */}
+<section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+<div className="relative min-w-0 flex-1">
+<Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+<input
+type="search"
+value={listSearch}
+onChange={(e) => setListSearch(e.target.value)}
+placeholder="Search packages by name, slug, amount or course..."
+aria-label="Search packages"
+className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
+/>
+</div>
+<div className="flex flex-wrap items-center gap-3">
+<select
+value={statusFilter}
+onChange={(e) => setStatusFilter(e.target.value)}
+aria-label="Filter by status"
+className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
+>
+<option value="">All status</option>
+<option value="active">Active</option>
+<option value="inactive">Inactive</option>
+</select>
+<select
+value={coursesFilter}
+onChange={(e) => setCoursesFilter(e.target.value)}
+aria-label="Filter by courses"
+className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
+>
+<option value="">All bundles</option>
+<option value="with">With courses</option>
+<option value="without">No courses</option>
+</select>
+<button
+type="button"
+onClick={clearListFilters}
+disabled={!hasListFilters}
+className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#0F2F5F] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+>
+<RotateCcw size={15} />
+Clear filters
+</button>
+</div>
+</div>
+<p className="mt-3 text-xs font-medium text-slate-500" aria-live="polite">
+Showing <span className="font-bold text-[#0F2F5F]">{visiblePackages.length}</span> of {packages.length} packages
+</p>
+</section>
 {/* Package List */}
 {packages.length === 0 ? (
 <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-<Package
-size={42}
-className="mx-auto mb-4 text-slate-300"
-/>
-<h2 className="text-lg font-semibold text-slate-800">
-No packages found
-</h2>
-<p className="mt-2 text-sm text-slate-500">
-No active packages are available.
-</p>
+<Package size={42} className="mx-auto mb-4 text-slate-300" />
+<h2 className="text-lg font-semibold text-slate-800">No packages found</h2>
+<p className="mt-2 text-sm text-slate-500">No active packages are available.</p>
+</div>
+) : visiblePackages.length === 0 ? (
+<div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+<Search size={42} className="mx-auto mb-4 text-slate-300" />
+<h2 className="text-lg font-semibold text-slate-800">No matching packages</h2>
+<p className="mt-2 text-sm text-slate-500">Try a different search or clear the filters.</p>
 </div>
 ) : (
 <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
-{packages.map((item) => (
+{visiblePackages.map((item) => (
 <article
 key={item.id}
-className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_5px_20px_-15px_rgba(23,59,103,0.28)] transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_18px_35px_-20px_rgba(23,59,103,0.42)] motion-reduce:transform-none animate-in fade-in slide-in-from-bottom-2 duration-500"
+className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-md motion-reduce:transform-none motion-reduce:transition-none"
 >
 {/* Package image */}
 <div className="relative h-44 overflow-hidden bg-slate-100">
@@ -728,11 +796,11 @@ className="group flex h-full flex-col overflow-hidden rounded-2xl border border-
 <img
 src={getImageUrl(item.imageUrl) ?? ""}
 alt={item.title}
-className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03] motion-reduce:transform-none"
 />
 ) : (
 <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-50 via-white to-slate-100">
-<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#FF7900] shadow-sm ring-1 ring-orange-100">
+<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-[#F97316] shadow-sm ring-1 ring-orange-100">
 <Package size={30} />
 </div>
 </div>
@@ -749,7 +817,7 @@ item.isActive
 </div>
 <div className="flex flex-1 flex-col p-5">
 <div className="flex items-start gap-3">
-<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF4E8] text-[#FF7900]">
+<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF4E8] text-[#F97316]">
 <Package size={19} />
 </div>
 <div className="min-w-0 flex-1">
@@ -808,7 +876,7 @@ No courses assigned.
 <button
 type="button"
 onClick={() => openEditPackage(item.id)}
-className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"
+className="flex items-center justify-center gap-2 rounded-xl bg-[#0F2F5F] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-[#173B67]"
 >
 <Pencil size={14} />
 Edit
@@ -841,7 +909,7 @@ className="flex h-10 w-10 items-center justify-center rounded-xl border border-r
 ))}
 </div>
 )}
-</div>
+</AdminPageShell>
 {/* DELETE PACKAGE CONFIRMATION */}
 {deletePackageTarget && (
 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px]">
@@ -901,7 +969,7 @@ Package Name
 type="text"
 value={createTitle}
 onChange={(e) => setCreateTitle(e.target.value)}
-className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Package name"
 />
 </div>
@@ -913,7 +981,7 @@ Description
 value={createDescription}
 onChange={(e) => setCreateDescription(e.target.value)}
 rows={3}
-className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Package description"
 />
 </div>
@@ -930,7 +998,7 @@ type="number"
 min="0"
 value={createPrice}
 onChange={(e) => setCreatePrice(e.target.value)}
-className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 py-3 pl-9 pr-4 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="3999"
 />
 </div>
@@ -1006,7 +1074,7 @@ className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
 type="text"
 value={createCourseSearch}
 onChange={(e) => setCreateCourseSearch(e.target.value)}
-className="w-full rounded-xl border border-slate-300 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Search courses..."
 />
 </div>
@@ -1039,7 +1107,7 @@ selected ? "bg-orange-50" : "hover:bg-slate-50"
 type="checkbox"
 checked={selected}
 onChange={() => toggleCreateCourse(course.id)}
-className="h-4 w-4 rounded border-slate-300 text-[#FF7900] focus:ring-[#FF7900]"
+className="h-4 w-4 rounded border-slate-300 text-[#F97316] focus:ring-[#F97316]"
 />
 <div className="min-w-0 flex-1">
 <p className="text-sm font-semibold text-slate-800">
@@ -1134,7 +1202,7 @@ setEditTitle(
 e.target.value
 )
 }
-className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Package name"
 />
 </div>
@@ -1151,7 +1219,7 @@ e.target.value
 )
 }
 rows={3}
-className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Package description"
 />
 </div>
@@ -1173,7 +1241,7 @@ setEditPrice(
 e.target.value
 )
 }
-className="w-full rounded-xl border border-slate-300 py-3 pl-9 pr-4 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 py-3 pl-9 pr-4 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="3999"
 />
 </div>
@@ -1271,7 +1339,7 @@ setCourseSearch(
 e.target.value
 )
 }
-className="w-full rounded-xl border border-slate-300 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#FF7900] focus:ring-2 focus:ring-orange-100"
+className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
 placeholder="Search courses..."
 />
 </div>
@@ -1314,7 +1382,7 @@ toggleCourse(
 course.id
 )
 }
-className="h-4 w-4 rounded border-slate-300 text-[#FF7900] focus:ring-[#FF7900]"
+className="h-4 w-4 rounded border-slate-300 text-[#F97316] focus:ring-[#F97316]"
 />
 <div className="min-w-0 flex-1">
 <p className="text-sm font-semibold text-slate-800">
@@ -1374,6 +1442,6 @@ Save Changes
 </div>
 </div>
 )}
-</main>
+</>
 );
 }

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "table.phoneOtpChallenge",
+    "label": "Create table \"phoneOtpChallenge\"",
+    "summary": "Creates table \"phoneOtpChallenge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "phoneOtpChallenge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"phoneOtpChallenge\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"phoneOtpChallenge\"",
+        "sql": "CREATE TABLE \"public\".\"phoneOtpChallenge\" (\n  \"attempts\" int4 DEFAULT 0 NOT NULL,\n  \"codeHash\" text NOT NULL,\n  \"consumedAt\" timestamptz,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"destinationPhone\" text NOT NULL,\n  \"expiresAt\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"lastSentAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"purpose\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"phoneOtpChallenge\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.user.phoneVerifiedAt",
+    "label": "Add column \"phoneVerifiedAt\" to \"user\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "phoneVerifiedAt",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"phoneVerifiedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "phoneVerifiedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"phoneVerifiedAt\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ADD COLUMN \"phoneVerifiedAt\" timestamptz"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"phoneVerifiedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "user",
+          "phoneVerifiedAt"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.phoneOtpChallenge.phoneOtpChallenge_expiresAt_idx_6b6b8c10",
+    "label": "Create index \"phoneOtpChallenge_expiresAt_idx_6b6b8c10\" on \"phoneOtpChallenge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "phoneOtpChallenge_expiresAt_idx_6b6b8c10",
+        "table": "phoneOtpChallenge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"phoneOtpChallenge_expiresAt_idx_6b6b8c10\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_expiresAt_idx_6b6b8c10\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"phoneOtpChallenge_expiresAt_idx_6b6b8c10\"",
+        "sql": "CREATE INDEX \"phoneOtpChallenge_expiresAt_idx_6b6b8c10\" ON \"public\".\"phoneOtpChallenge\" (\"expiresAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"phoneOtpChallenge_expiresAt_idx_6b6b8c10\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_expiresAt_idx_6b6b8c10\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.phoneOtpChallenge.phoneOtpChallenge_userId_idx_a489d58a",
+    "label": "Create index \"phoneOtpChallenge_userId_idx_a489d58a\" on \"phoneOtpChallenge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "phoneOtpChallenge_userId_idx_a489d58a",
+        "table": "phoneOtpChallenge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"phoneOtpChallenge_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"phoneOtpChallenge_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"phoneOtpChallenge_userId_idx_a489d58a\" ON \"public\".\"phoneOtpChallenge\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"phoneOtpChallenge_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.phoneOtpChallenge.phoneOtpChallenge_userId_purpose_idx_e49c32f0",
+    "label": "Create index \"phoneOtpChallenge_userId_purpose_idx_e49c32f0\" on \"phoneOtpChallenge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "phoneOtpChallenge_userId_purpose_idx_e49c32f0",
+        "table": "phoneOtpChallenge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"phoneOtpChallenge_userId_purpose_idx_e49c32f0\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_userId_purpose_idx_e49c32f0\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"phoneOtpChallenge_userId_purpose_idx_e49c32f0\"",
+        "sql": "CREATE INDEX \"phoneOtpChallenge_userId_purpose_idx_e49c32f0\" ON \"public\".\"phoneOtpChallenge\" (\"userId\", \"purpose\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"phoneOtpChallenge_userId_purpose_idx_e49c32f0\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"phoneOtpChallenge_userId_purpose_idx_e49c32f0\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.phoneOtpChallenge.phoneOtpChallenge_userId_fkey",
+    "label": "Add foreign key \"phoneOtpChallenge_userId_fkey\" on \"phoneOtpChallenge\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "phoneOtpChallenge_userId_fkey",
+        "table": "phoneOtpChallenge"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"phoneOtpChallenge_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "phoneOtpChallenge_userId_fkey",
+          "public",
+          "\"public\".\"phoneOtpChallenge\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"phoneOtpChallenge_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"phoneOtpChallenge\"\nADD CONSTRAINT \"phoneOtpChallenge_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"phoneOtpChallenge_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "phoneOtpChallenge_userId_fkey",
+          "public",
+          "\"public\".\"phoneOtpChallenge\""
+        ]
+      }
+    ]
+  }
+]

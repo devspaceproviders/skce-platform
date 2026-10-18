@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2373,109 +2381,43 @@ export default function AdminCalendarPage() {
 
   return (
 
-    <main className="admin-calendar-page min-h-screen bg-[#F4F7FC]">
+    <main className="admin-calendar-page min-h-screen bg-[#F4F7FB]">
 
       {/* Header */}
 
-      <div className="admin-calendar-hero relative overflow-hidden border-b border-slate-200 bg-white">
-
-        <div className="admin-calendar-hero-inner relative z-10 px-8 py-6">
-
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
-            <div>
-
-              <div className="flex items-center gap-3">
-
-                <div className="admin-calendar-hero-icon flex h-11 w-11 items-center justify-center rounded-xl bg-[#173B67] text-white">
-
-                  <CalendarDays size={22} />
-
-                </div>
-
-
-
-                <div className="admin-calendar-heading">
-
-                  <p className="admin-calendar-eyebrow">ADMIN WORKSPACE</p>
-
-                  <h1 className="text-2xl font-bold text-slate-900">
-
-                    Calendar
-
-                  </h1>
-
-
-
-                  <p className="admin-calendar-subtitle mt-1 text-sm text-slate-500">
-
-                    Manage meetings and scheduled activities across SKCE.
-
-                  </p>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-
-            <div className="flex items-center gap-3">
-
+      <div className="mx-auto w-full max-w-[1744px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+        <AdminPageHeader
+          icon={CalendarDays}
+          label="Admin Workspace"
+          title="Calendar"
+          subtitle="Manage meetings and scheduled activities across SK Computer Education."
+          actions={
+            <>
               <button
-
                 type="button"
-
                 onClick={() => loadMeetings(true)}
-
                 disabled={refreshing}
-
-                className="admin-calendar-refresh inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-
+                className={ADMIN_BTN_GHOST}
               >
-
-                <RefreshCw
-
-                  size={16}
-
-                  className={refreshing ? "animate-spin" : ""}
-
-                />
-
+                <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                 Refresh
-
               </button>
-
-
-
               <button
-
                 type="button"
-
                 onClick={openCreateModal}
-
-                className="admin-calendar-create inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#EA580C]"
-
+                className={ADMIN_BTN_PRIMARY}
               >
-
                 <Plus size={17} />
-
                 Create Meeting
-
               </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
+            </>
+          }
+        />
       </div>
 
 
 
-      <div className="admin-calendar-content space-y-6 px-8 py-6">
+      <div className="admin-calendar-content mx-auto w-full max-w-[1744px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
 
         {/* Page-level errors are shown only when no modal is open. */}
         {!showCreateModal && !selectedMeeting && error && (
@@ -3268,7 +3210,7 @@ export default function AdminCalendarPage() {
               </div>
 
               {agendaDates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                     <CalendarDays size={22} />
                   </div>
@@ -5373,7 +5315,7 @@ export default function AdminCalendarPage() {
           --cal-navy: #173b67;
           --cal-deep: #0f2f5f;
           --cal-blue: #1459b8;
-          --cal-orange: #ff6b00;
+          --cal-orange: #F97316;
           color: #18345b;
         }
         .admin-calendar-page * { box-sizing: border-box; }
@@ -5388,7 +5330,7 @@ export default function AdminCalendarPage() {
           border-radius: 26px;
           background:
             radial-gradient(circle at 96% 0%, rgba(75,132,204,.38) 0%, rgba(75,132,204,0) 30%),
-            radial-gradient(circle at 0% 110%, rgba(255,107,0,.15) 0%, rgba(255,107,0,0) 36%),
+            radial-gradient(circle at 0% 110%, rgba(249,115,22,.15) 0%, rgba(249,115,22,0) 36%),
             linear-gradient(118deg, #071C3A 0%, #0F2F5F 45%, #1B4B82 100%);
           box-shadow: 0 14px 32px rgba(15, 47, 95, .14);
         }
@@ -5456,10 +5398,10 @@ export default function AdminCalendarPage() {
         .admin-calendar-create {
           min-height: 44px; justify-content: center; border-radius: 12px;
           background: linear-gradient(135deg, #ff7a00, #ff6500);
-          box-shadow: 0 7px 16px rgba(255,107,0,.22);
+          box-shadow: 0 7px 16px rgba(249,115,22,.22);
         }
-        .admin-calendar-create:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(255,107,0,.28); }
-        .admin-calendar-content { padding: 26px clamp(16px, 2.2vw, 36px) 40px; }
+        .admin-calendar-create:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(249,115,22,.28); }
+        .admin-calendar-content { padding-top: 24px; padding-bottom: 40px; }
         .admin-calendar-stats { gap: 16px; }
         .admin-calendar-stat {
           position: relative; overflow: hidden; border-radius: 17px; border-color: #e0e8f3;
@@ -5473,7 +5415,7 @@ export default function AdminCalendarPage() {
         .admin-calendar-stat:nth-child(4) { animation-delay: 220ms; }
         .admin-calendar-stat::before {
           content: ""; position: absolute; inset: 0 auto 0 0; width: 3px;
-          background: linear-gradient(180deg, #ff6b00, #ffb36b); opacity: 0;
+          background: linear-gradient(180deg, #F97316, #ffb36b); opacity: 0;
           transition: opacity .22s ease;
         }
         .admin-calendar-stat:hover { transform: translateY(-3px); border-color: #cbdaf0; box-shadow: 0 12px 25px rgba(15,47,95,.09); }
@@ -5515,7 +5457,7 @@ export default function AdminCalendarPage() {
           .admin-calendar-hero-inner { padding: 22px 18px; }
           .admin-calendar-hero-inner > div { align-items: flex-start; }
           .admin-calendar-hero-inner > div > div:last-child { flex-wrap: wrap; }
-          .admin-calendar-content { padding: 18px 12px 28px; }
+          .admin-calendar-content { padding-top: 16px; padding-bottom: 28px; }
           .admin-calendar-stat { padding: 17px; }
           .admin-calendar-view-switch { width: 100%; justify-content: space-between; }
           .admin-calendar-view-switch button { flex: 1; padding-inline: 8px; }

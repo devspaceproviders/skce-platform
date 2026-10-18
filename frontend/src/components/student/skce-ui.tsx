@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ComponentType,
@@ -223,6 +224,8 @@ export function Modal({
   locked?: boolean;
 }) {
   const [closing, setClosing] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const pressedOnBackdrop = useRef(false);
 
   const close = useCallback(() => {
     if (locked || closing) {
@@ -233,43 +236,184 @@ export function Modal({
     window.setTimeout(onClose, 180);
   }, [locked, closing, onClose]);
 
+  // Scroll lock (counted, so stacked modals restore correctly) + focus return.
+  useEffect(() => {
+    const body = document.body;
+    const count = Number(body.dataset.skModalCount || "0");
+
+    if (count === 0) {
+      body.dataset.skPrevOverflow = body.style.overflow;
+      body.dataset.skPrevPadding = body.style.paddingRight;
+      const gap = window.innerWidth - document.documentElement.clientWidth;
+      body.style.overflow = "hidden";
+      if (gap > 0) {
+        body.style.paddingRight = `${gap}px`;
+      }
+    }
+
+    body.dataset.skModalCount = String(count + 1);
+
+    const opener = document.activeElement as HTMLElement | null;
+
+    return () => {
+      const remaining = Number(body.dataset.skModalCount || "1") - 1;
+
+      if (remaining <= 0) {
+        body.style.overflow = body.dataset.skPrevOverflow ?? "";
+        body.style.paddingRight = body.dataset.skPrevPadding ?? "";
+        delete body.dataset.skModalCount;
+        delete body.dataset.skPrevOverflow;
+        delete body.dataset.skPrevPadding;
+      } else {
+        body.dataset.skModalCount = String(remaining);
+      }
+
+      if (opener && opener.isConnected) {
+        opener.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  // Move focus into the dialog once, when it opens.
+  useEffect(() => {
+    const node = dialogRef.current;
+
+    if (!node || node.contains(document.activeElement)) {
+      return;
+    }
+
+    const first = node.querySelector<HTMLElement>(
+      "[autofocus], input:not([disabled]), select:not([disabled]), textarea:not([disabled])"
+    );
+
+    (first ?? node).focus({ preventScroll: true });
+  }, []);
+
+  // Esc to close + keep Tab inside the dialog.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.stopPropagation();
         close();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) {
+        return;
+      }
+
+      const items = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el.offsetParent !== null);
+
+      if (items.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstItem = items[0];
+      const lastItem = items[items.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstItem) {
+        event.preventDefault();
+        lastItem.focus();
+      } else if (!event.shiftKey && document.activeElement === lastItem) {
+        event.preventDefault();
+        firstItem.focus();
       }
     };
 
-    const previousOverflow = document.body.style.overflow;
-
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
 
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [close]);
 
   return (
     <div
       className={`sk-overlay${closing ? " is-closing" : ""}`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+        pressedOnBackdrop.current = event.target === event.currentTarget;
+      }}
+      onMouseUp={(event) => {
+        // Only a full click on the backdrop closes (not a text-selection drag).
+        if (pressedOnBackdrop.current && event.target === event.currentTarget) {
           close();
         }
+        pressedOnBackdrop.current = false;
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
+        tabIndex={-1}
         className="sk-modal"
         style={{ maxWidth }}
       >
         {children(close)}
       </div>
     </div>
+  );
+}
+
+/* Ready-made confirmation pop-up (delete / discard / cancel flows). */
+export function ConfirmDialog({
+  title,
+  message,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  danger = false,
+  busy = false,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  busy?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal onClose={onCancel} maxWidth={440} labelledBy="sk-confirm-title" locked={busy}>
+      {(close) => (
+        <>
+          <div className="sk-modal-head">
+            <div>
+              <h2 id="sk-confirm-title">{title}</h2>
+              <p>{message}</p>
+            </div>
+            <button
+              type="button"
+              className="sk-modal-close"
+              onClick={close}
+              aria-label="Close"
+              disabled={busy}
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="sk-modal-foot">
+            <button type="button" className="sk-btn sk-btn-secondary" onClick={close} disabled={busy}>
+              {cancelLabel}
+            </button>
+            <button
+              type="button"
+              className={`sk-btn ${danger ? "sk-btn-danger" : "sk-btn-primary"}`}
+              onClick={onConfirm}
+              disabled={busy}
+            >
+              {busy ? "Please wait…" : confirmLabel}
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }
 
@@ -342,16 +486,18 @@ export function SkStyles() {
 const skCss = `
 .sk-page,.sk-overlay,.sk-toasts{
   --navy:#0F2F5F;--navy-2:#123B6D;--blue:#1459B8;--blue-2:#2563EB;
-  --orange:#FF6B00;--orange-2:#E85F00;--orange-tint:#FFF3EA;
-  --bg:#F7F9FC;--card:#fff;--line:#E2E8F1;--line-2:#EDF1F7;
+  --orange:#F97316;--orange-2:#F97316;--orange-tint:#FFF3EA;
+  --bg:#F4F7FB;--card:#fff;--line:#E2E8F1;--line-2:#EDF1F7;
   --muted:#64748B;--soft:#8A97AB;
   --green:#15803D;--green-tint:#E8F6EE;--blue-tint:#EAF1FD;
   --red:#C62828;--red-tint:#FDECEC;
   --ease:cubic-bezier(.2,.7,.2,1);
 }
 .sk-page *,.sk-overlay *,.sk-toasts *{box-sizing:border-box}
-.sk-page{flex:1;min-width:0;width:100%;padding:22px 28px 30px;background:var(--bg);color:var(--navy)}
-.sk-container{width:100%;max-width:1360px;margin:0 auto}
+.sk-page{flex:1;min-width:0;width:100%;min-height:100vh;padding:20px 16px;background:var(--bg);color:var(--navy)}
+@media (min-width:640px){.sk-page{padding:24px}}
+@media (min-width:1024px){.sk-page{padding:28px 32px}}
+.sk-container{width:100%;max-width:1680px;margin:0 auto}
 .sk-narrow{max-width:940px}
 .sk-min0{min-width:0}.sk-grow{flex:1}
 .sk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -383,9 +529,9 @@ const skCss = `
 .sk-btn:disabled{opacity:.55;cursor:not-allowed}
 .sk-btn-sm{height:36px;padding:0 14px;font-size:13px}
 .sk-btn-block{width:100%}
-.sk-btn-primary{background:linear-gradient(180deg,#FF8A12 0%,#FF6B00 55%,#F25A00 100%);color:#fff}
+.sk-btn-primary{background:linear-gradient(180deg,#FB923C 0%,#F97316 55%,#EA580C 100%);color:#fff}
 .sk-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
-.sk-btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(255,107,0,.35)}
+.sk-btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(249,115,22,.35)}
 .sk-btn-primary:hover:not(:disabled)::after{animation:sk-sheen 700ms ease}
 .sk-btn-primary:disabled{background:#CBD5E4;box-shadow:none}
 .sk-btn-secondary{background:#fff;color:var(--blue);border-color:var(--line)}
@@ -398,6 +544,18 @@ const skCss = `
 .sk-btn:hover .sk-refresh-icon{transform:rotate(180deg)}
 
 /* Heading */
+/* Shared filter bar (search + selects + Clear filters) */
+.sk-filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;padding:12px;border:1px solid #dce6f2;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#F6F9FE 100%);box-shadow:0 1px 2px rgba(15,47,95,.04),0 10px 24px -16px rgba(15,47,95,.2)}
+.sk-fsearch{position:relative;flex:1 1 240px;min-width:200px}
+.sk-fsearch svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--soft);pointer-events:none}
+.sk-fsearch input,.sk-fselect{height:40px;width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy);font:inherit;font-size:13.5px;outline:none;transition:border-color .2s ease,box-shadow .2s ease}
+.sk-fsearch input{padding:0 12px 0 36px}
+.sk-fselect{width:auto;min-width:140px;padding:0 12px;cursor:pointer}
+.sk-fsearch input:focus,.sk-fselect:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(249,115,22,.16)}
+.sk-clear{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--orange-tint);color:var(--orange-2);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s ease,transform .2s var(--ease)}
+.sk-clear:hover{background:#FFE3CE;transform:translateY(-1px)}
+.sk-count{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--muted)}
+.sk-nomatch{padding:28px 16px;text-align:center;font-size:14px;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:#fff}
 .sk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
 .sk-kicker{margin-bottom:4px;font-size:13px;font-weight:600;color:var(--orange)}
 .sk-head h1{margin:0;font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-.02em;color:var(--navy)}
@@ -422,9 +580,9 @@ const skCss = `
 /* Tiles */
 .sk-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .sk-tiles-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.sk-tile{position:relative;display:flex;align-items:center;gap:12px;min-width:0;width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card);text-align:left;font:inherit;color:inherit;box-shadow:0 1px 2px rgba(15,47,95,.04);transition:box-shadow .25s ease,transform .25s var(--ease),border-color .25s ease}
+.sk-tile{position:relative;display:flex;align-items:center;gap:12px;min-width:0;width:100%;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#fff 0%,#F5F8FE 100%);text-align:left;font:inherit;color:inherit;box-shadow:0 1px 2px rgba(15,47,95,.04);transition:box-shadow .25s ease,transform .25s var(--ease),border-color .25s ease}
 button.sk-tile{cursor:pointer}
-.sk-tile:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(15,47,95,.12);border-color:#C9D8EE}
+.sk-tile:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(15,47,95,.12);border-color:rgba(249,115,22,.35)}
 .sk-tile:hover .sk-icon,.sk-row:hover .sk-icon,.sk-panel-head:hover .sk-icon{transform:scale(1.12) rotate(-6deg)}
 .sk-tile.is-active{transform:translateY(-4px);border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(37,99,235,.14),0 14px 28px rgba(15,47,95,.1)}
 .sk-tile.is-pinned{background:#FBFCFF}
@@ -435,8 +593,8 @@ button.sk-tile{cursor:pointer}
 .sk-tile.is-active .sk-tile-caret{transform:rotate(180deg);color:var(--orange)}
 
 /* Panels */
-.sk-panel{min-width:0;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);transition:box-shadow .25s ease,border-color .25s ease}
-.sk-panel:hover{box-shadow:0 10px 26px rgba(15,47,95,.08);border-color:#D4DEEC}
+.sk-panel{min-width:0;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff 0%,#F6F9FE 100%);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);transition:box-shadow .25s ease,border-color .25s ease}
+.sk-panel:hover{box-shadow:0 10px 26px rgba(15,47,95,.1);border-color:rgba(249,115,22,.28)}
 .sk-panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .sk-panel-head h2{margin:0;font-size:16px;line-height:1.3;font-weight:700;color:var(--navy)}
 .sk-panel-head p{margin:2px 0 0;font-size:13px;color:var(--muted)}
@@ -448,7 +606,7 @@ button.sk-tile{cursor:pointer}
 .sk-detail{display:grid;grid-template-rows:0fr;margin-top:0;transition:grid-template-rows .4s var(--ease),margin-top .4s var(--ease)}
 .sk-detail.is-open{grid-template-rows:1fr;margin-top:10px}
 .sk-detail-inner{min-height:0;overflow:hidden;padding:0 2px}
-.sk-detail-card{padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,47,95,.08);animation:sk-swap .35s var(--ease) both}
+.sk-detail-card{padding:14px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff 0%,#F6F9FE 100%);box-shadow:0 10px 26px rgba(15,47,95,.08);animation:sk-swap .35s var(--ease) both}
 .sk-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .sk-detail-hint{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--blue-tint);color:var(--blue);font-size:12px;font-weight:600}
 .sk-pinchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px 0 12px;border:0;border-radius:999px;background:var(--orange-tint);color:var(--orange-2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s ease,transform .2s var(--ease)}
@@ -513,21 +671,21 @@ button.sk-row:hover,a.sk-row:hover{border-color:#9DBBEA;box-shadow:0 8px 18px rg
 .sk-bar span.is-done{background:linear-gradient(90deg,#16A05D,#22C176)}
 
 /* Modal */
-.sk-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,47,95,.5);backdrop-filter:blur(4px);animation:sk-fade .2s ease both}
+.sk-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:safe center;justify-content:center;padding:20px;overflow-y:auto;overscroll-behavior:contain;background:rgba(11,36,71,.58);backdrop-filter:blur(4px);animation:sk-fade .2s ease both}
 .sk-overlay.is-closing{animation:sk-fade-out .18s ease both}
-.sk-modal{width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;background:#fff;box-shadow:0 28px 70px rgba(15,47,95,.35);animation:sk-modal-in .28s var(--ease) both}
+.sk-modal{width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;border-radius:18px;border-top:3px solid var(--orange);outline:none;background:linear-gradient(180deg,#fff 0%,#F8FAFE 100%);box-shadow:0 28px 70px rgba(15,47,95,.35);animation:sk-modal-in .28s var(--ease) both}
 .sk-overlay.is-closing .sk-modal{animation:sk-modal-out .18s ease both}
 .sk-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:16px 22px;border-bottom:1px solid var(--line-2)}
 .sk-modal-head h2{margin:0;font-size:20px;font-weight:700;color:var(--navy)}
 .sk-modal-head p{margin:5px 0 0;font-size:13.5px;color:var(--muted)}
 .sk-modal-body{flex:1;overflow-y:auto;padding:16px 22px}
-.sk-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 22px;border-top:1px solid var(--line-2);background:#FBFCFE}
+.sk-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 22px;border-top:1px solid var(--line-2);background:linear-gradient(90deg,#F4F8FD,#FFF7EE)}
 .sk-modal-close{display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex:0 0 36px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--muted);cursor:pointer;transition:background .2s ease,color .2s ease,transform .25s var(--ease)}
 .sk-modal-close:hover{background:var(--red-tint);color:var(--red);transform:rotate(90deg)}
 
 /* Toasts */
 .sk-toasts{position:fixed;top:18px;right:18px;z-index:1100;display:flex;flex-direction:column;gap:10px;width:min(380px,calc(100vw - 36px));pointer-events:none}
-.sk-toast{position:relative;overflow:hidden;pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:14px 12px 14px 14px;border-radius:12px;border:1px solid;background:#fff;box-shadow:0 12px 30px rgba(15,47,95,.18);font-size:14px;line-height:1.45;animation:sk-toast-in .32s var(--ease) both}
+.sk-toast{position:relative;overflow:hidden;pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:14px 12px 14px 14px;border-radius:12px;border:1px solid;box-shadow:0 12px 30px rgba(15,47,95,.18);font-size:14px;line-height:1.45;animation:sk-toast-in .32s var(--ease) both}
 .sk-toast span{flex:1;min-width:0}
 .sk-toast svg{flex:0 0 auto;margin-top:1px}
 .sk-toast button{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:inherit;opacity:.7;cursor:pointer}
@@ -553,7 +711,6 @@ button.sk-row:hover,a.sk-row:hover{border-color:#9DBBEA;box-shadow:0 8px 18px rg
 @media (max-width:1100px){.sk-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){.sk-grid-2{grid-template-columns:minmax(0,1fr)}.sk-rows{grid-template-columns:minmax(0,1fr)}.sk-detail-hint{display:none}}
 @media (max-width:760px){
-  .sk-page{padding:18px 14px 28px}
   .sk-head{flex-direction:column}
   .sk-head .sk-btn{width:100%}
   .sk-head h1{font-size:25px}

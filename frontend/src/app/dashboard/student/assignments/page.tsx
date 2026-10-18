@@ -48,6 +48,10 @@ import {
   reveal,
   useToasts,
 } from "@/components/student/skce-ui";
+import {
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -1004,26 +1008,24 @@ export default function AssignmentsPage() {
     <>
       <main className="sk-page">
         <div className="sk-container">
-          <header className="sk-head sk-reveal at-page-heading">
-            <div className="sk-min0">
-              <div className="sk-kicker">Student learning</div>
-              <h1>Assignments &amp; Quizzes</h1>
-              <p>
-                Track your assigned work, quiz attempts, submissions and results
-                in one place.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => void loadAssessments(true)}
-              disabled={refreshing}
-              className="sk-btn sk-btn-secondary"
-            >
-              <RefreshCw size={15} className={refreshing ? "sk-spin" : "sk-refresh-icon"} />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </header>
+          <AdminPageHeader
+            className="mb-6"
+            label="Student learning"
+            title="Assignments & Quizzes"
+            subtitle="Track your assigned work, quiz attempts, submissions and results in one place."
+            icon={ClipboardList}
+            actions={
+              <button
+                type="button"
+                onClick={() => void loadAssessments(true)}
+                disabled={refreshing}
+                className={ADMIN_BTN_GHOST}
+              >
+                <RefreshCw size={15} className={refreshing ? "sk-spin" : "sk-refresh-icon"} />
+                {refreshing ? "Refreshing..." : "Refresh"}
+              </button>
+            }
+          />
 
           {/* Summary */}
           <section className="at-tiles" aria-label="Summary">
@@ -2711,7 +2713,7 @@ function AssignmentSection({
 }
 
 /* ------------------------------------------------------------------
- * Styles (SKCE navy / blue / orange, matches My Courses)
+ * Styles (SK Computer Education navy / blue / orange, matches My Courses)
  * ------------------------------------------------------------------ */
 
 const assignmentsCss = `
@@ -2724,74 +2726,16 @@ const assignmentsCss = `
 .at-tile .sk-tile-value{font-size:22px}
 .at-tile.is-active{background:var(--blue-tint)}
 
-/* Page heading banner: keep the Calendar/My Courses blue treatment on the heading itself. */
-.at-page-heading{
-  position:relative;
-  isolation:isolate;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:24px;
-  min-height:148px;
-  margin:0 0 22px;
-  padding:26px 30px;
-  border-radius:20px;
-  border-bottom:3px solid #FF6B00;
-  color:#fff;
-  background:
-    radial-gradient(circle at 96% 0%,rgba(75,132,204,.28),transparent 32%),
-    radial-gradient(circle at 0% 110%,rgba(255,107,0,.07),transparent 34%),
-    linear-gradient(118deg,#20202F 0%,#0F2F5F 48%,#2B5E9B 100%);
-  box-shadow:0 12px 30px rgba(15,47,95,.16);
-}
-.at-page-heading::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:-1;
-  background-image:radial-gradient(rgba(255,255,255,.075) 1px,transparent 1px);
-  background-size:24px 24px;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 65%);
-  mask-image:linear-gradient(90deg,transparent,#000 65%);
-  pointer-events:none;
-}
-.at-page-heading::after{
-  content:"";
-  position:absolute;
-  z-index:-1;
-  right:-54px;
-  top:-110px;
-  width:245px;
-  height:245px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:50%;
-  box-shadow:0 0 0 28px rgba(255,255,255,.045),0 0 0 58px rgba(255,255,255,.03),0 0 0 88px rgba(255,255,255,.018);
-  pointer-events:none;
-}
-.at-page-heading > div,.at-page-heading > button{position:relative;z-index:1}
-.at-page-heading .sk-kicker{margin-bottom:7px;color:#FF9A45;letter-spacing:.08em;font-weight:800}
-.at-page-heading h1{color:#fff;font-size:32px;line-height:1.2;letter-spacing:-.025em}
-.at-page-heading p{max-width:650px;margin-top:8px;color:rgba(235,243,255,.86);font-size:15px;line-height:1.6}
-.at-page-heading .sk-btn-secondary{
-  flex:0 0 auto;
-  min-width:130px;
-  background:rgba(255,255,255,.12);
-  color:#fff;
-  border-color:rgba(255,255,255,.28);
-}
-.at-page-heading .sk-btn-secondary:hover:not(:disabled){background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
-
 /* Featured assessment stays below as a light card; the blue banner belongs above. */
 .at-hero{
   position:relative;
   overflow:hidden;
   margin-bottom:14px;
   padding:18px 22px 14px;
-  border:1px solid #DCE5F2;
+  border:1px solid #F6D9C3;
   border-radius:16px;
   color:#0F2F5F;
-  background:linear-gradient(145deg,#fff 0%,#F8FAFE 100%);
+  background:linear-gradient(135deg,#FFF6EE 0%,#F1F6FE 100%);
   box-shadow:0 5px 16px rgba(15,47,95,.06);
   animation:sk-rise 520ms var(--ease) backwards;
 }
@@ -3059,9 +3003,7 @@ const assignmentsCss = `
 }
 @media (max-width:1100px){.at-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:900px){
-  .at-page-heading{gap:18px;padding:24px}
-  .at-page-heading h1{font-size:29px}
-  .at-hero-inner{flex-direction:column;align-items:stretch}
+      .at-hero-inner{flex-direction:column;align-items:stretch}
   .at-hero-action{align-items:stretch;min-width:0}
   .at-hero-action .sk-btn{width:100%}
   .at-hero-hint{display:none}
@@ -3089,11 +3031,7 @@ const assignmentsCss = `
   .at-latest-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:560px){
-  .at-page-heading{min-height:0;flex-direction:column;align-items:stretch;padding:22px 18px 20px;border-radius:16px}
-  .at-page-heading h1{font-size:25px}
-  .at-page-heading p{font-size:14px}
-  .at-page-heading .sk-btn-secondary{width:100%}
-  .at-tiles{grid-template-columns:minmax(0,1fr)}
+          .at-tiles{grid-template-columns:minmax(0,1fr)}
   .at-fs{flex:1 1 calc(50% - 5px)}
   .at-fs-btn{min-width:0;width:100%}
   .at-nav .sk-btn{flex:1}

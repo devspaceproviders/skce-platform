@@ -1,4 +1,4 @@
-import { db } from "../../prisma/db";
+﻿import { db } from "../../prisma/db";
 
 /* -------------------------------------------------------------------------- */
 /* GET ALL STUDENTS                                                           */
@@ -621,55 +621,10 @@ export async function getStudentDashboard(
 /* -------------------------------------------------------------------------- */
 
 export async function updateMyPhone(
-  userId: number,
-  phone: string
-) {
-  const normalizedPhone = phone.trim();
-
-  if (!normalizedPhone) {
-    throw new Error(
-      "Mobile number is required"
-    );
-  }
-
-  if (!/^[0-9]{10}$/.test(normalizedPhone)) {
-    throw new Error(
-      "Please enter a valid 10-digit mobile number"
-    );
-  }
-
-  const user =
-    await db.orm.public.User
-      .where({
-        id: userId,
-      })
-      .first();
-
-  if (!user) {
-    throw new Error(
-      "Student user account not found"
-    );
-  }
-
-  const updatedUser =
-    await db.orm.public.User
-      .where({
-        id: userId,
-      })
-      .update({
-        phone: normalizedPhone,
-      });
-
-  if (!updatedUser) {
-    throw new Error(
-      "Failed to update student mobile number"
-    );
-  }
-
-
-  return {
-    phone:
-      updatedUser.phone ??
-      normalizedPhone,
-  };
+  _userId: number,
+  _phone: string
+): Promise<never> {
+  throw new Error(
+    "Direct phone updates are disabled. Please use the phone verification flow."
+  );
 }

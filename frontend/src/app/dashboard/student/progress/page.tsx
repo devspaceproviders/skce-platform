@@ -15,7 +15,9 @@ import {
   GraduationCap,
   PlayCircle,
   RefreshCw,
+  Search,
   Trophy,
+  X,
 } from "lucide-react";
 import {
   CountUp,
@@ -25,6 +27,10 @@ import {
   reveal,
   usePreview,
 } from "@/components/student/skce-ui";
+import {
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -154,6 +160,10 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [cSearch, setCSearch] = useState("");
+  const [cStatus, setCStatus] = useState("ALL");
+  const [aType, setAType] = useState("ALL");
+  const [aStatus, setAStatus] = useState("ALL");
 
   const loadProgress = async () => {
     const token = getToken();
@@ -414,12 +424,55 @@ export default function ProgressPage() {
     loadProgress();
   };
 
+  const banner = (
+    <AdminPageHeader
+      className="mb-6"
+      label="Student workspace"
+      title="My Progress"
+      subtitle="Track your courses, lessons, assessments and achievements in one place."
+      icon={BarChart3}
+      actions={
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={refreshing}
+          className={ADMIN_BTN_GHOST}
+        >
+          <RefreshCw size={16} className={refreshing ? "sk-spin" : undefined} />
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+      }
+    />
+  );
+
+  const cQuery = cSearch.trim().toLowerCase();
+  const courseFiltersActive = cQuery !== "" || cStatus !== "ALL";
+  const visibleCourseRows = courseRows.filter((row) => {
+    const pct = row.progress.progressPercentage;
+    if (cStatus === "COMPLETED" && pct !== 100) return false;
+    if (cStatus === "IN_PROGRESS" && !(pct > 0 && pct < 100)) return false;
+    if (cStatus === "NOT_STARTED" && pct !== 0) return false;
+    if (
+      cQuery &&
+      !`${row.course.title} ${row.packageName ?? ""}`.toLowerCase().includes(cQuery)
+    )
+      return false;
+    return true;
+  });
+  const assessmentFiltersActive = aType !== "ALL" || aStatus !== "ALL";
+  const visibleAssessments = assessments.filter((item) => {
+    if (aType !== "ALL" && item.type !== aType) return false;
+    if (aStatus === "ATTEMPTED" && !item.latestSubmission) return false;
+    if (aStatus === "PENDING" && item.latestSubmission) return false;
+    return true;
+  });
+
   if (loading) {
     return (
       <>
         <main className="sk-page" aria-busy="true" aria-live="polite">
           <div className="sk-container">
-            <div className="sk-skel" style={{ height: 172, marginBottom: 24 }} />
+            {banner}
             <div className="sk-tiles sk-zone">
               {[0, 1, 2, 3].map((n) => (
                 <div key={n} className="sk-skel" style={{ height: 96 }} />
@@ -444,6 +497,7 @@ export default function ProgressPage() {
       <>
         <main className="sk-page">
           <div className="sk-container">
+            {banner}
             <div className="sk-error-card" role="alert">
               <div className="sk-error-icon">
                 <AlertCircle size={24} />
@@ -502,36 +556,7 @@ export default function ProgressPage() {
     <>
       <main className="sk-page">
         <div className="sk-container">
-          {/* SKCE gradient hero */}
-          <header className="pg-hero sk-reveal">
-            <div className="pg-hero-content">
-              <div className="pg-hero-icon">
-                <BarChart3 size={27} />
-              </div>
-
-              <div className="pg-hero-copy">
-                <div className="pg-hero-kicker">STUDENT WORKSPACE</div>
-                <h1>My Progress</h1>
-                <p>
-                  Track your courses, lessons, assessments and achievements
-                  in one place.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              className="pg-hero-refresh"
-            >
-              <RefreshCw
-                size={16}
-                className={refreshing ? "sk-spin" : undefined}
-              />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </header>
+          {banner}
 
           <div className="sk-zone" onMouseLeave={() => preview.setHover(null)}>
             <section className="sk-tiles">
@@ -700,7 +725,7 @@ export default function ProgressPage() {
                     {
                       value: analytics.inProgressCourses,
                       label: "In Progress",
-                      color: "#FF6B00",
+                      color: "#F97316",
                     },
                     {
                       value: analytics.notStartedCourses,
@@ -717,7 +742,7 @@ export default function ProgressPage() {
                     value={analytics.completedCourses}
                   />
                   <LegendRow
-                    color="#FF6B00"
+                    color="#F97316"
                     label="In Progress"
                     value={analytics.inProgressCourses}
                   />
@@ -791,8 +816,40 @@ export default function ProgressPage() {
                 <span>Your enrolled courses will appear here.</span>
               </div>
             ) : (
+              <>
+              <div className="sk-filterbar" role="search" aria-label="Filter courses">
+                <label className="sk-fsearch">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={cSearch}
+                    onChange={(e) => setCSearch(e.target.value)}
+                    placeholder="Search courses or packages"
+                    aria-label="Search courses"
+                  />
+                </label>
+                <select className="sk-fselect" value={cStatus} onChange={(e) => setCStatus(e.target.value)} aria-label="Course status">
+                  <option value="ALL">All statuses</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="IN_PROGRESS">In progress</option>
+                  <option value="NOT_STARTED">Not started</option>
+                </select>
+                {courseFiltersActive && (
+                  <button type="button" className="sk-clear" onClick={() => { setCSearch(""); setCStatus("ALL"); }}>
+                    <X size={14} /> Clear filters
+                  </button>
+                )}
+                <span className="sk-count" aria-live="polite">
+                  {visibleCourseRows.length} of {courseRows.length} courses
+                </span>
+              </div>
+
+              {visibleCourseRows.length === 0 && (
+                <div className="sk-nomatch">No courses match the current filters.</div>
+              )}
+
               <div className="pg-courses">
-                {courseRows.map((item, index) => {
+                {visibleCourseRows.map((item, index) => {
                   const percentage = Math.min(
                     100,
                     Math.max(0, item.progress.progressPercentage)
@@ -869,6 +926,7 @@ export default function ProgressPage() {
                   );
                 })}
               </div>
+              </>
             )}
           </Panel>
 
@@ -911,8 +969,32 @@ export default function ProgressPage() {
               </div>
 
               {assessments.length > 0 ? (
+                <div className="sk-filterbar" style={{ marginTop: 14, marginBottom: 6 }} role="search" aria-label="Filter assessments">
+                  <select className="sk-fselect" value={aType} onChange={(e) => setAType(e.target.value)} aria-label="Assessment type">
+                    <option value="ALL">All types</option>
+                    <option value="QUIZ">Quizzes</option>
+                    <option value="ASSIGNMENT">Assignments</option>
+                  </select>
+                  <select className="sk-fselect" value={aStatus} onChange={(e) => setAStatus(e.target.value)} aria-label="Assessment status">
+                    <option value="ALL">All statuses</option>
+                    <option value="ATTEMPTED">Attempted</option>
+                    <option value="PENDING">Not attempted</option>
+                  </select>
+                  {assessmentFiltersActive && (
+                    <button type="button" className="sk-clear" onClick={() => { setAType("ALL"); setAStatus("ALL"); }}>
+                      <X size={14} /> Clear filters
+                    </button>
+                  )}
+                </div>
+              ) : null}
+
+              {assessments.length > 0 && visibleAssessments.length === 0 ? (
+                <div className="sk-nomatch">No assessments match the current filters.</div>
+              ) : null}
+
+              {assessments.length > 0 ? (
                 <div className="pg-activity">
-                  {assessments.slice(0, 5).map((assessment) => {
+                  {visibleAssessments.slice(0, assessmentFiltersActive ? 10 : 5).map((assessment) => {
                     const submission = assessment.latestSubmission;
 
                     return (
@@ -1575,223 +1657,10 @@ const progressCss = `
   font-size: 13px;
 }
 
-/* =========================================================
-   SKCE hero header
-   ========================================================= */
-
-.pg-hero {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-width: 0;
-  min-height: 172px;
-  margin-bottom: 24px;
-  padding: 30px 34px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.1);
-  border-bottom: 3px solid #FF6B00;
-  border-radius: 24px;
-  background:
-    radial-gradient(
-      circle at 91% 16%,
-      rgba(71,130,207,.34) 0,
-      rgba(71,130,207,.12) 25%,
-      transparent 45%
-    ),
-    linear-gradient(
-      112deg,
-      #292633 0%,
-      #142F57 37%,
-      #163E70 72%,
-      #245A98 100%
-    );
-  box-shadow: 0 16px 32px rgba(15,47,95,.12);
-  animation: pg-hero-enter .55s cubic-bezier(.2,.7,.2,1) both;
-}
-
-.pg-hero::before,
-.pg-hero::after {
-  position: absolute;
-  z-index: -1;
-  content: "";
-  pointer-events: none;
-  border: 1px solid rgba(255,255,255,.055);
-  border-radius: 50%;
-}
-
-.pg-hero::before {
-  top: -160px;
-  right: -60px;
-  width: 360px;
-  height: 360px;
-  box-shadow:
-    0 0 0 22px rgba(255,255,255,.025),
-    0 0 0 44px rgba(255,255,255,.022);
-}
-
-.pg-hero::after {
-  top: -110px;
-  right: 15px;
-  width: 260px;
-  height: 260px;
-}
-
-.pg-hero-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 0;
-}
-
-.pg-hero-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 62px;
-  width: 62px;
-  height: 62px;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 19px;
-  background: rgba(255,255,255,.13);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
-  transition: transform .25s ease, background .25s ease;
-}
-
-.pg-hero:hover .pg-hero-icon {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,.19);
-}
-
-.pg-hero-copy {
-  min-width: 0;
-}
-
-.pg-hero-kicker {
-  margin-bottom: 7px;
-  color: #FF9B43;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  line-height: 1.5;
-}
-
-.pg-hero-copy h1 {
-  margin: 0;
-  color: #fff;
-  font-size: clamp(27px, 3vw, 36px);
-  font-weight: 800;
-  letter-spacing: -1.1px;
-  line-height: 1.2;
-}
-
-.pg-hero-copy p {
-  max-width: 680px;
-  margin: 9px 0 0;
-  color: rgba(239,246,255,.86);
-  font-size: 14.5px;
-  line-height: 1.7;
-}
-
-.pg-hero-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  gap: 9px;
-  min-height: 46px;
-  padding: 0 20px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  border: 1px solid rgba(255,255,255,.27);
-  border-radius: 13px;
-  background: rgba(255,255,255,.12);
-  cursor: pointer;
-  transition:
-    transform .22s ease,
-    background .22s ease,
-    border-color .22s ease;
-}
-
-.pg-hero-refresh:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,.5);
-  background: rgba(255,255,255,.2);
-}
-
-.pg-hero-refresh:focus-visible {
-  outline: 3px solid #FFB66E;
-  outline-offset: 3px;
-}
-
-.pg-hero-refresh:disabled {
-  cursor: wait;
-  opacity: .75;
-}
-
 /* Page spacing and responsive layout */
 
-.sk-page > .sk-container {
-  width: 100%;
-  max-width: 1600px;
-  margin-inline: auto;
-  padding: 26px 30px 40px;
-  box-sizing: border-box;
-}
-
-.pg-hero + .sk-zone {
-  margin-bottom: 22px;
-}
-
-.pg-hero ~ .sk-grid-2 {
-  gap: 16px;
-}
-
-.pg-hero ~ .sk-panel .sk-panel-head h2,
-.pg-hero ~ .sk-grid-2 .sk-panel-head h2 {
-  font-weight: 800;
-}
 
 @media (max-width: 760px) {
-  .sk-page > .sk-container {
-    padding: 18px 16px 30px;
-  }
-
-  .pg-hero {
-    align-items: flex-start;
-    min-height: auto;
-    padding: 24px 22px;
-    border-radius: 19px;
-  }
-
-  .pg-hero-content {
-    align-items: flex-start;
-    gap: 14px;
-  }
-
-  .pg-hero-icon {
-    flex-basis: 48px;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-  }
-
-  .pg-hero-copy h1 {
-    font-size: 28px;
-  }
-
-  .pg-hero-copy p {
-    font-size: 13px;
-  }
-
-  .pg-hero-refresh {
-    min-height: 42px;
-    padding: 0 13px;
-  }
 
   .pg-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1799,31 +1668,6 @@ const progressCss = `
 
   .pg-cert-top {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 520px) {
-  .pg-hero {
-    flex-direction: column;
-    gap: 18px;
-    padding: 22px 18px;
-  }
-
-  .pg-hero-content {
-    width: 100%;
-  }
-
-  .pg-hero-copy h1 {
-    font-size: 25px;
-    letter-spacing: -.6px;
-  }
-
-  .pg-hero-copy p {
-    line-height: 1.6;
-  }
-
-  .pg-hero-refresh {
-    width: 100%;
   }
 }
 

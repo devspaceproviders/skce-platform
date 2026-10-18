@@ -14,6 +14,12 @@ import {
   XCircle,
 } from "lucide-react";
 
+import {
+  AdminPageShell,
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 type FeedbackStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -193,43 +199,32 @@ export default function AdminFeedbackPage() {
   const hasFilters = search.trim() !== "" || statusFilter !== "ALL" || ratingFilter !== "ALL";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto w-full max-w-none px-4 py-5 sm:px-6 lg:px-8">
-        {/* SKCE branded page banner */}
-        <section className="relative mb-7 overflow-hidden rounded-2xl border-b-4 border-orange-500 bg-gradient-to-r from-[#172A45] via-[#173B67] to-[#35689D] px-5 py-6 text-white shadow-lg sm:px-7 sm:py-7">
-          <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full border border-orange-300/25" />
-          <div className="pointer-events-none absolute -right-2 -top-16 h-48 w-48 rounded-full border-[18px] border-white/5" />
-          <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-orange-300 shadow-inner">
-                <MessageSquareText size={27} />
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
-                  Community · Student Experience
-                </p>
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-                  Student Feedback
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-50/90 sm:text-base">
-                  Review package ratings, manage student comments, and keep the SKCE learning experience improving.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void loadFeedback()}
-              disabled={loading}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
-        </section>
+    <AdminPageShell>
+      <AdminPageHeader
+        label="Community · Student Experience"
+        title="Student Feedback"
+        subtitle="Review package ratings, manage student comments, and keep the SK Computer Education learning experience improving."
+        icon={MessageSquareText}
+        chips={[
+          { label: "Total", value: feedback.length },
+          { label: "Pending", value: pendingCount },
+        ]}
+        actions={
+          <button
+            type="button"
+            onClick={() => void loadFeedback()}
+            disabled={loading}
+            className={ADMIN_BTN_GHOST}
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin motion-reduce:animate-none" : ""} />
+            Refresh
+          </button>
+        }
+      />
+
 
         {/* Summary cards */}
-        <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
             <div className="h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
             <div className="flex items-center justify-between p-5">
@@ -272,14 +267,14 @@ export default function AdminFeedbackPage() {
         </div>
 
         {error && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
             <XCircle className="mt-0.5 shrink-0" size={17} />
             <span>{error}</span>
           </div>
         )}
 
         {/* Search and filters */}
-        <section className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 bg-gradient-to-r from-white to-orange-50/70 px-5 py-4 sm:px-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -358,14 +353,14 @@ export default function AdminFeedbackPage() {
           </div>
 
           {loading ? (
-            <div className="flex min-h-[280px] items-center justify-center">
+            <div className="flex min-h-[200px] items-center justify-center">
               <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
-                <RefreshCw size={18} className="animate-spin text-orange-600" />
+                <RefreshCw size={18} className="animate-spin motion-reduce:animate-none text-orange-600" />
                 Loading feedback...
               </div>
             </div>
           ) : filteredFeedback.length === 0 ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="flex min-h-[200px] flex-col items-center justify-center px-6 py-12 text-center">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100">
                 <MessageSquareText size={25} />
               </div>
@@ -461,7 +456,6 @@ export default function AdminFeedbackPage() {
             </div>
           )}
         </section>
-      </div>
-    </div>
+    </AdminPageShell>
   );
 }

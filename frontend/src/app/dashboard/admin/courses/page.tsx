@@ -46,6 +46,12 @@ import {
 } from "lucide-react";
 
 import CountUp from "@/components/CountUp";
+import {
+  AdminPageHeader,
+  AdminPageShell,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_PRIMARY,
+} from "@/components/dashboard/admin/AdminPageHeader";
 import { useToast } from "@/components/Toast";
 
 const API_URL =
@@ -147,7 +153,7 @@ function validateForm(form: CourseForm): FormErrors {
 const MODE_TONES: Record<string, string> = {
   ONLINE: "bg-blue-50 text-blue-700",
   OFFLINE: "bg-slate-100 text-slate-600",
-  HYBRID: "bg-violet-50 text-violet-700",
+  HYBRID: "bg-orange-50 text-orange-700",
 };
 
 export default function CoursesPage() {
@@ -159,6 +165,7 @@ export default function CoursesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState("");
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All");
   const [courseIdFilter, setCourseIdFilter] = useState("All");
   const [durationFilter, setDurationFilter] = useState("All");
@@ -391,7 +398,12 @@ export default function CoursesPage() {
   );
 
   const filteredCourses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     const filtered = courses.filter((course) => {
+      const matchesSearch =
+        !query ||
+        [course.name, course.slug, String(course.id), course.duration, course.mode, course.status, course.description]
+          .some((value) => String(value || "").toLowerCase().includes(query));
       const matchesCourse = courseFilter === "All" || course.name === courseFilter;
       const matchesId = courseIdFilter === "All" || String(course.id) === courseIdFilter;
       const matchesDuration = durationFilter === "All" || course.duration === durationFilter;
@@ -400,7 +412,7 @@ export default function CoursesPage() {
       const matchesModules = modulesFilter === "All" || String(course.modules) === modulesFilter;
       const matchesStudents = studentsFilter === "All" || String(course.students) === studentsFilter;
 
-      return matchesCourse && matchesId && matchesDuration && matchesStatus && matchesMode && matchesModules && matchesStudents;
+      return matchesSearch && matchesCourse && matchesId && matchesDuration && matchesStatus && matchesMode && matchesModules && matchesStudents;
     });
 
     if (!sortKey) return filtered;
@@ -418,11 +430,11 @@ export default function CoursesPage() {
       }
       return sortDirection === "asc" ? result : -result;
     });
-  }, [courses, courseFilter, courseIdFilter, durationFilter, statusFilter, modeFilter, modulesFilter, studentsFilter, sortKey, sortDirection]);
+  }, [courses, searchQuery, courseFilter, courseIdFilter, durationFilter, statusFilter, modeFilter, modulesFilter, studentsFilter, sortKey, sortDirection]);
 
   useEffect(() => {
     setPage(1);
-  }, [courseFilter, courseIdFilter, durationFilter, statusFilter, modeFilter, modulesFilter, studentsFilter, sortKey, sortDirection, pageSize]);
+  }, [searchQuery, courseFilter, courseIdFilter, durationFilter, statusFilter, modeFilter, modulesFilter, studentsFilter, sortKey, sortDirection, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -430,11 +442,13 @@ export default function CoursesPage() {
   const pagedCourses = filteredCourses.slice(pageStart, pageStart + pageSize);
 
   const hasFilters =
-    courseFilter !== "All" || courseIdFilter !== "All" || durationFilter !== "All" ||
+    searchQuery.trim() !== "" || courseFilter !== "All" || courseIdFilter !== "All" || durationFilter !== "All" ||
     statusFilter !== "All" || modeFilter !== "All" || modulesFilter !== "All" ||
     studentsFilter !== "All" || sortKey !== null;
 
   function clearFilters() {
+    setSearchQuery("");
+    setPage(1);
     setCourseFilter("All");
     setCourseIdFilter("All");
     setDurationFilter("All");
@@ -801,66 +815,42 @@ export default function CoursesPage() {
   const rangeEnd = Math.min(pageStart + pageSize, filteredCourses.length);
 
   return (
-    <main className="sk-page-in min-h-screen bg-[#F7F9FC] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <>
       {toastContainer}
 
-      <div className="mx-auto max-w-[1500px]">
-        {/* ============ SKCE BRANDED COURSE BANNER ============ */}
-        <section className="sk-fade-up relative isolate mb-6 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#102F55] via-[#173B67] to-[#24558A] px-5 py-5 text-white shadow-[0_12px_28px_rgba(23,59,103,0.16)] sm:px-7 sm:py-6 lg:px-8">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 -z-10 h-64 w-64 rounded-full border border-orange-300/25 shadow-[0_0_0_18px_rgba(255,255,255,0.035),0_0_0_42px_rgba(255,255,255,0.025)]" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-40 bg-gradient-to-r from-orange-500 via-amber-300 to-transparent" />
-
-          <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-            <div className="min-w-0 flex-1">
-              <p className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.17em] text-orange-300 sm:text-xs">
-                <BookOpen size={15} />
-                Administration Portal <span className="text-white/40">·</span> Course Management
-              </p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-                Courses
-              </h1>
-              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-blue-100/90">
-                Manage SK Computer Education courses, learning content and student enrollment.
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur">
-                  Total courses: <strong className="ml-1">{courses.length}</strong>
-                </span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur">
-                  Active: <strong className="ml-1">{activeCourses}</strong>
-                </span>
-                <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/95 backdrop-blur">
-                  Inactive: <strong className="ml-1">{inactiveCourses}</strong>
-                </span>
-              </div>
-            </div>
-
-            <div className="relative flex shrink-0 flex-wrap gap-2.5">
+      <AdminPageShell>
+        <AdminPageHeader
+          label="Administration Portal · Course Management"
+          icon={BookOpen}
+          title="Courses"
+          subtitle="Manage SK Computer Education courses, learning content and student enrollment."
+          chips={[
+            { label: "Total courses:", value: courses.length },
+            { label: "Active:", value: activeCourses },
+            { label: "Inactive:", value: inactiveCourses },
+          ]}
+          actions={
+            <>
               <button
                 type="button"
                 onClick={() => void loadCourses("refresh")}
                 disabled={loading || refreshing}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white shadow-sm backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                className={ADMIN_BTN_GHOST}
               >
                 <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                 {refreshing ? "Refreshing..." : "Refresh"}
               </button>
 
-              <button
-                type="button"
-                onClick={openAddModal}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-bold text-white shadow-md shadow-orange-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#173B67] active:translate-y-0"
-              >
+              <button type="button" onClick={openAddModal} className={ADMIN_BTN_PRIMARY}>
                 <Plus size={17} />
                 Add New Course
               </button>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         {/* ============ SUMMARY ============ */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             icon={<BookOpen size={21} />}
             value={courses.length}
@@ -905,7 +895,7 @@ export default function CoursesPage() {
         {loadError && (
           <div
             role="alert"
-            className="sk-fade-up mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-start"
+            className="sk-fade-up flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-start"
           >
             <div className="flex flex-1 items-start gap-3">
               <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-500" />
@@ -927,20 +917,30 @@ export default function CoursesPage() {
 
         {/* ============ COURSE TABLE ============ */}
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,47,95,0.04)]">
-          {/* FILTER PANEL — dropdown filters replace free-text search */}
-          <div className="flex flex-col gap-2 border-b border-slate-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-800">Filter courses</h2>
-              <p className="mt-0.5 text-xs text-slate-500">Choose values from the dropdowns under each column. Results update automatically.</p>
+          {/* FILTER PANEL: search plus per-column dropdown filters under the headings */}
+          <div className="flex flex-col gap-3 border-b border-slate-100 bg-white p-4 lg:flex-row lg:items-center lg:justify-between sm:px-5">
+            <div className="relative w-full lg:max-w-md">
+              <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by course, ID, slug, duration or mode"
+                aria-label="Search courses"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
+              />
             </div>
-            <button
-              type="button"
-              onClick={clearFilters}
-              disabled={!hasFilters}
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Clear Filters
-            </button>
+            <div className="flex items-center justify-between gap-3 lg:justify-end">
+              <p className="text-xs text-slate-500">Use the dropdowns under each column to narrow results.</p>
+              <button
+                type="button"
+                onClick={clearFilters}
+                disabled={!hasFilters}
+                className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Clear Filters
+              </button>
+            </div>
           </div>
 
           {/* Mobile filters: the table-column dropdowns are mirrored here for small screens. */}
@@ -988,7 +988,7 @@ export default function CoursesPage() {
 
           {/* EMPTY */}
           {!loading && !loadError && filteredCourses.length === 0 && (
-            <div className="sk-fade-up px-6 py-20 text-center">
+            <div className="sk-fade-up px-6 py-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 ring-8 ring-orange-50/60">
                 {courses.length === 0 ? <BookOpen size={28} className="text-orange-500" /> : <Search size={28} className="text-orange-500" />}
               </div>
@@ -1000,7 +1000,7 @@ export default function CoursesPage() {
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                 {courses.length === 0
                   ? "Create your first course, then use Content to add modules and lessons."
-                  : "Try changing the dropdown filters or clear them to see all courses."}
+                  : "Try changing the search or filters, or clear them to see all courses."}
               </p>
 
               {courses.length === 0 ? (
@@ -1145,7 +1145,7 @@ export default function CoursesPage() {
         </section>
 
         {/* INFO */}
-        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+        <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
           <GraduationCap size={18} className="mt-0.5 shrink-0 text-blue-600" />
           <div>
             <p className="text-xs font-semibold text-blue-800">LMS Content Management</p>
@@ -1156,7 +1156,7 @@ export default function CoursesPage() {
             </p>
           </div>
         </div>
-      </div>
+      </AdminPageShell>
 
       {/* ============ VIEW MODAL ============ */}
       {showViewModal && selectedCourse && (
@@ -1560,7 +1560,7 @@ export default function CoursesPage() {
           .sk-page-in, .sk-fade-up, .sk-row-in, .sk-overlay-in, .sk-modal-in, .sk-shimmer { animation: none !important; }
         }
       `}</style>
-    </main>
+    </>
   );
 }
 

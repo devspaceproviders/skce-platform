@@ -312,11 +312,23 @@ export default function HomepagePopup() {
             </div>
 
             {/* ================= CONTENT ================= */}
-            <div className="relative z-10 flex min-h-[260px] flex-col justify-center overflow-hidden bg-gradient-to-br from-[#071C3A] via-[#0F2F5F] to-[#173B67] p-6 sm:p-8 md:min-h-[440px] lg:p-10">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-orange-500/25 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl" />
+            <div className="relative z-10 flex min-h-[260px] flex-col justify-center overflow-hidden bg-[linear-gradient(135deg,#06172F_0%,#0B2A55_48%,#1459B8_100%)] p-6 sm:p-8 md:min-h-[440px] lg:p-10">
+              {/* Banner-style decoration: dot grid, rings, glows, orange edge */}
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(135deg,#000,transparent_80%)]" />
+              <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full border border-white/10 shadow-[0_0_0_26px_rgba(255,255,255,0.03),0_0_0_54px_rgba(255,255,255,0.02)]" />
+              <div className="pointer-events-none absolute -bottom-24 -right-10 h-64 w-64 rounded-full bg-orange-500/30 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-blue-400/25 blur-3xl" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 hidden w-1 bg-gradient-to-b from-[#F97316] via-[#FFB15C] to-transparent md:block" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-[#F97316] via-[#FB8A2E]/60 to-transparent" />
+
+              {/* Brand eyebrow */}
+              <div className="relative mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-orange-300/30 bg-orange-500/15 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.18em] text-orange-200" aria-hidden="true">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_2px_rgba(251,146,60,0.7)]" />
+                SK Computer Education
+              </div>
+
               {/* Accent */}
-              <div className="mb-5 flex items-center gap-2" aria-hidden="true">
+              <div className="relative mb-4 flex items-center gap-2" aria-hidden="true">
                 <span className="h-[3px] w-10 rounded-full bg-orange-500" />
                 <span className="h-[3px] w-4 rounded-full bg-white/60" />
               </div>
@@ -324,21 +336,21 @@ export default function HomepagePopup() {
               {/* Title */}
               <h2
                 id="homepage-popup-title"
-                className="max-w-md pr-8 text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:text-[1.75rem]"
+                className="relative max-w-md pr-8 text-2xl font-extrabold leading-[1.2] tracking-tight text-white sm:text-[1.9rem]"
               >
                 {popup.title}
               </h2>
 
               {/* Message */}
               {popup.message && (
-                <p className="mt-3 max-w-md whitespace-pre-line text-sm leading-7 text-blue-100/90">
+                <p className="relative mt-3 max-w-md whitespace-pre-line text-[15px] leading-7 text-blue-50/90">
                   {popup.message}
                 </p>
               )}
 
               {/* Optional button */}
               {buttonLink && popup.buttonText && (
-                <div className="mt-6">
+                <div className="relative mt-6">
                   {isExternalLink ? (
                     <a
                       href={buttonLink}
@@ -363,6 +375,10 @@ export default function HomepagePopup() {
                   )}
                 </div>
               )}
+
+              <p className="relative mt-7 border-t border-white/15 pt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-100/60" aria-hidden="true">
+                Learn · Practice · Succeed
+              </p>
             </div>
           </div>
         </div>

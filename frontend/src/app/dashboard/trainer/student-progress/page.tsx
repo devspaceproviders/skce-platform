@@ -1,11 +1,18 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { PortalStatCard } from "@/components/dashboard/admin/AdminPageHeader";
 import type { ReactNode } from "react";
 import {
   BarChart3,
   CheckCircle2,
-  GraduationCap,
+  Search,
   TrendingUp,
   Users,
+  X,
 } from "lucide-react";
+
+import { AdminPageHeader } from "@/components/dashboard/admin/AdminPageHeader";
 
 const STUDENTS = [
   { name: "Ananya Reddy", batch: "BATCH-FS-08", progress: 88, attendance: "96%" },
@@ -36,32 +43,37 @@ export default function StudentProgressPage() {
     (student) => student.progress < 60 || Number.parseInt(student.attendance, 10) < 80
   ).length;
 
+  const [query, setQuery] = useState("");
+  const [batchFilter, setBatchFilter] = useState("ALL");
+  const [levelFilter, setLevelFilter] = useState("ALL");
+  const batchOptions = useMemo(
+    () => Array.from(new Set(STUDENTS.map((student) => student.batch))),
+    []
+  );
+  const visibleStudents = STUDENTS.filter((student) => {
+    const attendance = Number.parseInt(student.attendance, 10);
+    if (batchFilter !== "ALL" && student.batch !== batchFilter) return false;
+    if (levelFilter === "STRONG" && student.progress < 80) return false;
+    if (levelFilter === "ATTENTION" && !(student.progress < 60 || attendance < 80)) return false;
+    const needle = query.trim().toLowerCase();
+    return !needle || student.name.toLowerCase().includes(needle);
+  });
+  const filtersOn = query.trim() !== "" || batchFilter !== "ALL" || levelFilter !== "ALL";
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px]">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         {/* Header */}
-        <div className="mb-7 rounded-2xl bg-[#173B67] p-5 text-white shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
-                <GraduationCap size={17} />
-                Trainer Portal
-              </div>
-
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Student Progress
-              </h1>
-
-              <p className="mt-2 text-sm leading-6 text-blue-100">
-                Monitor course completion and attendance across your batches.
-              </p>
-            </div>
-
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-orange-300">
-              <BarChart3 size={21} />
-            </div>
-          </div>
-        </div>
+        <AdminPageHeader
+          label="Trainer Portal"
+          icon={BarChart3}
+          title="Student Progress"
+          subtitle="Monitor course completion and attendance across your batches."
+          chips={[
+            { label: "Students", value: STUDENTS.length },
+            { label: "Avg progress", value: `${averageProgress}%` },
+          ]}
+        />
 
         {/* Development notice */}
         <div className="mb-7 flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-slate-700">
@@ -121,6 +133,54 @@ export default function StudentProgressPage() {
             </span>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
+            <label className="flex h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-slate-400 focus-within:border-[#173B67] focus-within:ring-2 focus-within:ring-orange-200">
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search student"
+                aria-label="Search students"
+                className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-800 outline-none"
+              />
+            </label>
+            <select
+              value={batchFilter}
+              onChange={(event) => setBatchFilter(event.target.value)}
+              aria-label="Filter by batch"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-[#173B67]"
+            >
+              <option value="ALL">All batches</option>
+              {batchOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <select
+              value={levelFilter}
+              onChange={(event) => setLevelFilter(event.target.value)}
+              aria-label="Filter by performance"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-[#173B67]"
+            >
+              <option value="ALL">All performance</option>
+              <option value="STRONG">Strong progress</option>
+              <option value="ATTENTION">Needs attention</option>
+            </select>
+            {filtersOn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setBatchFilter("ALL");
+                  setLevelFilter("ALL");
+                }}
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-bold text-orange-700 hover:bg-orange-100"
+              >
+                <X size={14} /> Clear filters
+              </button>
+            ) : null}
+          </div>
+
           <div className="hidden grid-cols-[1.5fr_1fr_2fr_1fr] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 lg:grid lg:px-6">
             <span>Student</span>
             <span>Batch</span>
@@ -129,7 +189,10 @@ export default function StudentProgressPage() {
           </div>
 
           <div>
-            {STUDENTS.map((student, index) => {
+            {visibleStudents.length === 0 ? (
+              <p className="px-6 py-10 text-center text-sm text-slate-500">No students match the current filters.</p>
+            ) : null}
+            {visibleStudents.map((student, index) => {
               const attendance = Number.parseInt(student.attendance, 10);
               const progressTone =
                 student.progress >= 80
@@ -257,29 +320,7 @@ function SummaryCard({
   value: string | number;
   tone: "navy" | "blue" | "green" | "orange";
 }) {
-  const toneClass = {
-    navy: "bg-blue-50 text-[#173B67]",
-    blue: "bg-indigo-50 text-indigo-600",
-    green: "bg-emerald-50 text-emerald-600",
-    orange: "bg-orange-50 text-orange-600",
-  };
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneClass[tone]}`}
-        >
-          {icon}
-        </div>
-
-        <div>
-          <p className="text-2xl font-bold text-[#173B67]">{value}</p>
-          <p className="mt-0.5 text-sm text-slate-500">{label}</p>
-        </div>
-      </div>
-    </div>
-  );
+  return <PortalStatCard icon={icon} tone={tone} label={label} value={value} />;
 }
 
 function InsightCard({

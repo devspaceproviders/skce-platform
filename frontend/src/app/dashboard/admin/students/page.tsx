@@ -1,6 +1,14 @@
 "use client";
 
 import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
+import {
   createContext,
   useCallback,
   useContext,
@@ -165,7 +173,7 @@ const PAGE_SIZES = [10, 25, 50, 100];
 
 /* Shared focus ring (SKCE orange) */
 const FOCUS =
-  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00]/40";
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316]/40";
 
 function formatDate(value: string) {
   if (!value) return "Not provided";
@@ -308,7 +316,7 @@ const AVATAR_TONES = [
   "bg-[#173B67]",
   "bg-[#173B67]",
   "bg-emerald-600",
-  "bg-[#FF6B00]",
+  "bg-[#F97316]",
   "bg-[#123B6D]",
 ];
 
@@ -987,37 +995,28 @@ export default function StudentsPage() {
   const rangeEnd = Math.min(pageStart + pageSize, filteredStudents.length);
 
   return (
-    <main className="sk-page-in min-h-screen bg-[#F7F9FC] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <main className="sk-page-in min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       {toastContainer}
 
       <div className="mx-auto w-full max-w-[1680px] space-y-6">
         {/* ============ SKCE BRANDED PAGE BANNER ============ */}
-        <section className="sk-fade-up relative isolate overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(120deg,#102B4D_0%,#173B67_58%,#244B75_100%)] px-5 py-4 text-white shadow-xl shadow-[#102B4D]/15 sm:px-7 sm:py-5 lg:px-8 lg:py-5">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full border-[22px] border-white/[0.045]" />
-          <div className="pointer-events-none absolute -right-2 -top-8 h-56 w-56 rounded-full border-2 border-amber-300/15" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-1.5 w-40 rounded-r-full bg-gradient-to-r from-orange-500 via-amber-300 to-transparent" />
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-orange-400/10 blur-3xl" />
-
-          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-1.5 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-orange-300">
-                <Users size={15} />
-                Administration Portal · Student Management
-              </div>
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-[1.7rem] lg:text-3xl">
-                Students
-              </h1>
-              <p className="mt-1.5 max-w-3xl text-sm leading-5 text-blue-100/90 sm:text-[0.925rem]">
-                Manage every registered student at SK Computer Education — profiles, learning progress, assessments, enrollments and payments in one place.
-              </p>
-            </div>
-
-            <div className="relative flex shrink-0 flex-wrap gap-3 lg:justify-end">
+        <AdminPageHeader
+          icon={Users}
+          label="Administration Portal · Student Management"
+          title="Students"
+          subtitle="Manage every registered student at SK Computer Education — profiles, learning progress, assessments, enrollments and payments in one place."
+          chips={[
+            { label: "Total students", value: isLoading ? "…" : students.length },
+            { label: "Active students", value: isLoading ? "…" : activeCount },
+            { label: "Inactive students", value: isLoading ? "…" : inactiveCount },
+          ]}
+          actions={
+            <>
               <button
                 type="button"
                 onClick={exportExcel}
                 disabled={isLoading || students.length === 0}
-                className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS}`}
+                className={ADMIN_BTN_GHOST}
               >
                 <Download size={17} />
                 Export Excel
@@ -1026,26 +1025,14 @@ export default function StudentsPage() {
                 type="button"
                 onClick={() => void loadStudents(true)}
                 disabled={isRefreshing || isLoading}
-                className={`ad-btn-primary inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
+                className={ADMIN_BTN_PRIMARY}
               >
-                <RefreshCw size={17} className={isRefreshing ? "animate-spin" : "ad-refresh-icon"} />
+                <RefreshCw size={17} className={isRefreshing ? "animate-spin" : ""} />
                 {isRefreshing ? "Refreshing..." : "Refresh"}
               </button>
-            </div>
-          </div>
-
-          <div className="relative mt-3.5 flex flex-wrap gap-2">
-            {[
-              ["Total students", students.length],
-              ["Active students", activeCount],
-              ["Inactive students", inactiveCount],
-            ].map(([label, value]) => (
-              <span key={String(label)} className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] text-blue-50 backdrop-blur-sm">
-                {label}: <strong className="font-bold text-white">{isLoading ? "…" : value}</strong>
-              </span>
-            ))}
-          </div>
-        </section>
+            </>
+          }
+        />
 
         {/* ============ SUMMARY CARDS (click to filter) ============ */}
         <div className="mb-7 grid gap-4 sm:grid-cols-3">
@@ -1131,7 +1118,7 @@ export default function StudentsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-slate-500">Use the dropdowns in each column heading to filter students.</span>
                 {hasFilters && (
-                  <span className="sk-pop rounded-full bg-[#FFF3EA] px-2.5 py-1 text-[11px] font-semibold text-[#E85F00]">Filters applied</span>
+                  <span className="sk-pop rounded-full bg-[#FFF3EA] px-2.5 py-1 text-[11px] font-semibold text-[#EA580C]">Filters applied</span>
                 )}
               </div>
             </div>
@@ -1164,12 +1151,12 @@ export default function StudentsPage() {
               </div>
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="sk-fade-up px-6 py-20 text-center">
+            <div className="sk-fade-up px-6 py-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFF3EA] ring-8 ring-[#FFF3EA]/60">
                 {students.length === 0 ? (
-                  <Users size={28} className="text-[#FF6B00]" />
+                  <Users size={28} className="text-[#F97316]" />
                 ) : (
-                  <Search size={28} className="text-[#FF6B00]" />
+                  <Search size={28} className="text-[#F97316]" />
                 )}
               </div>
 
@@ -1283,7 +1270,7 @@ export default function StudentsPage() {
                           >
                             <Avatar name={student.name} src={student.avatarUrl} />
                             <span className="min-w-0">
-                              <span className="block truncate font-semibold text-slate-800 transition-colors duration-200 group-hover:text-[#FF6B00]">
+                              <span className="block truncate font-semibold text-slate-800 transition-colors duration-200 group-hover:text-[#F97316]">
                                 {student.name}
                               </span>
                               <span className="mt-0.5 block truncate text-xs text-slate-500">
@@ -1405,7 +1392,7 @@ export default function StudentsPage() {
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
                       aria-label="Rows per page"
-                      className="h-8 rounded-lg border border-[#E2E8F1] bg-white px-2 text-xs font-semibold text-slate-700 outline-none transition duration-200 hover:border-[#FFC999] focus:border-[#FF6B00] focus:ring-4 focus:ring-[#FF6B00]/15"
+                      className="h-8 rounded-lg border border-[#E2E8F1] bg-white px-2 text-xs font-semibold text-slate-700 outline-none transition duration-200 hover:border-[#FFC999] focus:border-[#F97316] focus:ring-4 focus:ring-[#F97316]/15"
                     >
                       {PAGE_SIZES.map((size) => (
                         <option key={size} value={size}>
@@ -1459,7 +1446,7 @@ export default function StudentsPage() {
           <div className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">
             {isPackageLoading ? (
               <div className="py-10 text-center" aria-busy="true">
-                <RefreshCw size={26} className="mx-auto animate-spin text-[#FF6B00]" />
+                <RefreshCw size={26} className="mx-auto animate-spin text-[#F97316]" />
                 <p className="mt-4 text-sm font-semibold text-[#0F2F5F]">
                   Loading package courses...
                 </p>
@@ -1477,7 +1464,7 @@ export default function StudentsPage() {
               <div>
                 <p className="mb-3 text-sm font-semibold text-slate-700">
                   Included Courses{" "}
-                  <span className="ml-1 rounded-md bg-[#FFF3EA] px-2 py-0.5 text-xs font-bold text-[#E85F00]">
+                  <span className="ml-1 rounded-md bg-[#FFF3EA] px-2 py-0.5 text-xs font-bold text-[#EA580C]">
                     {selectedPackage.courses.length}
                   </span>
                 </p>
@@ -1490,7 +1477,7 @@ export default function StudentsPage() {
                       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                        <GraduationCap size={15} className="text-[#FF6B00]" />
+                        <GraduationCap size={15} className="text-[#F97316]" />
                       </div>
                       <span className="text-sm font-semibold text-[#0F2F5F]">{course}</span>
                     </div>
@@ -1513,7 +1500,7 @@ export default function StudentsPage() {
         >
           {/* Profile hero — stays fixed, only the tab content scrolls */}
           <div className="ad-hero relative shrink-0 overflow-hidden bg-[linear-gradient(120deg,#0F2F5F_0%,#123B6D_45%,#173B67_100%)] px-5 pb-0 pt-5 text-white sm:px-6 sm:pt-6">
-            <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-[#FF6B00]/25 blur-3xl" />
+            <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-[#F97316]/25 blur-3xl" />
 
             <ModalCloseX />
 
@@ -1591,19 +1578,19 @@ export default function StudentsPage() {
                         : "text-blue-100/80 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <Icon size={16} className={active ? "text-[#FF6B00]" : ""} />
+                    <Icon size={16} className={active ? "text-[#F97316]" : ""} />
                     {label}
                     {typeof count === "number" && (
                       <span
                         className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors duration-200 ${
-                          active ? "bg-[#FFF3EA] text-[#E85F00]" : "bg-white/15 text-white"
+                          active ? "bg-[#FFF3EA] text-[#EA580C]" : "bg-white/15 text-white"
                         }`}
                       >
                         {count}
                       </span>
                     )}
                     {active && (
-                      <span className="sk-grow-x absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#FF6B00]" />
+                      <span className="sk-grow-x absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#F97316]" />
                     )}
                   </button>
                 );
@@ -1783,7 +1770,7 @@ export default function StudentsPage() {
         .ad-btn-primary {
           position: relative;
           overflow: hidden;
-          background: linear-gradient(180deg, #ff8a12 0%, #ff6b00 55%, #f25a00 100%);
+          background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
           transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease;
         }
         .ad-btn-primary::after {
@@ -1799,7 +1786,7 @@ export default function StudentsPage() {
         }
         .ad-btn-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 10px 22px rgba(255, 107, 0, 0.35);
+          box-shadow: 0 10px 22px rgba(249, 115, 22, 0.35);
         }
         .ad-btn-primary:hover:not(:disabled)::after { animation: adSheen 0.7s ease; }
         .ad-btn-primary:active:not(:disabled) { transform: scale(0.98); }
@@ -1836,13 +1823,13 @@ export default function StudentsPage() {
         /* ---------- Table rows ---------- */
         .ad-row { transition: background-color 0.2s ease; }
         .ad-row:hover { background-color: #fff8f2; }
-        .ad-row > td:first-child { box-shadow: inset 0 0 0 0 #ff6b00; transition: box-shadow 0.25s ease; }
-        .ad-row:hover > td:first-child { box-shadow: inset 3px 0 0 0 #ff6b00; }
+        .ad-row > td:first-child { box-shadow: inset 0 0 0 0 #F97316; transition: box-shadow 0.25s ease; }
+        .ad-row:hover > td:first-child { box-shadow: inset 3px 0 0 0 #F97316; }
         .ad-row .ad-avatar { transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1); }
         .ad-row:hover .ad-avatar { transform: scale(1.08); }
 
         .ad-eye { transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
-        .ad-eye:hover { transform: translateY(-2px); background-color: #fff3ea; border-color: #ffc999; color: #ff6b00; box-shadow: 0 6px 14px rgba(255, 107, 0, 0.18); }
+        .ad-eye:hover { transform: translateY(-2px); background-color: #fff3ea; border-color: #ffc999; color: #F97316; box-shadow: 0 6px 14px rgba(249, 115, 22, 0.18); }
         .ad-eye:active { transform: scale(0.95); }
 
         .ad-pkg { transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
@@ -1858,7 +1845,7 @@ export default function StudentsPage() {
           bottom: 0;
           width: 100%;
           height: 3px;
-          background: linear-gradient(90deg, #ff6b00 0%, #ff6b00 16%, transparent 16%);
+          background: linear-gradient(90deg, #F97316 0%, #F97316 16%, transparent 16%);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1955,7 +1942,7 @@ function SectionTitle({
   return (
     <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
       <p className="flex items-center gap-2 text-sm font-bold text-[#0F2F5F]">
-        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FFF3EA] text-[#FF6B00]">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FFF3EA] text-[#F97316]">
           {icon}
         </span>
         {title}
@@ -2109,7 +2096,7 @@ function ProgressTab({
                 style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#FF6B00] shadow-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#F97316] shadow-sm">
                     <Award size={20} />
                   </div>
 
@@ -2127,7 +2114,7 @@ function ProgressTab({
                     href={certificate.certificateUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#173B67] transition-all duration-200 hover:gap-2 hover:text-[#FF6B00]"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#173B67] transition-all duration-200 hover:gap-2 hover:text-[#F97316]"
                   >
                     View certificate <ChevronRight size={13} />
                   </a>
@@ -2263,12 +2250,12 @@ function AssessmentsTab({ assessments }: { assessments: any[] }) {
               type="button"
               aria-expanded={isOpen}
               onClick={() => setOpenAssessmentId(isOpen ? null : key)}
-              className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors duration-200 hover:bg-[#FFF8F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#FF6B00]/40"
+              className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors duration-200 hover:bg-[#FFF8F2] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F97316]/40"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="truncate text-sm font-bold text-[#0F2F5F]">{title}</h3>
-                  <span className="rounded-md bg-[#FFF3EA] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#E85F00]">{type}</span>
+                  <span className="rounded-md bg-[#FFF3EA] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#EA580C]">{type}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span>Course: {courseTitle}</span>
@@ -2281,7 +2268,7 @@ function AssessmentsTab({ assessments }: { assessments: any[] }) {
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <ToneBadge text={String(status).replace(/_/g, " ")} />
-                <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? "rotate-180 text-[#FF6B00]" : "text-slate-400"}`} />
+                <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? "rotate-180 text-[#F97316]" : "text-slate-400"}`} />
               </div>
             </button>
 
@@ -2334,7 +2321,7 @@ function AssessmentsTab({ assessments }: { assessments: any[] }) {
 
                         {attempt.submissionFileName && (
                           <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F1] bg-[#F8FAFD] p-3">
-                            <FileText size={18} className="shrink-0 text-[#FF6B00]" />
+                            <FileText size={18} className="shrink-0 text-[#F97316]" />
                             <div className="min-w-0">
                               <p className="text-xs font-bold text-slate-600">Assignment File</p>
                               <p className="mt-0.5 break-all text-sm text-slate-700">{attempt.submissionFileName}</p>
@@ -2491,7 +2478,7 @@ function EnrollmentsTab({ enrollments }: { enrollments: any[] }) {
           >
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#FF6B00]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#F97316]">
                   {pkg ? <Package size={19} /> : <GraduationCap size={19} />}
                 </div>
                 <div>
@@ -2685,7 +2672,7 @@ function ToneBadge({ text }: { text: string }) {
   if (/(GRADED|COMPLETED|SUCCESS|PAID|CAPTURED|ACTIVE|PASSED|APPROVED)/.test(value)) {
     tone = "bg-emerald-50 text-emerald-700";
   } else if (/(PENDING|SUBMITTED|PROCESSING|CREATED|IN PROGRESS|IN_PROGRESS)/.test(value)) {
-    tone = "bg-[#FFF3EA] text-[#E85F00]";
+    tone = "bg-[#FFF3EA] text-[#EA580C]";
   } else if (/(FAILED|REJECTED|CANCELLED|CANCELED|EXPIRED|REFUND)/.test(value)) {
     tone = "bg-red-50 text-red-700";
   }
@@ -2771,16 +2758,16 @@ function SortableTableHeader({
           onClick={() => onSort(sortKey)}
           className={`inline-flex min-h-4 items-center gap-1.5 self-start rounded text-[11px] font-bold uppercase tracking-wider transition-colors duration-150 ${FOCUS} ${
             active
-              ? "text-[#E85F00]"
-              : "text-slate-400 hover:text-[#FF6B00]"
+              ? "text-[#EA580C]"
+              : "text-slate-400 hover:text-[#F97316]"
           }`}
         >
           <span>{label}</span>
           {active ? (
             direction === "asc" ? (
-              <ChevronUp size={14} className="text-[#FF6B00]" />
+              <ChevronUp size={14} className="text-[#F97316]" />
             ) : (
-              <ChevronDown size={14} className="text-[#FF6B00]" />
+              <ChevronDown size={14} className="text-[#F97316]" />
             )
           ) : (
             <ChevronsUpDown size={13} className="text-slate-300" />
@@ -2825,7 +2812,7 @@ function TableFilterSelect({
       disabled={disabled}
       onChange={(event) => onChange(event.target.value)}
       aria-label={placeholder}
-      className="h-9 w-full min-w-0 rounded-lg border border-[#E2E8F1] bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none transition duration-200 hover:border-[#FFC999] focus:border-[#FF6B00] focus:bg-white focus:ring-2 focus:ring-[#FF6B00]/15 disabled:cursor-not-allowed disabled:opacity-50"
+      className="h-9 w-full min-w-0 rounded-lg border border-[#E2E8F1] bg-white px-2 text-xs font-normal normal-case tracking-normal text-slate-700 outline-none transition duration-200 hover:border-[#FFC999] focus:border-[#F97316] focus:bg-white focus:ring-2 focus:ring-[#F97316]/15 disabled:cursor-not-allowed disabled:opacity-50"
     >
       <option value="">{placeholder}</option>
       {options.map((option) => (
@@ -2896,7 +2883,7 @@ function ListSection({
 }) {
   const styles =
     tone === "orange"
-      ? "bg-[#FFF3EA] text-[#E85F00] hover:bg-[#FFE3CD]"
+      ? "bg-[#FFF3EA] text-[#EA580C] hover:bg-[#FFE3CD]"
       : "bg-[#FFF3EA] text-[#0F2F5F] hover:bg-[#ffe2cf]";
 
   return (
@@ -2955,9 +2942,9 @@ function SummaryCard({
   onClick: () => void;
 }) {
   const tones = {
-    blue: { box: "bg-[#FFF3EA]", icon: "text-[#173B67]", ring: "ring-[#FF6B00]/45", bar: "from-[#FF6B00] to-[#FF9A3D]" },
+    blue: { box: "bg-[#FFF3EA]", icon: "text-[#173B67]", ring: "ring-[#F97316]/45", bar: "from-[#F97316] to-[#FF9A3D]" },
     green: { box: "bg-emerald-50", icon: "text-emerald-600", ring: "ring-emerald-300", bar: "from-emerald-500 to-emerald-400" },
-    orange: { box: "bg-[#FFF3EA]", icon: "text-[#FF6B00]", ring: "ring-[#FF6B00]/40", bar: "from-[#FF6B00] to-[#FFA24D]" },
+    orange: { box: "bg-[#FFF3EA]", icon: "text-[#F97316]", ring: "ring-[#F97316]/40", bar: "from-[#F97316] to-[#FFA24D]" },
   }[tone];
 
   return (
@@ -2967,7 +2954,7 @@ function SummaryCard({
       aria-pressed={selected}
       title={`Show ${title.toLowerCase()}`}
       className={`sk-fade-up ad-tile group relative overflow-hidden rounded-2xl border border-[#E2E8F1] bg-white p-5 text-left shadow-[0_1px_2px_rgba(15,47,95,0.04)] ${FOCUS} ${
-        selected ? `ring-2 ${tones.ring} border-[#FF6B00]/40` : ""
+        selected ? `ring-2 ${tones.ring} border-[#F97316]/40` : ""
       }`}
       style={{ animationDelay: `${index * 60}ms` }}
     >
@@ -3183,7 +3170,7 @@ function ModalHeader({
     <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#EDF1F7] px-5 py-4 sm:px-6 sm:py-5">
       <div className="flex min-w-0 items-center gap-3">
         {icon && (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#FF6B00]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#F97316]">
             {icon}
           </div>
         )}
@@ -3197,7 +3184,7 @@ function ModalHeader({
         type="button"
         onClick={close}
         aria-label="Close"
-        className={`group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F1F4F9] text-slate-500 transition-all duration-200 hover:bg-[#FFF3EA] hover:text-[#FF6B00] ${FOCUS}`}
+        className={`group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F1F4F9] text-slate-500 transition-all duration-200 hover:bg-[#FFF3EA] hover:text-[#F97316] ${FOCUS}`}
       >
         <X size={18} className="transition-transform duration-300 group-hover:rotate-90" />
       </button>
@@ -3281,7 +3268,7 @@ function CopyButton({
       aria-label={copied ? "Copied" : label}
       title={copied ? "Copied" : label}
       className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-all duration-150 ${FOCUS} ${
-        copied ? "sk-pop text-emerald-500" : "text-slate-400 hover:bg-slate-100 hover:text-[#FF6B00]"
+        copied ? "sk-pop text-emerald-500" : "text-slate-400 hover:bg-slate-100 hover:text-[#F97316]"
       } ${className}`}
     >
       {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -3335,7 +3322,7 @@ function DetailItem({
     <div className="ad-lift group rounded-xl border border-[#E2E8F1] p-4 hover:border-[#FFC999] hover:bg-[#F8FAFE]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-          <span className="text-[#FF6B00]/70 transition-colors duration-200 group-hover:text-[#FF6B00]">{icon}</span>
+          <span className="text-[#F97316]/70 transition-colors duration-200 group-hover:text-[#F97316]">{icon}</span>
           {label}
         </div>
         {copy ? (

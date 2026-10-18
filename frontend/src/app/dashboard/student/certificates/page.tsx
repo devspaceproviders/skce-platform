@@ -8,10 +8,16 @@ import {
   Download,
   Lock,
   RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SkStyles, reveal } from "@/components/student/skce-ui";
+import {
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -59,6 +65,8 @@ export default function CertificatesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   const loadCertificates = useCallback(async () => {
     try {
@@ -172,46 +180,43 @@ export default function CertificatesPage() {
     (item) => item.certificateType === "PACKAGE"
   ).length;
 
+  const query = search.trim().toLowerCase();
+  const filtersActive = query !== "" || typeFilter !== "ALL";
+  const visibleCertificates = certificates.filter((item) => {
+    if (typeFilter !== "ALL" && item.certificateType !== typeFilter) return false;
+    if (query) {
+      const hay = `${item.title} ${item.certificateNumber}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+  const clearFilters = () => {
+    setSearch("");
+    setTypeFilter("ALL");
+  };
+
   return (
     <>
       <main className="sk-page ct-page">
         <div className="sk-container ct-container">
-          {/* Gradient hero — consistent with Calendar and Assignments */}
-          <header className="ct-hero sk-reveal">
-            <div className="ct-hero-decoration" aria-hidden="true">
-              <span className="ct-orbit ct-orbit-one" />
-              <span className="ct-orbit ct-orbit-two" />
-              <span className="ct-orbit ct-orbit-three" />
-            </div>
-
-            <div className="ct-hero-content">
-              <div className="ct-hero-icon">
-                <Award size={29} strokeWidth={1.8} />
-              </div>
-
-              <div className="ct-hero-copy">
-                <div className="ct-kicker">STUDENT ACHIEVEMENTS</div>
-                <h1>Certificates</h1>
-                <p>
-                  Celebrate your achievements and explore the
-                  certificates you have earned through learning.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={refreshCertificates}
-              disabled={loading || refreshing}
-              className="ct-refresh"
-            >
-              <RefreshCw
-                size={16}
-                className={refreshing ? "ct-spin" : ""}
-              />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </header>
+          <AdminPageHeader
+            className="mb-6"
+            label="Student achievements"
+            title="Certificates"
+            subtitle="Celebrate your achievements and explore the certificates you have earned through learning."
+            icon={Award}
+            actions={
+              <button
+                type="button"
+                onClick={refreshCertificates}
+                disabled={loading || refreshing}
+                className={ADMIN_BTN_GHOST}
+              >
+                <RefreshCw size={16} className={refreshing ? "ct-spin" : ""} />
+                {refreshing ? "Refreshing..." : "Refresh"}
+              </button>
+            }
+          />
 
           {/* Summary tiles */}
           {!loading && !error && certificates.length > 0 && (
@@ -325,15 +330,47 @@ export default function CertificatesPage() {
                 </div>
 
                 <span className="ct-count">
-                  {certificates.length}{" "}
+                  {visibleCertificates.length}
+                  {filtersActive ? ` of ${certificates.length}` : ""}{" "}
                   {certificates.length === 1
                     ? "certificate"
                     : "certificates"}
                 </span>
               </div>
 
+              <div className="sk-filterbar sk-reveal" style={reveal(3)} role="search" aria-label="Filter certificates">
+                <label className="sk-fsearch">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by title or certificate number"
+                    aria-label="Search certificates"
+                  />
+                </label>
+                <select className="sk-fselect"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  aria-label="Certificate type"
+                >
+                  <option value="ALL">All types</option>
+                  <option value="COURSE">Course certificates</option>
+                  <option value="PACKAGE">Package certificates</option>
+                </select>
+                {filtersActive && (
+                  <button type="button" className="sk-clear" onClick={clearFilters}>
+                    <X size={14} /> Clear filters
+                  </button>
+                )}
+              </div>
+
+              {visibleCertificates.length === 0 && (
+                <div className="sk-nomatch">No certificates match the current filters.</div>
+              )}
+
               <div className="ct-grid">
-                {certificates.map((certificate, index) => {
+                {visibleCertificates.map((certificate, index) => {
                   const hasDownload = Boolean(
                     certificate.certificateUrl?.trim()
                   );
@@ -425,7 +462,7 @@ export default function CertificatesPage() {
         dangerouslySetInnerHTML={{
           __html: `
 /* =========================================================
-   SKCE Certificates — shared student portal visual language
+   Certificates — shared student portal visual language
    ========================================================= */
 
 .ct-page {
@@ -434,199 +471,9 @@ export default function CertificatesPage() {
 
 .ct-container {
   width: 100%;
-  max-width: 1700px;
+  max-width: 1680px;
   margin-inline: auto;
-  padding: 26px 30px 42px;
   box-sizing: border-box;
-}
-
-/* Gradient hero */
-
-.ct-hero {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 168px;
-  overflow: hidden;
-  margin-bottom: 24px;
-  padding: 30px 34px;
-  border: 1px solid rgba(255,255,255,.14);
-  border-bottom: 3px solid #FF7900;
-  border-radius: 27px;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(69,133,204,.4),
-      transparent 42%
-    ),
-    linear-gradient(
-      112deg,
-      #252330 0%,
-      #142F57 35%,
-      #16477F 72%,
-      #2863A1 100%
-    );
-  box-shadow: 0 16px 32px rgba(15,47,95,.14);
-}
-
-.ct-hero::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  opacity: .18;
-  background-image: radial-gradient(
-    rgba(255,255,255,.65) .7px,
-    transparent .7px
-  );
-  background-size: 17px 17px;
-  mask-image: linear-gradient(90deg, transparent, #000 40%, #000);
-}
-
-.ct-hero-decoration {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.ct-orbit {
-  position: absolute;
-  display: block;
-  aspect-ratio: 1;
-  border: 1px solid rgba(255,255,255,.075);
-  border-radius: 50%;
-  transition: transform .8s cubic-bezier(.2,.7,.2,1);
-}
-
-.ct-orbit-one {
-  width: 390px;
-  right: -100px;
-  top: -245px;
-  box-shadow:
-    0 0 0 20px rgba(255,255,255,.025),
-    0 0 0 40px rgba(255,255,255,.02);
-}
-
-.ct-orbit-two {
-  width: 310px;
-  right: -55px;
-  top: -205px;
-  border-width: 22px;
-  border-color: rgba(255,255,255,.035);
-}
-
-.ct-orbit-three {
-  width: 240px;
-  right: -20px;
-  top: -170px;
-  border-width: 1px;
-  border-color: rgba(255,255,255,.09);
-}
-
-.ct-hero:hover .ct-orbit-one {
-  transform: translate(-8px, 8px);
-}
-
-.ct-hero:hover .ct-orbit-two {
-  transform: translate(-5px, 5px);
-}
-
-.ct-hero-content {
-  display: flex;
-  align-items: center;
-  gap: 19px;
-  min-width: 0;
-}
-
-.ct-hero-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 70px;
-  width: 70px;
-  height: 70px;
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 20px;
-  color: #fff;
-  background: rgba(255,255,255,.13);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
-  backdrop-filter: blur(8px);
-  transition: transform .35s cubic-bezier(.2,.7,.2,1);
-}
-
-.ct-hero:hover .ct-hero-icon {
-  transform: translateY(-2px) rotate(-4deg);
-}
-
-.ct-hero-copy {
-  min-width: 0;
-}
-
-.ct-kicker {
-  margin-bottom: 8px;
-  color: #FF9A42;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.ct-hero h1 {
-  margin: 0;
-  color: #fff;
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -.9px;
-  line-height: 1.2;
-}
-
-.ct-hero p {
-  max-width: 650px;
-  margin: 9px 0 0;
-  color: #D1DDEE;
-  font-size: 15px;
-  line-height: 1.65;
-}
-
-.ct-refresh {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  flex: 0 0 auto;
-  min-width: 140px;
-  min-height: 48px;
-  padding: 12px 18px;
-  border: 1px solid rgba(255,255,255,.27);
-  border-radius: 13px;
-  color: #fff;
-  background: rgba(255,255,255,.11);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition:
-    background .25s ease,
-    border-color .25s ease,
-    transform .25s ease;
-}
-
-.ct-refresh:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,.48);
-  background: rgba(255,255,255,.2);
-}
-
-.ct-refresh:disabled {
-  opacity: .65;
-  cursor: wait;
 }
 
 .ct-spin {
@@ -686,7 +533,7 @@ export default function CertificatesPage() {
 }
 
 .ct-stat-icon.tone-orange {
-  color: #FF6B00;
+  color: #F97316;
   background: #FFF1E7;
 }
 
@@ -794,7 +641,7 @@ export default function CertificatesPage() {
   inset: 0 auto 0 0;
   width: 3px;
   content: "";
-  background: linear-gradient(180deg, #FF9B45, #FF6B00);
+  background: linear-gradient(180deg, #FF9B45, #F97316);
   transform: scaleY(0);
   transform-origin: bottom;
   transition: transform .3s ease;
@@ -826,9 +673,9 @@ export default function CertificatesPage() {
   flex: 0 0 49px;
   width: 49px;
   height: 49px;
-  border: 1px solid rgba(255,107,0,.06);
+  border: 1px solid rgba(249,115,22,.06);
   border-radius: 15px;
-  color: #FF6B00;
+  color: #F97316;
   background: linear-gradient(135deg, #FFF3E9 0%, #FFE2CC 100%);
   transition:
     transform .35s cubic-bezier(.2,.7,.2,1),
@@ -837,7 +684,7 @@ export default function CertificatesPage() {
 
 .ct-card:hover .ct-badge {
   transform: rotate(-7deg) scale(1.06);
-  box-shadow: 0 5px 12px rgba(255,107,0,.12);
+  box-shadow: 0 5px 12px rgba(249,115,22,.12);
 }
 
 .ct-card-content {
@@ -1051,10 +898,6 @@ export default function CertificatesPage() {
     padding-inline: 22px;
   }
 
-  .ct-hero {
-    padding: 27px;
-  }
-
   .ct-card {
     padding: 15px;
   }
@@ -1078,38 +921,6 @@ export default function CertificatesPage() {
 @media (max-width: 760px) {
   .ct-container {
     padding: 19px 16px 32px;
-  }
-
-  .ct-hero {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 20px;
-    min-height: 0;
-    padding: 24px;
-    border-radius: 21px;
-  }
-
-  .ct-hero-content {
-    gap: 14px;
-  }
-
-  .ct-hero-icon {
-    flex-basis: 54px;
-    width: 54px;
-    height: 54px;
-    border-radius: 15px;
-  }
-
-  .ct-hero h1 {
-    font-size: 28px;
-  }
-
-  .ct-hero p {
-    font-size: 13px;
-  }
-
-  .ct-refresh {
-    min-height: 42px;
   }
 
   .ct-stats {
@@ -1138,33 +949,6 @@ export default function CertificatesPage() {
 @media (max-width: 480px) {
   .ct-container {
     padding-inline: 12px;
-  }
-
-  .ct-hero {
-    padding: 20px 17px;
-  }
-
-  .ct-hero-content {
-    align-items: flex-start;
-  }
-
-  .ct-hero-icon {
-    flex-basis: 45px;
-    width: 45px;
-    height: 45px;
-  }
-
-  .ct-kicker {
-    font-size: 10px;
-    letter-spacing: 1.4px;
-  }
-
-  .ct-hero h1 {
-    font-size: 25px;
-  }
-
-  .ct-hero p {
-    font-size: 12px;
   }
 
   .ct-stats {

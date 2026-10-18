@@ -6,12 +6,13 @@ import {
   ArrowLeft,
   RefreshCw,
   Loader2,
-  User,
-  Mail,
-  Phone,
-  Award,
 } from "lucide-react";
 
+import {
+  AdminPageShell,
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 import TrainerEngagementPanel, {
   type TrainerEngagementData,
 } from "@/components/dashboard/TrainerEngagementPanel";
@@ -237,194 +238,126 @@ export default function AdminTrainerEngagementsPage() {
     void loadData();
   }, [trainerId]);
 
+  const backButton = (
+    <button
+      type="button"
+      onClick={() => router.push("/dashboard/admin/trainers")}
+      className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-[#0F2F5F] shadow-sm transition hover:-translate-y-0.5 hover:border-orange-300 hover:text-orange-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Back to Trainers
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-          <Loader2
-            className="h-5 w-5 animate-spin"
-          />
-          Loading trainer engagement...
+      <AdminPageShell>
+        <div className="flex min-h-[60vh] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
+            <Loader2 className="h-5 w-5 animate-spin text-orange-600 motion-reduce:animate-none" />
+            Loading trainer engagement...
+          </div>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-5">
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              "/dashboard/admin/trainers"
-            )
-          }
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Trainers
-        </button>
+      <AdminPageShell>
+        <div>{backButton}</div>
 
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
           <h2 className="font-semibold text-red-800">
             Unable to load trainer engagement
           </h2>
 
-          <p className="mt-2 text-sm text-red-700">
-            {error}
-          </p>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
 
           <button
             type="button"
             onClick={() => void loadData()}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800"
+            className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             <RefreshCw className="h-4 w-4" />
             Try Again
           </button>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   if (!trainer || !data) {
     return (
-      <div className="space-y-5">
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              "/dashboard/admin/trainers"
-            )
-          }
-          className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Trainers
-        </button>
+      <AdminPageShell>
+        <div>{backButton}</div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-slate-500">
             Trainer engagement data is not available.
           </p>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Navigation */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              "/dashboard/admin/trainers"
-            )
-          }
-          className="inline-flex w-fit items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Trainers
-        </button>
+    <AdminPageShell>
+      <div>{backButton}</div>
 
-        <button
-          type="button"
-          onClick={() =>
-            void loadData(true)
-          }
-          disabled={refreshing}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${
-              refreshing
-                ? "animate-spin"
-                : ""
-            }`}
-          />
-          Refresh
-        </button>
-      </div>
-
-      {/* Trainer Header */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-5 md:flex-row md:items-center">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-50 text-orange-500">
-            {trainer.profilePhotoUrl ? (
-              <img
-                src={trainer.profilePhotoUrl}
-                alt={`${trainer.name} profile`}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-xl font-bold">
-                {trainer.name
-                  .charAt(0)
-                  .toUpperCase()}
-              </span>
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {trainer.name}
-              </h1>
-
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  trainer.status ===
-                  "Active"
-                    ? "bg-green-50 text-green-700"
-                    : "bg-red-50 text-red-700"
-                }`}
-              >
-                {trainer.status}
-              </span>
-            </div>
-
-            <p className="mt-1 text-sm text-gray-500">
-              {trainer.id} · Trainer Engagement & Progress
-            </p>
-
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500">
-              <span className="inline-flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5" />
-                {trainer.email}
-              </span>
-
-              {trainer.phone && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" />
-                  {trainer.phone}
-                </span>
+      <AdminPageHeader
+        label="Trainer Engagement & Progress"
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 text-lg font-bold text-orange-300">
+              {trainer.profilePhotoUrl ? (
+                <img
+                  src={trainer.profilePhotoUrl}
+                  alt={`${trainer.name} profile`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                trainer.name.charAt(0).toUpperCase()
               )}
-
-              {trainer.specialization && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Award className="h-3.5 w-3.5" />
-                  {trainer.specialization}
-                </span>
-              )}
-
-              <span className="inline-flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                {trainer.experience ||
-                  "Experience not specified"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+            </span>
+            <span className="break-words">{trainer.name}</span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                trainer.status === "Active"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {trainer.status}
+            </span>
+          </span>
+        }
+        subtitle={`${trainer.id} · Trainer Engagement & Progress`}
+        chips={[
+          { label: trainer.email },
+          ...(trainer.phone ? [{ label: trainer.phone }] : []),
+          ...(trainer.specialization ? [{ label: trainer.specialization }] : []),
+          { label: trainer.experience || "Experience not specified" },
+        ]}
+        actions={
+          <button
+            type="button"
+            onClick={() => void loadData(true)}
+            disabled={refreshing}
+            className={ADMIN_BTN_GHOST}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${
+                refreshing ? "animate-spin motion-reduce:animate-none" : ""
+              }`}
+            />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Detailed Engagement Panel */}
-      <TrainerEngagementPanel
-        data={data}
-        mode="admin"
-      />
-    </div>
+      <TrainerEngagementPanel data={data} mode="admin" />
+    </AdminPageShell>
   );
 }

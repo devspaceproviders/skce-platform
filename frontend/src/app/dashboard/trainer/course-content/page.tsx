@@ -18,6 +18,11 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000/api";
@@ -476,13 +481,8 @@ export default function TrainerCourseContentPage() {
           : []
       );
 
-      setExpandedModules(
-        Array.isArray(data?.modules)
-          ? data.modules.map(
-              (module) => module.id
-            )
-          : []
-      );
+      // Modules start collapsed; the trainer opens the ones they need.
+      setExpandedModules([]);
     } catch (err) {
       console.error(
         "Load trainer course content error:",
@@ -1662,7 +1662,7 @@ export default function TrainerCourseContentPage() {
             disabled={
               saving || uploading
             }
-            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#EA580C] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1875,7 +1875,7 @@ export default function TrainerCourseContentPage() {
                     null
                 )
               }
-              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#E85D04]"
+              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#EA580C]"
             />
 
             {selectedVideoFile && (
@@ -1910,7 +1910,7 @@ export default function TrainerCourseContentPage() {
                     null
                 )
               }
-              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#E85D04]"
+              className="mt-3 block w-full text-sm text-[#526B8A] file:mr-3 file:rounded-lg file:border-0 file:bg-[#F97316] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#EA580C]"
             />
 
             {selectedDocumentFile && (
@@ -1959,7 +1959,7 @@ export default function TrainerCourseContentPage() {
             disabled={
               saving || uploading
             }
-            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#EA580C] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving || uploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1979,35 +1979,26 @@ export default function TrainerCourseContentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F3F7FC] via-[#F8FAFD] to-[#EEF3FA] p-3 sm:p-4 md:p-6">
-      <div className="mx-auto w-full max-w-[1500px]">
-        <section className="relative isolate mb-6 overflow-hidden rounded-[26px] bg-gradient-to-br from-[#17263F] via-[#173B67] to-[#0D2A50] px-5 py-6 text-white shadow-[0_18px_45px_-25px_rgba(23,59,103,0.65)] sm:px-7 sm:py-7 lg:px-8">
-          <div className="pointer-events-none absolute -right-10 -top-28 -z-10 h-72 w-72 rounded-full border-[36px] border-white/[0.055]" />
-          <div className="pointer-events-none absolute -right-2 -top-20 -z-10 h-56 w-56 rounded-full border-[18px] border-orange-400/10" />
-          <div className="pointer-events-none absolute -bottom-20 left-1/3 -z-10 h-48 w-48 rounded-full bg-orange-500/15 blur-3xl motion-safe:animate-pulse" />
-          <div className="absolute bottom-0 left-0 h-1 w-32 rounded-r-full bg-gradient-to-r from-orange-500 to-amber-300 sm:w-48" />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-orange-300 shadow-inner backdrop-blur-sm sm:h-14 sm:w-14">
-                <BookOpen className="h-6 w-6 sm:h-7 sm:w-7" />
-              </div>
-              <div className="min-w-0">
-                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.22em] text-orange-300 sm:text-xs">Trainer Workspace</p>
-                <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Course Content</h1>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-blue-100/90 sm:text-[15px]">Manage modules, lessons, videos and learning documents for your assigned courses.</p>
-              </div>
-            </div>
+    <div className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto w-full max-w-[1680px]">
+        <AdminPageHeader
+          className="mb-6"
+          label="Trainer Portal"
+          icon={BookOpen}
+          title="Course Content"
+          subtitle="Manage modules, lessons, videos and learning documents for your assigned courses."
+          actions={
             <button
               type="button"
               onClick={() => void loadCourseContent(Number(selectedCourseId))}
               disabled={loadingContent || !selectedCourseId}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white shadow-sm backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+              className={ADMIN_BTN_GHOST}
             >
               <RefreshCw className={`h-4 w-4 ${loadingContent ? "animate-spin" : ""}`} />
               Refresh
             </button>
-          </div>
-        </section>
+          }
+        />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -2028,7 +2019,7 @@ export default function TrainerCourseContentPage() {
         )}
 
         {loading ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
+          <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
             <div className="flex items-center gap-3 text-sm text-[#647C99]">
               <Loader2 className="h-5 w-5 animate-spin" />
               Loading your course permissions...
@@ -2103,15 +2094,15 @@ export default function TrainerCourseContentPage() {
 
             {course && (
               <div className="group relative mb-6 overflow-hidden rounded-2xl border border-[#C9D9EC] bg-gradient-to-br from-white via-white to-[#FFF0E3] p-5 shadow-[0_12px_32px_-22px_rgba(23,59,103,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl sm:p-6">
-                <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-[#F97316] via-[#FF9B42] to-[#173B67]" />
+                <div className="absolute inset-y-0 left-0 w-2 bg-[#F97316]" />
                 <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full border-[18px] border-[#173B67]/[0.045]" />
                 <div className="relative flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p className="inline-flex items-center gap-2 rounded-full bg-[#173B67]/[0.07] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#173B67]">
+                    <p className="inline-flex items-center gap-2 rounded-full bg-[#173B67]/[0.07] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#173B67]">
                       <span className="h-2 w-2 rounded-full bg-[#F97316]" /> Course
                     </p>
 
-                    <h2 className="mt-2 text-xl font-extrabold tracking-tight text-[#173B67] sm:text-2xl">
+                    <h2 className="mt-2 text-xl font-bold tracking-tight text-[#173B67] sm:text-2xl">
                       {course.title}
                     </h2>
 
@@ -2127,7 +2118,7 @@ export default function TrainerCourseContentPage() {
                     onClick={
                       startCreateModule
                     }
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#EA580C] hover:shadow-md"
                   >
                     <Plus className="h-4 w-4" />
                     Add Module
@@ -2160,7 +2151,7 @@ export default function TrainerCourseContentPage() {
             )}
 
             {loadingContent ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
+              <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-[#DCE6F2] bg-white">
                 <div className="flex items-center gap-3 text-sm text-[#647C99]">
                   <Loader2 className="h-5 w-5 animate-spin" />
                   Loading course content...
@@ -2183,7 +2174,7 @@ export default function TrainerCourseContentPage() {
                   onClick={
                     startCreateModule
                   }
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E85D04] hover:shadow-md"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F97316] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#EA580C] hover:shadow-md"
                 >
                   <Plus className="h-4 w-4" />
                   Create Module
@@ -2216,7 +2207,7 @@ export default function TrainerCourseContentPage() {
                           marker: "bg-[#F97316] text-white shadow-md shadow-orange-200/70",
                           label: "text-[#C65308]",
                           count: "border border-orange-200 bg-orange-100 text-[#A94300]",
-                          stripe: "from-[#F97316] to-[#FFB15C]",
+                          stripe: "bg-[#F97316]",
                         }
                       : {
                           card: "border-[#BDD0E7] hover:border-[#173B67]",
@@ -2224,7 +2215,7 @@ export default function TrainerCourseContentPage() {
                           marker: "bg-[#173B67] text-white shadow-md shadow-blue-200/70",
                           label: "text-[#173B67]",
                           count: "border border-blue-200 bg-blue-100 text-[#173B67]",
-                          stripe: "from-[#173B67] to-[#4777AD]",
+                          stripe: "bg-[#173B67]",
                         };
 
                     return (
@@ -2232,8 +2223,8 @@ export default function TrainerCourseContentPage() {
                         key={module.id}
                         className={`group relative overflow-hidden rounded-2xl border bg-white shadow-[0_10px_30px_-22px_rgba(23,59,103,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${moduleAccent.card}`}
                       >
-                        <div className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${moduleAccent.stripe}`} />
-                        <div className={`flex flex-col gap-3 border-b border-[#DCE6F2] bg-gradient-to-r p-4 pl-5 sm:p-5 sm:pl-6 md:flex-row md:items-center md:justify-between ${moduleAccent.header}`}>
+                        <div className={`absolute inset-y-0 left-0 w-2 ${moduleAccent.stripe}`} />
+                        <div className={`flex flex-col gap-3 border-b border-[#DCE6F2] bg-gradient-to-r p-4 pl-6 sm:p-5 sm:pl-7 md:flex-row md:items-center md:justify-between ${moduleAccent.header}`}>
                           <button
                             type="button"
                             onClick={() =>
@@ -2245,15 +2236,15 @@ export default function TrainerCourseContentPage() {
                           >
                             <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105 ${moduleAccent.marker}`}>
                               {isExpanded ? (
-                                <ChevronDown className="h-5 w-5" />
-                              ) : (
                                 <ChevronUp className="h-5 w-5" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5" />
                               )}
                             </div>
 
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className={`text-xs font-extrabold uppercase tracking-[0.13em] ${moduleAccent.label}`}>
+                                <span className={`text-xs font-bold uppercase tracking-[0.13em] ${moduleAccent.label}`}>
                                   Module{" "}
                                   {moduleIndex +
                                     1}
@@ -2275,7 +2266,7 @@ export default function TrainerCourseContentPage() {
                                 </span>
                               </div>
 
-                              <h3 className="mt-1 truncate text-base font-extrabold text-[#173B67]">
+                              <h3 className="mt-1 truncate text-base font-bold text-[#173B67]">
                                 {module.title}
                               </h3>
 
@@ -2427,11 +2418,11 @@ export default function TrainerCourseContentPage() {
                                         key={
                                           lesson.id
                                         }
-                                        className={`rounded-xl border bg-white p-4 shadow-[0_4px_16px_-14px_rgba(23,59,103,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${moduleIsOrange ? "border-orange-100 hover:border-orange-300" : "border-[#DCE6F2] hover:border-[#9DB8D9]"}`}
+                                        className={`rounded-xl border border-l-[6px] bg-white p-4 shadow-[0_4px_16px_-14px_rgba(23,59,103,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${moduleIsOrange ? "border-orange-100 border-l-[#F97316] hover:border-orange-300 hover:border-l-[#F97316]" : "border-[#DCE6F2] border-l-[#173B67] hover:border-[#9DB8D9] hover:border-l-[#173B67]"}`}
                                       >
                                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                           <div className="flex min-w-0 gap-3">
-                                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-extrabold ${moduleIsOrange ? "bg-orange-100 text-[#B84B00] ring-1 ring-orange-200" : "bg-[#173B67] text-white ring-1 ring-[#173B67]/20"}`}>
+                                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${moduleIsOrange ? "bg-orange-100 text-[#B84B00] ring-1 ring-orange-200" : "bg-[#173B67] text-white ring-1 ring-[#173B67]/20"}`}>
                                               {lessonIndex + 1}
                                             </div>
 

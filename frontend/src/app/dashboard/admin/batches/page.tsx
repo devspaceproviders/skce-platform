@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_LIGHT,
+} from "@/components/dashboard/admin/AdminPageHeader";
+
+
 
 
 import { useEffect, useMemo, useState } from "react";
@@ -2298,38 +2306,25 @@ export default function BatchesPage() {
 
   return (
 
-    <main className="min-h-screen bg-[#F4F7FB] p-4 sm:p-6 lg:p-8">
+    <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
 
-      <div className="mx-auto max-w-[1600px]">
+      <div className="mx-auto w-full max-w-[1680px]">
 
         {/* SKCE branded hero banner */}
-        <header className="relative isolate mb-6 overflow-hidden rounded-[26px] border border-[#244B78] bg-gradient-to-r from-[#102E52] via-[#173B67] to-[#28527F] px-5 py-5 text-white shadow-[0_16px_36px_-22px_rgba(23,59,103,0.65)] sm:px-7 sm:py-6">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-28 h-72 w-72 rounded-full border border-[#F59E0B]/30" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-20 h-56 w-56 rounded-full border-[18px] border-white/[0.035]" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-44 bg-gradient-to-r from-[#F97316] via-[#FDBA32] to-transparent" />
-          <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
-            
-              <div className="min-w-0">
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#FDBA32]/25 bg-[#FDBA32]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#FDBA32]">
-                  <CalendarDays size={13} />
-                  Administration Portal <span className="text-white/40">·</span> Batch Management
-                </div>
-                <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl">Batches</h1>
-                <p className="mt-1.5 max-w-2xl text-sm leading-5 text-blue-100/90 sm:text-[15px]">
-                  Manage course batches, trainers, students and schedules in one place.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={openAdd}
-              className="relative z-10 inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-[#FDBA32]/50 bg-gradient-to-r from-[#F97316] to-[#FB8500] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-orange-950/20 transition-all duration-200 hover:-translate-y-0.5 hover:from-[#EA580C] hover:to-[#F97316] hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-orange-300/30 md:self-center"
-            >
-              <Plus size={18} />
-              Add Batch
-            </button>
-          </div>
-        </header>
+        <div className="mb-6">
+          <AdminPageHeader
+            icon={CalendarDays}
+            label="Administration Portal · Batch Management"
+            title="Batches"
+            subtitle="Manage course batches, trainers, students and schedules in one place."
+            actions={
+              <button type="button" onClick={openAdd} className={ADMIN_BTN_PRIMARY}>
+                <Plus size={18} />
+                Add Batch
+              </button>
+            }
+          />
+        </div>
 
 
 
@@ -2579,7 +2574,7 @@ export default function BatchesPage() {
 
                       colSpan={9}
 
-                      className="px-5 py-20 text-center"
+                      className="px-5 py-10 text-center"
 
                     >
 
@@ -2613,7 +2608,7 @@ export default function BatchesPage() {
 
                       colSpan={9}
 
-                      className="px-5 py-20 text-center"
+                      className="px-5 py-10 text-center"
 
                     >
 
@@ -2637,7 +2632,7 @@ export default function BatchesPage() {
 
 
 
-                      <p className="relative z-10 mt-2 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+                      <p className="relative z-10 mx-auto mt-2 max-w-xl text-center text-sm leading-6 text-slate-600 sm:text-base">
 
                         Click “Add Batch” to
 
@@ -4694,7 +4689,7 @@ function Status({
 
     Completed:
 
-      "bg-indigo-50 text-indigo-700",
+      "bg-blue-50 text-blue-700",
 
     Inactive:
 

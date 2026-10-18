@@ -896,7 +896,7 @@ export default function StudentCoursePage() {
               {courseImage ? (
                 <img src={courseImage} alt={courseContent.course.name} />
               ) : (
-                <div className="lp-hero-fallback">SKCE</div>
+                <div className="lp-hero-fallback">SK Computer Education</div>
               )}
             </div>
 
@@ -1584,16 +1584,16 @@ function LessonStyles() {
 const lessonCss = `
 .lp-page{
   --navy:#0F2F5F; --navy-2:#123B6D; --blue:#1459B8; --blue-2:#2563EB;
-  --orange:#FF6B00; --orange-2:#E85F00; --orange-tint:#FFF3EA;
-  --bg:#F7F9FC; --card:#fff; --line:#E2E8F1; --line-2:#EDF1F7;
+  --orange:#F97316; --orange-2:#F97316; --orange-tint:#FFF3EA;
+  --bg:#F4F7FB; --card:#fff; --line:#E2E8F1; --line-2:#EDF1F7;
   --muted:#64748B; --soft:#8A97AB;
   --green:#15803D; --green-tint:#E8F6EE; --blue-tint:#EAF1FD;
   --ease:cubic-bezier(.2,.7,.2,1);
   flex:1;min-width:0;width:100%;box-sizing:border-box;
-  padding:20px 28px 40px;background:var(--bg);color:var(--navy);
+  min-height:100vh;padding:28px 32px;background:var(--bg);color:var(--navy);
 }
 .lp-page *{box-sizing:border-box}
-.lp-container{width:100%;max-width:1360px;margin:0 auto}
+.lp-container{width:100%;max-width:1680px;margin:0 auto}
 .lp-min0{min-width:0}
 .lp-grow{flex:1}
 .lp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -1618,9 +1618,9 @@ const lessonCss = `
 .lp-btn:focus-visible,.lp-lesson:focus-visible,.lp-module-head:focus-visible,.lp-back:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
 .lp-btn:active:not(:disabled){transform:scale(.98)}
 .lp-btn:disabled{opacity:.5;cursor:not-allowed}
-.lp-btn-primary{background:linear-gradient(180deg,#FF8A12 0%,#FF6B00 55%,#F25A00 100%);color:#fff}
+.lp-btn-primary{background:linear-gradient(180deg,#FB923C 0%,#F97316 55%,#EA580C 100%);color:#fff}
 .lp-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
-.lp-btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(255,107,0,.35)}
+.lp-btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(249,115,22,.35)}
 .lp-btn-primary:hover:not(:disabled)::after{animation:lp-sheen 700ms ease}
 .lp-btn-primary:disabled{background:#CBD5E4;color:#fff;box-shadow:none}
 .lp-btn-secondary{background:#fff;color:var(--blue);border-color:var(--line)}
@@ -1642,13 +1642,14 @@ const lessonCss = `
 .lp-toast-ok .lp-toast-timer{animation-duration:4.5s}
 
 /* Hero */
-.lp-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(0,1fr) 300px;align-items:center;gap:24px;margin-bottom:20px;padding:22px 26px;border-radius:16px;color:#fff;background:linear-gradient(120deg,#0F2F5F 0%,#123B6D 35%,#1459B8 70%,#0F2F5F 100%);background-size:220% 220%;animation:lp-rise 520ms var(--ease) both,lp-flow 14s ease-in-out infinite alternate;animation-delay:70ms,0s;box-shadow:0 12px 30px rgba(15,47,95,.18)}
-.lp-hero::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 16%,transparent 16%)}
+.lp-hero{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:auto minmax(0,1fr) 300px;align-items:center;gap:20px;min-height:96px;margin-bottom:20px;padding:16px 28px;border-radius:24px;border-bottom:3px solid #F97316;color:#fff;background:linear-gradient(118deg,#071C3A 0%,#0F2F5F 48%,#1B4B82 100%);animation:lp-rise 520ms var(--ease) backwards;animation-delay:70ms;box-shadow:0 14px 30px -14px rgba(15,47,95,.45)}
+.lp-hero::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.7;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.09) 1px,transparent 1px);background-size:22px 22px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 75%);mask-image:linear-gradient(90deg,transparent,#000 75%)}
+.lp-hero::after{content:"";position:absolute;right:-56px;top:-96px;z-index:-1;width:256px;height:256px;border-radius:50%;border:1px solid rgba(255,255,255,.1);box-shadow:0 0 0 26px rgba(255,255,255,.03),0 0 0 54px rgba(255,255,255,.02);pointer-events:none}
 .lp-hero>*{position:relative;z-index:1}
 .lp-hero-img{width:208px;height:124px;overflow:hidden;border-radius:14px;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(0,0,0,.22)}
 .lp-hero-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s var(--ease)}
 .lp-hero:hover .lp-hero-img img{transform:scale(1.06)}
-.lp-hero-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.7)}
+.lp-hero-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:10px;text-align:center;font-size:13px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.7)}
 .lp-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .lp-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);font-size:12px;font-weight:600;color:#fff}
 .lp-badge i{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:lp-pulse 2s infinite}
@@ -1836,7 +1837,7 @@ button.lp-stat:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3
 .lp-error p{max-width:480px;margin:8px 0 20px;font-size:14px;line-height:1.6;color:var(--muted)}
 .lp-error-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .lp-skel{border-radius:16px;background:linear-gradient(90deg,#E9EEF6 25%,#F6F8FC 37%,#E9EEF6 63%);background-size:1200px 100%;animation:lp-shimmer 1.4s linear infinite}
-.lp-skel-hero{height:170px;margin-bottom:20px}
+.lp-skel-hero{height:176px;margin-bottom:24px;border-radius:24px}
 .lp-skel-side{height:520px}
 .lp-skel-main{height:520px}
 
@@ -1852,7 +1853,7 @@ button.lp-stat:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3
   .lp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:760px){
-  .lp-page{padding:16px 14px 28px}
+  .lp-page{padding:20px 16px}
   .lp-hero{grid-template-columns:minmax(0,1fr);padding:18px}
   .lp-hero-img{width:100%;height:150px}
   .lp-view-head{flex-direction:column;padding:18px}

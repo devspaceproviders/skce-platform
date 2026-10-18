@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import TopBar from "@/components/TopBar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -20,7 +21,7 @@ export default function PublicShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="sk-public flex min-h-screen flex-col">
       {/* Keyboard users can jump straight past the navigation */}
       <a
         href="#main-content"
@@ -30,6 +31,7 @@ export default function PublicShell({
       </a>
 
       <Navbar />
+      <TopBar />
 
       <main id="main-content" className="min-w-0 flex-1">
         <div key={pathname} className="sk-route-fade">
@@ -55,10 +57,72 @@ export default function PublicShell({
           animation: skRouteFade 0.25s ease-out;
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          .sk-route-fade {
-            animation: none;
-          }
+        /* ---- Banner-style white touches on navy surfaces (public pages) ----
+           Dot grid + thin rings only. Drawn on ::after behind the content,
+           so each component keeps its own gradient, accents and hover. */
+        .sk-public [class*="from-[#0F2F5F]"][class*="to-[#0B2A52]"][class*="rounded-2xl"],
+        .sk-public footer,
+        .sk-public section[class*="bg-[#173B67]"] {
+          isolation: isolate;
+        }
+        .sk-public [class*="from-[#0F2F5F]"][class*="to-[#0B2A52]"][class*="rounded-2xl"]::after,
+        .sk-public footer::after,
+        .sk-public section[class*="bg-[#173B67]"]::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
+          background-image:
+            radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+            radial-gradient(circle at 100% 0, transparent 0 70px, rgba(255, 255, 255, 0.15) 70px 71px, rgba(255, 255, 255, 0.05) 71px 88px, rgba(255, 255, 255, 0.03) 88px 108px, transparent 108px);
+          background-size: 22px 22px, auto;
+          background-repeat: repeat, no-repeat;
+          -webkit-mask-image: linear-gradient(160deg, #000 0%, rgba(0, 0, 0, 0.35) 70%, transparent 100%);
+          mask-image: linear-gradient(160deg, #000 0%, rgba(0, 0, 0, 0.35) 70%, transparent 100%);
+        }
+        /* Page headings + CEO card: full banner rings on both corners */
+        .sk-public [class*="from-[#071C3A]"][class*="via-[#0F2F5F]"]::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
+          background-image:
+            radial-gradient(circle at 94% -8%, transparent 0 150px, rgba(255, 255, 255, 0.16) 150px 151px, rgba(255, 255, 255, 0.055) 151px 176px, rgba(255, 255, 255, 0.035) 176px 204px, transparent 204px),
+            radial-gradient(circle at 3% 112%, transparent 0 100px, rgba(255, 255, 255, 0.13) 100px 101px, rgba(255, 255, 255, 0.045) 101px 120px, rgba(255, 255, 255, 0.03) 120px 142px, transparent 142px),
+            radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+          background-size: auto, auto, 22px 22px;
+          background-repeat: no-repeat, no-repeat, repeat;
+        }
+        /* Login / auth pages + registration banner: same ring touches */
+        .sk-public .sk-auth-bg {
+          position: relative;
+          isolation: isolate;
+        }
+        .sk-public .sk-auth-bg::after,
+        .sk-public .sk-reg-band::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
+          background-image:
+            radial-gradient(circle at 96% -6%, transparent 0 190px, rgba(255, 255, 255, 0.16) 190px 191px, rgba(255, 255, 255, 0.055) 191px 220px, rgba(255, 255, 255, 0.035) 220px 252px, transparent 252px),
+            radial-gradient(circle at 2% 108%, transparent 0 130px, rgba(255, 255, 255, 0.13) 130px 131px, rgba(255, 255, 255, 0.045) 131px 154px, rgba(255, 255, 255, 0.03) 154px 180px, transparent 180px);
+          background-repeat: no-repeat;
+        }
+        .sk-public .sk-reg-band::after {
+          background-image:
+            radial-gradient(circle at 95% -14%, transparent 0 130px, rgba(255, 255, 255, 0.16) 130px 131px, rgba(255, 255, 255, 0.055) 131px 154px, rgba(255, 255, 255, 0.035) 154px 180px, transparent 180px),
+            radial-gradient(circle at 3% 112%, transparent 0 90px, rgba(255, 255, 255, 0.13) 90px 91px, rgba(255, 255, 255, 0.045) 91px 108px, rgba(255, 255, 255, 0.03) 108px 128px, transparent 128px);
+        }
+        .sk-public footer { overflow: hidden; }
+        .sk-public footer::after,
+        .sk-public section[class*="bg-[#173B67]"]::after {
+          background-image:
+            radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            radial-gradient(circle at 94% 0, transparent 0 140px, rgba(255, 255, 255, 0.15) 140px 141px, rgba(255, 255, 255, 0.05) 141px 166px, rgba(255, 255, 255, 0.03) 166px 194px, transparent 194px);
         }
       `}</style>
     </div>

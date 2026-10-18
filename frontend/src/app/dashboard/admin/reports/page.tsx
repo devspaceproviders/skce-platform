@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import type { ReactNode } from "react";
 import {
+  AdminPageShell,
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+} from "@/components/dashboard/admin/AdminPageHeader";
+import {
   Activity,
   Award,
   BarChart3,
@@ -14,6 +19,7 @@ import {
   Download,
   FileText,
   Filter,
+  Search,
   RotateCcw,
   IndianRupee,
   TrendingUp,
@@ -431,7 +437,7 @@ export default function ReportsPage() {
   }, [packageFilter, packages]);
   const handleExport = () => {
     const rows: string[][] = [
-      ["SKCE Reports & Analytics"],
+      ["SK Computer Education Reports & Analytics"],
       ["Generated At", new Date().toLocaleString("en-IN")],
       ["Date Range", dateRangeLabel],
       ["Course", selectedCourseLabel],
@@ -494,55 +500,40 @@ export default function ReportsPage() {
     XLSX.writeFile(workbook, filename);
   };
   return (
-    <div className="min-h-screen bg-[#F3F6FB] p-4 text-slate-900 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-[1600px]">
-        <section className="relative mb-7 overflow-hidden rounded-[28px] border-b-4 border-[#FF7900] bg-gradient-to-r from-[#202233] via-[#173B67] to-[#2F639A] px-6 py-7 text-white shadow-[0_18px_35px_-22px_rgba(23,59,103,0.65)] sm:px-8 sm:py-8">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-28 h-80 w-80 rounded-full border border-orange-300/20">
-            <div className="absolute inset-6 rounded-full border-[18px] border-white/[0.035]">
-              <div className="absolute inset-6 rounded-full border-[18px] border-white/[0.035]" />
-            </div>
-          </div>
-          <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="hidden h-[76px] w-[76px] shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-inner sm:flex">
-                <BarChart3 size={34} strokeWidth={1.8} />
-              </div>
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#FFB15C]">
-                  <BarChart3 size={15} />
-                  Business Intelligence
-                </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-                  Reports & Analytics
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-                  Monitor platform performance, student activity and business metrics.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleExport}
-              disabled={loading}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-orange-300/40 bg-[#FF7900] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-[#F06D00] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-200 focus:ring-offset-2 focus:ring-offset-[#173B67] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Download size={18} />
-              Export Excel
-            </button>
-          </div>
-          <div aria-hidden="true" className="absolute bottom-0 left-0 h-1 w-44 bg-gradient-to-r from-[#FF7900] via-[#FFB15C] to-transparent" />
-        </section>
+    <AdminPageShell>
+      <AdminPageHeader
+        label="Administration Portal · Business Intelligence"
+        title="Reports & Analytics"
+        subtitle="Monitor platform performance, student activity and business metrics."
+        icon={BarChart3}
+        chips={[
+          { label: "Range", value: dateRangeLabel },
+          { label: "Course", value: selectedCourseLabel },
+          { label: "Package", value: selectedPackageLabel },
+        ]}
+        actions={
+          <button
+            onClick={handleExport}
+            disabled={loading}
+            className={ADMIN_BTN_PRIMARY}
+          >
+            <Download size={18} />
+            Export Excel
+          </button>
+        }
+      />
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
-        <section className="relative mb-5 overflow-visible rounded-2xl border border-[#D8E3F1] bg-gradient-to-r from-white via-white to-[#FFF8F1] shadow-[0_8px_24px_-20px_rgba(23,59,103,0.5)]">
-          <div className="h-[3px] rounded-t-2xl bg-gradient-to-r from-[#173B67] via-[#5D86B5] to-[#FF7900]" />
+        <section className="relative overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-[3px] rounded-t-2xl bg-[#173B67]" />
           <div className="p-4 sm:p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-base font-extrabold text-[#173B67]">
-                  <Filter size={18} className="text-[#FF7900]" />
+                  <Filter size={18} className="text-[#F97316]" />
                   Filter reports
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
@@ -562,7 +553,7 @@ export default function ReportsPage() {
                     setShowDateMenu(false);
                   }}
                   disabled={dateRange === "this-month" && courseFilter === "all" && packageFilter === "all"}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition duration-200 hover:border-orange-300 hover:bg-orange-50 hover:text-[#173B67] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 transition duration-200 hover:border-orange-300 hover:bg-orange-50 hover:text-[#173B67] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <RotateCcw size={15} />
                   Clear filters
@@ -572,7 +563,7 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                  <CalendarDays size={15} className="text-[#FF7900]" />
+                  <CalendarDays size={15} className="text-[#F97316]" />
                   Date range
                 </label>
                 <div className="relative">
@@ -583,7 +574,7 @@ export default function ReportsPage() {
                     className="flex h-11 w-full items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
                   >
                     {dateRangeLabel}
-                    <ChevronDown size={16} className={`transition-transform duration-200 ${showDateMenu ? "rotate-180" : ""}`} />
+                    <ChevronDown size={16} className={`transition-transform duration-200 motion-reduce:transition-none ${showDateMenu ? "rotate-180" : ""}`} />
                   </button>
                   {showDateMenu && (
                     <div className="absolute left-0 top-12 z-50 w-full min-w-[175px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
@@ -647,14 +638,14 @@ export default function ReportsPage() {
             </div>
           </div>
         </section>
-        <div className="mb-6 flex flex-wrap gap-1.5 rounded-2xl border border-[#D8E3F1] bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap gap-1.5 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
           {REPORT_TYPES.map((report) => (
             <button
               key={report.key}
               onClick={() => setReportType(report.key)}
               className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
                 reportType === report.key
-                  ? "bg-gradient-to-r from-[#173B67] to-[#28598A] text-white shadow-md"
+                  ? "bg-[#F97316] text-white shadow-md"
                   : "text-slate-600 hover:bg-orange-50 hover:text-[#173B67]"
               }`}
             >
@@ -688,8 +679,7 @@ export default function ReportsPage() {
             )}
           </>
         )}
-      </div>
-    </div>
+    </AdminPageShell>
   );
 }
 function OverviewReport({ data }: { data: ReportData }) {
@@ -697,7 +687,7 @@ function OverviewReport({ data }: { data: ReportData }) {
     <>
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard title="Total Students" value={data.students.total} icon={<Users size={20} />} iconClass="bg-blue-50 text-blue-600" />
-        <SummaryCard title="Active Courses" value={data.courses.active} icon={<BookOpen size={20} />} iconClass="bg-violet-50 text-violet-600" />
+        <SummaryCard title="Active Courses" value={data.courses.active} icon={<BookOpen size={20} />} iconClass="bg-sky-50 text-sky-700" />
         <SummaryCard title="Active Trainers" value={data.trainers.active} icon={<UserCheck size={20} />} iconClass="bg-green-50 text-green-600" />
         <SummaryCard title="Revenue" value={`₹${data.payments.revenue.toLocaleString("en-IN")}`} icon={<IndianRupee size={20} />} iconClass="bg-amber-50 text-amber-600" />
       </div>
@@ -718,7 +708,7 @@ function OverviewReport({ data }: { data: ReportData }) {
   );
 }
 function TrendPanel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: ReactNode; children: ReactNode }) {
-  return <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]">{icon}{title}</h3><p className="mt-1 text-xs text-slate-400">{subtitle}</p></div><Activity size={17} className="text-slate-300" /></div>{children}</div>;
+  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]">{icon}{title}</h3><p className="mt-1 text-xs text-slate-400">{subtitle}</p></div><Activity size={17} className="text-slate-300" /></div>{children}</div>;
 }
 function TrendChart({ data }: { data: ReportData["analytics"]["trend"] }) {
   if (!data.length) return <EmptyState message="No activity is available for this period." />;
@@ -743,7 +733,7 @@ function PaymentStatusChart({ data }: { data: ReportData["analytics"]["paymentSt
 }
 function StatusLegend({ label, value, className }: { label: string; value: number; className: string }) { return <div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2 text-slate-500"><span className={`h-2.5 w-2.5 rounded-full ${className}`} />{label}</span><strong className="text-slate-800">{value}</strong></div>; }
 function RecentActivity({ activities }: { activities: ReportData["analytics"]["recentActivity"] }) {
-  return <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4"><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]"><Clock3 size={18} />Recent Activity</h3><p className="mt-1 text-xs text-slate-400">Latest activity from the selected period</p></div>{activities.length===0?<EmptyState message="No recent activity for this period." />:<div className="divide-y divide-slate-100">{activities.map((activity,index)=><div key={`${activity.type}-${activity.date}-${index}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activity.type==="Payment"?"bg-green-50 text-green-600":activity.type==="Certificate"?"bg-amber-50 text-amber-600":"bg-blue-50 text-blue-600"}`}>{activity.type==="Payment"?<IndianRupee size={16}/>:activity.type==="Certificate"?<Award size={16}/>:<Users size={16}/>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-700">{activity.label}</p><p className="text-xs text-slate-400">{new Date(activity.date).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p></div>{activity.amount!=null&&<span className="shrink-0 text-sm font-semibold text-green-700">₹{activity.amount.toLocaleString("en-IN")}</span>}</div>)}</div>}</div>;
+  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6"><div className="mb-4"><h3 className="flex items-center gap-2 text-base font-bold text-[#173B67]"><Clock3 size={18} />Recent Activity</h3><p className="mt-1 text-xs text-slate-400">Latest activity from the selected period</p></div>{activities.length===0?<EmptyState message="No recent activity for this period." />:<div className="divide-y divide-slate-100">{activities.map((activity,index)=><div key={`${activity.type}-${activity.date}-${index}`} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${activity.type==="Payment"?"bg-green-50 text-green-600":activity.type==="Certificate"?"bg-amber-50 text-amber-600":"bg-blue-50 text-blue-600"}`}>{activity.type==="Payment"?<IndianRupee size={16}/>:activity.type==="Certificate"?<Award size={16}/>:<Users size={16}/>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-700">{activity.label}</p><p className="text-xs text-slate-400">{new Date(activity.date).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</p></div>{activity.amount!=null&&<span className="shrink-0 text-sm font-semibold text-green-700">₹{activity.amount.toLocaleString("en-IN")}</span>}</div>)}</div>}</div>;
 }
 function StudentsReport({ data }: { data: ReportData }) {
   return (
@@ -803,49 +793,11 @@ function CoursesReport({ data }: { data: ReportData }) {
           title="Enrollments"
           value={data.courses.enrollments}
           icon={<Users size={20} />}
-          iconClass="bg-violet-50 text-violet-600"
+          iconClass="bg-sky-50 text-sky-700"
         />
       </div>
       <ReportPanel title="Course Performance">
-        {data.courses.rows.length === 0 ? (
-          <EmptyState message="No course data available for the selected filters." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-3 py-3 font-medium">Course</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-3 py-3 font-medium">Mode</th>
-                  <th className="px-3 py-3 text-right font-medium">
-                    Enrollments
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.courses.rows.map((course) => (
-                  <tr
-                    key={course.id}
-                    className="border-b border-slate-100 last:border-0"
-                  >
-                    <td className="px-3 py-4 font-medium text-slate-800">
-                      {course.title}
-                    </td>
-                    <td className="px-3 py-4">
-                      <StatusBadge active={course.isActive} />
-                    </td>
-                    <td className="px-3 py-4 text-slate-500">
-                      {course.mode}
-                    </td>
-                    <td className="px-3 py-4 text-right font-semibold text-slate-800">
-                      {course.enrollments}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CourseRowsTable rows={data.courses.rows} />
       </ReportPanel>
     </ReportSection>
   );
@@ -870,7 +822,7 @@ function TrainersReport({ data }: { data: ReportData }) {
           title="With Permissions"
           value={data.trainers.withPermissions}
           icon={<UserCheck size={20} />}
-          iconClass="bg-violet-50 text-violet-600"
+          iconClass="bg-sky-50 text-sky-700"
         />
         <SummaryCard
           title="With Availability"
@@ -886,64 +838,7 @@ function TrainersReport({ data }: { data: ReportData }) {
             value={data.trainers.totalAssignments}
           />
         </div>
-        {data.trainers.rows.length === 0 ? (
-          <EmptyState message="No trainers found." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="px-3 py-3 font-medium">Trainer</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-3 py-3 font-medium">Specialization</th>
-                  <th className="px-3 py-3 text-center font-medium">
-                    Assigned Courses
-                  </th>
-                  <th className="px-3 py-3 text-center font-medium">
-                    Availability
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.trainers.rows.map((trainer) => (
-                  <tr
-                    key={trainer.id}
-                    className="border-b border-slate-100 last:border-0"
-                  >
-                    <td className="px-3 py-4">
-                      <p className="font-semibold text-slate-800">
-                        {trainer.name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {trainer.email}
-                      </p>
-                    </td>
-                    <td className="px-3 py-4">
-                      <StatusBadge active={trainer.isActive} />
-                    </td>
-                    <td className="px-3 py-4 text-slate-500">
-                      {trainer.specialization || "—"}
-                    </td>
-                    <td className="px-3 py-4 text-center font-semibold text-slate-800">
-                      {trainer.assignedCourses}
-                    </td>
-                    <td className="px-3 py-4 text-center">
-                      {trainer.hasAvailability ? (
-                        <span className="font-medium text-green-600">
-                          Configured ({trainer.availabilitySlots})
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">
-                          Not configured
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <TrainerRowsTable rows={data.trainers.rows} />
       </ReportPanel>
     </ReportSection>
   );
@@ -974,7 +869,7 @@ function PaymentsReport({ data }: { data: ReportData }) {
           title="Transactions"
           value={data.payments.transactions}
           icon={<FileText size={20} />}
-          iconClass="bg-violet-50 text-violet-600"
+          iconClass="bg-sky-50 text-sky-700"
         />
       </div>
       <ReportPanel title="Payment Status">
@@ -998,7 +893,7 @@ function SummaryCard({
   iconClass: string;
 }) {
   return (
-    <div className="relative flex items-center gap-4 overflow-hidden rounded-2xl border border-[#D8E3F1] bg-white p-5 pt-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-gradient-to-r before:from-[#173B67] before:via-[#5D86B5] before:to-[#FF7900]">
+    <div className="relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 pt-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-gradient-to-r before:from-[#173B67] before:via-[#5D86B5] before:to-[#F97316]">
       <div
         className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
       >
@@ -1041,7 +936,7 @@ function ReportPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#D8E3F1] bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:shadow-md sm:p-6">
       <h3 className="mb-3 text-base font-bold text-[#173B67]">
         {title}
       </h3>
@@ -1097,5 +992,259 @@ function EmptyState({ message }: { message: string }) {
     <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
       {message}
     </div>
+  );
+}
+
+const FILTER_INPUT =
+  "h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100";
+
+function TableToolbar({
+  search,
+  onSearch,
+  placeholder,
+  shown,
+  total,
+  noun,
+  hasFilters,
+  onClear,
+}: {
+  search: string;
+  onSearch: (value: string) => void;
+  placeholder: string;
+  shown: number;
+  total: number;
+  noun: string;
+  hasFilters: boolean;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="relative w-full sm:w-72">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-orange-100"
+        />
+      </div>
+      <span className="rounded-full border border-[#D6E4F5] bg-[#EDF4FC] px-3 py-1.5 text-xs font-bold text-[#173B67]">
+        Showing {shown} of {total} {noun}
+      </span>
+      <button
+        type="button"
+        onClick={onClear}
+        disabled={!hasFilters}
+        className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-[#173B67] disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <RotateCcw size={15} />
+        Clear filters
+      </button>
+    </div>
+  );
+}
+
+function CourseRowsTable({ rows }: { rows: ReportData["courses"]["rows"] }) {
+  const [search, setSearch] = useState("");
+  const [titleFilter, setTitleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [modeFilter, setModeFilter] = useState("all");
+  const modes = useMemo(
+    () => Array.from(new Set(rows.map((row) => row.mode).filter(Boolean))).sort(),
+    [rows]
+  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const t = titleFilter.trim().toLowerCase();
+    return rows.filter(
+      (row) =>
+        (!q || `${row.title} ${row.mode} ${row.enrollments}`.toLowerCase().includes(q)) &&
+        (!t || row.title.toLowerCase().includes(t)) &&
+        (statusFilter === "all" || (statusFilter === "active") === row.isActive) &&
+        (modeFilter === "all" || row.mode === modeFilter)
+    );
+  }, [rows, search, titleFilter, statusFilter, modeFilter]);
+  const hasFilters = Boolean(search.trim() || titleFilter.trim() || statusFilter !== "all" || modeFilter !== "all");
+  const clear = () => {
+    setSearch("");
+    setTitleFilter("");
+    setStatusFilter("all");
+    setModeFilter("all");
+  };
+  if (rows.length === 0) {
+    return <EmptyState message="No course data available for the selected filters." />;
+  }
+  return (
+    <>
+      <TableToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search courses..."
+        shown={filtered.length}
+        total={rows.length}
+        noun="courses"
+        hasFilters={hasFilters}
+        onClear={clear}
+      />
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full min-w-[700px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-[#EEF3FA] text-[#173B67]">
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Course</th>
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Status</th>
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Mode</th>
+              <th className="px-3 py-3 text-right text-xs font-extrabold uppercase tracking-wider">Enrollments</th>
+            </tr>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <th className="px-3 py-2 font-normal">
+                <input value={titleFilter} onChange={(e) => setTitleFilter(e.target.value)} placeholder="Filter course" aria-label="Filter by course" className={FILTER_INPUT} />
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status" className={FILTER_INPUT}>
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <select value={modeFilter} onChange={(e) => setModeFilter(e.target.value)} aria-label="Filter by mode" className={FILTER_INPUT}>
+                  <option value="all">All modes</option>
+                  {modes.map((mode) => (
+                    <option key={mode} value={mode}>{mode}</option>
+                  ))}
+                </select>
+              </th>
+              <th className="px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-10 text-center text-sm text-slate-500">No courses match the current search or filters.</td>
+              </tr>
+            ) : (
+              filtered.map((course) => (
+                <tr key={course.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-[#F7FAFF]">
+                  <td className="px-3 py-4 font-medium text-slate-800">{course.title}</td>
+                  <td className="px-3 py-4"><StatusBadge active={course.isActive} /></td>
+                  <td className="px-3 py-4 text-slate-500">{course.mode}</td>
+                  <td className="px-3 py-4 text-right font-semibold text-slate-800">{course.enrollments}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function TrainerRowsTable({ rows }: { rows: ReportData["trainers"]["rows"] }) {
+  const [search, setSearch] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [specFilter, setSpecFilter] = useState("");
+  const [availFilter, setAvailFilter] = useState("all");
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const n = nameFilter.trim().toLowerCase();
+    const sp = specFilter.trim().toLowerCase();
+    return rows.filter(
+      (row) =>
+        (!q || `${row.name} ${row.email} ${row.specialization || ""}`.toLowerCase().includes(q)) &&
+        (!n || `${row.name} ${row.email}`.toLowerCase().includes(n)) &&
+        (statusFilter === "all" || (statusFilter === "active") === row.isActive) &&
+        (!sp || (row.specialization || "").toLowerCase().includes(sp)) &&
+        (availFilter === "all" || (availFilter === "configured") === row.hasAvailability)
+    );
+  }, [rows, search, nameFilter, statusFilter, specFilter, availFilter]);
+  const hasFilters = Boolean(search.trim() || nameFilter.trim() || statusFilter !== "all" || specFilter.trim() || availFilter !== "all");
+  const clear = () => {
+    setSearch("");
+    setNameFilter("");
+    setStatusFilter("all");
+    setSpecFilter("");
+    setAvailFilter("all");
+  };
+  if (rows.length === 0) {
+    return <EmptyState message="No trainers found." />;
+  }
+  return (
+    <>
+      <TableToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search trainers..."
+        shown={filtered.length}
+        total={rows.length}
+        noun="trainers"
+        hasFilters={hasFilters}
+        onClear={clear}
+      />
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200 bg-[#EEF3FA] text-[#173B67]">
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Trainer</th>
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Status</th>
+              <th className="px-3 py-3 text-xs font-extrabold uppercase tracking-wider">Specialization</th>
+              <th className="px-3 py-3 text-center text-xs font-extrabold uppercase tracking-wider">Assigned Courses</th>
+              <th className="px-3 py-3 text-center text-xs font-extrabold uppercase tracking-wider">Availability</th>
+            </tr>
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <th className="px-3 py-2 font-normal">
+                <input value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} placeholder="Filter trainer" aria-label="Filter by trainer" className={FILTER_INPUT} />
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status" className={FILTER_INPUT}>
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <input value={specFilter} onChange={(e) => setSpecFilter(e.target.value)} placeholder="Filter specialization" aria-label="Filter by specialization" className={FILTER_INPUT} />
+              </th>
+              <th className="px-3 py-2" />
+              <th className="px-3 py-2 font-normal">
+                <select value={availFilter} onChange={(e) => setAvailFilter(e.target.value)} aria-label="Filter by availability" className={FILTER_INPUT}>
+                  <option value="all">All</option>
+                  <option value="configured">Configured</option>
+                  <option value="not">Not configured</option>
+                </select>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-10 text-center text-sm text-slate-500">No trainers match the current search or filters.</td>
+              </tr>
+            ) : (
+              filtered.map((trainer) => (
+                <tr key={trainer.id} className="border-b border-slate-100 transition-colors last:border-0 hover:bg-[#F7FAFF]">
+                  <td className="px-3 py-4">
+                    <p className="font-semibold text-slate-800">{trainer.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{trainer.email}</p>
+                  </td>
+                  <td className="px-3 py-4"><StatusBadge active={trainer.isActive} /></td>
+                  <td className="px-3 py-4 text-slate-500">{trainer.specialization || "—"}</td>
+                  <td className="px-3 py-4 text-center font-semibold text-slate-800">{trainer.assignedCourses}</td>
+                  <td className="px-3 py-4 text-center">
+                    {trainer.hasAvailability ? (
+                      <span className="font-medium text-green-600">Configured ({trainer.availabilitySlots})</span>
+                    ) : (
+                      <span className="text-slate-400">Not configured</span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

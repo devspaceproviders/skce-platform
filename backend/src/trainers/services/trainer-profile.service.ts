@@ -1,4 +1,4 @@
-import { db } from "../../prisma/db";
+﻿import { db } from "../../prisma/db";
 
 export type TrainerProfileUpdateInput = {
   name?: string;
@@ -170,10 +170,11 @@ export async function updateTrainerProfile(
       ? normalizeName(input.name)
       : user.name;
 
-  const phone =
-    input.phone !== undefined
-      ? normalizePhone(input.phone)
-      : user.phone;
+  if (input.phone !== undefined) {
+    throw new Error(
+      "Direct phone updates are disabled. Please use the phone verification flow."
+    );
+  }
 
   const specialization =
     input.specialization !== undefined
@@ -189,7 +190,6 @@ export async function updateTrainerProfile(
       })
       .update({
         name,
-        phone,
       });
 
   const updatedProfile =
@@ -215,7 +215,7 @@ export async function updateTrainerProfile(
 
     phone:
       updatedUser?.phone ??
-      phone,
+      user.phone,
 
     specialization:
       updatedProfile?.specialization ??
@@ -248,3 +248,4 @@ export async function updateTrainerProfile(
         : "Inactive",
   };
 }
+

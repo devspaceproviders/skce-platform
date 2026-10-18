@@ -1,3 +1,25 @@
+# Dependencies
 node_modules/
-dist/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Generated temporary files
+*.tsbuildinfo
+
+# Local uploads and user-generated files
+uploads/
+
+# Operating system files
+.DS_Store
+Thumbs.db

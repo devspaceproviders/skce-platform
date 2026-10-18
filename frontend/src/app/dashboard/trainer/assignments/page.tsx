@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PortalStatCard } from "@/components/dashboard/admin/AdminPageHeader";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
@@ -23,6 +24,11 @@ import {
   Download,
   AlertCircle,
 } from "lucide-react";
+
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -1294,47 +1300,33 @@ export default function TrainerAssignmentsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px]">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         {/* HEADER */}
-        <header className="animate-in fade-in slide-in-from-top-2 duration-500 relative isolate mb-7 overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-7">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-32 h-80 w-80 rounded-full border-[28px] border-white/[0.05]" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-1 top-[-5rem] h-64 w-64 rounded-full border-[16px] border-orange-400/[0.10]" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-40 rounded-r-full bg-gradient-to-r from-orange-500 to-amber-300" />
-          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-medium text-orange-200">
-                <ClipboardList
-                  size={17}
-                />
-                Trainer Portal
-              </div>
-
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Assignments &amp; Quizzes
-              </h1>
-
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
-                Create, manage and grade course-based assignments and quizzes.
-              </p>
-            </div>
-
-            {allowedCreateCourses.length > 0 && (
+        <AdminPageHeader
+          className="mb-7"
+          label="Trainer Portal"
+          icon={ClipboardList}
+          title="Assignments & Quizzes"
+          subtitle="Create, manage and grade course-based assignments and quizzes."
+          chips={[
+            { label: "Assignments", value: loading ? "—" : totalAssignments },
+            { label: "Quizzes", value: loading ? "—" : totalQuizzes },
+            { label: "Submissions", value: loading ? "—" : totalSubmissions },
+          ]}
+          actions={
+            allowedCreateCourses.length > 0 ? (
               <button
                 type="button"
-                onClick={() =>
-                  setShowCreateChoice(
-                    true
-                  )
-                }
-                className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-900/15 transition-all duration-200 hover:-translate-y-0.5 hover:from-orange-600 hover:to-orange-700 hover:shadow-lg"
+                onClick={() => setShowCreateChoice(true)}
+                className={ADMIN_BTN_PRIMARY}
               >
                 <Plus size={17} />
                 Create New
               </button>
-            )}
-          </div>
-        </header>
+            ) : undefined
+          }
+        />
 
         {/* ERROR */}
         {error && (
@@ -1487,12 +1479,26 @@ export default function TrainerAssignmentsPage() {
               />
               Refresh
             </button>
+
+            {(search.trim() !== "" || filterType !== "All") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setFilterType("All");
+                }}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-bold text-orange-700 transition hover:bg-orange-100"
+              >
+                <X size={15} />
+                Clear filters
+              </button>
+            )}
           </div>
         </section>
 
         {/* LIST */}
         {loading ? (
-          <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="inline-flex items-center gap-2 text-sm text-slate-500">
               <Loader2
                 size={18}
@@ -1577,25 +1583,7 @@ function SummaryCard({
   label: string;
   value: number | string;
 }) {
-  return (
-    <div className="group rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-200 hover:shadow-[0_16px_35px_-24px_rgba(23,59,103,0.45)]">
-      <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100 transition-transform duration-300 group-hover:scale-105">
-          {icon}
-        </div>
-
-        <div>
-          <div className="text-2xl font-bold text-[#173B67]">
-            {value}
-          </div>
-
-          <div className="mt-0.5 text-sm text-slate-500">
-            {label}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <PortalStatCard icon={icon} tone="orange" label={label} value={value} />;
 }
 
 function AssessmentCard({
@@ -2432,8 +2420,8 @@ function AssessmentFormPage({
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         <button
           type="button"
           onClick={
@@ -2447,11 +2435,11 @@ function AssessmentFormPage({
           Back to Assignments
         </button>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="relative isolate overflow-hidden bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white sm:p-6">
-            <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-56 w-56 rounded-full border-[18px] border-white/[0.06]" />
+        <section className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="relative isolate overflow-hidden border-b-[3px] border-[#F97316] bg-[linear-gradient(118deg,#071C3A_0%,#0F2F5F_48%,#1B4B82_100%)] p-5 text-white sm:p-6">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-56 w-56 rounded-full border border-white/10 shadow-[0_0_0_22px_rgba(255,255,255,0.03)]" />
             <div className="relative z-10">
-            <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-orange-300">
               Trainer Portal
             </p>
 
@@ -2465,7 +2453,7 @@ function AssessmentFormPage({
                   )}`}
             </h1>
 
-            <p className="mt-1 text-sm leading-6 text-blue-100">
+            <p className="mt-1 text-sm leading-6 text-blue-100/90">
               {type ===
               "ASSIGNMENT"
                 ? "Create an assignment for students enrolled in a selected course."
@@ -2993,8 +2981,8 @@ function SubmissionsPage({
   ).length;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px]">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         <button type="button" onClick={onBack} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[#173B67]">
           <ArrowLeft size={16} /> Back to Assignments
         </button>
@@ -3002,17 +2990,13 @@ function SubmissionsPage({
         {error && <ErrorBanner error={error} />}
         {successMessage && <SuccessBanner message={successMessage} />}
 
-        <div className="relative isolate mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-5 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-6">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full border-[20px] border-white/[0.06]" />
-          <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 h-1 w-32 bg-gradient-to-r from-orange-500 to-amber-300" />
-          <div className="relative z-10">
-          <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">Assignment Submissions</p>
-          <h1 className="mt-1 text-2xl font-bold">{assessment.title}</h1>
-          <p className="mt-1 text-sm text-blue-100">
-            {assessment.courseTitle || "Course unavailable"} · Total Marks: {assessment.totalMarks}
-          </p>
-          </div>
-        </div>
+        <AdminPageHeader
+          className="mb-6"
+          label="Assignment Submissions"
+          icon={ClipboardList}
+          title={assessment.title}
+          subtitle={`${assessment.courseTitle || "Course unavailable"} · Total Marks: ${assessment.totalMarks}`}
+        />
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <ResultCard icon={<Users size={18} />} label="Students" value={grouped.length} />
@@ -3029,7 +3013,7 @@ function SubmissionsPage({
             </div>
 
             {grouped.length === 0 ? (
-              <div className="px-6 py-16 text-center">
+              <div className="px-6 py-10 text-center">
                 <Users size={25} className="mx-auto text-slate-300" />
                 <h3 className="mt-4 text-base font-semibold text-[#173B67]">No submissions</h3>
                 <p className="mt-1 text-sm text-slate-500">No students have submitted this assignment yet.</p>
@@ -3068,7 +3052,7 @@ function SubmissionsPage({
                               </div>
                             </div>
                             <div className="shrink-0 text-right">
-                              <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${submissionStatusClasses(submission.status)}`}>
+                              <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-bold ${submissionStatusClasses(submission.status)}`}>
                                 {submissionStatusLabel(submission.status)}
                               </span>
                               <p className="mt-1 text-xs font-semibold text-slate-700">
@@ -3125,7 +3109,7 @@ function SubmissionGradePanel({
 }) {
   if (!selectedSubmission) {
     return (
-      <section className="flex min-h-[420px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <section className="flex min-h-[200px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
         <div>
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><ClipboardList size={25} /></div>
           <h3 className="mt-4 text-base font-semibold text-[#173B67]">Select an attempt</h3>
@@ -3323,8 +3307,8 @@ function QuizResultsPage({
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#F2F6FC] via-[#F8FAFD] to-[#EEF3FA] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1500px]">
+    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-[1680px]">
         <button
           type="button"
           onClick={onBack}
@@ -3333,19 +3317,12 @@ function QuizResultsPage({
           <ArrowLeft size={17} /> Back to Assignments
         </button>
 
-        <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-[#102B4D] via-[#173B67] to-[#245184] p-6 text-white shadow-[0_18px_45px_-24px_rgba(23,59,103,0.65)] sm:p-7">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-60 w-60 rounded-full border-[18px] border-white/[0.06]" />
-          <div className="relative z-10">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-300">
-            Quiz Results
-          </p>
-          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{assessment.title}</h1>
-          <p className="mt-1 text-sm text-blue-100">
-            {assessment.courseTitle} · Total Marks: {assessment.totalMarks}
-            {assessment.durationMinutes ? ` · ${assessment.durationMinutes} minutes` : ""}
-          </p>
-          </div>
-        </section>
+        <AdminPageHeader
+          label="Quiz Results"
+          icon={HelpCircle}
+          title={assessment.title}
+          subtitle={`${assessment.courseTitle} · Total Marks: ${assessment.totalMarks}${assessment.durationMinutes ? ` · ${assessment.durationMinutes} minutes` : ""}`}
+        />
 
         {error ? (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -3375,7 +3352,7 @@ function QuizResultsPage({
           </div>
 
           {grouped.length === 0 ? (
-            <div className="px-6 py-16 text-center">
+            <div className="px-6 py-10 text-center">
               <Users size={25} className="mx-auto text-slate-300" />
               <h3 className="mt-4 font-semibold text-[#173B67]">No submissions</h3>
               <p className="mt-1 text-sm text-slate-500">
@@ -3576,7 +3553,7 @@ function QuizSubmittedAnswers({
                 <p className="text-sm font-semibold text-slate-800">
                   {index + 1}. {question.question}
                 </p>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-500">
                   {question.marks} marks
                 </span>
               </div>
@@ -3969,7 +3946,7 @@ function EmptyState({
       "All";
 
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500">
         <ClipboardList
           size={29}

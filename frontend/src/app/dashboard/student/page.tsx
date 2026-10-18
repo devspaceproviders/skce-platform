@@ -28,6 +28,10 @@ import {
   ChevronDown,
   Package,
 } from "lucide-react";
+import {
+  AdminPageHeader,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -556,12 +560,48 @@ export default function StudentDashboardPage() {
       .toUpperCase();
   }, [dashboard]);
 
+  const banner = (
+    <AdminPageHeader
+      className="mb-6"
+      label="Student Portal"
+      title={
+        dashboard ? `Welcome back, ${dashboard.student.name} 👋` : "Welcome back 👋"
+      }
+      subtitle="Continue your learning, check what needs your attention, and keep moving toward your course goals."
+      icon={GraduationCap}
+      chips={
+        dashboard
+          ? [
+              { label: "Student ID", value: dashboard.student.studentId },
+              {
+                label: dashboard.student.isActive ? "Active" : "Inactive",
+              },
+            ]
+          : undefined
+      }
+      actions={
+        <button
+          type="button"
+          onClick={() => fetchDashboardData(true)}
+          disabled={refreshing}
+          className={ADMIN_BTN_GHOST}
+        >
+          <RefreshCw
+            size={15}
+            className={refreshing ? "sd-spin" : "sd-refresh-icon"}
+          />
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+      }
+    />
+  );
+
   if (loading) {
     return (
       <>
         <main className="sd-page" aria-busy="true" aria-live="polite">
           <div className="sd-container">
-            <div className="sd-skel sd-skel-hero" />
+            {banner}
             <div className="sd-metrics">
               {[0, 1, 2, 3].map((n) => (
                 <div key={n} className="sd-skel sd-skel-metric" />
@@ -588,6 +628,7 @@ export default function StudentDashboardPage() {
       <>
         <main className="sd-page">
           <div className="sd-container">
+            {banner}
             <div className="sd-error" role="alert">
               <div className="sd-error-icon">
                 <AlertCircle size={24} />
@@ -857,70 +898,7 @@ export default function StudentDashboardPage() {
     <>
       <main className="sd-page">
         <div className="sd-container">
-          {/* HERO */}
-          <section className="sd-hero sd-reveal" style={reveal(0)}>
-            <div className="sd-hero-main">
-              <div className="sd-logo-chip">
-                <div className="sd-logo-crop">
-                  <img
-                    src="/skce-logo.jpg"
-                    alt="SK Computer Education"
-                    onError={(e) => {
-                      const chip = e.currentTarget.closest(
-                        ".sd-logo-chip"
-                      ) as HTMLElement | null;
-                      if (chip) chip.style.display = "none";
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="sd-eyebrow">
-                <GraduationCap size={16} />
-                Student Portal
-              </div>
-              <h1>
-                Welcome back, {dashboard.student.name}{" "}
-                <span className="sd-wave" aria-hidden="true">
-                  👋
-                </span>
-              </h1>
-              <p>
-                Continue your learning, check what needs your attention, and
-                keep moving toward your course goals.
-              </p>
-
-              <div className="sd-hero-pills">
-                <span className="sd-pill">
-                  <span className="sd-pill-label">Student ID</span>
-                  <strong>{dashboard.student.studentId}</strong>
-                </span>
-                <span
-                  className={`sd-pill ${
-                    dashboard.student.isActive ? "sd-pill-on" : ""
-                  }`}
-                >
-                  <span className="sd-dot" />
-                  <strong>
-                    {dashboard.student.isActive ? "Active" : "Inactive"}
-                  </strong>
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => fetchDashboardData(true)}
-              disabled={refreshing}
-              className="sd-btn sd-btn-ghost-light sd-refresh"
-            >
-              <RefreshCw
-                size={15}
-                className={refreshing ? "sd-spin" : "sd-refresh-icon"}
-              />
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </section>
+          {banner}
 
           {/* METRICS + DETAIL (hover to preview, click to pin) */}
           <div
@@ -1360,7 +1338,7 @@ export default function StudentDashboardPage() {
               <SectionHeader
                 icon={GraduationCap}
                 title="Account Snapshot"
-                subtitle="Your current SKCE account"
+                subtitle="Your current SK Computer Education account"
               />
 
               <div className="sd-account-user">
@@ -1406,7 +1384,7 @@ export default function StudentDashboardPage() {
             <SectionHeader
               icon={CheckCircle2}
               title="Recent Activity"
-              subtitle="Your latest activity in SKCE"
+              subtitle="Your latest activity in SK Computer Education"
             />
 
             {dashboard.recentActivity.length === 0 ? (
@@ -1635,16 +1613,16 @@ function EmptyCard({ title, message }: { title: string; message: string }) {
 const dashboardCss = `
 .sd-page{
   --navy:#0F2F5F; --navy-2:#123B6D; --blue:#1459B8; --blue-2:#2563EB;
-  --orange:#FF6B00; --orange-2:#E85F00; --orange-tint:#FFF3EA;
-  --bg:#F7F9FC; --card:#FFFFFF; --line:#E2E8F1; --line-2:#EDF1F7;
+  --orange:#F97316; --orange-2:#F97316; --orange-tint:#FFF3EA;
+  --bg:#F4F7FB; --card:#FFFFFF; --line:#E2E8F1; --line-2:#EDF1F7;
   --muted:#64748B; --soft:#8A97AB;
   --green:#15803D; --green-tint:#E8F6EE; --blue-tint:#EAF1FD;
   --ease:cubic-bezier(.2,.7,.2,1);
   flex:1; min-width:0; width:100%; box-sizing:border-box;
-  padding:24px 28px 40px; background:var(--bg); color:var(--navy);
+  min-height:100vh; padding:28px 32px; background:var(--bg); color:var(--navy);
 }
 .sd-page *{box-sizing:border-box}
-.sd-container{width:100%;max-width:1360px;margin:0 auto}
+.sd-container{width:100%;max-width:1680px;margin:0 auto}
 .sd-min0{min-width:0}
 .sd-grow{flex:1}
 .sd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -1674,9 +1652,9 @@ const dashboardCss = `
 .sd-btn:focus-visible,.sd-continue:focus-visible,.sd-course:focus-visible,.sd-quick:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3)}
 .sd-btn:active,.sd-quick:active,.sd-course:active,.sd-continue:active{transform:scale(.98)}
 .sd-btn:disabled{opacity:.65;cursor:not-allowed}
-.sd-btn-primary{background:linear-gradient(180deg,#FF8A12 0%,#FF6B00 55%,#F25A00 100%);color:#fff}
+.sd-btn-primary{background:linear-gradient(180deg,#FB923C 0%,#F97316 55%,#EA580C 100%);color:#fff}
 .sd-btn-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);transform:translateX(-120%) skewX(-18deg);pointer-events:none}
-.sd-btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(255,107,0,.35)}
+.sd-btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(249,115,22,.35)}
 .sd-btn-primary:hover::after{animation:sd-sheen 700ms ease}
 .sd-btn-secondary{background:#fff;color:var(--blue);border-color:var(--line)}
 .sd-btn-secondary:hover{background:var(--blue-tint);border-color:#BFD3F2;transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,89,184,.12)}
@@ -1684,35 +1662,13 @@ const dashboardCss = `
 .sd-btn-secondary:hover svg{transform:translateX(3px)}
 .sd-btn-ghost-light{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
 .sd-btn-ghost-light:hover:not(:disabled){background:rgba(255,255,255,.22);transform:translateY(-2px)}
-.sd-refresh-icon{transition:transform .5s var(--ease)}
-.sd-refresh:hover .sd-refresh-icon{transform:rotate(180deg)}
 .sd-btn-block{width:100%;margin-top:14px}
-
-/* ---------- Hero ---------- */
-.sd-hero{
-  position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;
-  margin-bottom:20px;padding:26px 30px;border-radius:16px;border-bottom:3px solid var(--orange);color:#fff;
-  background:radial-gradient(circle at 96% 0%,rgba(75,132,204,.38),transparent 30%),radial-gradient(circle at 0% 110%,rgba(255,107,0,.15),transparent 36%),linear-gradient(118deg,#071C3A 0%,#0F2F5F 45%,#1B4B82 100%);
-  box-shadow:0 12px 30px rgba(15,47,95,.18);
-}
-.sd-hero::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 70%);mask-image:linear-gradient(90deg,transparent,#000 70%);pointer-events:none}
-.sd-hero::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:3px;background:linear-gradient(90deg,var(--orange) 0%,var(--orange) 16%,transparent 16%)}
-.sd-hero-main{position:relative;z-index:1;min-width:0}
-.sd-logo-chip{display:inline-block;margin-bottom:14px;padding:6px;border-radius:12px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.16);transition:transform .25s var(--ease)}
-.sd-logo-chip:hover{transform:scale(1.04)}
-.sd-logo-crop{width:132px;height:78px;overflow:hidden;border-radius:8px}
-.sd-logo-crop img{display:block;width:151px;max-width:none;margin:-29px 0 0 -10px}
-.sd-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:600;color:#C9DBF5}
-.sd-hero h1{margin:0;font-size:clamp(26px,2.6vw,34px);line-height:1.2;font-weight:700;letter-spacing:-.02em;color:#fff}
 .sd-wave{display:inline-block;transform-origin:70% 70%;animation:sd-wave 1.8s ease-in-out .6s 1}
-.sd-hero p{max-width:620px;margin:8px 0 0;font-size:15px;line-height:1.6;color:#D3E1F5}
-.sd-hero-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 .sd-pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:13px;color:#fff;transition:background .2s ease}
 .sd-pill:hover{background:rgba(255,255,255,.2)}
 .sd-pill-label{color:#B7C9E4}
 .sd-dot{width:8px;height:8px;border-radius:50%;background:#94A3B8}
 .sd-pill-on .sd-dot{background:#4ADE80;animation:sd-pulse 2s infinite}
-.sd-refresh{position:relative;z-index:1;flex:0 0 auto;height:40px}
 
 /* ---------- Icons / avatar ---------- */
 .sd-icon{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;border-radius:10px;transition:transform .3s var(--ease)}
@@ -1733,7 +1689,7 @@ const dashboardCss = `
 .sd-metric-detail{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:5px;font-size:12px;color:var(--soft)}
 
 /* ---------- Grids & panels ---------- */
-.sd-grid{display:grid;gap:20px;margin-bottom:20px}
+.sd-grid{display:grid;gap:20px;margin-bottom:20px;align-items:start}
 .sd-grid-a{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr)}
 .sd-grid-b{grid-template-columns:minmax(0,1.45fr) minmax(320px,.85fr)}
 .sd-panel{min-width:0;padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 1px 2px rgba(15,47,95,.04),0 4px 14px rgba(15,47,95,.03);transition:box-shadow .25s ease,border-color .25s ease}
@@ -1753,8 +1709,8 @@ const dashboardCss = `
 .sd-continue-meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .sd-continue-cta{display:flex;align-items:center;gap:10px}
 .sd-continue-pct{font-size:15px;font-weight:700;color:var(--blue)}
-.sd-continue-go{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(180deg,#FF8A12,#F25A00);color:#fff;transition:transform .25s var(--ease),box-shadow .25s ease}
-.sd-continue:hover .sd-continue-go{transform:translateX(4px) scale(1.08);box-shadow:0 6px 14px rgba(255,107,0,.4)}
+.sd-continue-go{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(180deg,#FB923C,#EA580C);color:#fff;transition:transform .25s var(--ease),box-shadow .25s ease}
+.sd-continue:hover .sd-continue-go{transform:translateX(4px) scale(1.08);box-shadow:0 6px 14px rgba(249,115,22,.4)}
 
 .sd-bar{height:8px;overflow:hidden;margin-top:12px;border-radius:999px;background:#E6ECF5}
 .sd-bar-slim{height:6px;margin-top:8px}
@@ -1892,15 +1848,12 @@ button.sd-drow:hover .sd-thumb img{transform:scale(1.12)}
   .sd-grid-a,.sd-grid-b{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:820px){
-  .sd-page{padding:18px 14px 28px}
-  .sd-hero{flex-direction:column;padding:22px 18px}
-  .sd-refresh{width:100%}
+  .sd-page{padding:20px 16px}
   .sd-activity-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:620px){
   .sd-metrics,.sd-course-grid,.sd-quick-grid{grid-template-columns:minmax(0,1fr)}
   .sd-panel{padding:18px}
-  .sd-hero h1{font-size:25px}
   .sd-continue{grid-template-columns:auto minmax(0,1fr)}
   .sd-continue-cta{grid-column:1 / -1;justify-content:space-between}
   .sd-btn{height:44px}

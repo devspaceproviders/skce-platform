@@ -35,7 +35,7 @@ const HERO_CSS = `
 .sk-float { animation: skFloat 5s ease-in-out infinite; }
 .sk-drift { animation: skDrift 14s ease-in-out infinite; }
 .sk-underline {
-  background: linear-gradient(90deg, #ff6b00, #ff9a3c) no-repeat 0 94% / 0% 6px;
+  background: linear-gradient(90deg, #F97316, #FFB15C) no-repeat 0 96% / 0% 6px;
   animation: skUnderline 0.9s ease-out 0.9s forwards;
 }
 .sk-underline-late { animation-delay: 1.3s; }
@@ -50,8 +50,27 @@ const HERO_CSS = `
   transition: left 0.7s ease;
 }
 .sk-shine:hover::before { left: 130%; }
+
+@keyframes skGlow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+@keyframes skOrbit {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-14px, 12px); }
+}
+.sk-glow { animation: skGlow 6s ease-in-out infinite; }
+.sk-orbit { animation: skOrbit 11s ease-in-out infinite; }
+.sk-text-orange {
+  background: linear-gradient(90deg, #FF9A3C, #F97316 60%, #FFB15C);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sk-text-sky {
+  background: linear-gradient(90deg, #BFDBFE, #7DB7FF 60%, #FFFFFF);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 @media (prefers-reduced-motion: reduce) {
-  .sk-rise, .sk-slide-in, .sk-float, .sk-drift { animation: none; }
+  .sk-rise, .sk-slide-in, .sk-float, .sk-drift, .sk-glow, .sk-orbit { animation: none; }
   .sk-underline { animation: none; background-size: 100% 6px; }
   .sk-shine::before { display: none; }
 }
@@ -59,48 +78,56 @@ const HERO_CSS = `
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/40 to-orange-50/50">
+    <section className="relative isolate overflow-hidden bg-[linear-gradient(118deg,#06172F_0%,#0B2A55_46%,#1459B8_100%)] text-white">
       <style dangerouslySetInnerHTML={{ __html: HERO_CSS }} />
 
-      {/* Slowly drifting background glows */}
-      <div className="sk-drift pointer-events-none absolute -left-32 top-20 h-72 w-72 rounded-full bg-blue-100/50 blur-3xl" />
+      {/* Decorative layers: dot grid, rings and glows */}
       <div
-        className="sk-drift pointer-events-none absolute right-[-120px] top-[-100px] h-96 w-96 rounded-full bg-orange-100/60 blur-3xl"
-        style={{ animationDelay: "-6s" }}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 opacity-60 [background-image:radial-gradient(rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:26px_26px] [mask-image:linear-gradient(90deg,#000,transparent_85%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="sk-orbit pointer-events-none absolute -right-24 -top-32 -z-10 h-[520px] w-[520px] rounded-full border border-white/10 shadow-[0_0_0_46px_rgba(255,255,255,0.03),0_0_0_96px_rgba(255,255,255,0.02)]"
+      />
+      <div
+        aria-hidden="true"
+        className="sk-glow pointer-events-none absolute -bottom-32 left-[28%] -z-10 h-80 w-80 rounded-full bg-orange-500/25 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="sk-drift pointer-events-none absolute -left-32 top-10 -z-10 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-[1500px] px-6 lg:px-10">
-        <div className="grid items-center gap-2 lg:grid-cols-[52%_48%]">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="grid items-center gap-8 pb-24 pt-10 lg:grid-cols-[1.08fr_0.92fr] lg:gap-6 lg:pb-32 lg:pt-12">
           {/* ================= LEFT CONTENT ================= */}
-          <div className="relative z-10 py-8 sm:py-12 lg:py-10">
-            {/* Brand */}
+          <div className="relative z-10">
             <div
-              className="sk-rise flex items-center gap-3 text-xs font-bold uppercase tracking-[0.22em] text-[#173B67]"
+              className="sk-rise inline-flex items-center gap-2.5 rounded-full border border-orange-300/30 bg-orange-500/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-orange-200 backdrop-blur"
               style={{ animationDelay: "0ms" }}
             >
-              <span>SK Computer Education</span>
-              <span className="h-px w-12 bg-blue-300" />
+              <span className="h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_10px_2px_rgba(251,146,60,0.8)]" />
+              SK Computer Education
             </div>
 
-            {/* Heading */}
             <h1
-              className="sk-rise mt-4 max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-[#173B67] sm:text-5xl lg:text-[3.9rem]"
+              className="sk-rise mt-5 max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.7rem]"
               style={{ animationDelay: "90ms" }}
             >
               Build{" "}
-              <span className="sk-underline text-blue-600">
+              <span className="sk-underline text-[#FF9A3C]">
                 Practical Skills.
               </span>
               <br />
               Shape Your{" "}
-              <span className="sk-underline sk-underline-late text-blue-600">
+              <span className="sk-underline sk-underline-late text-[#9CC7FF]">
                 Career.
               </span>
             </h1>
 
-            {/* Main description */}
             <p
-              className="sk-rise mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg"
+              className="sk-rise mt-5 max-w-2xl text-base leading-7 text-blue-50/90 sm:text-lg"
               style={{ animationDelay: "180ms" }}
             >
               SK Computer Education offers practical training in Computer
@@ -109,7 +136,7 @@ export default function Hero() {
             </p>
 
             <p
-              className="sk-rise mt-2.5 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base"
+              className="sk-rise mt-2.5 max-w-2xl text-sm leading-6 text-blue-100/70 sm:text-base"
               style={{ animationDelay: "250ms" }}
             >
               Learn with structured courses, experienced trainers and
@@ -117,14 +144,13 @@ export default function Hero() {
               work and career growth.
             </p>
 
-            {/* Buttons */}
             <div
               className="sk-rise mt-7 flex flex-col gap-3 sm:flex-row"
               style={{ animationDelay: "330ms" }}
             >
               <Link
                 href="/courses"
-                className="sk-shine group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-semibold text-white shadow-md shadow-orange-500/25 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98]"
+                className="sk-shine group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F97316] to-[#FB8A2E] px-6 text-sm font-bold text-white shadow-lg shadow-orange-600/35 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-orange-500/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B2A55] active:translate-y-0 active:scale-[0.98]"
               >
                 <BookOpen size={18} />
                 Explore Courses
@@ -136,7 +162,7 @@ export default function Hero() {
 
               <Link
                 href="/register"
-                className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-[#173B67] bg-white px-6 text-sm font-semibold text-[#173B67] transition duration-200 hover:-translate-y-0.5 hover:bg-[#173B67] hover:text-white hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98]"
+                className="group inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur transition duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-[#0F2F5F] hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B2A55] active:translate-y-0 active:scale-[0.98]"
               >
                 <GraduationCap
                   size={18}
@@ -146,88 +172,32 @@ export default function Hero() {
               </Link>
             </div>
 
-            {/* Features */}
             <div
-              className="sk-rise mt-8 grid grid-cols-2 gap-y-4 border-t border-slate-200 pt-6 sm:grid-cols-4 sm:gap-y-0"
+              className="sk-rise mt-8 grid grid-cols-2 gap-x-2 gap-y-4 border-t border-white/15 pt-6 sm:grid-cols-4"
               style={{ animationDelay: "420ms" }}
             >
-              <HeroFeature
-                icon={<GraduationCap size={21} />}
-                title="Wide Range"
-                subtitle="of Courses"
-              />
-
-              <HeroFeature
-                icon={<Users size={21} />}
-                title="Expert"
-                subtitle="Trainers"
-              />
-
-              <HeroFeature
-                icon={<BookOpen size={21} />}
-                title="Hands-on"
-                subtitle="Practical Training"
-              />
-
-              <HeroFeature
-                icon={<BriefcaseBusiness size={21} />}
-                title="Job-Oriented"
-                subtitle="Programs"
-              />
+              <HeroFeature icon={<GraduationCap size={20} />} title="Wide Range" subtitle="of Courses" />
+              <HeroFeature icon={<Users size={20} />} title="Expert" subtitle="Trainers" />
+              <HeroFeature icon={<BookOpen size={20} />} title="Hands-on" subtitle="Practical Training" />
+              <HeroFeature icon={<BriefcaseBusiness size={20} />} title="Job-Oriented" subtitle="Programs" />
             </div>
           </div>
 
           {/* ================= RIGHT VISUAL ================= */}
-          <div className="sk-slide-in relative flex min-h-[340px] items-center justify-center sm:min-h-[420px] lg:min-h-[560px]">
-            <div className="absolute right-0 top-1/2 h-[460px] w-[460px] -translate-y-1/2 rounded-full bg-blue-100/40 blur-3xl" />
-
-            {/* People image */}
-            <div className="relative z-10 w-full max-w-[700px] lg:-ml-8 lg:scale-[1.04]">
-              <Image
-                src="/images/skce-hero-banner.png"
-                alt="Students learning practical computer skills at SK Computer Education"
-                width={1000}
-                height={800}
-                priority
-                className="h-auto w-full object-contain"
-              />
-            </div>
-
-            {/* Practical learning card */}
-            <div
-              className="sk-float absolute left-0 top-[14%] z-20 rounded-2xl border border-white/80 bg-white/95 px-3.5 py-3 shadow-xl shadow-blue-900/10 backdrop-blur-sm sm:left-2 sm:top-[18%] sm:px-4"
-              style={{ animationDelay: "0.3s" }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                  <BookOpen size={20} />
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">Learning</p>
-                  <p className="text-sm font-semibold text-[#173B67]">
-                    Practical Skills
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Career card */}
-            <div
-              className="sk-float absolute bottom-[10%] right-1 z-20 rounded-2xl border border-white/80 bg-white/95 px-3.5 py-3 shadow-xl shadow-blue-900/10 backdrop-blur-sm sm:bottom-[13%] sm:px-4"
-              style={{ animationDelay: "-2.5s" }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <BriefcaseBusiness size={20} />
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">Career Focus</p>
-                  <p className="text-sm font-semibold text-[#173B67]">
-                    Job-Ready Learning
-                  </p>
-                </div>
+          <div className="sk-slide-in relative flex items-center justify-center lg:justify-end">
+            <div className="relative w-full max-w-[600px]">
+              {/* brand accent shapes behind the photo */}
+              <div aria-hidden="true" className="absolute -bottom-4 -right-4 h-3/4 w-3/4 rounded-[2rem] bg-gradient-to-br from-[#F97316] to-[#FFB15C] opacity-90" />
+              <div aria-hidden="true" className="absolute -left-4 -top-4 h-1/2 w-1/2 rounded-[2rem] border-2 border-white/20" />
+              <div className="sk-float relative overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)] ring-1 ring-white/40">
+                <Image
+                  src="/images/skce-hero-banner.png"
+                  alt="Students learning practical computer skills at SK Computer Education"
+                  width={1000}
+                  height={800}
+                  priority
+                  className="h-auto w-full object-contain"
+                />
               </div>
             </div>
           </div>
@@ -247,17 +217,13 @@ function HeroFeature({
   subtitle: string;
 }) {
   return (
-    <div className="group flex items-center gap-3 border-slate-200 sm:border-r sm:px-5 first:pl-0 last:border-r-0">
-      <div className="shrink-0 text-[#173B67] transition duration-300 group-hover:-translate-y-0.5 group-hover:scale-110 group-hover:text-orange-500">
+    <div className="group flex items-center gap-2.5 sm:px-3 sm:first:pl-0 sm:[&:not(:last-child)]:border-r sm:[&:not(:last-child)]:border-white/15">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-orange-300 ring-1 ring-white/15 transition duration-300 group-hover:bg-orange-500 group-hover:text-white group-hover:ring-orange-400">
         {icon}
       </div>
-
-      <div>
-        <p className="text-sm font-semibold leading-tight text-[#173B67]">
-          {title}
-        </p>
-
-        <p className="text-xs leading-tight text-slate-500">{subtitle}</p>
+      <div className="min-w-0">
+        <p className="whitespace-nowrap text-[13px] font-bold leading-tight text-white">{title}</p>
+        <p className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-blue-100/75">{subtitle}</p>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import { PortalStatCard } from "@/components/dashboard/admin/AdminPageHeader";
 import {
   AlertTriangle,
   Ban,
@@ -39,6 +40,12 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+
+import {
+  AdminPageHeader,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_BTN_GHOST,
+} from "@/components/dashboard/admin/AdminPageHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -130,11 +137,11 @@ interface MeetingFormState {
 type CalendarView = "month" | "week" | "day" | "agenda";
 
 /* ------------------------------------------------------------------
- * Shared class strings (SKCE navy #0F2F5F, blue #1459B8, orange #FF6B00)
+ * Shared class strings (SKCE navy #0F2F5F, blue #1459B8, orange #F97316)
  * ------------------------------------------------------------------ */
 
 const FOCUS =
-  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B00]/40";
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316]/40";
 
 const INPUT =
   "w-full rounded-lg border border-[#D5DEEB] bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition duration-200 placeholder:text-slate-400 hover:border-[#BFD3F2] focus:border-[#2563EB] focus:ring-4 focus:ring-[#2563EB]/15";
@@ -420,7 +427,7 @@ function getChipClasses(meeting: CalendarMeeting, live: boolean) {
 function getAccentClass(meeting: CalendarMeeting, live: boolean) {
   if (meeting.status === "CANCELLED") return "bg-red-400";
   if (meeting.status === "COMPLETED") return "bg-slate-400";
-  if (live) return "bg-[#FF6B00]";
+  if (live) return "bg-[#F97316]";
   return "bg-[#1459B8]";
 }
 
@@ -531,40 +538,16 @@ function StatCard({
   tone: "blue" | "green" | "orange" | "navy";
   loading: boolean;
 }) {
-  const tones = {
-    blue: { box: "bg-[#EAF1FD] text-[#1459B8]", bar: "from-[#1459B8] to-[#2563EB]" },
-    green: { box: "bg-emerald-50 text-emerald-600", bar: "from-emerald-500 to-emerald-400" },
-    orange: { box: "bg-[#FFF3EA] text-[#FF6B00]", bar: "from-[#FF6B00] to-[#FFA24D]" },
-    navy: { box: "bg-[#E6ECF5] text-[#0F2F5F]", bar: "from-[#0F2F5F] to-[#1459B8]" },
-  }[tone];
-
   return (
-    <div
-      className="cal-fade-up cal-lift group relative overflow-hidden rounded-2xl border border-[#E2E8F1] bg-white p-5 shadow-[0_1px_2px_rgba(15,47,95,0.04)]"
-      style={{ animationDelay: `${index * 60}ms` }}
-    >
-      <div
-        className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${tones.bar} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-      />
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          {loading ? (
-            <div className="cal-shimmer mt-3 h-8 w-14 rounded" />
-          ) : (
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0F2F5F]">
-              <AnimatedNumber value={value} />
-            </p>
-          )}
-          <p className="mt-1 text-xs text-slate-400">{helper}</p>
-        </div>
-        <div
-          className={`cal-stat-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tones.box}`}
-        >
-          <Icon size={21} />
-        </div>
-      </div>
-    </div>
+    <PortalStatCard
+      index={index}
+      icon={<Icon size={21} />}
+      tone={tone}
+      label={label}
+      value={value}
+      helper={helper}
+      loading={loading}
+    />
   );
 }
 
@@ -698,7 +681,7 @@ function InfoCard({
   return (
     <div className="cal-lift rounded-xl border border-[#E2E8F1] bg-white p-4 hover:border-[#BFD3F2]">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        <span className="text-[#FF6B00]/80">{icon}</span>
+        <span className="text-[#F97316]/80">{icon}</span>
         {label}
       </div>
       <div className="mt-2 text-sm font-semibold text-[#0F2F5F]">{children}</div>
@@ -1668,7 +1651,7 @@ export default function TrainerCalendarPage() {
     return hourRows.map((hour) => (
       <div
         key={hour}
-        className="flex h-[72px] items-start justify-end border-b border-[#E7EDF6] px-2 pt-1 text-[10px] font-medium text-slate-400"
+        className="flex h-[72px] items-start justify-end border-b border-[#E7EDF6] px-2 pt-1 text-[11px] font-medium text-slate-400"
       >
         {new Intl.DateTimeFormat("en-IN", {
           hour: "numeric",
@@ -1705,7 +1688,7 @@ export default function TrainerCalendarPage() {
               className={`cal-event cal-row-in absolute overflow-hidden rounded-lg border py-1.5 pl-3 pr-2 text-left shadow-sm ${getChipClasses(
                 meeting,
                 live
-              )} ${wide ? "text-xs" : "text-[10px]"} font-medium`}
+              )} ${wide ? "text-xs" : "text-[11px]"} font-medium`}
               style={{
                 ...getEventBoxStyle(meeting, col, cols),
                 animationDelay: `${Math.min(index, 8) * 40}ms`,
@@ -1722,7 +1705,7 @@ export default function TrainerCalendarPage() {
               />
               <div className="flex items-center gap-1 truncate font-semibold">
                 {live && (
-                  <span className="cal-live-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF6B00]" />
+                  <span className="cal-live-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#F97316]" />
                 )}
                 <span className="truncate">
                   {wide
@@ -1754,7 +1737,7 @@ export default function TrainerCalendarPage() {
    * ------------------------------------------------------------------ */
 
   return (
-    <main className="cal-page min-h-screen bg-[#F7F9FC]">
+    <main className="cal-page min-h-screen">
       {/* Toast */}
       {toast && (
         <div
@@ -1792,32 +1775,23 @@ export default function TrainerCalendarPage() {
       )}
 
       {/* ============ HERO ============ */}
-      <header className="cal-hero relative overflow-hidden text-white">
-        <div className="relative mx-auto max-w-[1600px] px-4 pb-4 pt-4 sm:px-6 lg:px-8">
-          <div className="cal-fade-up flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 shadow-[0_8px_20px_rgba(0,0,0,0.2)]">
-                <CalendarDays size={24} />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#FFB070]">
-                  Trainer workspace
-                </p>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">
-                  Calendar
-                </h1>
-                <p className="mt-0.5 text-sm text-blue-100/80">
-                  View your meetings and batch activities.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
+      <div className="mx-auto max-w-[1680px] px-4 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+        <AdminPageHeader
+          label="Trainer Portal"
+          icon={CalendarDays}
+          title="Calendar"
+          subtitle="View your meetings and batch activities."
+          chips={[
+            { label: "Meetings", value: meetings.length },
+            { label: "Today", value: todayMeetings.length },
+            { label: "Upcoming", value: upcomingMeetings.length },
+          ]}
+          actions={
+            <>
               <button
                 type="button"
                 onClick={() => void openCreateMeetingModal()}
-                className={`cal-btn-primary inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white ${FOCUS}`}
+                className={ADMIN_BTN_PRIMARY}
               >
                 <Plus size={17} />
                 Create Meeting
@@ -1827,7 +1801,7 @@ export default function TrainerCalendarPage() {
                 type="button"
                 onClick={() => void handleRefresh()}
                 disabled={refreshing}
-                className={`cal-btn-glass inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
+                className={ADMIN_BTN_GHOST}
               >
                 <RefreshCw
                   size={17}
@@ -1835,13 +1809,12 @@ export default function TrainerCalendarPage() {
                 />
                 {refreshing ? "Refreshing..." : "Refresh"}
               </button>
-            </div>
-          </div>
+            </>
+          }
+        />
+      </div>
 
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
         {!showCreateModal && !selectedMeeting && error && (
           <div
             role="alert"
@@ -1969,7 +1942,7 @@ export default function TrainerCalendarPage() {
                 >
                   <span className={`h-2 w-2 rounded-full ${hidden ? "bg-slate-300" : dot}`} />
                   {label}
-                  <span className="rounded-full bg-white px-1.5 text-[10px] text-slate-500">
+                  <span className="rounded-full bg-white px-1.5 text-[11px] text-slate-500">
                     {count}
                   </span>
                 </button>
@@ -2045,7 +2018,7 @@ export default function TrainerCalendarPage() {
                             aria-label={`Open ${formatDate(date.toISOString())}`}
                             className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition duration-200 hover:scale-110 ${FOCUS} ${
                               isToday
-                                ? "bg-[#FF6B00] text-white shadow-[0_4px_10px_rgba(255,107,0,0.35)]"
+                                ? "bg-[#F97316] text-white shadow-[0_4px_10px_rgba(249,115,22,0.35)]"
                                 : isCurrentMonth
                                 ? "text-[#0F2F5F] hover:bg-[#EAF1FD]"
                                 : "text-slate-400 hover:bg-slate-100"
@@ -2056,7 +2029,7 @@ export default function TrainerCalendarPage() {
 
                           <div className="flex items-center gap-1">
                             {dayMeetings.length > 0 && (
-                              <span className="rounded-full bg-[#EAF1FD] px-1.5 text-[10px] font-bold text-[#1459B8]">
+                              <span className="rounded-full bg-[#EAF1FD] px-1.5 text-[11px] font-bold text-[#1459B8]">
                                 {dayMeetings.length}
                               </span>
                             )}
@@ -2066,7 +2039,7 @@ export default function TrainerCalendarPage() {
                                 onClick={() => void openCreateMeetingModal(date)}
                                 aria-label="Schedule a meeting on this day"
                                 title="Schedule a meeting"
-                                className={`cal-add flex h-6 w-6 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-sm ${FOCUS}`}
+                                className={`cal-add flex h-6 w-6 items-center justify-center rounded-full bg-[#F97316] text-white shadow-sm ${FOCUS}`}
                               >
                                 <Plus size={13} />
                               </button>
@@ -2097,7 +2070,7 @@ export default function TrainerCalendarPage() {
                                   )}`}
                                 />
                                 {live && (
-                                  <span className="cal-live-dot mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B00]" />
+                                  <span className="cal-live-dot mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#F97316]" />
                                 )}
                                 <span className="font-semibold">
                                   {formatTime(meeting.startAt)}
@@ -2111,7 +2084,7 @@ export default function TrainerCalendarPage() {
                             <button
                               type="button"
                               onClick={() => openDay(date)}
-                              className="px-2 text-[11px] font-bold text-[#1459B8] transition hover:text-[#FF6B00] hover:underline"
+                              className="px-2 text-[11px] font-bold text-[#1459B8] transition hover:text-[#F97316] hover:underline"
                             >
                               +{dayMeetings.length - 3} more
                             </button>
@@ -2175,7 +2148,7 @@ export default function TrainerCalendarPage() {
                             <div
                               className={`mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                                 isToday
-                                  ? "bg-[#FF6B00] text-white shadow-[0_4px_10px_rgba(255,107,0,0.35)]"
+                                  ? "bg-[#F97316] text-white shadow-[0_4px_10px_rgba(249,115,22,0.35)]"
                                   : "text-[#0F2F5F]"
                               }`}
                             >
@@ -2250,7 +2223,7 @@ export default function TrainerCalendarPage() {
 
                 <div className="max-h-[720px] overflow-y-auto">
                   {agendaDates.length === 0 ? (
-                    <div className="px-6 py-16 text-center">
+                    <div className="px-6 py-10 text-center">
                       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FD] text-[#1459B8]">
                         <CalendarDays size={26} />
                       </div>
@@ -2291,7 +2264,7 @@ export default function TrainerCalendarPage() {
                             </p>
 
                             {isToday && (
-                              <span className="rounded-full bg-[#FF6B00] px-2.5 py-1 text-[11px] font-bold text-white">
+                              <span className="rounded-full bg-[#F97316] px-2.5 py-1 text-[11px] font-bold text-white">
                                 Today
                               </span>
                             )}
@@ -2329,7 +2302,7 @@ export default function TrainerCalendarPage() {
                                     <div className="min-w-0 flex-1">
                                       <p className="flex items-center gap-2 truncate text-sm font-semibold text-[#0F2F5F]">
                                         {live && (
-                                          <span className="cal-live-dot inline-block h-2 w-2 shrink-0 rounded-full bg-[#FF6B00]" />
+                                          <span className="cal-live-dot inline-block h-2 w-2 shrink-0 rounded-full bg-[#F97316]" />
                                         )}
                                         <span className="truncate">{meeting.title}</span>
                                       </p>
@@ -2398,7 +2371,7 @@ export default function TrainerCalendarPage() {
             </div>
           ) : upcomingMeetings.length === 0 ? (
             <div className="px-5 py-12 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#FF6B00]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#FFF3EA] text-[#F97316]">
                 <CalendarCheck size={22} />
               </div>
               <p className="mt-3 text-sm font-semibold text-[#0F2F5F]">
@@ -2451,7 +2424,7 @@ export default function TrainerCalendarPage() {
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
                           live
-                            ? "bg-[#FF6B00] text-white"
+                            ? "bg-[#F97316] text-white"
                             : "bg-[#EAF1FD] text-[#1459B8]"
                         }`}
                       >
@@ -2559,9 +2532,9 @@ export default function TrainerCalendarPage() {
               >
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6">
                   {optionsLoading ? (
-                    <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-[#E2E8F1] bg-[#F8FAFD]">
+                    <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[#E2E8F1] bg-[#F8FAFD]">
                       <div className="flex flex-col items-center gap-3 text-center">
-                        <Loader2 size={24} className="animate-spin text-[#FF6B00]" />
+                        <Loader2 size={24} className="animate-spin text-[#F97316]" />
                         <p className="text-sm font-medium text-slate-600">
                           Loading meeting options...
                         </p>
@@ -2996,7 +2969,7 @@ export default function TrainerCalendarPage() {
                         {selectedMeeting.status}
                       </span>
                       {live && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FF6B00] px-2.5 py-1 text-[11px] font-bold">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F97316] px-2.5 py-1 text-[11px] font-bold">
                           <span className="cal-live-dot-white inline-block h-1.5 w-1.5 rounded-full bg-white" />
                           Live now
                         </span>
@@ -3082,7 +3055,7 @@ export default function TrainerCalendarPage() {
 
                     <div className="rounded-xl border border-[#E2E8F1] bg-[#F8FAFD] p-4">
                       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        <UserCircle size={14} className="text-[#FF6B00]/80" />
+                        <UserCircle size={14} className="text-[#F97316]/80" />
                         Scheduled By
                       </div>
                       <p className="mt-2 text-sm font-semibold text-[#0F2F5F]">
@@ -3128,7 +3101,7 @@ export default function TrainerCalendarPage() {
                       {selectedMeeting.status === "SCHEDULED" ? (
                         <div className="mt-4 space-y-3">
                           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-800">
-                            Ask the student to open UltraViewer and share the current ID and password. Do not save the password in SKCE. It is used only for this remote connection.
+                            Ask the student to open UltraViewer and share the current ID and password. Do not save the password in SK Computer Education. It is used only for this remote connection.
                           </div>
 
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -3221,7 +3194,7 @@ export default function TrainerCalendarPage() {
 
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <p className="text-[11px] leading-5 text-slate-500">
-                              The web browser cannot directly control a Windows desktop application. SKCE prepares the official UltraViewer connection command; UltraViewer performs the actual remote-control session.
+                              The web browser cannot directly control a Windows desktop application. SK Computer Education prepares the official UltraViewer connection command; UltraViewer performs the actual remote-control session.
                             </p>
                             <button
                               type="button"
@@ -3451,9 +3424,9 @@ export default function TrainerCalendarPage() {
           to { transform: translateX(260%) skewX(-18deg); }
         }
         @keyframes calPulse {
-          0% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.6); }
-          70% { box-shadow: 0 0 0 7px rgba(255, 107, 0, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6); }
+          70% { box-shadow: 0 0 0 7px rgba(249, 115, 22, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
         }
         @keyframes calPulseWhite {
           0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
@@ -3509,7 +3482,7 @@ export default function TrainerCalendarPage() {
           border-radius: 26px;
           background:
             radial-gradient(circle at 96% 0%, rgba(75,132,204,.38) 0%, rgba(75,132,204,0) 30%),
-            radial-gradient(circle at 0% 110%, rgba(255,107,0,.15) 0%, rgba(255,107,0,0) 36%),
+            radial-gradient(circle at 0% 110%, rgba(249,115,22,.15) 0%, rgba(249,115,22,0) 36%),
             linear-gradient(118deg, #071C3A 0%, #0F2F5F 45%, #1B4B82 100%);
           background-size: 220% 220%;
           animation: calFlow 14s ease-in-out infinite alternate;
@@ -3572,7 +3545,7 @@ export default function TrainerCalendarPage() {
           bottom: 0;
           width: 100%;
           height: 3px;
-          background: linear-gradient(90deg, #ff6b00 0%, #ff6b00 16%, transparent 16%);
+          background: linear-gradient(90deg, #F97316 0%, #F97316 16%, transparent 16%);
           pointer-events: none;
         }
 
@@ -3580,7 +3553,7 @@ export default function TrainerCalendarPage() {
         .cal-btn-primary {
           position: relative;
           overflow: hidden;
-          background: linear-gradient(180deg, #ff8a12 0%, #ff6b00 55%, #f25a00 100%);
+          background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
           transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.2s ease, opacity 0.2s ease;
         }
         .cal-btn-primary::after {
@@ -3594,7 +3567,7 @@ export default function TrainerCalendarPage() {
           transform: translateX(-120%) skewX(-18deg);
           pointer-events: none;
         }
-        .cal-btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(255, 107, 0, 0.35); }
+        .cal-btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(249, 115, 22, 0.35); }
         .cal-btn-primary:hover:not(:disabled)::after { animation: calSheen 0.7s ease; }
         .cal-btn-primary:active:not(:disabled) { transform: scale(0.98); }
 
@@ -3652,7 +3625,7 @@ export default function TrainerCalendarPage() {
         .cal-live-dot { animation: calPulse 1.8s infinite; }
         .cal-live-dot-white { animation: calPulseWhite 1.8s infinite; }
 
-        .cal-now-line { height: 2px; background: #ff6b00; box-shadow: 0 0 0 1px rgba(255, 107, 0, 0.15); }
+        .cal-now-line { height: 2px; background: #F97316; box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.15); }
         .cal-now-line::before {
           content: "";
           position: absolute;
@@ -3661,7 +3634,7 @@ export default function TrainerCalendarPage() {
           width: 10px;
           height: 10px;
           border-radius: 9999px;
-          background: #ff6b00;
+          background: #F97316;
           animation: calPulse 2s infinite;
         }
 
