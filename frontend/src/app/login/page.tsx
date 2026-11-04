@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   GraduationCap,
   Briefcase,
@@ -21,7 +22,13 @@ import {
 import FormField from "@/components/FormField";
 import PasswordInput from "@/components/PasswordInput";
 import { InlineAlert, useToast } from "@/components/Toast";
-import { BTN_PRIMARY, INPUT_CLASS, INPUT_ERROR_CLASS, TEXT_LINK } from "@/components/formStyles";
+import {
+  BTN_PRIMARY,
+  INPUT_CLASS,
+  INPUT_ERROR_CLASS,
+  TEXT_LINK,
+} from "@/components/formStyles";
+
 import {
   friendlyAuthMessage,
   getErrorMessage,
@@ -29,62 +36,37 @@ import {
   validateEmail,
 } from "@/components/formValidators";
 
-type Role =
-  | "student"
-  | "trainer";
+/* ==========================================================
+   TYPES
+========================================================== */
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:5000/api";
+type Role = "student" | "trainer";
 
-const ROLES = [
-  {
-    key: "student" as Role,
-    label: "Student",
-    description:
-      "Access your courses and learning progress",
-    icon: GraduationCap,
-  },
-  {
-    key: "trainer" as Role,
-    label: "Trainer",
-    description:
-      "Manage batches, attendance and grading",
-    icon: Briefcase,
-  },
-];
-
-const ROLE_REDIRECTS: Record<
-  Role,
-  string
-> = {
-  student:
-    "/dashboard/student",
-  trainer:
-    "/dashboard/trainer",
-};
+type UserRole = "ADMIN" | "STUDENT" | "TRAINER";
 
 type LoginResponse = {
   success: boolean;
   message: string;
+  requiresOtp?: boolean;
   data?: {
-    token: string;
-    user: {
+    token?: string;
+    user?: {
       id: number;
       name: string;
       email: string;
       phone: string | null;
-      role:
-        | "ADMIN"
-        | "STUDENT"
-        | "TRAINER";
+      role: UserRole;
     };
-    student: {
+    student?: {
       id: number;
       studentId: string;
       state: string | null;
       referralId: string | null;
     } | null;
+    challengeToken?: string;
+maskedEmail?: string;
+expiresInSeconds?: number;
+requiresOtp?: boolean;
   };
 };
 
@@ -98,6 +80,38 @@ type FormError = {
   message: string;
 };
 
+/* ==========================================================
+   CONFIGURATION
+========================================================== */
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000/api";
+
+const ROLES = [
+  {
+    key: "student" as Role,
+    label: "Student",
+    description: "Access your courses and learning progress",
+    icon: GraduationCap,
+  },
+  {
+    key: "trainer" as Role,
+    label: "Trainer",
+    description: "Manage batches, attendance and grading",
+    icon: Briefcase,
+  },
+];
+
+const ROLE_REDIRECTS: Record<Role, string> = {
+  student: "/dashboard/student",
+  trainer: "/dashboard/trainer",
+};
+
+/* ==========================================================
+   LOGIN PAGE
+========================================================== */
+
 export default function LoginPage() {
   const router = useRouter();
   const { notify, toastContainer } = useToast();
@@ -105,11 +119,8 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] =
     useState<Role | null>(null);
 
-  const [email, setEmail] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const [errors, setErrors] =
     useState<FieldErrors>({});
@@ -118,9 +129,7 @@ export default function LoginPage() {
     useState<FormError | null>(null);
 
   const [shake, setShake] = useState(0);
-
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
   const validatePasswordField = (value: string) =>
     value ? "" : "Please enter your password.";
@@ -132,11 +141,18 @@ export default function LoginPage() {
     setFormError(null);
   };
 
-  const showFailure = (title: string, message: string) => {
+  const showFailure = (
+    title: string,
+    message: string
+  ) => {
     setFormError({ title, message });
     setShake((count) => count + 1);
     notify("error", title, message);
   };
+
+  /* ==========================================================
+     HANDLE LOGIN
+  ========================================================== */
 
   const handleSubmit = async (
     e: React.FormEvent
@@ -154,7 +170,6 @@ export default function LoginPage() {
 
     setFormError(null);
 
-    // ---- Validate before calling the server ----
     const nextErrors: FieldErrors = {
       email: validateEmail(email),
       password: validatePasswordField(password),
@@ -167,12 +182,14 @@ export default function LoginPage() {
       notify(
         "warning",
         "Please check your details",
-        nextErrors.email || nextErrors.password
+        nextErrors.email || nextErrors.password || ""
       );
 
       document
         .getElementById(
-          nextErrors.email ? "login-email" : "login-password"
+          nextErrors.email
+            ? "login-email"
+            : "login-password"
         )
         ?.focus();
 
@@ -183,121 +200,68 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response =
-        await fetch(
-          `${API_URL}/auth/login`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify({
-              email:
-                email.trim(),
-              password,
-            }),
-          }
-        );
+      const response = await fetch(
+        `${API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+          }),
+        }
+      );
 
       const json: LoginResponse =
         await response.json();
 
-      if (
-        !response.ok ||
-        !json.success ||
-        !json.data
-      ) {
+      if (!response.ok || !json.success || !json.data) {
         throw new Error(
-          json.message ||
-            "Invalid email or password."
+          json.message || "Unable to login."
         );
       }
 
-      const {
-        token,
-        user,
-        student,
-      } = json.data;
+     
+     
+/* ======================================================
+   ALL ROLES - EMAIL OTP REQUIRED
+====================================================== */
 
-      const frontendRole:
-        | Role
-        | null =
-        user.role === "STUDENT"
-          ? "student"
-          : user.role ===
-            "TRAINER"
-          ? "trainer"
-          : null;
+if (json.requiresOtp === true) {
+  const challengeToken = json.data.challengeToken;
+  const maskedEmail = json.data.maskedEmail;
 
-      if (!frontendRole) {
-        throw new Error(
-          "This account type cannot sign in here."
-        );
-      }
+  if (!challengeToken || !maskedEmail) {
+    throw new Error(
+      "The server did not return valid email OTP verification details."
+    );
+  }
 
-      if (
-        frontendRole !==
-        selectedRole
-      ) {
-        throw new Error(
-          `This account is registered as a ${frontendRole}, not a ${selectedRole}. Please go back, choose "${
-            frontendRole === "student" ? "Student" : "Trainer"
-          }" and try again.`
-        );
-      }
+  // Clear any previous verification session.
+  sessionStorage.removeItem("loginMaskedPhone");
 
-      localStorage.setItem(
-        "token",
-        token
+  sessionStorage.setItem(
+    "loginChallengeToken",
+    challengeToken
+  );
+
+  sessionStorage.setItem(
+    "loginMaskedEmail",
+    maskedEmail
+  );
+
+  router.push("/verify-otp");
+  return;
+}
+
+      throw new Error(
+        "Unexpected login response from server."
       );
 
-      localStorage.setItem(
-        "role",
-        frontendRole
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(user)
-      );
-
-      if (
-        frontendRole ===
-          "student" &&
-        student
-      ) {
-        localStorage.setItem(
-          "student",
-          JSON.stringify(student)
-        );
-
-        localStorage.setItem(
-          "studentId",
-          student.studentId
-        );
-      } else {
-        localStorage.removeItem(
-          "student"
-        );
-
-        localStorage.removeItem(
-          "studentId"
-        );
-      }
-
-      router.push(
-        ROLE_REDIRECTS[
-          frontendRole
-        ]
-      );
     } catch (err) {
-      console.error(
-        "Login error:",
-        err
-      );
+      console.error("Login error:", err);
 
       const message = friendlyAuthMessage(
         getErrorMessage(
@@ -307,15 +271,19 @@ export default function LoginPage() {
       );
 
       showFailure(
-        isNetworkError(err) ? "Connection problem" : "Sign-in failed",
+        isNetworkError(err)
+          ? "Connection problem"
+          : "Sign-in failed",
         message
       );
 
-      // Wrong credentials: let them retype the password straight away.
       if (/incorrect email or password/i.test(message)) {
         setPassword("");
-        document.getElementById("login-password")?.focus();
+        document
+          .getElementById("login-password")
+          ?.focus();
       }
+
     } finally {
       setLoading(false);
     }
@@ -325,21 +293,32 @@ export default function LoginPage() {
     (item) => item.key === selectedRole
   );
 
+  /* ==========================================================
+     UI
+  ========================================================== */
+
   return (
     <>
       {toastContainer}
 
       <section className="sk-auth-bg relative isolate flex min-h-[78vh] items-center overflow-hidden px-5 py-10 sm:px-6 sm:py-14">
+
         {/* Animated navy backdrop */}
         <div className="sk-auth-grid pointer-events-none absolute inset-0 -z-10" />
         <div className="sk-orb sk-orb-a pointer-events-none absolute -z-10" />
         <div className="sk-orb sk-orb-b pointer-events-none absolute -z-10" />
         <div className="sk-orb sk-orb-c pointer-events-none absolute -z-10" />
+
         <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[3px] bg-gradient-to-r from-orange-500 via-blue-500 to-[#0B2A52]" />
 
         <div className="mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.05fr_minmax(0,28rem)] lg:gap-16">
-          {/* Brand panel (desktop) */}
+
+          {/* ==================================================
+              BRAND PANEL
+          ================================================== */}
+
           <div className="hidden text-white lg:block">
+
             <span className="sk-rise inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-orange-200 backdrop-blur">
               <Sparkles size={14} />
               SK Computer Education Learning Portal
@@ -359,41 +338,70 @@ export default function LoginPage() {
               className="sk-rise mt-4 max-w-lg text-base leading-7 text-slate-300"
               style={{ animationDelay: "160ms" }}
             >
-              Sign in to continue your courses, submit assignments, attempt
-              quizzes and track your progress.
+              Sign in to continue your courses, submit assignments,
+              attempt quizzes and track your progress.
             </p>
 
             <ul className="mt-8 grid max-w-lg grid-cols-2 gap-3">
               {[
-                { icon: BookOpen, title: "Courses", text: "Lessons & materials" },
-                { icon: ClipboardList, title: "Assignments", text: "Quizzes & submissions" },
-                { icon: TrendingUp, title: "Progress", text: "Track your growth" },
-                { icon: Award, title: "Certificates", text: "Proof of completion" },
+                {
+                  icon: BookOpen,
+                  title: "Courses",
+                  text: "Lessons & materials",
+                },
+                {
+                  icon: ClipboardList,
+                  title: "Assignments",
+                  text: "Quizzes & submissions",
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Progress",
+                  text: "Track your growth",
+                },
+                {
+                  icon: Award,
+                  title: "Certificates",
+                  text: "Proof of completion",
+                },
               ].map(({ icon: Icon, title, text }, index) => (
                 <li
                   key={title}
                   className="sk-rise sk-feature group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-orange-300/40 hover:bg-white/10"
-                  style={{ animationDelay: `${240 + index * 90}ms` }}
+                  style={{
+                    animationDelay: `${240 + index * 90}ms`,
+                  }}
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-orange-300 transition duration-300 group-hover:bg-orange-500 group-hover:text-white">
                     <Icon size={19} />
                   </span>
+
                   <span className="min-w-0">
-                    <span className="block text-sm font-bold">{title}</span>
-                    <span className="block text-xs text-slate-300">{text}</span>
+                    <span className="block text-sm font-bold">
+                      {title}
+                    </span>
+                    <span className="block text-xs text-slate-300">
+                      {text}
+                    </span>
                   </span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Sign-in card */}
+          {/* ==================================================
+              LOGIN CARD
+          ================================================== */}
+
           <div className="sk-card-in mx-auto w-full max-w-md">
             <div className="sk-card-glow rounded-[26px] p-px">
               <div className="w-full overflow-hidden rounded-[25px] bg-white shadow-2xl shadow-black/30">
+
                 {/* Header */}
                 <div className="sk-card-head relative overflow-hidden px-6 py-8 text-center text-white sm:px-8">
+
                   <div className="sk-orb-sm pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-sky-400/25 blur-3xl" />
+
                   <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl" />
 
                   <div className="relative">
@@ -414,10 +422,23 @@ export default function LoginPage() {
                 </div>
 
                 <div className="p-6 sm:p-8">
+
+                  {/* ==================================================
+                      ROLE SELECTION
+                  ================================================== */}
+
                   {!selectedRole && (
                     <div className="space-y-3">
                       {ROLES.map(
-                        ({ key, label, description, icon: Icon }, index) => (
+                        (
+                          {
+                            key,
+                            label,
+                            description,
+                            icon: Icon,
+                          },
+                          index
+                        ) => (
                           <button
                             key={key}
                             type="button"
@@ -425,7 +446,9 @@ export default function LoginPage() {
                               setSelectedRole(key);
                               resetForm();
                             }}
-                            style={{ animationDelay: `${120 + index * 90}ms` }}
+                            style={{
+                              animationDelay: `${120 + index * 90}ms`,
+                            }}
                             className="sk-rise group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left transition duration-300 hover:-translate-y-1 hover:border-orange-300 hover:shadow-xl hover:shadow-orange-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                           >
                             <span className="absolute inset-y-0 left-0 w-1 origin-top scale-y-0 bg-orange-500 transition-transform duration-300 group-hover:scale-y-100" />
@@ -454,13 +477,22 @@ export default function LoginPage() {
                     </div>
                   )}
 
+                  {/* ==================================================
+                      LOGIN FORM
+                  ================================================== */}
+
                   {selectedRole && (
                     <form
                       key={shake}
                       onSubmit={handleSubmit}
                       noValidate
-                      className={`space-y-5 ${shake > 0 ? "sk-shake" : "sk-auth-in"}`}
+                      className={`space-y-5 ${
+                        shake > 0
+                          ? "sk-shake"
+                          : "sk-auth-in"
+                      }`}
                     >
+
                       <button
                         type="button"
                         onClick={() => {
@@ -502,6 +534,7 @@ export default function LoginPage() {
                         />
                       )}
 
+                      {/* Email */}
                       <FormField
                         label="Email"
                         htmlFor="login-email"
@@ -517,28 +550,39 @@ export default function LoginPage() {
                             if (errors.email) {
                               setErrors((current) => ({
                                 ...current,
-                                email: validateEmail(e.target.value),
+                                email: validateEmail(
+                                  e.target.value
+                                ),
                               }));
                             }
                           }}
                           onBlur={() =>
                             setErrors((current) => ({
                               ...current,
-                              email: email ? validateEmail(email) : "",
+                              email: email
+                                ? validateEmail(email)
+                                : "",
                             }))
                           }
                           placeholder="Enter your email"
                           autoComplete="email"
-                          aria-invalid={errors.email ? true : undefined}
+                          aria-invalid={
+                            errors.email ? true : undefined
+                          }
                           aria-describedby={
-                            errors.email ? "login-email-error" : undefined
+                            errors.email
+                              ? "login-email-error"
+                              : undefined
                           }
                           className={`${INPUT_CLASS} ${
-                            errors.email ? INPUT_ERROR_CLASS : ""
+                            errors.email
+                              ? INPUT_ERROR_CLASS
+                              : ""
                           }`}
                         />
                       </FormField>
 
+                      {/* Password */}
                       <div>
                         <div className="mb-1.5 flex items-center justify-between">
                           <label
@@ -556,7 +600,10 @@ export default function LoginPage() {
                           </Link>
                         </div>
 
-                        <FormField htmlFor="login-password" error={errors.password}>
+                        <FormField
+                          htmlFor="login-password"
+                          error={errors.password}
+                        >
                           <PasswordInput
                             id="login-password"
                             value={password}
@@ -566,7 +613,8 @@ export default function LoginPage() {
                               if (errors.password) {
                                 setErrors((current) => ({
                                   ...current,
-                                  password: validatePasswordField(value),
+                                  password:
+                                    validatePasswordField(value),
                                 }));
                               }
                             }}
@@ -578,6 +626,7 @@ export default function LoginPage() {
                         </FormField>
                       </div>
 
+                      {/* Submit */}
                       <button
                         type="submit"
                         disabled={loading}
@@ -585,7 +634,10 @@ export default function LoginPage() {
                       >
                         {loading ? (
                           <>
-                            <Loader2 size={17} className="animate-spin" />
+                            <Loader2
+                              size={17}
+                              className="animate-spin"
+                            />
                             Signing in...
                           </>
                         ) : (
@@ -601,10 +653,14 @@ export default function LoginPage() {
                     </form>
                   )}
 
+                  {/* Footer */}
                   <div className="mt-7 border-t border-slate-100 pt-6 text-center">
                     <p className="text-sm text-slate-500">
                       Don&apos;t have an account?{" "}
-                      <Link href="/register" className={TEXT_LINK}>
+                      <Link
+                        href="/register"
+                        className={TEXT_LINK}
+                      >
                         Register Now
                       </Link>
                     </p>
@@ -614,11 +670,17 @@ export default function LoginPage() {
                       Your password is never stored in the browser
                     </p>
                   </div>
+
                 </div>
               </div>
             </div>
           </div>
+
         </div>
+
+        {/* ==================================================
+            ANIMATIONS
+        ================================================== */}
 
         <style jsx global>{`
           .sk-auth-bg {
@@ -640,6 +702,7 @@ export default function LoginPage() {
             filter: blur(70px);
             opacity: 0.55;
           }
+
           .sk-orb-a {
             width: 340px;
             height: 340px;
@@ -648,6 +711,7 @@ export default function LoginPage() {
             background: #2563eb;
             animation: skFloat 14s ease-in-out infinite;
           }
+
           .sk-orb-b {
             width: 300px;
             height: 300px;
@@ -657,6 +721,7 @@ export default function LoginPage() {
             opacity: 0.3;
             animation: skFloat 17s ease-in-out -4s infinite reverse;
           }
+
           .sk-orb-c {
             width: 220px;
             height: 220px;
@@ -677,6 +742,7 @@ export default function LoginPage() {
           .sk-card-head {
             background: linear-gradient(135deg, #0b2a52 0%, #173b67 60%, #1d4d85 100%);
           }
+
           .sk-card-head::after {
             content: "";
             position: absolute;
@@ -689,6 +755,7 @@ export default function LoginPage() {
           .sk-icon-pulse {
             position: relative;
           }
+
           .sk-icon-pulse::after {
             content: "";
             position: absolute;
@@ -702,6 +769,7 @@ export default function LoginPage() {
             position: relative;
             overflow: hidden;
           }
+
           .sk-btn-shine::after {
             content: "";
             position: absolute;
@@ -710,6 +778,7 @@ export default function LoginPage() {
             transform: translateX(-120%);
             transition: transform 0.7s ease;
           }
+
           .sk-btn-shine:hover:not(:disabled)::after {
             transform: translateX(120%);
           }
@@ -718,30 +787,37 @@ export default function LoginPage() {
             0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
             50% { transform: translate3d(40px, -30px, 0) scale(1.12); }
           }
+
           @keyframes skGlow {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
           }
+
           @keyframes skSheen {
             0% { transform: translateX(-100%); }
             40%, 100% { transform: translateX(100%); }
           }
+
           @keyframes skPing {
             0% { transform: scale(1); opacity: 0.8; }
             100% { transform: scale(1.5); opacity: 0; }
           }
+
           @keyframes skRise {
             from { opacity: 0; transform: translateY(18px); }
             to { opacity: 1; transform: translateY(0); }
           }
+
           @keyframes skCardIn {
             from { opacity: 0; transform: translateY(24px) scale(0.97); }
             to { opacity: 1; transform: translateY(0) scale(1); }
           }
+
           @keyframes skAuthIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
           }
+
           @keyframes skShake {
             0%, 100% { transform: translateX(0); }
             20% { transform: translateX(-8px); }
@@ -750,14 +826,30 @@ export default function LoginPage() {
             80% { transform: translateX(3px); }
           }
 
-          .sk-rise { animation: skRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-          .sk-card-in { animation: skCardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-          .sk-auth-in { animation: skAuthIn 0.35s ease-out both; }
-          .sk-shake { animation: skShake 0.4s ease-in-out; }
+          .sk-rise {
+            animation: skRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }
+
+          .sk-card-in {
+            animation: skCardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+          }
+
+          .sk-auth-in {
+            animation: skAuthIn 0.35s ease-out both;
+          }
+
+          .sk-shake {
+            animation: skShake 0.4s ease-in-out;
+          }
 
           @media (prefers-reduced-motion: reduce) {
-            .sk-orb, .sk-card-glow, .sk-card-head::after, .sk-icon-pulse::after,
-            .sk-rise, .sk-card-in, .sk-auth-in {
+            .sk-orb,
+            .sk-card-glow,
+            .sk-card-head::after,
+            .sk-icon-pulse::after,
+            .sk-rise,
+            .sk-card-in,
+            .sk-auth-in {
               animation: none !important;
             }
           }

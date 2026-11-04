@@ -350,3 +350,14 @@ export type ResetPasswordInput =
   z.infer<
     typeof resetPasswordSchema
   >;
+
+
+  
+export const loginOtpVerifySchema = z.object({
+  challengeToken: z.string().min(1, "Login challenge is required"),
+  otp: z.string().regex(/^\d{6}$/, "Enter the six-digit verification code"),
+});
+
+export type LoginOtpVerifyInput = z.infer<
+  typeof loginOtpVerifySchema
+>;

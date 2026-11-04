@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -36,6 +37,18 @@ type FieldErrors = {
   password?: string;
 };
 
+type LoginResponse = {
+  success: boolean;
+  message?: string;
+  requiresOtp?: boolean;
+  data?: {
+    requiresOtp?: boolean;
+    challengeToken?: string;
+    maskedEmail?: string;
+    expiresInSeconds?: number;
+  };
+};
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const { notify, toastContainer } = useToast();
@@ -63,13 +76,13 @@ export default function AdminLoginPage() {
   };
 
   async function handleLogin(
-    e: React.FormEvent
+    e: React.FormEvent<HTMLFormElement>
   ) {
     e.preventDefault();
 
     setFormError(null);
 
-    // ---- Validate before calling the server ----
+    // Validate input fields.
     const nextErrors: FieldErrors = {
       email: validateEmail(email),
       password: validatePasswordField(password),
@@ -82,7 +95,7 @@ export default function AdminLoginPage() {
       notify(
         "warning",
         "Please check your details",
-        nextErrors.email || nextErrors.password
+        nextErrors.email || nextErrors.password || ""
       );
 
       document
@@ -98,6 +111,21 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
+      // Clear any previous incomplete login challenge.
+      sessionStorage.removeItem("loginChallengeToken");
+      sessionStorage.removeItem("loginMaskedEmail");
+      sessionStorage.removeItem("loginReturnPath");
+
+      // Do not retain a previous role's authentication.
+      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("role");
+      localStorage.removeItem("user");
+      localStorage.removeItem("student");
+      localStorage.removeItem("studentId");
+      localStorage.removeItem("skce_admin_logged_in");
+
+      // Call backend login API.
       const response = await fetch(
         `${API_URL}/auth/login`,
         {
@@ -112,57 +140,61 @@ export default function AdminLoginPage() {
         }
       );
 
-      const result = await response.json();
+      const result: LoginResponse = await response.json();
 
       if (!response.ok) {
         throw new Error(
+          result.message || "Unable to login"
+        );
+      }
+
+      // Backend sends an OTP challenge first.
+      // JWT and user details are returned only after OTP verification.
+      const otpData = result.data;
+
+      const challengeToken = otpData?.challengeToken;
+      const maskedEmail = otpData?.maskedEmail;
+
+      if (!result.success || !challengeToken) {
+        throw new Error(
           result.message ||
-            "Unable to login"
+            "Unable to start email verification."
         );
       }
 
-      const user = result.data?.user;
-      const token = result.data?.token;
-
-      if (!token || !user) {
-        throw new Error(
-          "Invalid login response from server"
-        );
-      }
-
-      // Only ADMIN users can enter the Admin Portal
-      if (user.role !== "ADMIN") {
-        throw new Error(
-          "This account does not have Admin access. Students and trainers can sign in from the main Login page."
-        );
-      }
-
-      // Store the real JWT
-      localStorage.setItem(
-        "token",
-        token
+      // Store the OTP challenge for verification.
+      sessionStorage.setItem(
+        "loginChallengeToken",
+        challengeToken
       );
 
-      // Optional admin marker for frontend UI
-      localStorage.setItem(
-        "skce_admin_logged_in",
-        "true"
+      sessionStorage.setItem(
+        "loginMaskedEmail",
+        maskedEmail || email.trim().toLowerCase()
       );
 
-      // Go to existing Admin Dashboard
-      router.push("/dashboard/admin");
+      sessionStorage.setItem(
+        "loginReturnPath",
+        "/admin/login"
+      );
+
+      // IMPORTANT:
+      // Do not set the Admin authentication marker here.
+      // Do not navigate directly to the dashboard.
+      // Authentication completes only after OTP verification.
+      router.push("/verify-otp");
+
     } catch (err) {
-      console.error(
-        "Admin login error:",
-        err
-      );
+      console.error("Admin login error:", err);
 
       const message = friendlyAuthMessage(
         getErrorMessage(err, "Unable to login")
       );
 
       showFailure(
-        isNetworkError(err) ? "Connection problem" : "Sign-in failed",
+        isNetworkError(err)
+          ? "Connection problem"
+          : "Sign-in failed",
         message
       );
 
@@ -180,14 +212,19 @@ export default function AdminLoginPage() {
       {toastContainer}
 
       <main className="sk-auth-bg relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden px-6 py-12">
+
         <div className="sk-auth-grid pointer-events-none absolute inset-0 -z-10" />
         <div className="sk-orb sk-orb-a pointer-events-none absolute -z-10" />
         <div className="sk-orb sk-orb-b pointer-events-none absolute -z-10" />
         <div className="sk-orb sk-orb-c pointer-events-none absolute -z-10" />
+
         <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[3px] bg-gradient-to-r from-orange-500 via-blue-500 to-[#0B2A52]" />
+
         <div className="sk-auth-in w-full max-w-md">
+
           {/* Header */}
           <div className="mb-7 text-center">
+
             <div className="sk-icon-pulse mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-900/30">
               <ShieldCheck size={30} className="text-white" />
             </div>
@@ -203,17 +240,23 @@ export default function AdminLoginPage() {
             <p className="mt-2 text-sm text-blue-100/80">
               Sign in to access the SK Computer Education Admin Portal
             </p>
+
           </div>
 
-          {/* Card */}
+          {/* Login Card */}
           <div className="sk-card-in relative overflow-hidden rounded-3xl bg-white p-6 shadow-2xl shadow-black/30 sm:p-8">
+
             <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-orange-500 via-blue-500 to-[#173B67]" />
+
             <form
               key={shake}
               onSubmit={handleLogin}
               noValidate
-              className={`space-y-5 ${shake > 0 ? "sk-shake" : ""}`}
+              className={`space-y-5 ${
+                shake > 0 ? "sk-shake" : ""
+              }`}
             >
+
               {formError && (
                 <InlineAlert
                   title={formError.title}
@@ -229,6 +272,7 @@ export default function AdminLoginPage() {
                 error={errors.email}
               >
                 <div className="relative">
+
                   <Mail
                     size={18}
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -251,19 +295,28 @@ export default function AdminLoginPage() {
                     onBlur={() =>
                       setErrors((current) => ({
                         ...current,
-                        email: email ? validateEmail(email) : "",
+                        email: email
+                          ? validateEmail(email)
+                          : "",
                       }))
                     }
                     placeholder="Enter admin email"
                     autoComplete="email"
-                    aria-invalid={errors.email ? true : undefined}
+                    aria-invalid={
+                      errors.email ? true : undefined
+                    }
                     aria-describedby={
-                      errors.email ? "admin-email-error" : undefined
+                      errors.email
+                        ? "admin-email-error"
+                        : undefined
                     }
                     className={`${INPUT_CLASS} pl-11 ${
-                      errors.email ? INPUT_ERROR_CLASS : ""
+                      errors.email
+                        ? INPUT_ERROR_CLASS
+                        : ""
                     }`}
                   />
+
                 </div>
               </FormField>
 
@@ -282,7 +335,8 @@ export default function AdminLoginPage() {
                     if (errors.password) {
                       setErrors((current) => ({
                         ...current,
-                        password: validatePasswordField(value),
+                        password:
+                          validatePasswordField(value),
                       }));
                     }
                   }}
@@ -293,6 +347,7 @@ export default function AdminLoginPage() {
                 />
               </FormField>
 
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
@@ -300,27 +355,35 @@ export default function AdminLoginPage() {
               >
                 {loading ? (
                   <>
-                    <Loader2 size={17} className="animate-spin" />
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
                     Signing in...
                   </>
                 ) : (
                   "Sign In"
                 )}
               </button>
+
             </form>
 
-            {/* Backend authentication notice */}
+            {/* Backend Authentication Notice */}
             <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+
               <ShieldCheck
                 size={17}
                 className="mt-0.5 shrink-0 text-emerald-600"
               />
 
               <p className="text-xs leading-5 text-emerald-800">
-                <span className="font-bold">Secure authentication:</span>{" "}
+                <span className="font-bold">
+                  Secure authentication:
+                </span>{" "}
                 Admin access is verified through the SK Computer Education
                 backend.
               </p>
+
             </div>
 
             <Link
@@ -333,55 +396,165 @@ export default function AdminLoginPage() {
               />
               Back to Website
             </Link>
+
           </div>
         </div>
 
         <style jsx global>{`
+
           @keyframes skFloat {
-            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-            50% { transform: translate3d(40px, -30px, 0) scale(1.12); }
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+            }
+
+            50% {
+              transform: translate3d(40px, -30px, 0) scale(1.12);
+            }
           }
+
           @keyframes skSheen {
-            0% { transform: translateX(-100%); }
-            40%, 100% { transform: translateX(100%); }
+            0% {
+              transform: translateX(-100%);
+            }
+
+            40%, 100% {
+              transform: translateX(100%);
+            }
           }
+
           @keyframes skPing {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.5); opacity: 0; }
+            0% {
+              transform: scale(1);
+              opacity: 0.8;
+            }
+
+            100% {
+              transform: scale(1.5);
+              opacity: 0;
+            }
           }
+
           @keyframes skCardIn {
-            from { opacity: 0; transform: translateY(24px) scale(0.97); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+              opacity: 0;
+              transform: translateY(24px) scale(0.97);
+            }
+
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
           }
 
           .sk-auth-bg {
             background:
-              radial-gradient(1100px 520px at 85% -10%, rgba(59, 130, 246, 0.3), transparent 60%),
-              radial-gradient(900px 500px at -10% 110%, rgba(37, 99, 235, 0.35), transparent 60%),
-              linear-gradient(135deg, #071c3a 0%, #0f2f5f 48%, #173b67 100%);
+              radial-gradient(
+                1100px 520px at 85% -10%,
+                rgba(59, 130, 246, 0.3),
+                transparent 60%
+              ),
+              radial-gradient(
+                900px 500px at -10% 110%,
+                rgba(37, 99, 235, 0.35),
+                transparent 60%
+              ),
+              linear-gradient(
+                135deg,
+                #071c3a 0%,
+                #0f2f5f 48%,
+                #173b67 100%
+              );
           }
+
           .sk-auth-grid {
-            background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+            background-image: radial-gradient(
+              rgba(255, 255, 255, 0.09) 1px,
+              transparent 1px
+            );
             background-size: 26px 26px;
-            -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+            -webkit-mask-image: radial-gradient(
+              ellipse at center,
+              #000 30%,
+              transparent 75%
+            );
+            mask-image: radial-gradient(
+              ellipse at center,
+              #000 30%,
+              transparent 75%
+            );
           }
-          .sk-orb { border-radius: 9999px; filter: blur(70px); opacity: 0.55; }
-          .sk-orb-a { width: 340px; height: 340px; left: -80px; top: 8%; background: #2563eb; animation: skFloat 14s ease-in-out infinite; }
-          .sk-orb-b { width: 300px; height: 300px; right: 4%; bottom: -90px; background: #3b82f6;
-            opacity: 0.3; animation: skFloat 17s ease-in-out -4s infinite reverse; }
-          .sk-orb-c { width: 220px; height: 220px; left: 42%; top: -70px; background: #38bdf8; opacity: 0.25; animation: skFloat 20s ease-in-out -8s infinite; }
-          .sk-card-in { animation: skCardIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
-          .sk-card-head { background: linear-gradient(135deg, #0b2a52 0%, #173b67 60%, #1d4d85 100%); }
+
+          .sk-orb {
+            border-radius: 9999px;
+            filter: blur(70px);
+            opacity: 0.55;
+          }
+
+          .sk-orb-a {
+            width: 340px;
+            height: 340px;
+            left: -80px;
+            top: 8%;
+            background: #2563eb;
+            animation: skFloat 14s ease-in-out infinite;
+          }
+
+          .sk-orb-b {
+            width: 300px;
+            height: 300px;
+            right: 4%;
+            bottom: -90px;
+            background: #3b82f6;
+            opacity: 0.3;
+            animation: skFloat 17s ease-in-out -4s infinite reverse;
+          }
+
+          .sk-orb-c {
+            width: 220px;
+            height: 220px;
+            left: 42%;
+            top: -70px;
+            background: #38bdf8;
+            opacity: 0.25;
+            animation: skFloat 20s ease-in-out -8s infinite;
+          }
+
+          .sk-card-in {
+            animation: skCardIn 0.6s cubic-bezier(
+              0.22,
+              1,
+              0.36,
+              1
+            ) backwards;
+          }
+
+          .sk-card-head {
+            background: linear-gradient(
+              135deg,
+              #0b2a52 0%,
+              #173b67 60%,
+              #1d4d85 100%
+            );
+          }
+
           .sk-card-head::after {
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.1) 50%, transparent 65%);
+            background: linear-gradient(
+              110deg,
+              transparent 35%,
+              rgba(255, 255, 255, 0.1) 50%,
+              transparent 65%
+            );
             transform: translateX(-100%);
             animation: skSheen 6s ease-in-out 1s infinite;
           }
-          .sk-icon-pulse { position: relative; }
+
+          .sk-icon-pulse {
+            position: relative;
+          }
+
           .sk-icon-pulse::after {
             content: "";
             position: absolute;
@@ -390,8 +563,15 @@ export default function AdminLoginPage() {
             border: 2px solid rgba(251, 146, 60, 0.7);
             animation: skPing 2.4s ease-out infinite;
           }
+
           @media (prefers-reduced-motion: reduce) {
-            .sk-orb, .sk-card-in, .sk-card-head::after, .sk-icon-pulse::after, .sk-auth-in { animation: none !important; }
+            .sk-orb,
+            .sk-card-in,
+            .sk-card-head::after,
+            .sk-icon-pulse::after,
+            .sk-auth-in {
+              animation: none !important;
+            }
           }
 
           @keyframes skAuthIn {
@@ -399,6 +579,7 @@ export default function AdminLoginPage() {
               opacity: 0;
               transform: translateY(10px);
             }
+
             to {
               opacity: 1;
               transform: translateY(0);
@@ -406,19 +587,22 @@ export default function AdminLoginPage() {
           }
 
           @keyframes skShake {
-            0%,
-            100% {
+            0%, 100% {
               transform: translateX(0);
             }
+
             20% {
               transform: translateX(-8px);
             }
+
             40% {
               transform: translateX(7px);
             }
+
             60% {
               transform: translateX(-5px);
             }
+
             80% {
               transform: translateX(3px);
             }
@@ -431,8 +615,11 @@ export default function AdminLoginPage() {
           .sk-shake {
             animation: skShake 0.4s ease-in-out;
           }
+
         `}</style>
+
       </main>
     </>
   );
 }
+  
