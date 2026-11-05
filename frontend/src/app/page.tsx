@@ -17,20 +17,18 @@ export default async function HomePage() {
   return (
     <>
       <HomepagePopup />
-      <Hero />
-      <StatsBar />
-      <CoursesPreview />
-      <PackagesPreview />
-      <WhyChooseUs />
 
-      {/* Trainers appears only once */}
-      <TrainersPreview />
-
-      {/* Student Feedback with client-side pagination */}
-      <TestimonialsPreview testimonials={testimonials} />
-
-      <CEOSection />
-      <CTASection />
+      <main className="min-h-screen w-full overflow-x-hidden">
+        <Hero />
+        <StatsBar />
+        <CoursesPreview />
+        <PackagesPreview />
+        <WhyChooseUs />
+        <TrainersPreview />
+        <TestimonialsPreview testimonials={testimonials} />
+        <CEOSection />
+        <CTASection />
+      </main>
     </>
   );
 }

@@ -447,8 +447,8 @@ export default function AdminDashboardPage() {
 
   if (error || !data) {
     return (
-      <main className="min-h-[calc(100vh-1px)] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-[1680px]">
+      <main className="min-h-screen w-full overflow-x-hidden bg-[#F4F7FB]">
+  <div className="skce-container py-6">
           <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-red-100 bg-white px-6 shadow-sm">
             <div className="max-w-md text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
@@ -526,7 +526,7 @@ export default function AdminDashboardPage() {
   }).format(new Date());
 
   return (
-    <main className="min-h-screen bg-[#F4F7FB] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#F4F7FB]">
       <style dangerouslySetInnerHTML={{ __html: `
         .adm-navy::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
           background:
@@ -546,7 +546,7 @@ export default function AdminDashboardPage() {
         .sk-scroll::-webkit-scrollbar-thumb{background:#9DB6DA;border-radius:9999px;}
         @media (prefers-reduced-motion: reduce){.adm-shine::after,.adm-tile::after{transition:none;}}
       ` }} />
-      <div className="mx-auto w-full max-w-[1680px] space-y-6">
+      <div className="skce-container space-y-6 py-5 sm:py-6 lg:py-7">
         {/* Hero */}
         <Reveal>
           <AdminPageHeader
@@ -586,7 +586,7 @@ export default function AdminDashboardPage() {
         </Reveal>
 
         {/* KPI cards */}
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             const tone = TONES[stat.tone];
@@ -619,7 +619,7 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Activity + Enrollment status */}
-        <section className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <section className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
           <Reveal className="min-w-0">
             <Card className="h-full">
               <CardHeader
@@ -755,7 +755,7 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Course performance + Recent activity */}
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
           <Reveal>
             <Card className="h-full">
               <CardHeader
@@ -853,7 +853,7 @@ export default function AdminDashboardPage() {
               title="Quick Actions"
               subtitle="Common administration tasks"
             />
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -891,7 +891,7 @@ export default function AdminDashboardPage() {
             </div>
           </Reveal>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {MANAGEMENT_LINKS.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -1067,9 +1067,13 @@ function MiniMetric({ label, value, icon }: { label: string; value: number; icon
 function DashboardSkeleton() {
   const block = "animate-pulse rounded-2xl bg-slate-200/70";
   return (
-    <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading admin dashboard</span>
-      <div className="mx-auto w-full max-w-[1680px] space-y-6">
+    <main
+  className="min-h-screen w-full overflow-x-hidden bg-[#F4F7FB]"
+  aria-busy="true"
+  aria-live="polite"
+>
+  <span className="sr-only">Loading admin dashboard</span>
+  <div className="skce-container space-y-6 py-6">
         <div className={`${block} h-48`} />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (

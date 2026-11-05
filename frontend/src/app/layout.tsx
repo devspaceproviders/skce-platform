@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PublicShell from "@/components/PublicShell";
 
@@ -8,6 +9,11 @@ export const metadata: Metadata = {
     "SK Computer Education provides practical computer and digital education, including Computer Basics, MS Office, DCA, PGDCA, AI Skills, Programming, Digital Marketing, and job-oriented courses.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -15,10 +21,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen">
-        <PublicShell>
-          {children}
-        </PublicShell>
+      <body className="min-h-screen w-full">
+        <PublicShell>{children}</PublicShell>
       </body>
     </html>
   );

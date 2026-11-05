@@ -21,7 +21,7 @@ export default function PublicShell({
   }
 
   return (
-    <div className="sk-public flex min-h-screen flex-col">
+    <div className="sk-public flex min-h-screen w-full min-w-0 flex-col overflow-x-clip">
       {/* Keyboard users can jump straight past the navigation */}
       <a
         href="#main-content"
@@ -33,11 +33,17 @@ export default function PublicShell({
       <Navbar />
       <TopBar />
 
-      <main id="main-content" className="min-w-0 flex-1">
-        <div key={pathname} className="sk-route-fade">
-          {children}
-        </div>
-      </main>
+     <main
+  id="main-content"
+  className="w-full min-w-0 flex-1"
+>
+  <div
+    key={pathname}
+    className="sk-route-fade w-full min-w-0"
+  >
+    {children}
+  </div>
+</main>
 
       <Footer />
 
@@ -168,14 +174,7 @@ export default function PublicShell({
             radial-gradient(800px 360px at -5% 110%, rgba(37, 99, 235, 0.4), transparent 60%),
             linear-gradient(135deg, #071c3a 0%, #0f2f5f 50%, #173b67 100%) !important;
         }
-        /* Use the width of large screens instead of leaving wide empty sides. */
-        @media (min-width: 1280px) {
-          .sk-public .max-w-7xl {
-            max-width: 1900px;
-            padding-left: clamp(1.5rem, 3.5vw, 4rem);
-            padding-right: clamp(1.5rem, 3.5vw, 4rem);
-          }
-        }
+      
         .sk-public footer { overflow: hidden; }
         .sk-public footer::after,
         .sk-public section[class*="bg-[#173B67]"]::after {

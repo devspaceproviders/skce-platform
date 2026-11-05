@@ -1,23 +1,40 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* SKCE brand tokens (also available as Tailwind colors: skce-navy, skce-orange, ...) */
+/* ==========================================
+   SKCE GLOBAL BRAND & RESPONSIVE SYSTEM
+========================================== */
+
 :root {
   --skce-navy: #0f2f5f;
   --skce-navy-2: #173b67;
   --skce-blue: #1459b8;
   --skce-orange: #F97316;
   --skce-orange-2: #f97316;
+  --skce-primary: #A01441;
   --skce-line: #dce6f2;
   --skce-tint: #f4f7fb;
+
+  --skce-container-width: 1440px;
+  --skce-page-padding: 32px;
+  --skce-header-height: 76px;
+  --skce-radius: 16px;
 }
 
+/* Consistent box sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Browser viewport */
 html {
   width: 100%;
-  max-width: 100%;
-  scroll-behavior: auto;
-  /* Keeps the layout from jumping when a pop-up locks page scroll */
+  min-height: 100%;
+  scroll-behavior: smooth;
   scrollbar-gutter: stable;
   -webkit-text-size-adjust: 100%;
 }
@@ -25,39 +42,38 @@ html {
 body {
   @apply bg-white text-slate-900 antialiased;
   width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
+  min-width: 0;
+  min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
 }
 
-* {
-  box-sizing: border-box;
-}
-
+/* Links and buttons */
 button,
 [role="button"],
 a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Selection */
 ::selection {
   background-color: rgb(249 115 22 / 0.25);
 }
 
-/* Cleaner line breaks in headings */
+/* Heading balance */
 h1,
 h2,
 h3 {
   text-wrap: balance;
 }
 
-/* Visible keyboard focus everywhere (brand orange) */
+/* Keyboard focus */
 :focus-visible {
   outline: 2px solid rgb(249 115 22 / 0.6);
   outline-offset: 2px;
 }
 
-/* Browser autofill should not flash yellow/white inside SKCE forms */
+/* Form autofill */
 input:-webkit-autofill,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
@@ -66,28 +82,139 @@ select:-webkit-autofill {
   transition: background-color 9999s ease-in-out 0s;
 }
 
-/* Navy hero / panel decoration shared by public pages */
-@keyframes skHeroFloat {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(36px, 22px, 0) scale(1.1); }
-}
-.sk-hero-orb { animation: skHeroFloat 14s ease-in-out infinite; }
-.sk-hero-orb-2 { animation: skHeroFloat 18s ease-in-out -6s infinite reverse; }
-.sk-dots {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
-  background-size: 26px 26px;
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
-  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+/* ==========================================
+   GLOBAL WIDTH SYSTEM
+========================================== */
+
+/* Full-width sections and backgrounds */
+.skce-full-width {
+  width: 100%;
+  max-width: 100%;
 }
 
-/* Never trap users who ask for less motion */
+/* Centered responsive content */
+.skce-container {
+  width: calc(100% - (2 * var(--skce-page-padding)));
+  max-width: var(--skce-container-width);
+  margin-inline: auto;
+}
+
+/* Standard section spacing */
+.skce-section {
+  width: 100%;
+  padding-block: 32px;
+}
+
+/* Responsive cards */
+.skce-card {
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--skce-radius);
+}
+
+/* Responsive images */
+.skce-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Responsive grid */
+.skce-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 280px), 1fr)
+  );
+  gap: 24px;
+}
+
+/* ==========================================
+   HERO ANIMATIONS
+========================================== */
+
+@keyframes skHeroFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(36px, 22px, 0) scale(1.1);
+  }
+}
+
+.sk-hero-orb {
+  animation: skHeroFloat 14s ease-in-out infinite;
+}
+
+.sk-hero-orb-2 {
+  animation: skHeroFloat 18s ease-in-out -6s infinite reverse;
+}
+
+.sk-dots {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.09) 1px,
+    transparent 1px
+  );
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    #000 30%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse at center,
+    #000 30%,
+    transparent 80%
+  );
+}
+
+/* ==========================================
+   TABLET
+========================================== */
+
+@media (max-width: 1024px) {
+  :root {
+    --skce-page-padding: 24px;
+  }
+
+  .skce-section {
+    padding-block: 24px;
+  }
+}
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 640px) {
+  :root {
+    --skce-page-padding: 16px;
+    --skce-header-height: 64px;
+  }
+
+  .skce-section {
+    padding-block: 20px;
+  }
+
+  .skce-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ==========================================
+   ACCESSIBILITY
+========================================== */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

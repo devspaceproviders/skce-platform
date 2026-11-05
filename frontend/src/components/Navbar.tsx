@@ -92,9 +92,9 @@ export default function Navbar() {
       }`}
     >
       <div
-        className={`mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 transition-[height] duration-300 sm:px-6 ${
-          scrolled ? "h-[68px]" : "h-[84px]"
-        }`}
+        className={`mx-auto flex w-full max-w-[1600px] min-w-0 items-center justify-between gap-3 px-3 transition-[height] duration-300 sm:px-5 lg:px-6 ${
+  scrolled ? "h-[68px]" : "h-[84px]"
+}`}
       >
         {/* Brand */}
         <Link
@@ -120,7 +120,7 @@ export default function Navbar() {
         {/* Desktop Navigation */}
         <nav
           aria-label="Main navigation"
-          className="hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-50 p-1 xl:flex"
+          className="hidden min-w-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-1 2xl:flex"
         >
           {NAV_LINKS.map((link) => {
             const active = isActive(link.href);
@@ -130,8 +130,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-full px-4 py-2 text-[14px] font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${
-                  active
+                className={`whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 ${   active
                     ? "bg-[#0F2F5F] text-white shadow-md shadow-blue-900/25"
                     : "text-[#0F2F5F]/80 hover:bg-white hover:text-orange-500 hover:shadow-sm"
                 }`}
@@ -143,7 +142,7 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden items-center gap-3 xl:flex">
+       <div className="hidden shrink-0 items-center gap-2 2xl:flex">
           <Link
             href="/login"
             className="inline-flex h-11 items-center rounded-full border-2 border-[#0F2F5F] px-6 text-sm font-bold text-[#0F2F5F] transition duration-200 hover:-translate-y-px hover:bg-[#0F2F5F] hover:text-white hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 active:translate-y-0"
@@ -180,7 +179,7 @@ export default function Navbar() {
         </div>
 
         {/* Tablet / Mobile Actions */}
-        <div className="flex items-center gap-2 xl:hidden">
+        <div className="flex shrink-0 items-center gap-2 2xl:hidden">
           <Link
             href="/login"
             className="hidden h-10 items-center rounded-xl border border-[#0F2F5F] px-4 text-sm font-semibold text-[#0F2F5F] transition duration-200 hover:bg-[#0F2F5F] hover:text-white sm:inline-flex"
@@ -214,7 +213,8 @@ export default function Navbar() {
       {/* Mobile / Tablet Menu */}
       {mobileOpen && (
         <div className="sk-menu-in w-full border-t border-slate-100 bg-white xl:hidden">
-          <div className="mx-auto max-w-7xl px-5 py-4 sm:px-6">
+
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
             <nav aria-label="Mobile navigation" className="flex flex-col">
               {NAV_LINKS.map((link, index) => {
                 const active = isActive(link.href);

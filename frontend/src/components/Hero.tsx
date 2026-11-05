@@ -99,8 +99,8 @@ export default function Hero() {
         className="sk-drift pointer-events-none absolute -left-32 top-10 -z-10 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid items-center gap-8 pb-24 pt-10 lg:grid-cols-[1.08fr_0.92fr] lg:gap-6 lg:pb-32 lg:pt-12">
+      <div className="relative mx-auto w-full max-w-[1600px] px-4 sm:px-5 lg:px-6">
+        <div className="grid min-w-0 grid-cols-1 items-center gap-10 py-10 sm:gap-12 sm:py-12 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] xl:gap-8 xl:py-16 2xl:gap-10">
           {/* ================= LEFT CONTENT ================= */}
           <div className="relative z-10">
             <div
@@ -112,7 +112,7 @@ export default function Hero() {
             </div>
 
             <h1
-              className="sk-rise mt-5 max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.7rem]"
+              className="sk-rise mt-5 max-w-3xl text-[clamp(2rem,4vw,3.7rem)] font-extrabold leading-[1.08] tracking-tight text-white"
               style={{ animationDelay: "90ms" }}
             >
               Build{" "}
@@ -185,7 +185,7 @@ export default function Hero() {
 
           {/* ================= RIGHT VISUAL ================= */}
           <div className="sk-slide-in relative flex items-center justify-center lg:justify-end">
-            <div className="relative w-full max-w-[600px] 2xl:max-w-[780px]">
+            <div className="relative mx-auto w-full max-w-[640px] xl:max-w-[600px] 2xl:max-w-[720px]">
               {/* brand accent shapes behind the photo */}
               <div aria-hidden="true" className="absolute -bottom-4 -right-4 h-3/4 w-3/4 rounded-[2rem] bg-gradient-to-br from-[#F97316] to-[#FFB15C] opacity-90" />
               <div aria-hidden="true" className="absolute -left-4 -top-4 h-1/2 w-1/2 rounded-[2rem] border-2 border-white/20" />
@@ -222,8 +222,8 @@ function HeroFeature({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="whitespace-nowrap text-[13px] font-bold leading-tight text-white">{title}</p>
-        <p className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-blue-100/75">{subtitle}</p>
+       <p className="text-[13px] font-bold leading-tight text-white">{title}</p>
+<p className="mt-0.5 text-[11px] leading-tight text-blue-100/75">{subtitle}</p>
       </div>
     </div>
   );
