@@ -10,7 +10,7 @@ async function createAdmin() {
       "Set ADMIN_INITIAL_PASSWORD to a password of at least 12 characters."
     );
   }
-
+          
   const existingUser = await db.orm.public.User.first({
     email,
   });
@@ -22,7 +22,7 @@ async function createAdmin() {
       throw new Error(
         `The email already belongs to a ${existingUser.role} account.`
       );
-    }
+    }    
 
     await db.orm.public.User
       .where({ id: existingUser.id })
