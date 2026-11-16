@@ -85,6 +85,27 @@ export default function Navbar() {
     return () => document.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
+  // Reset mobile menu when switching to desktop layout.
+useEffect(() => {
+  const mediaQuery = window.matchMedia("(min-width: 1536px)");
+
+  const handleBreakpointChange = (event: MediaQueryListEvent) => {
+    if (event.matches) {
+      setMobileOpen(false);
+    }
+  };
+
+  if (mediaQuery.matches) {
+    setMobileOpen(false);
+  }
+
+  mediaQuery.addEventListener("change", handleBreakpointChange);
+
+  return () => {
+    mediaQuery.removeEventListener("change", handleBreakpointChange);
+  };
+}, []);
+
   return (
     <header
       className={`sticky top-0 z-50 w-full bg-white/95 backdrop-blur transition-shadow duration-300 ${
@@ -202,7 +223,7 @@ export default function Navbar() {
               mobileOpen
                 ? "Close navigation menu"
                 : "Open navigation menu"
-            }
+            }   
             aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
@@ -212,7 +233,7 @@ export default function Navbar() {
 
       {/* Mobile / Tablet Menu */}
       {mobileOpen && (
-        <div className="sk-menu-in w-full border-t border-slate-100 bg-white xl:hidden">
+        <div className="sk-menu-in w-full border-t border-slate-100 bg-white 2xl:hidden">
 
           <div className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-5 lg:px-6">
             <nav aria-label="Mobile navigation" className="flex flex-col">
