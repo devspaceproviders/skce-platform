@@ -285,7 +285,7 @@ export default function PaymentPage() {
 
   /*
    * ==========================================================
-   * RAZORPAY TEST PAYMENT
+   * RAZORPAY PAYMENT
    * ==========================================================
    *
    * 1. Ask backend to create a Razorpay order.
@@ -756,8 +756,7 @@ export default function PaymentPage() {
                   </h2>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Pay securely using Razorpay Test Mode. No real money will
-                    be charged.
+                    Pay securely using Razorpay. Your payment is processed through our secure payment gateway.
                   </p>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -769,7 +768,7 @@ export default function PaymentPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        Razorpay Test Mode
+                        Secure payment processing
                       </p>
                     </div>
 
@@ -783,7 +782,7 @@ export default function PaymentPage() {
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        Razorpay Test Mode
+                        Secure payment processing
                       </p>
                     </div>
 
@@ -791,11 +790,11 @@ export default function PaymentPage() {
                       <CheckCircle2 size={20} className="text-emerald-500" />
 
                       <p className="mt-3 text-sm font-bold text-slate-800">
-                        Test Mode
+                        Secure Payment
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        No real payment
+                        Secure online payment
                       </p>
                     </div>
                   </div>
@@ -842,15 +841,14 @@ export default function PaymentPage() {
                   </div>
                 </div>
 
-                {/* TEST MODE notice */}
+                {/* Secure payment notice */}
                 <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
                   <p className="text-xs font-bold text-[#173B67]">
-                    RAZORPAY TEST MODE
+                    SECURE RAZORPAY PAYMENT
                   </p>
 
                   <p className="mt-1 text-xs leading-5 text-slate-600">
-                    No real money will be charged. This payment uses
-                    Razorpay&apos;s testing environment.
+                    Your payment is securely processed by Razorpay. Complete the transaction using your preferred payment method.
                   </p>
                 </div>
 
@@ -909,8 +907,7 @@ export default function PaymentPage() {
         </Reveal>
 
         <p className="mt-5 text-center text-xs leading-5 text-slate-400">
-          Razorpay Test Mode is enabled for development. No real money will
-          be charged.
+          Your payment is securely processed through Razorpay.
         </p>
       </div>
     </section>
