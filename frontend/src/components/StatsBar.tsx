@@ -5,7 +5,7 @@ import Reveal from "./Reveal";
 
 const STATS = [
   { icon: Users, end: 5000, suffix: "+", label: "Students Trained" },
-  { icon: BookOpen, end: 20, suffix: "+", label: "Courses Offered" },
+  { icon: BookOpen, end: 30, suffix: "+", label: "Courses Offered" },
   { icon: Clock, end: 10, suffix: "+", label: "Years of Excellence" },
   { icon: Award, end: 100, suffix: "%", label: "Student Satisfaction" },
 ];
